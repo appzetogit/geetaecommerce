@@ -71,7 +71,7 @@ export default function SellerStockManagement() {
         if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
 
         // Handle relative paths
-        const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+        const apiBase = import.meta.env.VITE_API_BASE_URL || "/api/v1";
         try {
             const urlObj = new URL(apiBase);
             const origin = urlObj.origin;

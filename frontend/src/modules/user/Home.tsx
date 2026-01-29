@@ -68,11 +68,11 @@ export default function Home() {
         let errorMessage = "Network error. Please check your connection.";
 
         if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-          errorMessage = "Cannot connect to the server. Please ensure the backend server is running on http://localhost:5000";
+          errorMessage = "Cannot connect to the server. Please ensure the backend server is running and accessible.";
         } else if (error.response) {
           errorMessage = `Server error: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`;
         } else if (error.request) {
-          errorMessage = "No response from server. Please check if the backend is running.";
+          errorMessage = "No response from server. Please check your internet connection or if the backend is running.";
         }
         setError(errorMessage);
       } finally {

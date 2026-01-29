@@ -24,8 +24,8 @@ const httpServer = createServer(app);
 
 // Simple CORS configuration - Standard and reliable
 const allowedOrigins = [
-  "https://www.Geeta Stores.com",
-  "https://Geeta Stores.com",
+  "https://www.geetastores.com",
+  "https://geetastores.com",
   "https://api.geeta.today",
   "https://geeta.today",
   // Add more origins from environment variable if needed
@@ -39,27 +39,32 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // In development, allow localhost
-    if (process.env.NODE_ENV !== "production") {
-      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
-        return callback(null, true);
-      }
-    }
+    // Normalize origin (remove trailing slash and lowercase)
+    const normalizedOrigin = origin.replace(/\/$/, '').toLowerCase();
 
-    // Normalize origin (remove trailing slash)
-    const normalizedOrigin = origin.replace(/\/$/, '');
-
-    // Check if origin is in allowed list (exact match or normalized)
-    const isAllowed = allowedOrigins.some(allowed => {
-      const normalizedAllowed = allowed.replace(/\/$/, '');
-      return origin === allowed || normalizedOrigin === normalizedAllowed || origin === normalizedAllowed || normalizedOrigin === allowed;
-    });
-
-    if (isAllowed) {
+    // Allow any localhost or 127.0.0.1 for development
+    if (normalizedOrigin.startsWith("http://localhost:") || normalizedOrigin.startsWith("http://127.0.0.1:")) {
       return callback(null, true);
     }
 
-    // Reject if not allowed - return false instead of error for better handling
+    // Check if origin is in allowed list
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (!allowed) return false;
+      const normalizedAllowed = allowed.replace(/\/$/, '').toLowerCase();
+      return normalizedOrigin === normalizedAllowed;
+    });
+
+    // Special case: allow any subdomain of geeta.today
+    const isGeetaToday = normalizedOrigin.endsWith("geeta.today") || normalizedOrigin.includes("geeta.today");
+
+    if (isAllowed || isGeetaToday) {
+      return callback(null, true);
+    }
+
+    // Log rejected origin for debugging in server logs
+    console.log(`[CORS] Rejected origin: ${origin}`);
+
+    // Reject if not allowed
     return callback(null, false);
   },
   credentials: true,
