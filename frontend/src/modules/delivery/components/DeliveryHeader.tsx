@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useDeliveryStatus } from '../context/DeliveryStatusContext';
 import { useDeliveryUser } from '../context/DeliveryUserContext';
 
@@ -6,6 +7,7 @@ interface DeliveryHeaderProps {
 }
 
 export default function DeliveryHeader({ userName }: DeliveryHeaderProps) {
+  const navigate = useNavigate();
   const { isOnline, setIsOnline } = useDeliveryStatus();
   const { userName: contextUserName } = useDeliveryUser();
   const displayName = userName || contextUserName;
@@ -21,12 +23,22 @@ export default function DeliveryHeader({ userName }: DeliveryHeaderProps) {
 
       {/* Header Content */}
       <div className="px-4 py-3">
-        {/* App Title */}
-        <h1 className={`text-xl font-bold text-center mb-3 transition-colors ${
-          isOnline ? 'text-green-600' : 'text-neutral-500'
-        }`}>
-          Delivery App
-        </h1>
+        {/* Logo and App Title */}
+        <div
+          className="flex flex-col items-center mb-3 cursor-pointer"
+          onClick={() => navigate('/delivery')}
+        >
+          <img
+            src="/assets/geetastoreslogo.png"
+            alt="Geeta Stores"
+            className="h-12 w-auto object-contain mb-1"
+          />
+          <h1 className={`text-sm font-bold transition-colors ${
+            isOnline ? 'text-green-600' : 'text-neutral-500'
+          }`}>
+            Delivery App
+          </h1>
+        </div>
 
         {/* User Info Bar */}
         <div className="flex items-center justify-between">

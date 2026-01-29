@@ -152,7 +152,7 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
             className="hover:opacity-80 transition-opacity"
           >
             <img
-              src={GeetaStoresLogo}
+              src="/assets/geetastoreslogo.png"
               alt="Geeta Stores"
               className="h-10 sm:h-12 w-auto object-contain cursor-pointer"
               style={{ maxWidth: '200px' }}
