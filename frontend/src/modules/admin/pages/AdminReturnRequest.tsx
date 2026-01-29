@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
-  getReturnRequests,
-  updateReturnRequest,
+  getMiscReturnRequests as getReturnRequests,
+  updateMiscReturnRequest as updateReturnRequest,
   type MiscReturnRequest as ReturnRequest,
 } from "../../../services/api/admin/adminMiscService";
 import { useAuth } from "../../../context/AuthContext";

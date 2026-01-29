@@ -173,6 +173,29 @@ export const updateUser = async (
 };
 
 /**
+ * Return Request APIs
+ */
+export const getMiscReturnRequests = async (
+  params?: GetMiscParams
+): Promise<ApiResponse<MiscReturnRequest[]>> => {
+  const response = await api.get<ApiResponse<MiscReturnRequest[]>>("/admin/return-requests", {
+    params,
+  });
+  return response.data;
+};
+
+export const updateMiscReturnRequest = async (
+  id: string,
+  data: UpdateReturnRequestData
+): Promise<ApiResponse<MiscReturnRequest>> => {
+  const response = await api.put<ApiResponse<MiscReturnRequest>>(
+    `/admin/return-requests/${id}`,
+    data
+  );
+  return response.data;
+};
+
+/**
  * Header Category APIs
  */
 export const getHeaderCategories = async (
