@@ -24,9 +24,7 @@ const httpServer = createServer(app);
 
 // Simple CORS configuration - Standard and reliable
 const allowedOrigins = [
-  "https://www.geetastores.com",
-  "https://geetastores.com",
-  "https://api.geeta.today",
+  "http://localhost:5173",
   "https://geeta.today",
   // Add more origins from environment variable if needed
   ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",").map(url => url.trim()) : [])
