@@ -43,66 +43,44 @@ export const initializeSocket = (httpServer: HttpServer) => {
                 // Allow requests with no origin (like mobile apps or server-to-server)
                 if (!origin) return callback(null, true);
 
-                // In production, check against allowed origins
-                if (process.env.NODE_ENV === 'production') {
-                    // Get allowed origins from environment variable (comma-separated)
-                    const frontendUrl = process.env.FRONTEND_URL || "";
-                    const allowedOrigins = frontendUrl
-                        .split(",")
-                        .map((url) => url.trim())
-                        .filter((url) => url.length > 0);
+                // Normalize origin (remove trailing slash and lowercase)
+                const normalizedOrigin = origin.replace(/\/$/, '').toLowerCase();
 
-                    // Default production origins if FRONTEND_URL not set
-                    const defaultOrigins = [
-                        "https://www.Geeta Stores.com",
-                        "https://Geeta Stores.com",
-                    ];
+                // Special case: allow any geeta.today domain or localhost
+                const isGeetaToday = normalizedOrigin.endsWith("geeta.today") ||
+                                    normalizedOrigin.includes("geeta.today");
 
-                    const allAllowedOrigins = allowedOrigins.length > 0
-                        ? [...allowedOrigins, ...defaultOrigins]
-                        : defaultOrigins;
+                const isLocalhost = normalizedOrigin.startsWith("http://localhost:") ||
+                                   normalizedOrigin.startsWith("http://127.0.0.1:") ||
+                                   normalizedOrigin.startsWith("https://localhost:");
 
-                    // Normalize origins for comparison (remove trailing slash, lowercase)
-                    const normalizeUrl = (url: string) => url.replace(/\/$/, '').toLowerCase();
-                    const normalizedOrigin = normalizeUrl(origin);
-
-                    // Check if origin matches any allowed origin
-                    const isAllowed = allAllowedOrigins.some((allowedOrigin) => {
-                        const normalizedAllowed = normalizeUrl(allowedOrigin);
-
-                        // Exact match
-                        if (normalizedOrigin === normalizedAllowed) return true;
-
-                        // Support for www and non-www variants
-                        if (normalizedAllowed.includes("www.")) {
-                            const nonWww = normalizedAllowed.replace("www.", "");
-                            if (normalizedOrigin === nonWww) return true;
-                        } else {
-                            const withWww = normalizedAllowed.replace(/^(https?:\/\/)/, "$1www.");
-                            if (normalizedOrigin === withWww) return true;
-                        }
-                        return false;
-                    });
-
-                    if (!isAllowed) {
-                        console.warn(`⚠️ Socket.io connection rejected from origin: ${origin}. Allowed origins: ${allAllowedOrigins.join(', ')}`);
-                        console.warn(`⚠️ Normalized origin: ${normalizedOrigin}`);
-                    } else {
-                        console.log(`✅ Socket.io connection allowed from origin: ${origin}`);
-                    }
-
-                    return callback(null, isAllowed);
+                if (isGeetaToday || isLocalhost) {
+                    return callback(null, true);
                 }
 
-                // In development, allow any localhost port
+                // In development, allow any localhost or 127.0.0.1
                 if (
-                    origin.startsWith('http://localhost:') ||
-                    origin.startsWith('http://127.0.0.1:') ||
-                    origin.startsWith('https://localhost:')
+                    normalizedOrigin.startsWith('http://localhost:') ||
+                    normalizedOrigin.startsWith('http://127.0.0.1:') ||
+                    normalizedOrigin.startsWith('https://localhost:')
                 ) {
                     return callback(null, true);
                 }
 
+                // Production check against FRONTEND_URL
+                const frontendUrl = process.env.FRONTEND_URL || "";
+                const envOrigins = frontendUrl
+                    .split(",")
+                    .map((url) => url.trim().replace(/^['"]|['"]$/g, '').replace(/\/$/, '').toLowerCase())
+                    .filter(Boolean);
+
+                const isAllowed = envOrigins.some((allowedOrigin) => normalizedOrigin === allowedOrigin);
+
+                if (isAllowed) {
+                    return callback(null, true);
+                }
+
+                console.warn(`⚠️ Socket.io connection rejected from origin: ${origin}`);
                 return callback(null, false);
             },
             methods: ['GET', 'POST'],

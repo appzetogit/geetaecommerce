@@ -22,15 +22,25 @@ dotenv.config();
 const app: Application = express();
 const httpServer = createServer(app);
 
-// Simple CORS configuration - Standard and reliable
+// Comprehensive CORS configuration
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:3000",
   "https://geeta.today",
-  // Add more origins from environment variable if needed
-  ...(process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",").map(url => url.trim()) : [])
-];
+  "https://www.geeta.today",
+  "http://geeta.today",
+  "http://www.geeta.today",
+  "https://api.geeta.today",
+  "https://admin.geeta.today",
+  "https://seller.geeta.today",
+  "https://delivery.geeta.today",
+  // Add more origins from environment variable if needed, cleaning up quotes and trailing slashes
+  ...(process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(",").map(url => url.trim().replace(/^['"]|['"]$/g, '').replace(/\/$/, ''))
+    : [])
+].filter(Boolean);
 
-const corsOptions = {
+const corsOptions: cors.CorsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) {
@@ -40,40 +50,67 @@ const corsOptions = {
     // Normalize origin (remove trailing slash and lowercase)
     const normalizedOrigin = origin.replace(/\/$/, '').toLowerCase();
 
-    // Allow any localhost or 127.0.0.1 for development
-    if (normalizedOrigin.startsWith("http://localhost:") || normalizedOrigin.startsWith("http://127.0.0.1:")) {
+    // Special case: allow any geeta.today domain or localhost
+    const isGeetaToday = normalizedOrigin.endsWith("geeta.today") ||
+                        normalizedOrigin.includes("geeta.today");
+
+    const isLocalhost = normalizedOrigin.startsWith("http://localhost:") ||
+                       normalizedOrigin.startsWith("http://127.0.0.1:") ||
+                       normalizedOrigin.startsWith("https://localhost:");
+
+    if (isGeetaToday || isLocalhost) {
       return callback(null, true);
     }
 
-    // Check if origin is in allowed list
+    // Check against the allowed list as a fallback
     const isAllowed = allowedOrigins.some(allowed => {
-      if (!allowed) return false;
       const normalizedAllowed = allowed.replace(/\/$/, '').toLowerCase();
       return normalizedOrigin === normalizedAllowed;
     });
 
-    // Special case: allow any subdomain of geeta.today
-    const isGeetaToday = normalizedOrigin.endsWith("geeta.today") || normalizedOrigin.includes("geeta.today");
-
-    if (isAllowed || isGeetaToday) {
+    if (isAllowed) {
       return callback(null, true);
     }
 
-    // Log rejected origin for debugging in server logs
-    console.log(`[CORS] Rejected origin: ${origin}`);
-
-    // Reject if not allowed
+    // Log rejected origin for debugging in production
+    console.warn(`[CORS] Request from rejected origin: ${origin}`);
     return callback(null, false);
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-  exposedHeaders: ["Content-Length", "Content-Type"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+    "Access-Control-Allow-Headers",
+    "Access-Control-Request-Method",
+    "Access-Control-Request-Headers",
+    "Cache-Control",
+    "Expires",
+    "Pragma",
+    "x-api-key",
+    "x-module-type"
+  ],
+  exposedHeaders: ["Content-Length", "Content-Type", "X-Total-Count", "Set-Cookie"],
   maxAge: 86400,
+  optionsSuccessStatus: 200
 };
 
-// Apply CORS middleware - This handles everything including preflight
+// Apply CORS middleware first
 app.use(cors(corsOptions));
+
+// Explicit handle for OPTIONS requests (redundant but safe)
+app.options("*", cors(corsOptions));
+
+// Debug middleware - log all incoming requests
+app.use((req: Request, _res: Response, next) => {
+  if (process.env.NODE_ENV !== 'production' || req.method !== 'OPTIONS') {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin || 'N/A'}`);
+  }
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -91,11 +128,6 @@ app.get("/", (_req: Request, res: Response) => {
   });
 });
 
-// Debug middleware - log all incoming requests
-app.use((req: Request, _res: Response, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  next();
-});
 
 // API Routes
 app.use("/api/v1", routes);
