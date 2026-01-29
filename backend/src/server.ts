@@ -31,9 +31,7 @@ const allowedOrigins = [
   "http://geeta.today",
   "http://www.geeta.today",
   "https://api.geeta.today",
-  "https://admin.geeta.today",
-  "https://seller.geeta.today",
-  "https://delivery.geeta.today",
+
   // Add more origins from environment variable if needed, cleaning up quotes and trailing slashes
   ...(process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(",").map(url => url.trim().replace(/^['"]|['"]$/g, '').replace(/\/$/, ''))

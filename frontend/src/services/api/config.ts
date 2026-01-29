@@ -11,7 +11,7 @@ import {
 // In development, use relative URL to leverage Vite proxy
 // In production, use full URL or environment variable
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-  || (import.meta.env.DEV ? "/api/v1" : "http://localhost:5000/api/v1");
+  || (import.meta.env.DEV ? "/api/v1" : "https://api.geeta.today/api/v1");
 
 // Log API configuration on startup (only in development)
 if (import.meta.env.DEV) {
@@ -32,12 +32,12 @@ export const getSocketBaseURL = (): string => {
   }
 
   // Otherwise, extract base URL from VITE_API_BASE_URL
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://api.geeta.today/api/v1";
 
   // Remove /api/v1 or /api from the end
   const socketUrl = apiBaseUrl.replace(/\/api\/v\d+$|\/api$/, '');
 
-  return socketUrl || "http://localhost:5000";
+  return socketUrl || "https://api.geeta.today";
 };
 
 // Create axios instance
@@ -52,8 +52,16 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getCurrentModuleToken();
+
+    // Ensure URL doesn't start with a slash when using baseURL with a path
+    // This prevents axios from replacing the path part of baseURL (like /api/v1)
+    if (config.url?.startsWith('/')) {
+      config.url = config.url.substring(1);
+    }
+
     console.log('🌐 API Request:', {
       url: config.url,
+      fullUrl: config.baseURL ? `${config.baseURL}/${config.url}` : config.url,
       method: config.method,
       hasToken: !!token,
       tokenPreview: token ? token.substring(0, 20) + '...' : null,
