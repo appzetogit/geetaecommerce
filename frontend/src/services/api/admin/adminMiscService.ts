@@ -173,39 +173,6 @@ export const updateUser = async (
 };
 
 /**
- * Return Request APIs
- */
-export const getReturnRequests = async (
-  params?: GetMiscParams
-): Promise<ApiResponse<MiscReturnRequest[]>> => {
-  const response = await api.get<ApiResponse<MiscReturnRequest[]>>(
-    "/admin/return-requests",
-    { params }
-  );
-  return response.data;
-};
-
-export const getReturnRequestById = async (
-  id: string
-): Promise<ApiResponse<MiscReturnRequest>> => {
-  const response = await api.get<ApiResponse<MiscReturnRequest>>(
-    `/admin/return-requests/${id}`
-  );
-  return response.data;
-};
-
-export const updateReturnRequest = async (
-  id: string,
-  data: UpdateReturnRequestData
-): Promise<ApiResponse<MiscReturnRequest>> => {
-  const response = await api.put<ApiResponse<MiscReturnRequest>>(
-    `/admin/return-requests/${id}`,
-    data
-  );
-  return response.data;
-};
-
-/**
  * Header Category APIs
  */
 export const getHeaderCategories = async (
@@ -254,49 +221,6 @@ export const updateHeaderCategoryOrder = async (
   const response = await api.put<ApiResponse<void>>(
     "/admin/header-categories/order",
     { categories }
-  );
-  return response.data;
-};
-
-/**
- * Home Section APIs
- */
-export const getHomeSections = async (): Promise<ApiResponse<MiscHomeSection[]>> => {
-  const response = await api.get('/admin/cms/home-sections');
-  return response.data;
-};
-
-export const updateHomeSections = async (sections: MiscHomeSection[]): Promise<ApiResponse<MiscHomeSection[]>> => {
-  const response = await api.put('/admin/cms/home-sections', { sections });
-  return response.data;
-};
-
-export const updateHomeSection = async (
-  id: string,
-  data: UpdateHomeSectionData
-): Promise<ApiResponse<MiscHomeSection>> => {
-  const response = await api.put<ApiResponse<MiscHomeSection>>(
-    `/admin/home-sections/${id}`,
-    data
-  );
-  return response.data;
-};
-
-export const deleteHomeSection = async (
-  id: string
-): Promise<ApiResponse<void>> => {
-  const response = await api.delete<ApiResponse<void>>(
-    `/admin/home-sections/${id}`
-  );
-  return response.data;
-};
-
-export const updateHomeSectionOrder = async (
-  sections: Array<{ id: string; order: number }>
-): Promise<ApiResponse<void>> => {
-  const response = await api.put<ApiResponse<void>>(
-    "/admin/home-sections/order",
-    { sections }
   );
   return response.data;
 };

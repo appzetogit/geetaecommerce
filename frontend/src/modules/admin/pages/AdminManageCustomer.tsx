@@ -148,10 +148,10 @@ export default function AdminManageCustomer() {
         }
 
         if (typeof aValue === 'string') {
-          aValue = aValue.toLowerCase();
+          aValue = (aValue as string).toLowerCase();
         }
         if (typeof bValue === 'string') {
-          bValue = bValue.toLowerCase();
+          bValue = (bValue as string).toLowerCase();
         }
 
         if (sortDirection === "asc") {

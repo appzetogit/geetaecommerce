@@ -161,10 +161,10 @@ export default function AdminCancelledOrders() {
         }
 
         if (typeof aValue === 'string') {
-          aValue = aValue.toLowerCase();
+          aValue = (aValue as string).toLowerCase();
         }
         if (typeof bValue === 'string') {
-          bValue = bValue.toLowerCase();
+          bValue = (bValue as string).toLowerCase();
         }
 
         if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;

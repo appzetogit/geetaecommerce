@@ -71,7 +71,7 @@ export default function AdminDealOfTheDay() {
 
   const handleRemoveProduct = (productId: string) => {
       const currentIds = config.dealOfTheDayProductIds || [];
-      const newIds = currentIds.filter(id => id !== productId);
+      const newIds = currentIds.filter((id: any) => id !== productId);
       setConfig({ ...config, dealOfTheDayProductIds: newIds });
       setSelectedProducts(selectedProducts.filter(p => (p._id || p.id) !== productId));
   };

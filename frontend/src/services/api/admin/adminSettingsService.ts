@@ -43,7 +43,7 @@ export interface PaymentGateways {
   };
 }
 
-export interface HomeSection {
+export interface AppHomeSection {
   title: string;
   category?: string;
   subcategory?: string;
@@ -89,7 +89,7 @@ export interface AppSettings {
     question: string;
     answer: string;
   }>;
-  homeSections?: HomeSection[];
+  homeSections?: AppHomeSection[];
   features: {
     sellerRegistration: boolean;
     productApproval: boolean;

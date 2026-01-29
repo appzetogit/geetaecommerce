@@ -211,12 +211,12 @@ function copyShopByStoreImages() {
 }
 
 // Copy Geeta Stores logo
-function copyGeeta StoresLogo() {
-  const Geeta StoresPath = path.join(assetsDir, 'Geeta Stores1.png');
-  if (fs.existsSync(Geeta StoresPath)) {
+function copyGeetaStoresLogo() {
+  const geetaStoresPath = path.join(assetsDir, 'Geeta Stores1.png');
+  if (fs.existsSync(geetaStoresPath)) {
     const destPath = path.join(publicAssetsDir, 'Geeta Stores1.png');
     if (!fs.existsSync(destPath)) {
-      fs.copyFileSync(Geeta StoresPath, destPath);
+      fs.copyFileSync(geetaStoresPath, destPath);
       console.log('Copied Geeta Stores logo: Geeta Stores1.png');
     }
   }
@@ -249,7 +249,7 @@ copyProductImages();
 copyBannerImage();
 copyShopByStoreImages();
 copyLoginVideo();
-copyGeeta StoresLogo();
+copyGeetaStoresLogo();
 copyDeliveryIcon();
 console.log('Image copy completed!');
 

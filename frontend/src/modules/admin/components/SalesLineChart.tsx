@@ -61,7 +61,7 @@ export default function SalesLineChart({ thisMonthData, lastMonthData, height = 
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
               fontSize: '12px'
             }}
-            formatter={(value: number) => [`₹${value.toLocaleString()}`, '']}
+            formatter={(value: any) => [`₹${(value || 0).toLocaleString()}`, '']}
             labelStyle={{ color: '#374151', marginBottom: '0.25rem' }}
           />
           <Legend

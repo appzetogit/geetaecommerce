@@ -484,12 +484,12 @@ export default function Checkout() {
       items: cart.items.map(item => {
           const activeRule = getActiveFreeGiftRule();
           const isFreeGiftItem = item.isFreeGift;
-          return {
-              ...item,
-              isFreeGift: isFreeGiftItem || false,
-              price: isFreeGiftItem ? 0 : item.price,
-              freeGiftReason: isFreeGiftItem && activeRule ? `Cart value ≥ ₹${activeRule.minCartValue}` : undefined
-          };
+              return {
+                  ...item,
+                  isFreeGift: isFreeGiftItem || false,
+                  price: isFreeGiftItem ? 0 : (item as any).price || getApplicableUnitPrice(item.product, item.variant, item.quantity),
+                  freeGiftReason: isFreeGiftItem && activeRule ? `Cart value ≥ ₹${activeRule.minCartValue}` : undefined
+              };
       }),
       totalItems: cart.itemCount,
       subtotal: discountedTotal,
@@ -921,7 +921,7 @@ export default function Checkout() {
                           e.stopPropagation();
                           const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
                           const variantTitle = (item.product as any).variantTitle || (item.product as any).pack;
-                          updateQuantity(item.product?.id || item.product?._id, (item.quantity || 1) - 1, variantId, variantTitle);
+                          updateQuantity((item.product?.id || item.product?._id || '') as string, (item.quantity || 1) - 1, variantId, variantTitle);
                         }}
                         className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors text-xs"
                       >
@@ -937,7 +937,7 @@ export default function Checkout() {
                           e.stopPropagation();
                           const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
                           const variantTitle = (item.product as any).variantTitle || (item.product as any).pack;
-                          updateQuantity(item.product?.id || item.product?._id, (item.quantity || 1) + 1, variantId, variantTitle);
+                          updateQuantity((item.product?.id || item.product?._id || '') as string, (item.quantity || 1) + 1, variantId, variantTitle);
                         }}
                         className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors text-xs"
                       >
