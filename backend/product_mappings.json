@@ -1,0 +1,516 @@
+[
+  {
+    "category": "Vegetables & Fruits",
+    "subcategory": "Fresh Vegetables",
+    "subSubcategory": "Potato",
+    "products": [
+      {
+        "name": "Potato",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Fruits & Vegetables\\Fresh Vegetables\\Potato\\Potato.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Vegetables & Fruits",
+    "subcategory": "Fresh Vegetables",
+    "subSubcategory": "Onion",
+    "products": [
+      {
+        "name": "Onion",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Fruits & Vegetables\\Fresh Vegetables\\Onion\\Onion.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Vegetables & Fruits",
+    "subcategory": "Fresh Vegetables",
+    "subSubcategory": "Tomato",
+    "products": [
+      {
+        "name": "Hybrid Tomato",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Fruits & Vegetables\\Fresh Vegetables\\Hybrid Tomato\\Hybrid Tomato.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Vegetables & Fruits",
+    "subcategory": "Fresh Vegetables",
+    "subSubcategory": "Brinjal",
+    "products": [
+      {
+        "name": "Varikatri Brinjal",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Fruits & Vegetables\\Fresh Vegetables\\Varikatri Brinjal\\Varikatri Brinjal.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Vegetables & Fruits",
+    "subcategory": "Fresh Fruits",
+    "subSubcategory": "Apple",
+    "products": [
+      {
+        "name": "Washinton Apple",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Fruits & Vegetables\\Fresh Fruits\\Washinton Apple\\Washinton Apple.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Vegetables & Fruits",
+    "subcategory": "Fresh Fruits",
+    "subSubcategory": "Banana",
+    "products": [
+      {
+        "name": "Banana",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Fruits & Vegetables\\Fresh Fruits\\Banana\\Banana.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Vegetables & Fruits",
+    "subcategory": "Fresh Fruits",
+    "subSubcategory": "Papaya",
+    "products": [
+      {
+        "name": "Papaya",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Fruits & Vegetables\\Fresh Fruits\\Papaya\\Papaya.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Vegetables & Fruits",
+    "subcategory": "Fresh Fruits",
+    "subSubcategory": "Pomegranate",
+    "products": [
+      {
+        "name": "Pomegranate",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Fruits & Vegetables\\Fresh Fruits\\Pomegranate\\1c3d4e0b-c49d-41bb-95d8-cb7fa63c9c08.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Vegetables & Fruits",
+    "subcategory": "Leafy & Herbs",
+    "subSubcategory": "Spinach",
+    "products": [
+      {
+        "name": "Baby Spinach Hydroponically Grown",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Fruits & Vegetables\\Leafies & Herbs\\Baby Spinach Hydroponically Grown\\Baby Spinach Hydroponically Grown.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Vegetables & Fruits",
+    "subcategory": "Leafy & Herbs",
+    "subSubcategory": "Coriander",
+    "products": [
+      {
+        "name": "Coriander Bunch",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Fruits & Vegetables\\Leafies & Herbs\\Coriander Bunch\\Coriander Bunch.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Dairy, Bread & Eggs",
+    "subcategory": "Milk",
+    "subSubcategory": "Toned Milk",
+    "products": [
+      {
+        "name": "Amul Taaza Homogenised Toned Milk",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Milk\\Amul Taaza Homogenised Toned Milk\\Amul Taaza Homogenised Toned Milk.jpg"
+      },
+      {
+        "name": "Amul Taaza Toned Fresh Milk",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Milk\\Amul Taaza Toned Fresh Milk\\Amul Taaza Toned Fresh Milk.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Dairy, Bread & Eggs",
+    "subcategory": "Milk",
+    "subSubcategory": "Full Cream Milk",
+    "products": [
+      {
+        "name": "Amul Gold Full Cream Fresh Milk",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Milk\\Amul Gold Full Cream Fresh Milk\\Amul Gold Full Cream Fresh Milk.jpg"
+      },
+      {
+        "name": "Gokul Full Cream Fresh Milk",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Milk\\Gokul Full Cream Fresh Milk\\Gokul Full Cream Fresh Milk.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Dairy, Bread & Eggs",
+    "subcategory": "Milk",
+    "subSubcategory": "Cow Milk",
+    "products": [
+      {
+        "name": "Amul Cow Fresh Milk",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Milk\\Amul Cow Fresh Milk\\Amul Cow Fresh Milk.jpg"
+      },
+      {
+        "name": "Amul Gold Full Cream Fresh Milk",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Milk\\Amul Gold Full Cream Fresh Milk\\Amul Gold Full Cream Fresh Milk.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Dairy, Bread & Eggs",
+    "subcategory": "Curd & Paneer",
+    "subSubcategory": "Curd",
+    "products": [
+      {
+        "name": "Amul Masti Curd",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Curd & Yogurt\\Amul Masti Curd\\Amul Masti Curd.jpg"
+      },
+      {
+        "name": "Gowardhan Curd",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Curd & Yogurt\\Gowardhan Curd\\Gowardhan Curd.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Dairy, Bread & Eggs",
+    "subcategory": "Bread & Buns",
+    "subSubcategory": "White Bread",
+    "products": [
+      {
+        "name": "Britannia Vitarich Sandwich White Bread",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Bread & Pav\\Britannia Vitarich Sandwich White Bread\\Britannia Vitarich Sandwich White Bread.jpg"
+      },
+      {
+        "name": "English Oven Sandwich White Bread",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Bread & Pav\\English Oven Sandwich White Bread\\English Oven Sandwich White Bread.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Dairy, Bread & Eggs",
+    "subcategory": "Bread & Buns",
+    "subSubcategory": "Brown Bread",
+    "products": [
+      {
+        "name": "Britannia Brown Bread",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Bread & Pav\\Britannia Brown Bread\\Britannia Brown Bread.jpg"
+      },
+      {
+        "name": "Britannia Vitarich Sandwich White Bread",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Bread & Pav\\Britannia Vitarich Sandwich White Bread\\Britannia Vitarich Sandwich White Bread.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Dairy, Bread & Eggs",
+    "subcategory": "Eggs",
+    "subSubcategory": "White Eggs",
+    "products": [
+      {
+        "name": "Table White White Eggs (10 pieces)",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Eggs\\Table White White Eggs (10 pieces)\\Table White White Eggs (10 pieces).jpg"
+      },
+      {
+        "name": "Table White White Eggs - 30 Pieces Tray",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Eggs\\Table White White Eggs - 30 Pieces Tray\\Table White White Eggs - 30 Pieces Tray.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Dairy, Bread & Eggs",
+    "subcategory": "Eggs",
+    "subSubcategory": "Brown Eggs",
+    "products": [
+      {
+        "name": "Licious Brown Eggs",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Eggs\\Licious Brown Eggs\\Licious Brown Eggs.jpg"
+      },
+      {
+        "name": "UPF Healthy Brown Eggs",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Dairy, Bread & Eggs\\Eggs\\UPF Healthy Brown Eggs\\UPF Healthy Brown Eggs.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Munchies",
+    "subcategory": "Chips & Namkeen",
+    "subSubcategory": "Potato Chips",
+    "products": [
+      {
+        "name": "Lay's American Style Cream & Onion Potato Chips",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Snacks & Munchies\\Chips & Crisps\\Lay's American Style Cream & Onion Potato Chips\\578b.jpg"
+      },
+      {
+        "name": "Lay's India's Magic Masala Potato Chips (40 g)",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Snacks & Munchies\\Chips & Crisps\\Lay's India's Magic Masala Potato Chips (40 g)\\240092a.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Cold Drinks & Juices",
+    "subcategory": "Soft Drinks",
+    "subSubcategory": "Cola",
+    "products": [
+      {
+        "name": "Coca-Cola Soft Drink (750 ml) - Pack of 2",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Cold Drinks & Juices\\Soft Drinks\\Coca-Cola Soft Drink (750 ml) - Pack of 2\\396483b.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Cold Drinks & Juices",
+    "subcategory": "Soft Drinks",
+    "subSubcategory": "Orange Drink",
+    "products": [
+      {
+        "name": "Coca-Cola Soft Drink (750 ml) - Pack of 2",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Cold Drinks & Juices\\Soft Drinks\\Coca-Cola Soft Drink (750 ml) - Pack of 2\\396483b.jpg"
+      },
+      {
+        "name": "Pepsi Black Zero Calories Soft Drink - Buy 5 Get 1",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Cold Drinks & Juices\\Soft Drinks\\Pepsi Black Zero Calories Soft Drink - Buy 5 Get 1\\478019b.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Cold Drinks & Juices",
+    "subcategory": "Soft Drinks",
+    "subSubcategory": "Lemon Drink",
+    "products": [
+      {
+        "name": "Coca-Cola Soft Drink (750 ml) - Pack of 2",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Cold Drinks & Juices\\Soft Drinks\\Coca-Cola Soft Drink (750 ml) - Pack of 2\\396483b.jpg"
+      },
+      {
+        "name": "Pepsi Black Zero Calories Soft Drink - Buy 5 Get 1",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Cold Drinks & Juices\\Soft Drinks\\Pepsi Black Zero Calories Soft Drink - Buy 5 Get 1\\478019b.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Cold Drinks & Juices",
+    "subcategory": "Energy Drinks",
+    "subSubcategory": "Energy Drink Cans",
+    "products": [
+      {
+        "name": "Monster Energy Drink",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Cold Drinks & Juices\\Energy Drinks\\Monster Energy Drink\\Monster Energy Drink.jpg"
+      },
+      {
+        "name": "Red Bull Energy Drink (250 ml)",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Cold Drinks & Juices\\Energy Drinks\\Red Bull Energy Drink (250 ml)\\Red Bull Energy Drink (250 ml).jpg"
+      }
+    ]
+  },
+  {
+    "category": "Sweet Tooth",
+    "subcategory": "Indian Sweets",
+    "subSubcategory": "Gulab Jamun",
+    "products": [
+      {
+        "name": "Open & Eat Gulab Jamun by Gits",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Sweet Tooth\\Indian Sweets\\Open & Eat Gulab Jamun by Gits\\Open & Eat Gulab Jamun by Gits.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Bakery & Biscuits",
+    "subcategory": "Cookies",
+    "subSubcategory": "Butter Cookies",
+    "products": [
+      {
+        "name": "Cadbury Chocobakes Choco Chip Cookies",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Bakery & Biscuits\\Cookies\\Cadbury Chocobakes Choco Chip Cookies\\Cadbury Chocobakes Choco Chip Cookies.jpg"
+      },
+      {
+        "name": "Let's Try Ragi Kaju Pista Cookies",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Bakery & Biscuits\\Cookies\\Let's Try Ragi Kaju Pista Cookies\\Let's Try Ragi Kaju Pista Cookies.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Bakery & Biscuits",
+    "subcategory": "Cookies",
+    "subSubcategory": "Oat Cookies",
+    "products": [
+      {
+        "name": "Cadbury Chocobakes Choco Chip Cookies",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Bakery & Biscuits\\Cookies\\Cadbury Chocobakes Choco Chip Cookies\\Cadbury Chocobakes Choco Chip Cookies.jpg"
+      },
+      {
+        "name": "Let's Try Ragi Kaju Pista Cookies",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Bakery & Biscuits\\Cookies\\Let's Try Ragi Kaju Pista Cookies\\Let's Try Ragi Kaju Pista Cookies.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Tea, Coffee & More",
+    "subcategory": "Tea",
+    "subSubcategory": "Black Tea",
+    "products": [
+      {
+        "name": "Tata Tea Agni Special Blend Tea",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Tea, Coffee & Health Drink\\Tea\\Tata Tea Agni Special Blend Tea\\Tata Tea Agni Special Blend Tea.jpg"
+      },
+      {
+        "name": "Brooke Bond Red Label Natural Care Tea",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Tea, Coffee & Health Drink\\Tea\\Brooke Bond Red Label Natural Care Tea\\Brooke Bond Red Label Natural Care Tea.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Tea, Coffee & More",
+    "subcategory": "Tea",
+    "subSubcategory": "Green Tea",
+    "products": [
+      {
+        "name": "Tata Tea Agni Special Blend Tea",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Tea, Coffee & Health Drink\\Tea\\Tata Tea Agni Special Blend Tea\\Tata Tea Agni Special Blend Tea.jpg"
+      },
+      {
+        "name": "Brooke Bond Red Label Natural Care Tea",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Tea, Coffee & Health Drink\\Tea\\Brooke Bond Red Label Natural Care Tea\\Brooke Bond Red Label Natural Care Tea.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Tea, Coffee & More",
+    "subcategory": "Coffee",
+    "subSubcategory": "Instant Coffee",
+    "products": [
+      {
+        "name": "Continental Xtra Instant Coffee",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Tea, Coffee & Health Drink\\Coffee\\Continental Xtra Instant Coffee\\Continental Xtra Instant Coffee.jpg"
+      },
+      {
+        "name": "iD Instant Coffee Powde",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Tea, Coffee & Health Drink\\Coffee\\iD Instant Coffee Powde\\iD Instant Coffee Powde.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Tea, Coffee & More",
+    "subcategory": "Coffee",
+    "subSubcategory": "Filter Coffee",
+    "products": [
+      {
+        "name": "Continental Xtra Instant Coffee",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Tea, Coffee & Health Drink\\Coffee\\Continental Xtra Instant Coffee\\Continental Xtra Instant Coffee.jpg"
+      },
+      {
+        "name": "iD Instant Coffee Powde",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Tea, Coffee & Health Drink\\Coffee\\iD Instant Coffee Powde\\iD Instant Coffee Powde.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Atta, Rice & Dal",
+    "subcategory": "Rice",
+    "subSubcategory": "Basmati Rice",
+    "products": [
+      {
+        "name": "Daawat Pulav Basmati Rice (Slender Grains)",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Atta, Rice & Dal\\Rice\\Daawat Pulav Basmati Rice (Slender Grains)\\Daawat Pulav Basmati Rice (Slender Grains).jpg"
+      },
+      {
+        "name": "Daawat Rozana Super Basmati Rice",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Atta, Rice & Dal\\Rice\\Daawat Rozana Super Basmati Rice\\Daawat Rozana Super Basmati Rice.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Atta, Rice & Dal",
+    "subcategory": "Rice",
+    "subSubcategory": "Boiled Rice",
+    "products": [
+      {
+        "name": "Daawat Pulav Basmati Rice (Slender Grains)",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Atta, Rice & Dal\\Rice\\Daawat Pulav Basmati Rice (Slender Grains)\\Daawat Pulav Basmati Rice (Slender Grains).jpg"
+      },
+      {
+        "name": "Daawat Rozana Super Basmati Rice",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Atta, Rice & Dal\\Rice\\Daawat Rozana Super Basmati Rice\\Daawat Rozana Super Basmati Rice.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Masala, Oil & More",
+    "subcategory": "Whole Spices",
+    "subSubcategory": "Cumin",
+    "products": [
+      {
+        "name": "Catch Cumin Seeds  Jeera Seeds",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Masala, Oil & More\\Whole Spices\\Catch Cumin Seeds  Jeera Seeds\\Catch Cumin Seeds Jeera Seeds.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Masala, Oil & More",
+    "subcategory": "Whole Spices",
+    "subSubcategory": "Coriander Seeds",
+    "products": [
+      {
+        "name": "Catch Cumin Seeds  Jeera Seeds",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Masala, Oil & More\\Whole Spices\\Catch Cumin Seeds  Jeera Seeds\\Catch Cumin Seeds Jeera Seeds.jpg"
+      },
+      {
+        "name": "Organic Tattva Organic Ajwain Seeds",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Masala, Oil & More\\Whole Spices\\Organic Tattva Organic Ajwain Seeds\\Organic Tattva Organic Ajwain Seeds.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Masala, Oil & More",
+    "subcategory": "Powdered Spices",
+    "subSubcategory": "Turmeric",
+    "products": [
+      {
+        "name": "Everest Turmeric PowderHaldi",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Masala, Oil & More\\Powdered Spices\\Everest Turmeric PowderHaldi\\Everest Turmeric Powder Haldi.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Masala, Oil & More",
+    "subcategory": "Powdered Spices",
+    "subSubcategory": "Chilli Powder",
+    "products": [
+      {
+        "name": "Everest Tikhalal Red Chilli Powder",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Masala, Oil & More\\Powdered Spices\\Everest Tikhalal Red Chilli Powder\\Everest Tikhalal Red Chilli Powder.jpg"
+      },
+      {
+        "name": "Everest Coriander PowderDhania",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Masala, Oil & More\\Powdered Spices\\Everest Coriander PowderDhania\\Everest Coriander Powder Dhania.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Chicken, Meat & Fish",
+    "subcategory": "Chicken",
+    "subSubcategory": "Whole Chicken",
+    "products": [
+      {
+        "name": "Godrej Real Good Chicken Curry Cut",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Chicken, Meat & Fish\\Chicken\\Godrej Real Good Chicken Curry Cut\\Godrej Real Good Chicken Curry Cut.jpg"
+      },
+      {
+        "name": "ITC Master Chef Desi Style Chicken Burger Patty (Frozen)",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Chicken, Meat & Fish\\Chicken\\ITC Master Chef Desi Style Chicken Burger Patty (Frozen)\\452651b.jpg"
+      }
+    ]
+  },
+  {
+    "category": "Chicken, Meat & Fish",
+    "subcategory": "Chicken",
+    "subSubcategory": "Chicken Curry Cut",
+    "products": [
+      {
+        "name": "Godrej Real Good Chicken Curry Cut",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Chicken, Meat & Fish\\Chicken\\Godrej Real Good Chicken Curry Cut\\Godrej Real Good Chicken Curry Cut.jpg"
+      },
+      {
+        "name": "ITC Master Chef Desi Style Chicken Burger Patty (Frozen)",
+        "imagePath": "D:\\AppZeto\\Geeta Stores\\frontend\\assets\\Image-20251130T081301Z-1-001\\Image\\product\\product\\Chicken, Meat & Fish\\Chicken\\ITC Master Chef Desi Style Chicken Burger Patty (Frozen)\\452651b.jpg"
+      }
+    ]
+  }
+]

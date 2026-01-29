@@ -1,0 +1,177 @@
+{
+  "summary": {
+    "total": 33,
+    "passed": 33,
+    "failed": 0,
+    "skipped": 0,
+    "successRate": "100.00%"
+  },
+  "results": [
+    {
+      "name": "Cleanup",
+      "status": "PASS",
+      "message": "Test users cleaned up"
+    },
+    {
+      "name": "Admin Register - Super Admin",
+      "status": "PASS",
+      "message": "Super Admin registered successfully"
+    },
+    {
+      "name": "Admin Register - Regular Admin",
+      "status": "PASS",
+      "message": "Regular Admin registered successfully"
+    },
+    {
+      "name": "Admin Register - Duplicate Mobile",
+      "status": "PASS",
+      "message": "Correctly rejected duplicate mobile"
+    },
+    {
+      "name": "Admin Register - Invalid Mobile",
+      "status": "PASS",
+      "message": "Correctly rejected invalid mobile format"
+    },
+    {
+      "name": "Admin Register - Missing Fields",
+      "status": "PASS",
+      "message": "Correctly rejected missing fields"
+    },
+    {
+      "name": "Admin Send OTP - Valid Mobile",
+      "status": "PASS",
+      "message": "OTP sent successfully"
+    },
+    {
+      "name": "Admin Send OTP - Non-existent Mobile",
+      "status": "PASS",
+      "message": "Correctly rejected non-existent admin"
+    },
+    {
+      "name": "Admin Send OTP - Invalid Format",
+      "status": "PASS",
+      "message": "Correctly rejected invalid mobile format"
+    },
+    {
+      "name": "Admin Send OTP - Missing Mobile",
+      "status": "PASS",
+      "message": "Correctly rejected missing mobile"
+    },
+    {
+      "name": "Admin Verify OTP - Valid OTP",
+      "status": "PASS",
+      "message": "Login successful with valid OTP"
+    },
+    {
+      "name": "Admin Verify OTP - Invalid OTP",
+      "status": "PASS",
+      "message": "Correctly rejected invalid OTP"
+    },
+    {
+      "name": "Admin Verify OTP - Invalid Mobile",
+      "status": "PASS",
+      "message": "Correctly rejected invalid mobile"
+    },
+    {
+      "name": "Admin Verify OTP - Invalid OTP Format",
+      "status": "PASS",
+      "message": "Correctly rejected invalid OTP format"
+    },
+    {
+      "name": "Seller Register - Valid Data",
+      "status": "PASS",
+      "message": "Seller registered successfully"
+    },
+    {
+      "name": "Seller Register - Duplicate Mobile",
+      "status": "PASS",
+      "message": "Correctly rejected duplicate mobile"
+    },
+    {
+      "name": "Seller Register - Missing Fields",
+      "status": "PASS",
+      "message": "Correctly rejected missing fields"
+    },
+    {
+      "name": "Seller Send OTP - Valid Mobile",
+      "status": "PASS",
+      "message": "OTP sent successfully"
+    },
+    {
+      "name": "Seller Send OTP - Non-existent Mobile",
+      "status": "PASS",
+      "message": "Correctly rejected non-existent seller"
+    },
+    {
+      "name": "Seller Verify OTP - Valid OTP",
+      "status": "PASS",
+      "message": "Login successful with valid OTP"
+    },
+    {
+      "name": "Seller Verify OTP - Invalid OTP",
+      "status": "PASS",
+      "message": "Correctly rejected invalid OTP"
+    },
+    {
+      "name": "Customer Register - Valid Data",
+      "status": "PASS",
+      "message": "Customer registered successfully"
+    },
+    {
+      "name": "Customer Register - Duplicate Mobile",
+      "status": "PASS",
+      "message": "Correctly rejected duplicate mobile"
+    },
+    {
+      "name": "Customer Register - Missing Fields",
+      "status": "PASS",
+      "message": "Correctly rejected missing fields"
+    },
+    {
+      "name": "Customer Send OTP - Valid Mobile",
+      "status": "PASS",
+      "message": "OTP sent successfully"
+    },
+    {
+      "name": "Customer Send OTP - Non-existent Mobile",
+      "status": "PASS",
+      "message": "Correctly rejected non-existent customer"
+    },
+    {
+      "name": "Customer Verify OTP - Valid OTP",
+      "status": "PASS",
+      "message": "Login successful with valid OTP"
+    },
+    {
+      "name": "Customer Verify OTP - Invalid OTP",
+      "status": "PASS",
+      "message": "Correctly rejected invalid OTP"
+    },
+    {
+      "name": "Delete - Admin Users",
+      "status": "PASS",
+      "message": "Deleted 2 admin(s)"
+    },
+    {
+      "name": "Delete - Seller Users",
+      "status": "PASS",
+      "message": "Deleted 1 seller(s)"
+    },
+    {
+      "name": "Delete - Customer Users",
+      "status": "PASS",
+      "message": "Deleted 1 customer(s)"
+    },
+    {
+      "name": "Delete - Verification",
+      "status": "PASS",
+      "message": "All test users successfully deleted"
+    },
+    {
+      "name": "Cleanup",
+      "status": "PASS",
+      "message": "Test users cleaned up"
+    }
+  ],
+  "timestamp": "2025-12-12T10:11:44.523Z"
+}

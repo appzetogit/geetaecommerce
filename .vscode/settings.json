@@ -1,0 +1,21 @@
+{
+  // Prevent auto-formatting that might cause Git issues
+  "editor.formatOnSave": false,
+  "editor.formatOnPaste": false,
+  "editor.formatOnType": false,
+
+  // Ensure consistent line endings
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+
+  // TypeScript/JavaScript settings
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "javascript.preferences.includePackageJsonAutoImports": "on",
+
+  // ESLint settings (if you want to enable it manually)
+  "eslint.enable": true,
+  "eslint.format.enable": false,
+  "eslint.lintTask.enable": false
+}
+
