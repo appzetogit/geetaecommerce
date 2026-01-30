@@ -22,13 +22,11 @@ import { getTheme } from "../../utils/themes";
 export default function Home() {
   const navigate = useNavigate();
   const { location } = useLocation();
-  const { activeCategory, setActiveCategory } = useThemeContext();
+  const { activeCategory, setActiveCategory, currentTheme: theme } = useThemeContext();
   const { startRouteLoading, stopRouteLoading } = useLoading();
   const activeTab = activeCategory;
   const setActiveTab = setActiveCategory;
   const contentRef = useRef<HTMLDivElement>(null);
-
-  const theme = getTheme(activeTab || 'all');
 
   // State for dynamic data
   const [loading, setLoading] = useState(true);
@@ -179,7 +177,9 @@ export default function Home() {
       {/* Main content */}
       <div
         ref={contentRef}
-        className="bg-neutral-50 -mt-2 pt-1 space-y-5 md:space-y-8 md:pt-4">
+        className="-mt-2 pt-1 space-y-5 md:space-y-8 md:pt-4 pb-12"
+        style={{ backgroundColor: `${theme.primary[3]}40` || '#f9fafb' }} // 40 is hex for ~25% alpha
+      >
 
         {/* FLASH DEAL Section */}
         <FlashDealSection />

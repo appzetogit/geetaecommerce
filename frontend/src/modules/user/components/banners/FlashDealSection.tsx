@@ -15,8 +15,7 @@ interface TimeLeft {
 
 export default function FlashDealSection() {
   const navigate = useNavigate();
-  const { activeCategory } = useThemeContext();
-  const theme = getTheme(activeCategory || 'all');
+  const { activeCategory, currentTheme: theme } = useThemeContext();
   const [config, setConfig] = useState<{flashDealTargetDate: string; flashDealImage?: string; isActive?: boolean; flashDealProductIds?: string[]}>({ flashDealTargetDate: '', isActive: true });
   const [products, setProducts] = useState<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -97,8 +96,8 @@ export default function FlashDealSection() {
     return () => clearInterval(timer);
   }, [targetDate]);
 
-  // Only hide if EXPLICITLY set to inactive by admin.
-  if (isLoaded && config.isActive === false) {
+  // Only hide if EXPLICITLY set to inactive by admin OR if no products are available.
+  if (isLoaded && (config.isActive === false || products.length === 0)) {
     return null;
   }
 
@@ -121,15 +120,27 @@ export default function FlashDealSection() {
         >
              {/* Desktop Background Layer */}
              <div
-                className="absolute inset-0 hidden md:block"
-                style={{ background: `linear-gradient(135deg, ${theme.primary[0]} 0%, ${theme.primary[1]} 100%)` }}
-             />
+                className="absolute inset-0 hidden md:block bg-center bg-cover transition-all duration-500"
+                style={{
+                  backgroundImage: config.flashDealImage ? `url(${config.flashDealImage})` : 'none',
+                  background: !config.flashDealImage ? `linear-gradient(135deg, ${theme.primary[0]} 0%, ${theme.primary[1]} 100%)` : undefined
+                }}
+             >
+               {/* Dark overlay if image is present to make text readable */}
+               {config.flashDealImage && <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />}
+             </div>
 
              {/* Mobile Background Layer */}
              <div
-                className="absolute inset-0 md:hidden"
-                style={{ background: `linear-gradient(135deg, ${theme.primary[3]}33 0%, #fff 100%)` }}
-             />
+                className="absolute inset-0 md:hidden bg-center bg-cover transition-all duration-500"
+                style={{
+                  backgroundImage: config.flashDealImage ? `url(${config.flashDealImage})` : 'none',
+                  background: !config.flashDealImage ? `linear-gradient(135deg, ${theme.primary[3]} 33%, #fff 100%)` : undefined
+                }}
+             >
+                {/* Overlay for mobile if image is present */}
+                {config.flashDealImage && <div className="absolute inset-0 bg-black/50" />}
+             </div>
 
              <div className="relative z-10 flex flex-col h-full md:justify-center">
                 {/* Header Text */}

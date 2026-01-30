@@ -284,8 +284,10 @@ const ProductCard = memo(({
 
 ProductCard.displayName = 'ProductCard';
 
+import { useThemeContext } from '../../../context/ThemeContext';
+
 export default function LowestPricesEver({ activeTab = 'all', products: adminProducts }: LowestPricesEverProps) {
-  const theme = getTheme(activeTab);
+  const { currentTheme: theme } = useThemeContext();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { cart } = useCart();
   const [fontLoaded, setFontLoaded] = useState(false);

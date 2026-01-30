@@ -93,8 +93,8 @@ export default function DealOfTheDay() {
       <div
         className="rounded-xl p-6 md:p-8 text-center shadow-lg relative overflow-hidden flex flex-col gap-6"
         style={{
-          background: `white`,
-          border: '1px solid #fed7aa' // faint orange border
+          background: `linear-gradient(to bottom, white, ${theme.primary[3]})`,
+          border: `1px solid ${theme.primary[2]}`
         }}
       >
           {/* Header */}
@@ -103,7 +103,11 @@ export default function DealOfTheDay() {
                   <h3 className="text-2xl font-bold text-gray-800">Deal of the Day</h3>
                   <p className="text-sm text-gray-500 mt-1">Grab the best prices before they reset!</p>
               </div>
-              <button onClick={() => navigate('/deal-of-the-day')} className="text-sm font-semibold text-[#E65100] flex items-center gap-1 hover:text-orange-800 transition-colors">
+              <button
+                onClick={() => navigate('/deal-of-the-day')}
+                className="text-sm font-semibold flex items-center gap-1 transition-colors"
+                style={{ color: theme.primary[0] }}
+              >
                   View All <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
           </div>
@@ -122,13 +126,19 @@ export default function DealOfTheDay() {
                          className="flex-none w-full md:w-[48%] lg:w-[40%] xl:w-[30%] snap-center bg-white rounded-xl p-6 shadow-md border border-gray-100 flex flex-col items-center gap-4 cursor-pointer hover:shadow-xl transition-shadow relative"
                          onClick={() => navigate(`/product/${product.id}`)}
                       >
-                         <div className="absolute top-4 right-4 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
+                         <div
+                            className="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full bg-white border"
+                            style={{ color: theme.primary[0], borderColor: theme.primary[2] }}
+                         >
                              Active Deal
                          </div>
 
                          <div className="relative w-48 h-48 flex-shrink-0 bg-transparent p-2 flex items-center justify-center">
                              {discount > 0 && (
-                                <span className="absolute -top-1 -left-1 bg-[#E65100] text-white text-sm font-bold px-3 py-1 rounded-full shadow-sm z-10">
+                                <span
+                                    className="absolute -top-1 -left-1 text-white text-sm font-bold px-3 py-1 rounded-full shadow-sm z-10"
+                                    style={{ backgroundColor: theme.primary[0] }}
+                                >
                                     {discount}% OFF
                                 </span>
                              )}
@@ -142,12 +152,15 @@ export default function DealOfTheDay() {
                          <div className="w-full text-center">
                              <h4 className="font-bold text-gray-900 text-lg md:text-xl line-clamp-2 mb-2">{product.name}</h4>
                              <div className="flex items-center justify-center gap-3">
-                                 <span className="text-3xl font-bold text-[#E65100]">₹{displayPrice}</span>
+                                 <span className="text-3xl font-bold" style={{ color: theme.primary[0] }}>₹{displayPrice}</span>
                                  {mrp > displayPrice && (
                                     <span className="text-sm text-gray-400 line-through">₹{mrp}</span>
                                  )}
                              </div>
-                             <button className="mt-4 w-full bg-[#E65100] hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                             <button
+                                className="mt-4 w-full text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                                style={{ backgroundColor: theme.primary[0] }}
+                             >
                                  View Deal
                              </button>
                          </div>

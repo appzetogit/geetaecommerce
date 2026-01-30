@@ -220,11 +220,20 @@ export default function AdminFlashDeal() {
                         {previewUrl && (
                             <div className="relative group aspect-video rounded-xl overflow-hidden border border-gray-200 shadow-sm">
                                 <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="bg-white text-gray-900 px-4 py-2 rounded-full text-xs font-bold shadow-lg"
-                                    >Change Image</button>
+                                        className="bg-white text-gray-900 px-3 py-2 rounded-lg text-xs font-bold shadow-lg hover:bg-gray-50 mb-0"
+                                    >Change</button>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedFile(null);
+                                            setPreviewUrl('');
+                                            setConfig({ ...config, flashDealImage: '' });
+                                            if (fileInputRef.current) fileInputRef.current.value = '';
+                                        }}
+                                        className="bg-white text-red-600 px-3 py-2 rounded-lg text-xs font-bold shadow-lg hover:bg-red-50"
+                                    >Remove</button>
                                 </div>
                             </div>
                         )}

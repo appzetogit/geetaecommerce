@@ -193,6 +193,7 @@ const AdminPOSOrders = () => {
 
   // New UI States
   const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
+  const [showProfit, setShowProfit] = useState(false);
 
   // Customer Search State
   // const [customerSearch, setCustomerSearch] = useState(''); // Removed global
@@ -1097,12 +1098,25 @@ const AdminPOSOrders = () => {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col min-h-[calc(100vh-2rem)] sticky top-4">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-lg">
               <h2 className="text-lg font-semibold text-gray-700">Billing</h2>
-              <button
-                onClick={() => setShowQuickAdd(true)}
-                className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 font-medium transition-colors"
-              >
-                + Quick Add
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-md border border-gray-200 shadow-sm">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">Profit Show</span>
+                  <button
+                    onClick={() => setShowProfit(!showProfit)}
+                    className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${showProfit ? 'bg-teal-500' : 'bg-gray-300'}`}
+                  >
+                    <span
+                      className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${showProfit ? 'translate-x-4.5' : 'translate-x-1'}`}
+                    />
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowQuickAdd(true)}
+                  className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 font-medium transition-colors"
+                >
+                  + Quick Add
+                </button>
+              </div>
             </div>
 
             {/* Bill Tabs */}
@@ -1291,12 +1305,14 @@ const AdminPOSOrders = () => {
                                                {orderType === 'Wholesale' && (item.wholesalePrice || 0) > 0 ? 'WSP' : 'SP'}: ₹{sp}
                                            </span>
                                        </div>
-                                       {purchasePrice > 0 ? (
-                                           <div className={`text-xs font-medium ${parseFloat(profitPercent) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                               Profit: {profitPercent}%
-                                           </div>
-                                       ) : (
-                                          <div className="text-xs text-gray-400">Profit: -</div>
+                                       {showProfit && (
+                                           purchasePrice > 0 ? (
+                                               <div className={`text-xs font-medium ${parseFloat(profitPercent) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                   Profit: {profitPercent}%
+                                               </div>
+                                           ) : (
+                                              <div className="text-xs text-gray-400">Profit: -</div>
+                                           )
                                        )}
                                    </div>
                               </div>

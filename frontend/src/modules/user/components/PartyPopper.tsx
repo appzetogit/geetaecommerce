@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useThemeContext } from '../../../context/ThemeContext';
 
 interface PartyPopperProps {
   show: boolean;
@@ -40,7 +41,7 @@ export default function PartyPopper({ show, onComplete }: PartyPopperProps) {
         const distance = Math.random() * 400 + 250;
         const shapeRand = Math.random();
         const shape = shapeRand > 0.65 ? 'circle' : shapeRand > 0.35 ? 'rectangle' : 'streamer';
-        
+
         return {
           id: i,
           x: 0,
@@ -64,7 +65,7 @@ export default function PartyPopper({ show, onComplete }: PartyPopperProps) {
         const distance = Math.random() * 400 + 250;
         const shapeRand = Math.random();
         const shape = shapeRand > 0.65 ? 'circle' : shapeRand > 0.35 ? 'rectangle' : 'streamer';
-        
+
         return {
           id: i + 60,
           x: 0,
@@ -115,9 +116,9 @@ export default function PartyPopper({ show, onComplete }: PartyPopperProps) {
     return (
       <motion.div
         key={particle.id}
-        initial={{ 
-          x: startX, 
-          y: startY, 
+        initial={{
+          x: startX,
+          y: startY,
           opacity: 0,
           scale: 0,
           rotate: 0
@@ -169,7 +170,9 @@ export default function PartyPopper({ show, onComplete }: PartyPopperProps) {
     </svg>
   );
 
-  return (
+    const { currentTheme: theme } = useThemeContext();
+
+    return (
     <AnimatePresence>
       {show && (
         <div className="fixed inset-0 pointer-events-none z-[100]">
@@ -177,30 +180,34 @@ export default function PartyPopper({ show, onComplete }: PartyPopperProps) {
           <div className="fixed top-0 left-0 right-0 flex justify-center z-30 pt-[48px]">
             <motion.div
               initial={{ opacity: 0, y: -20, scale: 0.95 }}
-              animate={{ 
-                opacity: showPoppers ? 1 : 0, 
+              animate={{
+                opacity: showPoppers ? 1 : 0,
                 y: showPoppers ? 0 : -20,
                 scale: showPoppers ? 1 : 0.95
               }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ 
+              transition={{
                 duration: 0.3,
                 delay: 0.2,
                 ease: [0.34, 1.56, 0.64, 1]
               }}
             >
-              <div className="bg-white rounded-lg px-3 py-2 shadow-lg border border-green-200 flex items-center gap-2">
+              <div
+                className="bg-white rounded-lg px-3 py-2 shadow-lg flex items-center gap-2 border"
+                style={{ borderColor: `${theme.primary[0]}30` }}
+              >
                 <motion.div
                   animate={{ scale: [1, 1.15, 1] }}
                   transition={{ duration: 0.25, delay: 0.35, repeat: 1 }}
-                  className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0"
+                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `${theme.primary[0]}15` }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 6L9 17l-5-5" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M20 6L9 17l-5-5" stroke={theme.primary[0]} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </motion.div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-xs font-semibold text-green-700">Coupon Applied</p>
+                  <p className="text-xs font-semibold" style={{ color: theme.primary[0] }}>Coupon Applied</p>
                 </div>
               </div>
             </motion.div>
@@ -209,15 +216,15 @@ export default function PartyPopper({ show, onComplete }: PartyPopperProps) {
           {/* Left Popper */}
           <motion.div
             initial={{ x: '-120px', y: '50%', opacity: 0, scale: 0.3 }}
-            animate={{ 
-              x: showPoppers ? '18%' : '-120px', 
-              y: '50%', 
+            animate={{
+              x: showPoppers ? '18%' : '-120px',
+              y: '50%',
               opacity: showPoppers ? 1 : 0,
               scale: showPoppers ? [0.3, 1.1, 1] : 0.3,
               rotate: showPoppers ? [0, 8, -8, 0] : 0
             }}
             exit={{ x: '-120px', opacity: 0, scale: 0.3 }}
-            transition={{ 
+            transition={{
               duration: 0.5,
               ease: [0.25, 0.46, 0.45, 0.94]
             }}
@@ -232,15 +239,15 @@ export default function PartyPopper({ show, onComplete }: PartyPopperProps) {
           {/* Right Popper */}
           <motion.div
             initial={{ x: '120px', y: '50%', opacity: 0, scale: 0.3 }}
-            animate={{ 
-              x: showPoppers ? '-18%' : '120px', 
-              y: '50%', 
+            animate={{
+              x: showPoppers ? '-18%' : '120px',
+              y: '50%',
               opacity: showPoppers ? 1 : 0,
               scale: showPoppers ? [0.3, 1.1, 1] : 0.3,
               rotate: showPoppers ? [0, -8, 8, 0] : 0
             }}
             exit={{ x: '120px', opacity: 0, scale: 0.3 }}
-            transition={{ 
+            transition={{
               duration: 0.5,
               ease: [0.25, 0.46, 0.45, 0.94]
             }}

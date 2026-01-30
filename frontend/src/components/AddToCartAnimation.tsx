@@ -61,7 +61,11 @@ export default function AddToCartAnimation({
   const isCheckoutPage = location.pathname === '/checkout' || location.pathname.startsWith('/checkout/');
   const isOrderPage = location.pathname.startsWith('/orders/');
   const isAccountPage = location.pathname === '/account';
+  const isProductPage = location.pathname.startsWith('/product/');
   const shouldHidePill = hideOnPages && (isCheckoutPage || isOrderPage || isAccountPage);
+
+  // Increase bottom offset on product pages to avoid overlap with sticky footer
+  const effectiveBottomOffset = isProductPage ? bottomOffset + 60 : bottomOffset;
 
   // Detect removed products and trigger bounce-out animation
   useEffect(() => {
@@ -350,8 +354,8 @@ export default function AddToCartAnimation({
               damping: 30,
               mass: 0.8,
             }}
-            className="fixed left-0 right-0 z-40 flex justify-center px-4 md:left-auto md:right-0 md:justify-end md:px-8"
-            style={{ bottom: `${bottomOffset}px` }}
+            className="fixed left-0 right-0 z-40 flex justify-center px-4 md:px-8"
+            style={{ bottom: `${effectiveBottomOffset}px` }}
           >
             <Link
               ref={linkRef}

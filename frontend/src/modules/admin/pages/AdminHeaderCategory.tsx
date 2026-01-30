@@ -48,12 +48,41 @@ export default function AdminHeaderCategory() {
     try {
       setLoading(true);
       const data = await getHeaderCategoriesAdmin();
-      setHeaderCategories(data);
+      const hasAll = data.some((cat: any) => cat.slug === 'all');
+      let finalData = [...data];
+
+      if (!hasAll && !searchTerm) {
+        // Add a virtual entry for the 'All' tab so user can see/edit it
+        const virtualAll: any = {
+          _id: 'virtual-all',
+          name: 'All',
+          slug: 'all',
+          theme: 'all',
+          iconLibrary: 'Custom',
+          iconName: 'home',
+          status: 'Published',
+          isVirtual: true
+        };
+        finalData = [virtualAll, ...finalData];
+      }
+
+      setHeaderCategories(finalData);
     } catch (error) {
       console.error('Failed to fetch header categories', error);
       showToast('Failed to fetch categories', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // State for slug (auto-generated from name but editable)
+  const [customSlug, setCustomSlug] = useState('');
+
+  // Handle name change and auto-generate slug
+  const handleNameChange = (name: string) => {
+    setHeaderCategoryName(name);
+    if (!editingId) {
+      setCustomSlug(name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
     }
   };
 
@@ -95,11 +124,50 @@ export default function AdminHeaderCategory() {
     }
   };
 
-  const filteredCategories = headerCategories.filter(category =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (category.relatedCategory || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (category.slug || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredCategories = useMemo(() => {
+    let baseList = [...headerCategories];
+
+    // Sort logic
+    if (sortColumn) {
+      baseList.sort((a: any, b: any) => {
+        const aVal = (a[sortColumn] || '').toString().toLowerCase();
+        const bVal = (b[sortColumn] || '').toString().toLowerCase();
+        if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+        if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    // Check if 'all' exists in the actual data
+    const hasAll = baseList.some(cat => cat.slug === 'all');
+
+    // Prepend 'all' if it's there, or add virtual
+    let processedList: any[] = [];
+    if (hasAll) {
+      const allIndex = baseList.findIndex(cat => cat.slug === 'all');
+      processedList = [baseList[allIndex], ...baseList.filter((_, i) => i !== allIndex)];
+    } else if (!searchTerm) {
+      const virtualAll = {
+        _id: 'virtual-all',
+        name: 'All',
+        slug: 'all',
+        theme: 'all',
+        iconLibrary: 'Custom',
+        iconName: 'home',
+        status: 'Published',
+        isVirtual: true
+      };
+      processedList = [virtualAll, ...baseList];
+    } else {
+      processedList = baseList;
+    }
+
+    return processedList.filter(category =>
+      (category.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (category.relatedCategory || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (category.slug || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [headerCategories, searchTerm, sortColumn, sortDirection]);
 
   const totalPages = Math.ceil(filteredCategories.length / entriesPerPage);
   const startIndex = (currentPage - 1) * entriesPerPage;
@@ -108,6 +176,7 @@ export default function AdminHeaderCategory() {
 
   const resetForm = () => {
     setHeaderCategoryName('');
+    setCustomSlug('');
     setSelectedIconLibrary('Custom');
     setHeaderCategoryIcon('');
     setSelectedIconType('Icon');
@@ -121,25 +190,14 @@ export default function AdminHeaderCategory() {
 
   const handleAddOrUpdate = async () => {
     if (!headerCategoryName.trim()) return showToast('Please enter a header category name', 'error');
+    if (!customSlug.trim()) return showToast('Please enter a slug', 'error');
 
     // Validation based on selected type
     if (selectedIconType === 'Icon' && !headerCategoryIcon.trim()) {
-       return showToast('Please select an icon. If your category is unique, try searching for a generic icon.', 'error');
+       return showToast('Please select an icon.', 'error');
     }
-    // Validation disabled for Image type to allow optional or fallback to default?
-    // Usually user wants image if selected 'Image'.
-    // If user selected 'Image' but didn't upload, we could warn them or default to no image?
-    // Let's enforce it if they picked 'Image' type explicitly, although field is optional in backend if iconName is present (which is required).
-    // The backend `iconName` is required, so even if Image is selected, we should probably keep `iconName` populated or set a default/placeholder.
-    // The previous logic required `iconName`.
 
     if (selectedIconType === 'Image' && !headerCategoryImage) {
-         // If switching to Image, we still need an iconName for fallback in backend or if image fails load?
-         // The backend requires `iconName`. So let's keep it requirement or auto-fill it if empty.
-         if (!headerCategoryIcon.trim()) {
-            return showToast('Please allow an icon selection as fallback even if using Image, or select an icon first.', 'error');
-         }
-         // Actually, let's just warn about image
          return showToast('Please upload an image.', 'error');
     }
 
@@ -150,8 +208,9 @@ export default function AdminHeaderCategory() {
         name: headerCategoryName,
         iconLibrary: selectedIconLibrary,
         iconName: headerCategoryIcon,
-        image: selectedIconType === 'Image' ? headerCategoryImage : '', // Send image only if type is Image
-        slug: selectedTheme, // Use theme as slug for color mapping
+        image: selectedIconType === 'Image' ? headerCategoryImage : '',
+        slug: customSlug, // decouple slug from theme
+        theme: selectedTheme, // New separate theme field
         relatedCategory: selectedCategory,
         status: selectedStatus,
       };
@@ -172,9 +231,12 @@ export default function AdminHeaderCategory() {
     }
   };
 
-  const handleEdit = (category: HeaderCategory) => {
-    setEditingId(category._id);
+  const handleEdit = (category: any) => {
+    // If it's a virtual entry, we don't set an editingId because it's not in the DB yet
+    // Saving it will perform a "Create" which then replaces the virtual entry in the list
+    setEditingId(category.isVirtual ? null : category._id);
     setHeaderCategoryName(category.name);
+    setCustomSlug(category.slug);
     setSelectedIconLibrary(category.iconLibrary);
     setHeaderCategoryIcon(category.iconName);
 
@@ -188,7 +250,7 @@ export default function AdminHeaderCategory() {
     }
 
     setSelectedCategory(category.relatedCategory || '');
-    setSelectedTheme(category.slug);
+    setSelectedTheme(category.theme || category.slug); // Support older data where theme was slug
     setSelectedStatus(category.status);
     setIconSearchTerm('');
   };
@@ -238,14 +300,39 @@ export default function AdminHeaderCategory() {
               <input
                 type="text"
                 value={headerCategoryName}
-                onChange={(e) => setHeaderCategoryName(e.target.value)}
-                placeholder="Enter Category Name (e.g. Dairy, Books)"
+                onChange={(e) => handleNameChange(e.target.value)}
+                placeholder="Enter Category Name (e.g. Dairy, Books, All)"
                 className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
               />
             </div>
 
+            {/* Category Slug */}
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Category Slug (Internal ID):
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customSlug}
+                  onChange={(e) => setCustomSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
+                  placeholder="e.g. all, grocery, unique-id"
+                  className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-teal-500"
+                />
+                <button
+                  onClick={() => setCustomSlug(headerCategoryName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
+                  className="px-3 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 rounded text-xs border border-neutral-300 whitespace-nowrap"
+                >
+                  Regen
+                </button>
+              </div>
+              <p className="mt-1 text-[10px] text-neutral-500">
+                Use <span className="font-bold text-teal-600">"all"</span> to customize the "All" tab theme and icon.
+              </p>
+            </div>
+
             {/* Icon / Image Selection Toggle */}
-             <div className="flex gap-4 mb-4">
+             <div className="flex gap-4">
                  <label className="flex items-center gap-2 cursor-pointer">
                      <input
                          type="radio"
@@ -586,10 +673,17 @@ export default function AdminHeaderCategory() {
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {displayedCategories.length > 0 ? (
-                  displayedCategories.map((category) => (
+                  displayedCategories.map((category: any) => (
                     <tr key={category._id} className="hover:bg-neutral-50 transition-colors group">
                       <td className="px-4 py-3 text-sm font-medium text-neutral-800">
-                        {category.name}
+                        <div className="flex items-center gap-2">
+                          {category.name}
+                          {category.isVirtual && (
+                            <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-normal">
+                              System Default
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-sm text-neutral-600">
                         <div className="flex items-center gap-2">
@@ -611,9 +705,9 @@ export default function AdminHeaderCategory() {
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-100 text-neutral-800 capitalize border border-neutral-200">
                           <div
                             className="w-2 h-2 rounded-full mr-1.5"
-                            style={{ background: themes[category.slug]?.primary[0] || '#ccc' }}
+                            style={{ background: themes[category.theme || category.slug]?.primary[0] || '#ccc' }}
                           />
-                          {category.slug}
+                          {category.theme || category.slug}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm">

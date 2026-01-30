@@ -1044,6 +1044,18 @@ export default function AdminAddProduct() {
       setSelectedColors(prev => prev.filter(c => c.name !== name));
   };
 
+  const handleAutoGenerateBarcode = (target: "product" | "variation" = "product") => {
+    // Generate 12 digit number
+    const newBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+    if (target === "product") {
+        setFormData(prev => ({ ...prev, barcode: newBarcode }));
+    } else {
+        setVariationForm(prev => ({ ...prev, barcode: newBarcode }));
+    }
+    setSuccessMessage("Barcode Generated Successfully!");
+    setTimeout(() => setSuccessMessage(""), 2000);
+  };
+
   const startScanning = (target: "product" | "variation" = "product") => {
     setIsScanning(true);
     setScanTarget(target);
@@ -2176,11 +2188,21 @@ const applySearchedImage = () => {
                               />
                               <button
                                   type="button"
+                                  onClick={() => handleAutoGenerateBarcode("variation")}
+                                  className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors flex items-center gap-2"
+                                  title="Auto Generate Barcode"
+                                  >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                  <span className="text-xs font-bold whitespace-nowrap">Auto Generate</span>
+                              </button>
+                              <button
+                                  type="button"
                                   onClick={() => startScanning("variation")}
-                                  className="px-3 py-2 bg-neutral-100 border border-neutral-300 rounded-lg hover:bg-neutral-200 text-neutral-600 transition-colors"
+                                  className="px-3 py-2 bg-neutral-100 border border-neutral-300 rounded-lg hover:bg-neutral-200 text-neutral-600 transition-colors flex items-center gap-2"
                                   title="Scan Barcode"
                                   >
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                  <span className="text-xs font-bold whitespace-nowrap">Scan Code</span>
                               </button>
                           </div>
                        </div>
@@ -2515,24 +2537,33 @@ const applySearchedImage = () => {
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Barcode (EAN/UPC)
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      name="barcode"
-                      value={(formData as any).barcode}
-                      onChange={handleChange}
-                      placeholder="Scan or enter barcode manually"
-                      className="flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => startScanning("product")}
-                        className="px-4 py-2 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 text-teal-700 flex items-center gap-2 font-medium transition-colors"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                        Scan Code
-                    </button>
-                  </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          name="barcode"
+                          value={(formData as any).barcode}
+                          onChange={handleChange}
+                          placeholder="Scan or enter barcode manually"
+                          className="flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => handleAutoGenerateBarcode("product")}
+                            className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 text-blue-700 flex items-center gap-2 font-medium transition-colors"
+                            title="Auto Generate Barcode"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            Auto Generate
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => startScanning("product")}
+                            className="px-4 py-2 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 text-teal-700 flex items-center gap-2 font-medium transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                            Scan Code
+                        </button>
+                      </div>
                 </div>
 
                 {/* Print Barcode Section */}

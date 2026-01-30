@@ -9,6 +9,7 @@ import { getCategories } from '../../../services/api/customerProductService';
 import { Category } from '../../../types/domain';
 import { getHeaderCategoriesPublic } from '../../../services/api/headerCategoryService';
 import { getIconByName } from '../../../utils/iconLibrary';
+import { useThemeContext } from '../../../context/ThemeContext';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -39,12 +40,13 @@ interface LanguageDropdownProps {
   setLanguage: (lang: string) => void;
   isSticky: boolean;
   activeTab: string;
+  themeKey: string; // Added themeKey prop
 }
 
-const LanguageDropdown = ({ language, setLanguage, isSticky, activeTab }: LanguageDropdownProps) => {
+const LanguageDropdown = ({ language, setLanguage, isSticky, activeTab, themeKey }: LanguageDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const theme = getTheme(activeTab || 'all');
+  const theme = getTheme(themeKey || 'all'); // Use themeKey here
 
   // Extract primary color for active state
   // Theme usually returns colors like '#HEX' or 'rgb(...)'.
@@ -133,6 +135,7 @@ const LanguageDropdown = ({ language, setLanguage, isSticky, activeTab }: Langua
 };
 
 export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroProps) {
+  const [headerCategories, setHeaderCategories] = useState<any[]>([]);
   const [tabs, setTabs] = useState<Tab[]>([ALL_TAB]);
 
   useEffect(() => {
@@ -140,16 +143,30 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
       try {
         const cats = await getHeaderCategoriesPublic();
         if (cats && cats.length > 0) {
+          setHeaderCategories(cats);
           const mapped = cats.map(c => ({
             id: c.slug,
             label: c.name,
+            theme: c.theme || c.slug,
             icon: c.image ? (
                 <img src={c.image} alt={c.name} className="w-full h-full object-contain" />
             ) : (
                 getIconByName(c.iconName)
             )
           }));
-          setTabs([ALL_TAB, ...mapped]);
+
+          // Check if a tab with id 'all' is already provided by the API
+          const hasAllTab = mapped.some(tab => tab.id === 'all');
+
+          if (hasAllTab) {
+            // Find the 'all' tab and ensure it's at the beginning
+            const allTabIndex = mapped.findIndex(tab => tab.id === 'all');
+            const allTab = mapped[allTabIndex];
+            const otherTabs = mapped.filter((_, i) => i !== allTabIndex);
+            setTabs([allTab, ...otherTabs]);
+          } else {
+            setTabs([ALL_TAB, ...mapped]);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch header categories', error);
@@ -157,6 +174,8 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
     };
     fetchHeaderCategories();
   }, []);
+
+  const { themeKey: currentThemeKey } = useThemeContext();
 
   const navigate = useNavigate();
   const { location: userLocation } = useLocation();
@@ -316,7 +335,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
 
   const handleTabClick = (tabId: string) => { onTabChange?.(tabId); };
 
-  const theme = getTheme(activeTab || 'all');
+  const theme = getTheme(currentThemeKey);
   const heroGradient = `linear-gradient(to bottom right, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`;
 
   // Render the sticky content (Search + Tabs)
@@ -365,6 +384,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
             setLanguage={setLanguage}
             isSticky={isSticky}
             activeTab={activeTab || 'all'}
+            themeKey={currentThemeKey}
           />
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4">
             <path d="M12 1C13.1 1 14 1.9 14 3C14 4.1 13.1 5 12 5C10.9 5 10 4.1 10 3C10 1.9 10.9 1 12 1Z" fill={isSticky ? "#9ca3af" : "#6b7280"} />

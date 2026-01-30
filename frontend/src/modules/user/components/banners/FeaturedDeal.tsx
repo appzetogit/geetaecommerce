@@ -9,8 +9,7 @@ import { bannerService } from '../../../../services/bannerService';
 
 export default function FeaturedDeal() {
   const navigate = useNavigate();
-  const { activeCategory } = useThemeContext();
-  const theme = getTheme(activeCategory || 'all');
+  const { activeCategory, currentTheme: theme } = useThemeContext();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -81,8 +80,8 @@ export default function FeaturedDeal() {
       <div
         className="rounded-xl p-4 md:p-6 shadow-sm relative overflow-hidden flex flex-col gap-4"
         style={{
-          background: `#f0f9ff`, // Very light sky blue
-          border: '1px solid #e0f2fe'
+          background: theme.primary[3],
+          border: `1px solid ${theme.primary[2]}`
         }}
       >
           {/* Header */}
@@ -91,7 +90,11 @@ export default function FeaturedDeal() {
                   <h3 className="text-xl font-black text-slate-800 tracking-tight">Featured Deals</h3>
                   <p className="text-[11px] text-slate-500 mt-0.5">See the latest deals and exciting new offers!</p>
               </div>
-              <button onClick={() => navigate('/featured-deals')} className="text-xs font-bold text-sky-600 flex items-center gap-1 hover:text-sky-700 transition-colors bg-white/50 px-3 py-1.5 rounded-full border border-sky-100">
+              <button
+                onClick={() => navigate('/featured-deals')}
+                className="text-xs font-bold flex items-center gap-1 transition-colors bg-white/50 px-3 py-1.5 rounded-full border border-sky-100"
+                style={{ color: theme.primary[0] }}
+              >
                   View All <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
           </div>
@@ -113,7 +116,10 @@ export default function FeaturedDeal() {
                          {/* Image with Badge */}
                          <div className="relative w-24 h-24 flex-shrink-0 bg-neutral-50 rounded-lg overflow-hidden flex items-center justify-center">
                              {discount > 0 && (
-                                <span className="absolute top-0 left-0 bg-[#1e40af] text-white text-[10px] font-bold px-2 py-1 rounded-br-lg z-10">
+                                <span
+                                    className="absolute top-0 left-0 text-white text-[10px] font-bold px-2 py-1 rounded-br-lg z-10"
+                                    style={{ backgroundColor: theme.primary[0] }}
+                                >
                                     -₹{mrp - displayPrice}
                                 </span>
                              )}

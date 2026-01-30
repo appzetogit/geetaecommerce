@@ -7,7 +7,8 @@ export interface HeaderCategory {
     iconLibrary: string; // 'IonIcons' | 'MaterialIcons' | 'FontAwesome' | 'Feather'
     iconName: string;
     image?: string; // Optional image URL
-    slug: string; // Maps to theme key
+    slug: string; // Internal identifier/URL slug
+    theme: string; // Maps to theme key in themes.ts
     relatedCategory?: string;
     status: 'Published' | 'Unpublished';
     order?: number;
