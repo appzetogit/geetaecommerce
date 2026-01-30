@@ -33,7 +33,15 @@ export const saveFCMToken = async (req: Request, res: Response, next: NextFuncti
       return res.status(400).json({ success: false, message: 'Invalid user type' });
     }
 
-    const updateField = platform === 'mobile' ? { fcmTokenMobile: token } : { fcmToken: token };
+    const allowedPlatforms = ['web', 'app', 'android', 'ios'];
+    if (platform && !allowedPlatforms.includes(platform)) {
+      return res.status(400).json({ success: false, message: 'Invalid platform' });
+    }
+
+    // Default to 'web' if not specified, or validate strictly if required
+    // Mapping: 'web' -> fcmToken, others ('app', 'android', 'ios') -> fcmTokenMobile
+    const isMobile = ['app', 'android', 'ios'].includes(platform);
+    const updateField = isMobile ? { fcmTokenMobile: token } : { fcmToken: token };
     console.log(`💾 [BACKEND] Updating ${userType} (${userId}) with ${platform} token`);
 
     const updatedUser = await Model.findByIdAndUpdate(userId, updateField, { new: true });
