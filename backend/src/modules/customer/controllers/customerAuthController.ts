@@ -45,7 +45,15 @@ export const sendSmsOtp = asyncHandler(async (req: Request, res: Response) => {
  * Requires session_id and otp
  */
 export const verifySmsOtp = asyncHandler(async (req: Request, res: Response) => {
-  const { mobile, otp, sessionId } = req.body;
+  const { mobile, otp, sessionId, platform } = req.body;
+
+  const allowedPlatforms = ['web', 'app', 'android', 'ios'];
+  if (platform && !allowedPlatforms.includes(platform)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid platform",
+    });
+  }
 
   if (!mobile || !/^[0-9]{10}$/.test(mobile)) {
     return res.status(400).json({
