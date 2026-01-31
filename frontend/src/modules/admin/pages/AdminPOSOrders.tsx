@@ -1775,7 +1775,7 @@ const AdminPOSOrders = () => {
                 {/* Header */}
                 <div className="bg-[#f3f4f6] px-5 pt-5 pb-2">
                    <div className="flex justify-between items-center mb-4">
-                       <h2 className="text-lg font-bold tracking-widest text-slate-800">BILLINGFAST</h2>
+                       <h2 className="text-lg font-bold tracking-widest text-slate-800">Geeta Store</h2>
                        <button onClick={() => setShowSuccessModal(false)} className="bg-black text-white px-3 py-1 rounded-full text-[10px] font-bold">Close</button>
                    </div>
 
@@ -1857,7 +1857,7 @@ const AdminPOSOrders = () => {
                         </button>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                         <button className="bg-white border border-gray-200 text-gray-500 font-bold py-2 text-[10px] tracking-widest uppercase rounded">
+                         <button onClick={() => setShowSuccessModal(false)} className="bg-white border border-gray-200 text-gray-500 font-bold py-2 text-[10px] tracking-widest uppercase rounded">
                             [ Edit ]
                         </button>
                         <button onClick={() => setShowSuccessModal(false)} className="bg-white border border-gray-200 text-gray-500 font-bold py-2 text-[10px] tracking-widest uppercase rounded">
