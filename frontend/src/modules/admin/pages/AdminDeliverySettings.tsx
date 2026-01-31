@@ -194,7 +194,7 @@ export default function AdminDeliverySettings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full bg-neutral-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E91E63]"></div>
       </div>
     );
   }
@@ -208,7 +208,7 @@ export default function AdminDeliverySettings() {
             <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">Delivery Settings</h1>
           </div>
           <div className="text-sm text-neutral-600">
-            <span className="text-teal-600">Home</span> / <span className="text-neutral-900">Delivery Settings</span>
+            <span className="text-[#E91E63]">Home</span> / <span className="text-neutral-900">Delivery Settings</span>
           </div>
         </div>
       </div>
@@ -233,7 +233,7 @@ export default function AdminDeliverySettings() {
                         <select
                           value={field.value}
                           onChange={(e) => handleFieldChange(section.id, field.id, e.target.value)}
-                          className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-sm bg-white text-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 appearance-none"
+                          className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg text-sm bg-white text-neutral-700 focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] appearance-none"
                         >
                           {field.options?.map((opt) => (
                             <option key={opt} value={opt}>{opt}</option>
@@ -248,7 +248,7 @@ export default function AdminDeliverySettings() {
                             type={field.type}
                             value={field.value}
                             onChange={(e) => handleFieldChange(section.id, field.id, e.target.value)}
-                            className={`w-full border border-neutral-300 rounded-lg text-sm bg-white text-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 px-4 py-2.5 ${field.suffix === '₹' ? 'pl-7' : ''}`}
+                            className={`w-full border border-neutral-300 rounded-lg text-sm bg-white text-neutral-700 focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] px-4 py-2.5 ${field.suffix === '₹' ? 'pl-7' : ''}`}
                           />
                           {field.suffix && field.suffix !== '₹' && (
                              <span className="absolute right-3 text-neutral-500 text-sm font-medium">{field.suffix}</span>
@@ -280,7 +280,7 @@ export default function AdminDeliverySettings() {
           onClick={handleSave}
           disabled={saving}
           className={`text-white font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-colors text-sm sm:text-base flex items-center justify-center min-w-[140px] ${
-            saving ? 'bg-green-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+            saving ? 'bg-green-500 cursor-not-allowed' : 'bg-[#E91E63] hover:bg-[#D81B60]'
           }`}
         >
           {saving ? (

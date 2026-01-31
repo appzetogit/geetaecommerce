@@ -62,16 +62,27 @@ export const getProducts = async (req: Request, res: Response) => {
         console.error("Error fetching admin seller for whitelist:", err);
       }
 
-      if (allowedSellerIds.length === 0) {
-        // TEMPORARY: Allow viewing all products even if no seller is nearby
-        console.warn("WARNING: No sellers nearby, but showing all products for testing.");
+      // Filter by enabled sellers
+      const enabledSellers = await Seller.find({
+        _id: { $in: allowedSellerIds },
+        isEnabled: true
+      }).select("_id");
+
+      const enabledSellerIds = enabledSellers.map(s => s._id);
+
+      if (enabledSellerIds.length === 0) {
+        // If no enabled sellers nearby, restrict query to an empty set of sellers
+        query.seller = { $in: [] };
       } else {
-        // Filter products by sellers within range (or Admin)
-        query.seller = { $in: allowedSellerIds };
+        // Filter products by enabled sellers within range (or Admin)
+        query.seller = { $in: enabledSellerIds };
       }
     } else {
-       // TEMPORARY: Allow viewing all products even if user location is missing
-       console.warn("WARNING: Location missing, showing all products for testing.");
+       // When location is missing, only show products from enabled sellers
+       const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
+       const enabledSellerIds = enabledSellers.map(s => s._id);
+       query.seller = { $in: enabledSellerIds };
+       console.log(`Filtering by ${enabledSellerIds.length} enabled sellers (no location provided)`);
     }
 
     // Helper to resolve category/subcategory ID from slug or ID
@@ -241,13 +252,22 @@ export const getProductById = async (req: Request, res: Response) => {
       .populate("brand", "name")
       .populate(
         "seller",
-        "storeName city fssaiLicNo address location serviceRadiusKm email"
-      ); // Added email to selection to check if it's admin
+        "storeName city fssaiLicNo address location serviceRadiusKm email isEnabled"
+      ); // Added email to selection to check if it's admin, and isEnabled for online visibility status
 
     if (!product) {
       return res.status(404).json({
         success: false,
         message: "Product not found or unavailable",
+      });
+    }
+
+    // Check if seller is enabled
+    const sellerInfo = product.seller as any;
+    if (sellerInfo && sellerInfo.isEnabled === false) {
+      return res.status(404).json({
+        success: false,
+        message: "This product is currently unavailable",
       });
     }
 

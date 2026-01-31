@@ -178,10 +178,10 @@ export default function AdminBannerSetup() {
           {/* LEFT: Add Banner Form */}
           <div className="w-full lg:w-1/3">
              <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                <div className="bg-[#E65100] text-white px-4 py-3 font-semibold text-lg flex justify-between items-center">
+                <div className="bg-[#E91E63] text-white px-4 py-3 font-semibold text-lg flex justify-between items-center">
                    {editingBannerId ? 'Edit Banner' : 'Add Banner'}
                    {editingBannerId && (
-                       <button onClick={handleCancelEdit} className="text-xs bg-white text-[#E65100] px-2 py-1 rounded hover:bg-gray-100">Cancel</button>
+                       <button onClick={handleCancelEdit} className="text-xs bg-white text-[#E91E63] px-2 py-1 rounded hover:bg-gray-100">Cancel</button>
                    )}
                 </div>
                 <div className="p-6 space-y-5">
@@ -189,7 +189,7 @@ export default function AdminBannerSetup() {
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Select Banner Type <span className="text-red-500">*</span></label>
                       <select
-                        className="w-full border border-gray-300 rounded-md p-2.5 outline-none focus:ring-1 focus:ring-[#E65100] bg-white"
+                        className="w-full border border-gray-300 rounded-md p-2.5 outline-none focus:ring-1 focus:ring-[#E91E63] bg-white"
                         value={bannerType}
                         onChange={(e) => setBannerType(e.target.value as BannerPosition)}
                       >
@@ -205,7 +205,7 @@ export default function AdminBannerSetup() {
                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Select Category</label>
                       <select
-                        className="w-full border border-gray-300 rounded-md p-2.5 outline-none focus:ring-1 focus:ring-[#E65100] bg-white"
+                        className="w-full border border-gray-300 rounded-md p-2.5 outline-none focus:ring-1 focus:ring-[#E91E63] bg-white"
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
                       >
@@ -249,7 +249,7 @@ export default function AdminBannerSetup() {
                    <button
                       onClick={handleAddBanner}
                       disabled={loading}
-                      className={`w-full bg-[#E65100] hover:bg-[#EF6C00] text-white font-medium py-2.5 rounded-md transition-colors shadow-sm mt-2 flex justify-center items-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      className={`w-full bg-[#E91E63] hover:bg-[#D81B60] text-white font-medium py-2.5 rounded-md transition-colors shadow-sm mt-2 flex justify-center items-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                    >
                       {loading ? (
                           <>
@@ -295,7 +295,7 @@ export default function AdminBannerSetup() {
                                     <td className="px-6 py-4">
                                        <div className="flex flex-col">
                                            <span className="text-gray-700 font-medium text-sm">{banner.categoryName || banner.resourceName || 'No Category Selected'}</span>
-                                           <span className="text-[10px] bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded w-fit mt-1">
+                                           <span className="text-[10px] bg-[#E91E63]/10 text-[#E91E63] px-1.5 py-0.5 rounded w-fit mt-1">
                                                {banner.position === 'Main Banner' ? 'Header' :
                                                 banner.position === 'Main Section Banner' ? 'Home section' :
                                                 banner.position === 'Deal of the Day' ? 'Deal of the day' : banner.position}
@@ -311,7 +311,7 @@ export default function AdminBannerSetup() {
                                        <div className="flex items-center gap-2">
                                            <button
                                               onClick={() => handleEdit(banner)}
-                                              className="p-1.5 bg-[#E65100] text-white rounded shadow-sm hover:opacity-90"
+                                              className="p-1.5 bg-[#E91E63] text-white rounded shadow-sm hover:opacity-90"
                                            >
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                            </button>
@@ -342,7 +342,7 @@ export default function AdminBannerSetup() {
                      <span>Showing 1 to {banners.length} of {banners.length} entries</span>
                      <div className="flex gap-1">
                          <button className="px-2 py-1 border rounded hover:bg-gray-50">Previous</button>
-                         <button className="px-2 py-1 border rounded bg-[#E65100] text-white">1</button>
+                         <button className="px-2 py-1 border rounded bg-[#E91E63] text-white">1</button>
                          <button className="px-2 py-1 border rounded hover:bg-gray-50">Next</button>
                      </div>
                 </div>

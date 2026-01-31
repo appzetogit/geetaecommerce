@@ -99,7 +99,7 @@ export default function AdminFeaturedDeal() {
                  <input
                     type="text"
                     placeholder="Search products to add..."
-                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 outline-none focus:ring-1 focus:ring-[#E91E63]"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
@@ -114,7 +114,7 @@ export default function AdminFeaturedDeal() {
                             <div
                                 key={p._id || p.id}
                                 onClick={() => !isSelected && handleAddProduct(p)}
-                                className={`p-3 border-b flex items-center gap-3 cursor-pointer transition-colors ${isSelected ? 'bg-indigo-50 opacity-70 cursor-not-allowed' : 'hover:bg-indigo-50'}`}
+                                className={`p-3 border-b flex items-center gap-3 cursor-pointer transition-colors ${isSelected ? 'bg-[#E91E63]/10 opacity-70 cursor-not-allowed' : 'hover:bg-[#E91E63]/5'}`}
                             >
                                 <img src={p.mainImage || p.imageUrl || 'https://via.placeholder.com/40'} className="w-12 h-12 object-cover rounded bg-white border" alt="" />
                                 <div className="flex-1">
@@ -124,9 +124,9 @@ export default function AdminFeaturedDeal() {
                                     </div>
                                 </div>
                                 {isSelected ? (
-                                    <span className="text-xs text-indigo-600 font-medium border border-indigo-200 px-2 py-0.5 rounded-full">Added</span>
+                                    <span className="text-xs text-[#E91E63] font-medium border border-[#E91E63]/20 px-2 py-0.5 rounded-full">Added</span>
                                 ) : (
-                                    <button className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-full hover:bg-indigo-700">Add</button>
+                                    <button className="text-xs bg-[#E91E63] text-white px-3 py-1.5 rounded-full hover:bg-[#D81B60]">Add</button>
                                 )}
                             </div>
                         );
@@ -159,7 +159,7 @@ export default function AdminFeaturedDeal() {
                                   <img src={p.mainImage || p.imageUrl} className="w-16 h-16 object-contain rounded bg-white" alt="" />
                                   <div>
                                       <h3 className="font-medium text-gray-800 line-clamp-1 text-sm">{p.productName || p.name}</h3>
-                                      <p className="text-indigo-600 font-bold text-sm mt-1">₹{(p as any).salePrice || p.price}</p>
+                                      <p className="text-[#E91E63] font-bold text-sm mt-1">₹{(p as any).salePrice || p.price}</p>
                                   </div>
                              </div>
                          ))}
@@ -176,7 +176,7 @@ export default function AdminFeaturedDeal() {
                 <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-70 shadow-sm transition-transform active:scale-[0.99]"
+                    className="w-full bg-[#E91E63] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#D81B60] disabled:opacity-70 shadow-sm transition-transform active:scale-[0.99]"
                 >
                     {loading ? 'Saving Changes...' : 'Save Featured Deals'}
                 </button>

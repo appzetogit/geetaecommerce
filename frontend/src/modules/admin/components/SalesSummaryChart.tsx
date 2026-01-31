@@ -90,7 +90,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-8">
             <span className="text-sm text-gray-500 font-medium">Revenue</span>
-            <span className="text-sm font-black text-teal-600">₹{payload[0].value.toLocaleString()}</span>
+            <span className="text-sm font-black text-[#E91E63]">₹{payload[0].value.toLocaleString()}</span>
           </div>
           <div className="flex items-center justify-between gap-8">
             <span className="text-sm text-gray-500 font-medium">Orders</span>

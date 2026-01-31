@@ -8,6 +8,7 @@ import HomeSection from "../../../models/HomeSection";
 import BestsellerCard from "../../../models/BestsellerCard";
 import LowestPricesProduct from "../../../models/LowestPricesProduct";
 import PromoStrip from "../../../models/PromoStrip";
+import Seller from "../../../models/Seller";
 import mongoose from "mongoose";
 import { cache } from "../../../utils/cache";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
@@ -59,12 +60,17 @@ async function fetchSectionData(
         ],
       };
 
-      // We fetch these irrespective of location radius to show preview images on home page
-      // Location validation still happens at cart/order level
+      // Filter by enabled sellers
+      const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
+      const enabledSellerIds = enabledSellers.map(s => s._id);
+      query.seller = { $in: enabledSellerIds };
+
       if (nearbySellerIds && nearbySellerIds.length > 0) {
-        // If we have nearby sellers, we can still filter by them if we want to prioritize
-        // But the user requested to show them irrespective of location radius
-        // For now, let's keep it simple and show all active products for the section
+        // If we have nearby sellers, we match against both: must be within range AND enabled
+        const finalIds = enabledSellerIds.filter(id =>
+          nearbySellerIds.some(nearbyId => nearbyId.toString() === id.toString())
+        );
+        query.seller = { $in: finalIds };
       }
 
       if (categories && categories.length > 0) {
@@ -248,6 +254,10 @@ export const getHomeContent = async (req: Request, res: Response) => {
       isActive: true,
     };
 
+    // Always filter by enabled sellers
+    const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
+    const enabledSellerIds = enabledSellers.map(s => s._id);
+
     const lowestPricesProducts = await LowestPricesProduct.find(
       lowestPricesProductsQuery
     )
@@ -258,6 +268,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
         match: {
           status: "Active",
           publish: true,
+          seller: { $in: enabledSellerIds }
           // Removed location filter to show preview images irrespective of radius
         },
       })
@@ -702,9 +713,17 @@ export const getStoreProducts = async (req: Request, res: Response) => {
       const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
       console.log(`[getStoreProducts] Found ${nearbySellerIds.length} sellers within range`);
 
-      if (nearbySellerIds.length === 0) {
-        // No sellers within range, return shop data but empty products
-        console.log(`[getStoreProducts] No sellers in range, returning empty products`);
+      // Always filter by enabled sellers ONLY
+      const enabledSellers = await Seller.find({
+        _id: { $in: nearbySellerIds },
+        isEnabled: true
+      }).select("_id");
+
+      const enabledSellerIds = enabledSellers.map(s => s._id);
+
+      if (enabledSellerIds.length === 0) {
+        // No enabled sellers within range, return shop data but empty products
+        console.log(`[getStoreProducts] No enabled sellers in range, returning empty products`);
         return res.status(200).json({
           success: true,
           data: [],
@@ -719,24 +738,15 @@ export const getStoreProducts = async (req: Request, res: Response) => {
         });
       }
 
-      // Filter products by sellers within range
-      query.seller = { $in: nearbySellerIds };
-      console.log(`[getStoreProducts] Added seller filter to query`);
+      // Filter products by enabled sellers within range
+      query.seller = { $in: enabledSellerIds };
+      console.log(`[getStoreProducts] Added enabled seller filter to query`);
     } else {
-      // If no location provided, return empty (require location for marketplace)
-      console.log(`[getStoreProducts] No location provided, returning empty products`);
-      return res.status(200).json({
-        success: true,
-        data: [],
-        shop: shopData,
-        pagination: {
-          page: 1,
-          limit: 50,
-          total: 0,
-          pages: 0,
-        },
-        message: "Location is required to view products. Please enable location access.",
-      });
+      // If no location provided, still filter by enabled sellers
+      const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
+      const enabledSellerIds = enabledSellers.map(s => s._id);
+      query.seller = { $in: enabledSellerIds };
+      console.log(`[getStoreProducts] No location provided, filtering by all enabled sellers`);
     }
 
     console.log(`[getStoreProducts] Final query:`, JSON.stringify(query, null, 2));

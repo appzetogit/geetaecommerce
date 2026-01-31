@@ -234,7 +234,7 @@ export default function AdminWallet() {
           Wallet Management
         </h1>
         <div className="text-sm text-neutral-600">
-          <span className="text-teal-600 hover:text-teal-700 cursor-pointer">
+          <span className="text-[#E91E63] hover:text-[#D81B60] cursor-pointer">
             Home
           </span>
           <span className="mx-2">/</span>
@@ -244,9 +244,9 @@ export default function AdminWallet() {
 
       {/* Admin Earnings Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-lg shadow-lg p-6 text-white">
+        <div className="bg-gradient-to-br from-[#E91E63] to-[#D81B60] rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-teal-100">
+            <h3 className="text-sm font-medium text-pink-100">
               Total Earnings
             </h3>
             <svg
@@ -268,12 +268,12 @@ export default function AdminWallet() {
               minimumFractionDigits: 2,
             })}
           </p>
-          <p className="text-xs text-teal-100 mt-1">All time earnings</p>
+          <p className="text-xs text-pink-100 mt-1">All time earnings</p>
         </div>
 
-        <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-lg shadow-lg p-6 text-white">
+        <div className="bg-gradient-to-br from-[#E91E63] to-[#D81B60] rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-green-100">
+            <h3 className="text-sm font-medium text-pink-100">
               Paid Earnings
             </h3>
             <svg
@@ -295,7 +295,7 @@ export default function AdminWallet() {
               minimumFractionDigits: 2,
             })}
           </p>
-          <p className="text-xs text-green-100 mt-1">Successfully received</p>
+          <p className="text-xs text-pink-100 mt-1">Successfully received</p>
         </div>
 
         <div className="bg-gradient-to-br from-yellow-600 to-yellow-700 rounded-lg shadow-lg p-6 text-white">
@@ -325,9 +325,9 @@ export default function AdminWallet() {
           <p className="text-xs text-yellow-100 mt-1">Awaiting settlement</p>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 text-white">
+        <div className="bg-gradient-to-br from-[#E91E63] to-[#D81B60] rounded-lg shadow-lg p-6 text-white">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-blue-100">This Month</h3>
+            <h3 className="text-sm font-medium text-pink-100">This Month</h3>
             <svg
               width="24"
               height="24"
@@ -349,13 +349,13 @@ export default function AdminWallet() {
               minimumFractionDigits: 2,
             })}
           </p>
-          <p className="text-xs text-blue-100 mt-1">Current month earnings</p>
+          <p className="text-xs text-pink-100 mt-1">Current month earnings</p>
         </div>
       </div>
 
       {/* Admin Earnings Details Section */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-        <div className="bg-teal-600 px-4 sm:px-6 py-3">
+        <div className="bg-[#E91E63] px-4 sm:px-6 py-3">
           <h2 className="text-white text-lg font-semibold">
             Admin Earnings Details
           </h2>
@@ -406,7 +406,7 @@ export default function AdminWallet() {
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
                         {earning.description}
                       </td>
-                      <td className="px-4 sm:px-6 py-3 text-sm font-medium text-green-700">
+                      <td className="px-4 sm:px-6 py-3 text-sm font-medium text-[#E91E63]">
                         ₹
                         {earning.amount.toLocaleString("en-IN", {
                           minimumFractionDigits: 2,
@@ -418,7 +418,7 @@ export default function AdminWallet() {
                       <td className="px-4 sm:px-6 py-3">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${earning.status === "Paid"
-                            ? "bg-green-100 text-green-800"
+                            ? "bg-[#E91E63]/10 text-[#E91E63]"
                             : "bg-yellow-100 text-yellow-800"
                             }`}>
                           {earning.status}
@@ -447,7 +447,7 @@ export default function AdminWallet() {
                   setStatusFilter("All");
                 }}
                 className={`flex items-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
-                  ? "border-teal-600 text-teal-600"
+                  ? "border-[#E91E63] text-[#E91E63]"
                   : "border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300"
                   }`}>
                 <span>{tab.icon}</span>
@@ -470,7 +470,7 @@ export default function AdminWallet() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
-                className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
               />
             </div>
 
@@ -484,13 +484,13 @@ export default function AdminWallet() {
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
                 />
                 <input
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
                 />
               </div>
             </div>
@@ -506,7 +506,7 @@ export default function AdminWallet() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]">
                     <option value="All">All Status</option>
                     {activeTab === "transaction" && (
                       <>
@@ -548,7 +548,7 @@ export default function AdminWallet() {
             <div>
               {loading ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mr-2"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E91E63] mr-2"></div>
                   <span className="text-neutral-600">
                     Loading transactions...
                   </span>
@@ -598,7 +598,7 @@ export default function AdminWallet() {
                             <td className="px-4 sm:px-6 py-3">
                               <span
                                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${transaction.transactionType === "credit"
-                                  ? "bg-green-100 text-green-800"
+                                  ? "bg-[#E91E63]/10 text-[#E91E63]"
                                   : transaction.transactionType === "debit"
                                     ? "bg-red-100 text-red-800"
                                     : "bg-yellow-100 text-yellow-800"
@@ -619,7 +619,7 @@ export default function AdminWallet() {
                               <span
                                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${transaction.status === "Completed" ||
                                   transaction.status === "Paid"
-                                  ? "bg-green-100 text-green-800"
+                                  ? "bg-[#E91E63]/10 text-[#E91E63]"
                                   : transaction.status === "Pending"
                                     ? "bg-yellow-100 text-yellow-800"
                                     : "bg-red-100 text-red-800"
@@ -712,7 +712,7 @@ export default function AdminWallet() {
                         <td className="px-4 sm:px-6 py-3">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${request.status === "Approved"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-[#E91E63]/10 text-[#E91E63]"
                               : request.status === "Pending"
                                 ? "bg-yellow-100 text-yellow-800"
                                 : "bg-red-100 text-red-800"
@@ -727,7 +727,7 @@ export default function AdminWallet() {
                                 onClick={() =>
                                   handleApproveWithdraw(request.id)
                                 }
-                                className="text-green-600 hover:text-green-800 text-xs font-medium">
+                                className="text-[#E91E63] hover:text-[#D81B60] text-xs font-medium">
                                 Approve
                               </button>
                               <button
@@ -762,7 +762,7 @@ export default function AdminWallet() {
                 displayedData.map((balance: Balance) => (
                   <div
                     key={balance.userId}
-                    className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-6 border border-teal-200">
+                    className="bg-gradient-to-br from-[#E91E63]/5 to-[#E91E63]/10 rounded-lg p-6 border border-[#E91E63]/20">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="text-lg font-semibold text-neutral-900">
@@ -776,12 +776,12 @@ export default function AdminWallet() {
                         <p className="text-xs text-neutral-600">
                           Current Balance
                         </p>
-                        <p className="text-2xl font-bold text-teal-700">
+                        <p className="text-2xl font-bold text-[#E91E63]">
                           ₹{balance.currentBalance.toFixed(2)}
                         </p>
                       </div>
                     </div>
-                    <div className="space-y-2 pt-4 border-t border-teal-200">
+                    <div className="space-y-2 pt-4 border-t border-[#E91E63]/20">
                       <div className="flex justify-between text-sm">
                         <span className="text-neutral-600">
                           Pending Balance:
@@ -794,7 +794,7 @@ export default function AdminWallet() {
                         <span className="text-neutral-600">
                           Total Earnings:
                         </span>
-                        <span className="font-medium text-green-700">
+                        <span className="font-medium text-[#E91E63]">
                           ₹{balance.totalEarnings.toFixed(2)}
                         </span>
                       </div>

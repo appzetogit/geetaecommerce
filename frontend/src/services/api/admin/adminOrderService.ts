@@ -193,6 +193,26 @@ export const updateOrderStatus = async (
 };
 
 /**
+ * Update order items (Edit Order)
+ */
+export const updateOrderItems = async (
+  id: string,
+  items: Array<{
+    productId: string;
+    variationId?: string;
+    quantity: number;
+    unitPrice?: number;
+    sku?: string;
+  }>
+): Promise<ApiResponse<Order>> => {
+  const response = await api.patch<ApiResponse<Order>>(
+    `/admin/orders/${id}/items`,
+    { items }
+  );
+  return response.data;
+};
+
+/**
  * Assign delivery boy to order
  */
 export const assignDeliveryBoy = async (

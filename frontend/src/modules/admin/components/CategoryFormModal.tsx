@@ -416,9 +416,9 @@ export default function CategoryFormModal({
         <div className="px-6 py-4">
           {/* Parent Category Info (for subcategory mode) */}
           {isSubcategoryMode && parentCategory && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-600">Parent Category</p>
-              <p className="text-base font-semibold text-blue-900">
+            <div className="mb-4 p-3 bg-[#E91E63]/10 border border-[#E91E63]/30 rounded-lg">
+              <p className="text-sm text-[#E91E63]">Parent Category</p>
+              <p className="text-base font-semibold text-[#E91E63]">
                 {parentCategory.name}
               </p>
             </div>
@@ -507,7 +507,7 @@ export default function CategoryFormModal({
                   disabled
                   className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-neutral-50 text-neutral-600 cursor-not-allowed"
                 />
-                <p className="mt-1 text-xs text-blue-600">
+                <p className="mt-1 text-xs text-[#E91E63]">
                   Inherited from parent category
                 </p>
                 {errors.headerCategoryId && (
@@ -582,8 +582,8 @@ export default function CategoryFormModal({
             <label
               className={`block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
                 isDragging
-                  ? "border-teal-500 bg-teal-50"
-                  : "border-neutral-300 hover:border-teal-500"
+                  ? "border-[#E91E63] bg-[#E91E63]/10"
+                  : "border-neutral-300 hover:border-[#E91E63]"
               }`}
               onDragEnter={handleDragEnter}
               onDragOver={handleDragOver}
@@ -814,7 +814,7 @@ export default function CategoryFormModal({
             className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
               submitting || uploading
                 ? "bg-neutral-400 cursor-not-allowed"
-                : "bg-teal-600 hover:bg-teal-700"
+                : "bg-[#E91E63] hover:bg-[#D81B60]"
             }`}>
             {submitting
               ? "Saving..."

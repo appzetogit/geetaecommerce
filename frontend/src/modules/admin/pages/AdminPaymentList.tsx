@@ -152,7 +152,7 @@ export default function AdminPaymentList() {
           Payment Method
         </h1>
         <div className="text-sm text-neutral-600">
-          <span className="text-teal-600 hover:text-teal-700 cursor-pointer">
+          <span className="text-[#E91E63] hover:text-[#D81B60] cursor-pointer">
             Home
           </span>
           <span className="mx-2">/</span>
@@ -163,7 +163,7 @@ export default function AdminPaymentList() {
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mr-2"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E91E63] mr-2"></div>
           <span className="text-neutral-600">Loading payment methods...</span>
         </div>
       )}
@@ -183,7 +183,7 @@ export default function AdminPaymentList() {
               key={method._id}
               className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
               {/* Header */}
-              <div className="bg-teal-600 px-4 sm:px-6 py-3">
+              <div className="bg-[#E91E63] px-4 sm:px-6 py-3">
                 <h2 className="text-white text-lg font-semibold">
                   {method.name}
                 </h2>
@@ -203,7 +203,7 @@ export default function AdminPaymentList() {
                       handleUpdate(method._id, "description", e.target.value)
                     }
                     disabled={updating === method._id}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-neutral-50 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-neutral-100 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-neutral-50 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] disabled:bg-neutral-100 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -220,7 +220,7 @@ export default function AdminPaymentList() {
                         handleUpdate(method._id, "apiKey", e.target.value)
                       }
                       disabled={updating === method._id}
-                      className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-neutral-50 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-neutral-100 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-neutral-50 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] disabled:bg-neutral-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 )}
@@ -238,7 +238,7 @@ export default function AdminPaymentList() {
                         handleUpdate(method._id, "secretKey", e.target.value)
                       }
                       disabled={updating === method._id}
-                      className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-neutral-50 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-neutral-100 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-neutral-50 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] disabled:bg-neutral-100 disabled:cursor-not-allowed"
                     />
                   </div>
                 )}
@@ -257,7 +257,7 @@ export default function AdminPaymentList() {
                       )
                     }
                     disabled={updating === method._id}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-neutral-100 disabled:cursor-not-allowed">
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] disabled:bg-neutral-100 disabled:cursor-not-allowed">
                     <option value="Active">Active</option>
                     <option value="InActive">InActive</option>
                   </select>
@@ -267,7 +267,7 @@ export default function AdminPaymentList() {
                 <button
                   onClick={() => handleUpdatePaymentMethod(method._id)}
                   disabled={updating === method._id}
-                  className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded text-sm font-medium transition-colors flex items-center justify-center">
+                  className="w-full bg-[#E91E63] hover:bg-[#D81B60] disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded text-sm font-medium transition-colors flex items-center justify-center">
                   {updating === method._id ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -286,7 +286,7 @@ export default function AdminPaymentList() {
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
         Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-teal-600 hover:text-teal-700">
+        <a href="#" className="text-[#E91E63] hover:text-[#D81B60]">
           Geeta Stores - 10 Minute App
         </a>
       </div>

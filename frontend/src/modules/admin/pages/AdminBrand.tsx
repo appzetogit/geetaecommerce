@@ -232,8 +232,8 @@ export default function AdminBrand() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <h1 className="text-2xl font-semibold text-neutral-800">Brand</h1>
-        <div className="text-sm text-blue-500">
-          <span className="text-blue-500 hover:underline cursor-pointer">
+        <div className="text-sm text-[#E91E63]">
+          <span className="text-[#E91E63] hover:underline cursor-pointer">
             Home
           </span>{" "}
           <span className="text-neutral-400">/</span> Dashboard
@@ -243,7 +243,7 @@ export default function AdminBrand() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Left Panel - Add Brand */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+          <div className="bg-[#E91E63] text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">Add Brand</h2>
           </div>
           <div className="p-4 sm:p-6 space-y-4">
@@ -262,7 +262,7 @@ export default function AdminBrand() {
                 value={brandName}
                 onChange={(e) => setBrandName(e.target.value)}
                 placeholder="Enter Brand Name"
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#E91E63] focus:border-[#E91E63]"
                 disabled={uploading}
               />
             </div>
@@ -272,7 +272,7 @@ export default function AdminBrand() {
               <label className="block text-sm font-medium text-neutral-700 mb-2">
                 Brand Image:
               </label>
-              <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center cursor-pointer hover:border-teal-500 transition-colors">
+              <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center cursor-pointer hover:border-[#E91E63] transition-colors">
                 {brandImagePreview ? (
                   <div className="space-y-2">
                     <img
@@ -337,7 +337,7 @@ export default function AdminBrand() {
               disabled={uploading}
               className={`w-full py-2.5 rounded text-sm font-medium transition-colors ${uploading
                 ? "bg-neutral-400 cursor-not-allowed text-white"
-                : "bg-teal-600 hover:bg-teal-700 text-white"
+                : "bg-[#E91E63] hover:bg-[#D81B60] text-white"
                 }`}>
               {uploading
                 ? "Saving..."
@@ -363,7 +363,7 @@ export default function AdminBrand() {
 
         {/* Right Panel - View Brand */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+          <div className="bg-[#E91E63] text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">View Brand</h2>
           </div>
 
@@ -379,7 +379,7 @@ export default function AdminBrand() {
                     setEntriesPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="px-2 py-1 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500">
+                  className="px-2 py-1 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#E91E63] focus:border-[#E91E63]">
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
@@ -391,7 +391,7 @@ export default function AdminBrand() {
               {/* Export Button */}
               <button
                 onClick={handleExport}
-                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+                className="bg-[#E91E63] hover:bg-[#D81B60] text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
                 <svg
                   width="16"
                   height="16"
@@ -430,7 +430,7 @@ export default function AdminBrand() {
                     setCurrentPage(1);
                   }}
                   placeholder="Search..."
-                  className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 min-w-[150px]"
+                  className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#E91E63] focus:border-[#E91E63] min-w-[150px]"
                 />
               </div>
             </div>
@@ -566,7 +566,7 @@ export default function AdminBrand() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleEdit(brand._id)}
-                            className="p-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded transition-colors"
+                            className="p-1.5 bg-[#E91E63]/10 hover:bg-[#E91E63]/20 text-[#E91E63] rounded transition-colors"
                             title="Edit">
                             <svg
                               width="16"
@@ -643,7 +643,7 @@ export default function AdminBrand() {
                     key={page}
                     onClick={() => setCurrentPage(page)}
                     className={`px-3 py-1 border border-neutral-300 rounded text-sm ${currentPage === page
-                      ? "bg-teal-600 text-white border-teal-600"
+                      ? "bg-[#E91E63] text-white border-[#E91E63]"
                       : "text-neutral-700 hover:bg-neutral-50"
                       }`}>
                     {page}
@@ -683,7 +683,7 @@ export default function AdminBrand() {
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
         Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-teal-600 hover:text-teal-700">
+        <a href="#" className="text-[#E91E63] hover:text-[#D81B60]">
           Geeta Stores - 10 Minute App
         </a>
       </div>

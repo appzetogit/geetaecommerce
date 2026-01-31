@@ -192,6 +192,205 @@ export const updateOrderStatus = asyncHandler(
 );
 
 /**
+ * Update order items (Edit Order)
+ */
+export const updateOrderItems = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { items: newItemsData } = req.body; // Array of { productId, variationId?, quantity, unitPrice? }
+
+    if (!newItemsData || !Array.isArray(newItemsData) || newItemsData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Items are required and must be an array",
+      });
+    }
+
+    const order = await Order.findById(id).populate("items");
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Do not allow editing if already delivered, cancelled or returned
+    const restrictedStatuses = ["Delivered", "Cancelled", "Returned"];
+    if (restrictedStatuses.includes(order.status)) {
+       return res.status(400).json({
+           success: false,
+           message: `Cannot edit order when status is ${order.status}`
+       });
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      const adminId = req.user?.userId;
+
+      // 1. Restore stock for existing items
+      const existingItems = await OrderItem.find({ order: order._id }).session(session);
+      for (const item of existingItems) {
+        if (item.product) {
+          const product = await Product.findById(item.product).session(session);
+          if (product) {
+             const qty = item.quantity;
+             let restored = false;
+
+             // Try to match variation by SKU
+             if (item.sku && product.variations && product.variations.length > 0) {
+                const vIndex = product.variations.findIndex((v: any) => v.sku === item.sku);
+                if (vIndex > -1) {
+                   const prevVarStock = product.variations[vIndex].stock || 0;
+                   product.variations[vIndex].stock = prevVarStock + qty;
+                   product.stock = (product.stock || 0) + qty;
+                   await product.save({ session });
+
+                   await StockLedger.create([{
+                       product: product._id,
+                       variationId: product.variations[vIndex]._id,
+                       sku: item.sku,
+                       quantity: qty,
+                       type: "IN",
+                       source: "ORDER_EDIT_RESTORE",
+                       referenceId: order._id,
+                       previousStock: prevVarStock,
+                       newStock: product.variations[vIndex].stock,
+                       admin: adminId
+                   }], { session });
+                   restored = true;
+                }
+             }
+
+             if (!restored) {
+                const prevStock = product.stock || 0;
+                product.stock = prevStock + qty;
+                await product.save({ session });
+
+                await StockLedger.create([{
+                    product: product._id,
+                    sku: item.sku || product.sku,
+                    quantity: qty,
+                    type: "IN",
+                    source: "ORDER_EDIT_RESTORE",
+                    referenceId: order._id,
+                    previousStock: prevStock,
+                    newStock: product.stock,
+                    admin: adminId
+                }], { session });
+             }
+          }
+        }
+      }
+
+      // 2. Delete old OrderItems
+      await OrderItem.deleteMany({ order: order._id }).session(session);
+
+      // 3. Create new OrderItems and deduct stock
+      let newSubtotal = 0;
+      const newItemIds = [];
+
+      for (const itemData of newItemsData) {
+        const product = await Product.findById(itemData.productId).populate("seller").session(session);
+        if (!product) {
+          throw new Error(`Product not found: ${itemData.productId}`);
+        }
+
+        let unitPrice = itemData.unitPrice || product.price;
+        let variationName = "";
+        let sku = itemData.sku || product.sku;
+        let variationId = null;
+
+        if (itemData.variationId && product.variations) {
+          const variation = (product.variations as any).id(itemData.variationId);
+          if (variation) {
+            unitPrice = itemData.unitPrice || variation.price || unitPrice;
+            variationName = `${variation.name}: ${variation.value}`;
+            sku = variation.sku || sku;
+            variationId = variation._id;
+
+            const prevVarStock = variation.stock || 0;
+            variation.stock = Math.max(0, prevVarStock - itemData.quantity);
+          }
+        }
+
+        const prevStock = product.stock || 0;
+        product.stock = Math.max(0, prevStock - itemData.quantity);
+        await product.save({ session });
+
+        const total = unitPrice * itemData.quantity;
+        newSubtotal += total;
+
+        const newOrderItem = new OrderItem({
+          order: order._id,
+          product: product._id,
+          seller: (product.seller as any)?._id || product.seller,
+          productName: product.productName,
+          productImage: product.mainImage,
+          sku: sku,
+          unitPrice: unitPrice,
+          quantity: itemData.quantity,
+          total: total,
+          variation: variationName,
+          status: "Pending"
+        });
+
+        await newOrderItem.save({ session });
+        newItemIds.push(newOrderItem._id);
+
+        // Stock Ledger for deduction
+        await StockLedger.create([{
+            product: product._id,
+            variationId: variationId,
+            sku: sku,
+            quantity: itemData.quantity,
+            type: "OUT",
+            source: "ORDER_EDIT_DEDUCT",
+            referenceId: order._id,
+            previousStock: variationId ? ((product.variations as any).id(variationId).stock + itemData.quantity) : (product.stock + itemData.quantity),
+            newStock: variationId ? (product.variations as any).id(variationId).stock : product.stock,
+            admin: adminId
+        }], { session });
+      }
+
+      // 4. Update Order
+      order.items = newItemIds as any;
+      order.subtotal = newSubtotal;
+      order.total = newSubtotal + (order.tax || 0) + (order.shipping || 0) - (order.discount || 0);
+
+      await order.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      const updatedOrder = await Order.findById(id).populate({
+        path: "items",
+        populate: [
+          { path: "product", select: "productName mainImage" },
+          { path: "seller", select: "sellerName storeName" }
+        ]
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Order items updated successfully",
+        data: updatedOrder,
+      });
+
+    } catch (error: any) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error("UpdateOrderItems Error:", error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "Failed to update order items",
+      });
+    }
+  }
+);
+
+/**
  * Assign delivery boy to order
  */
 export const assignDeliveryBoy = asyncHandler(
@@ -484,7 +683,7 @@ export const getReturnRequestById = asyncHandler(
 export const processReturnRequest = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { status, rejectionReason, refundAmount, adminNotes } = req.body;
+    const { status, rejectionReason, adminNotes } = req.body;
 
     const validStatuses = ["Approved", "Rejected", "Processing", "Completed"];
     if (status && !validStatuses.includes(status)) {
@@ -1248,9 +1447,7 @@ export const processPOSExchange = asyncHandler(
     const {
       customerId,
       returnItems, // [{ productId, variationId, quantity, price }]
-      newItems,    // [{ productId, variationId, quantity, price }]
-      paymentMethod,
-      isDifferencePaid // boolean
+      newItems     // [{ productId, variationId, quantity, price }]
     } = req.body;
 
     if (!customerId || !returnItems || !newItems) {

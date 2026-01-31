@@ -189,8 +189,8 @@ export default function AdminLowestPrices() {
                     <h1 className="text-2xl font-semibold text-neutral-800">
                         Lowest Prices Ever Products
                     </h1>
-                    <div className="text-sm text-blue-500">
-                        <span className="text-blue-500 hover:underline cursor-pointer">
+                    <div className="text-sm text-[#E91E63]">
+                        <span className="text-[#E91E63] hover:underline cursor-pointer">
                             Home
                         </span>{" "}
                         <span className="text-neutral-400">/</span> Lowest Prices Products
@@ -236,7 +236,7 @@ export default function AdminLowestPrices() {
                                             placeholder="Search products..."
                                             value={productSearchTerm}
                                             onChange={(e) => setProductSearchTerm(e.target.value)}
-                                            className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none mb-2"
+                                            className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none mb-2"
                                         />
                                         <div className="border border-neutral-300 rounded max-h-48 overflow-y-auto bg-white">
                                             {filteredProducts.length === 0 ? (
@@ -256,7 +256,7 @@ export default function AdminLowestPrices() {
                                                         }}
                                                         className={`w-full text-left px-3 py-2 hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-b-0 ${
                                                             selectedProduct === product._id
-                                                                ? "bg-teal-50 border-teal-200"
+                                                                ? "bg-[#E91E63]/10 border-[#E91E63]/20"
                                                                 : ""
                                                         }`}
                                                     >
@@ -273,7 +273,7 @@ export default function AdminLowestPrices() {
                                             )}
                                         </div>
                                         {selectedProduct && (
-                                            <p className="text-xs text-teal-600 mt-1">
+                                            <p className="text-xs text-[#E91E63] mt-1">
                                                 Selected:{" "}
                                                 {
                                                     availableProducts.find(
@@ -304,7 +304,7 @@ export default function AdminLowestPrices() {
                                     }
                                     placeholder="Auto-assign"
                                     min="0"
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none"
                                 />
                                 <p className="text-xs text-neutral-500 mt-1">
                                     Leave empty to auto-assign at the end
@@ -318,7 +318,7 @@ export default function AdminLowestPrices() {
                                         type="checkbox"
                                         checked={isActive}
                                         onChange={(e) => setIsActive(e.target.checked)}
-                                        className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+                                        className="h-4 w-4 text-[#E91E63] focus:ring-[#E91E63] border-gray-300 rounded"
                                     />
                                     <span className="ml-2 text-sm font-medium text-neutral-700">
                                         Active (Show on home page)
@@ -335,7 +335,7 @@ export default function AdminLowestPrices() {
                                 className={`w-full px-4 py-2 rounded font-medium transition-colors ${
                                     loading
                                         ? "bg-gray-400 cursor-not-allowed text-white"
-                                        : "bg-teal-600 hover:bg-teal-700 text-white"
+                                        : "bg-[#E91E63] hover:bg-[#D81B60] text-white"
                                 }`}
                             >
                                 {loading
@@ -357,7 +357,7 @@ export default function AdminLowestPrices() {
 
                     {/* Right Section: View Products Table */}
                     <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col">
-                        <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg">
+                        <div className="bg-[#E91E63] text-white px-6 py-4 rounded-t-lg">
                             <h2 className="text-lg font-semibold">View Products</h2>
                         </div>
 
@@ -372,7 +372,7 @@ export default function AdminLowestPrices() {
                                         setRowsPerPage(Number(e.target.value));
                                         setCurrentPage(1);
                                     }}
-                                    className="w-16 px-2 py-1.5 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none"
+                                    className="w-16 px-2 py-1.5 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#E91E63] focus:outline-none"
                                 />
                                 <span className="text-sm text-neutral-600">entries</span>
                             </div>
@@ -433,7 +433,7 @@ export default function AdminLowestPrices() {
                                                         <span
                                                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                                 item.isActive
-                                                                    ? "bg-green-100 text-green-800"
+                                                                    ? "bg-[#E91E63]/10 text-[#E91E63]"
                                                                     : "bg-gray-100 text-gray-800"
                                                             }`}
                                                         >
@@ -444,7 +444,7 @@ export default function AdminLowestPrices() {
                                                         <div className="flex items-center gap-2">
                                                             <button
                                                                 onClick={() => handleEdit(item)}
-                                                                className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                                                                className="p-1.5 bg-[#E91E63] hover:bg-[#D81B60] text-white rounded transition-colors"
                                                                 title="Edit"
                                                             >
                                                                 <svg

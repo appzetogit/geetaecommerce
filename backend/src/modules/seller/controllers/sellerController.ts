@@ -188,3 +188,39 @@ export const deleteSeller = asyncHandler(
     });
   }
 );
+
+/**
+ * Toggle seller enabled status
+ */
+export const toggleSellerEnabled = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { isEnabled } = req.body;
+
+    if (typeof isEnabled !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        message: "isEnabled must be a boolean value",
+      });
+    }
+
+    const seller = await Seller.findByIdAndUpdate(
+      id,
+      { isEnabled },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!seller) {
+      return res.status(404).json({
+        success: false,
+        message: "Seller not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Seller ${isEnabled ? "enabled" : "disabled"} successfully`,
+      data: seller,
+    });
+  }
+);

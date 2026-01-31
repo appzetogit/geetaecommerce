@@ -408,7 +408,7 @@ export default function AdminProductDisplaySettings() {
   if (loading) {
      return (
         <div className="flex items-center justify-center h-full">
-           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E91E63]"></div>
         </div>
      )
   }
@@ -423,12 +423,12 @@ export default function AdminProductDisplaySettings() {
           </div>
           <div className="flex items-center gap-3">
              <div className="text-sm text-neutral-600 hidden sm:block mr-2">
-                <span className="text-teal-600">Home</span> / <span className="text-neutral-900">Product Settings</span>
+                <span className="text-[#E91E63]">Home</span> / <span className="text-neutral-900">Product Settings</span>
              </div>
              <button
                onClick={saveSettings}
                disabled={saving}
-               className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+               className="bg-[#E91E63] hover:bg-[#D81B60] text-white font-semibold py-2 px-4 rounded-lg shadow-sm transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
              >
                {saving ? 'Saving...' : 'Save Changes'}
              </button>
@@ -459,7 +459,7 @@ export default function AdminProductDisplaySettings() {
                   setBarcodeSize(value);
                   localStorage.setItem('barcode_print_size', value);
                 }}
-                className="w-full max-w-xs border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all bg-white"
+                className="w-full max-w-xs border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all bg-white"
               >
                 <option value="small">Small</option>
                 <option value="medium">Medium (Default)</option>
@@ -479,7 +479,7 @@ export default function AdminProductDisplaySettings() {
                 {section.id === 'variants' && (
                   <button
                     onClick={() => addField(section.id)}
-                    className="text-sm text-teal-600 hover:text-teal-700 font-medium px-3 py-1.5 rounded-md hover:bg-teal-50 transition-colors"
+                    className="text-sm text-[#E91E63] hover:text-[#D81B60] font-medium px-3 py-1.5 rounded-md hover:bg-[#E91E63]/10 transition-colors"
                   >
                     + Add Field
                   </button>
@@ -498,7 +498,7 @@ export default function AdminProductDisplaySettings() {
                           {field.label}
                         </span>
                         {field.id === 'video' && (
-                          <svg className="w-4 h-4 text-blue-500 fill-current" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 text-[#E91E63] fill-current" viewBox="0 0 24 24">
                             <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                           </svg>
                         )}
@@ -514,8 +514,8 @@ export default function AdminProductDisplaySettings() {
                       {/* Toggle Switch */}
                       <button
                         onClick={() => toggleField(section.id, field.id)}
-                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 ${
-                          field.isEnabled ? 'bg-blue-600' : 'bg-neutral-200'
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:ring-offset-2 ${
+                          field.isEnabled ? 'bg-[#E91E63]' : 'bg-neutral-200'
                         }`}
                         role="switch"
                         aria-checked={field.isEnabled}
@@ -566,7 +566,7 @@ export default function AdminProductDisplaySettings() {
         <button
            onClick={saveSettings}
            disabled={saving}
-           className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+           className="bg-[#E91E63] hover:bg-[#D81B60] text-white font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
@@ -584,7 +584,7 @@ export default function AdminProductDisplaySettings() {
               value={newVariantName}
               onChange={(e) => setNewVariantName(e.target.value)}
               placeholder="Variant Name"
-              className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 mb-6"
+              className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63] mb-6"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleConfirmAdd();
@@ -601,7 +601,7 @@ export default function AdminProductDisplaySettings() {
               </button>
               <button
                 onClick={handleConfirmAdd}
-                 className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors font-medium"
+                 className="px-4 py-2 bg-[#E91E63] hover:bg-[#D81B60] text-white rounded-lg transition-colors font-medium"
               >
                 Add Field
               </button>

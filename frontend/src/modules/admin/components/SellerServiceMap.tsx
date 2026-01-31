@@ -34,7 +34,7 @@ export default function SellerServiceMap({
 }: SellerServiceMapProps) {
   // Center of the map
   const position: [number, number] = [latitude, longitude];
-  
+
   // Radius in meters for Leaflet Circle
   const radiusMeters = radiusKm * 1000;
 
@@ -60,8 +60,8 @@ export default function SellerServiceMap({
           center={position}
           radius={radiusMeters}
           pathOptions={{
-            color: '#0D9488', // teal-600
-            fillColor: '#0D9488',
+            color: '#E91E63', // pink-600
+            fillColor: '#E91E63',
             fillOpacity: 0.2,
             weight: 2
           }}

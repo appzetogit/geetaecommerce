@@ -86,7 +86,7 @@ export default function AdminSmsGateway() {
             <h1 className="text-xl sm:text-2xl font-bold text-neutral-900">SMS Gateway</h1>
           </div>
           <div className="text-sm text-neutral-600">
-            <span className="text-blue-600">Home</span> / <span className="text-neutral-900">SMS Gateway</span>
+            <span className="text-[#E91E63]">Home</span> / <span className="text-neutral-900">SMS Gateway</span>
           </div>
         </div>
       </div>
@@ -97,7 +97,7 @@ export default function AdminSmsGateway() {
           {gateways.map((gateway) => (
             <div key={gateway.id} className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
               {/* Header */}
-              <div className="bg-teal-600 px-4 sm:px-6 py-3">
+              <div className="bg-[#E91E63] px-4 sm:px-6 py-3">
                 <h2 className="text-white text-lg font-semibold">{gateway.name}</h2>
               </div>
 
@@ -113,7 +113,7 @@ export default function AdminSmsGateway() {
                       type={fieldName.includes('Token') || fieldName.includes('Secret') || fieldName.includes('authKey') || fieldName.includes('apiKey') ? 'password' : 'text'}
                       value={fieldValue}
                       onChange={(e) => handleFieldChange(gateway.id, fieldName, e.target.value)}
-                      className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-neutral-50 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                      className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-neutral-50 text-neutral-700 focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
                       placeholder={fieldValue === '' ? `Enter ${getFieldLabel(fieldName)}` : ''}
                     />
                   </div>
@@ -125,7 +125,7 @@ export default function AdminSmsGateway() {
                   <select
                     value={gateway.status}
                     onChange={(e) => handleStatusChange(gateway.id, e.target.value as 'Active' | 'InActive')}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-white text-neutral-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded text-sm bg-white text-neutral-700 focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
                   >
                     <option value="Active">Active</option>
                     <option value="InActive">InActive</option>
@@ -136,7 +136,7 @@ export default function AdminSmsGateway() {
                 <div className="pt-2">
                   <button
                     onClick={() => handleUpdate(gateway.id)}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded font-medium transition-colors"
+                    className="w-full bg-[#E91E63] hover:bg-[#D81B60] text-white px-4 py-2.5 rounded font-medium transition-colors"
                   >
                     Update SMS Gateway
                   </button>

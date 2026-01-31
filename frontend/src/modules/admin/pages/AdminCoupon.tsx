@@ -268,7 +268,7 @@ export default function AdminCoupon() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <h1 className="text-2xl font-semibold text-neutral-800">Coupon</h1>
           <div className="text-sm">
-            <span className="text-blue-600 hover:underline cursor-pointer">
+            <span className="text-[#E91E63] hover:underline cursor-pointer">
               Home
             </span>
             <span className="text-neutral-400 mx-1">/</span>
@@ -278,7 +278,7 @@ export default function AdminCoupon() {
 
         {/* Add Coupon Section */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 mb-6">
-          <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg">
+          <div className="bg-[#E91E63] text-white px-6 py-4 rounded-t-lg">
             <h2 className="text-lg font-semibold">Add Coupon</h2>
           </div>
 
@@ -299,7 +299,7 @@ export default function AdminCoupon() {
                   value={formData.userType}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none bg-white"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none bg-white"
                   disabled={uploading}>
                   <option value="">Select User Type</option>
                   <option value="All Users">All Users</option>
@@ -316,7 +316,7 @@ export default function AdminCoupon() {
                   value={formData.numberOfTimes}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none bg-white"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none bg-white"
                   disabled={uploading}>
                   <option value="Single Time Valid">Single Time Valid</option>
                   <option value="Multi Time Valid">Multi Time Valid</option>
@@ -327,7 +327,7 @@ export default function AdminCoupon() {
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
                   Coupon Image
                 </label>
-                <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center cursor-pointer hover:border-teal-500 transition-colors">
+                <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center cursor-pointer hover:border-[#E91E63] transition-colors">
                   {couponImagePreview ? (
                     <div className="space-y-2">
                       <img
@@ -391,7 +391,7 @@ export default function AdminCoupon() {
                     value={formData.couponExpiryDate}
                     onChange={handleInputChange}
                     required
-                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none"
                   />
                 </div>
               </div>
@@ -407,7 +407,7 @@ export default function AdminCoupon() {
                     value={formData.couponCode}
                     onChange={handleInputChange}
                     required
-                    className="flex-1 px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                    className="flex-1 px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none"
                     placeholder="Enter coupon code"
                   />
                   <button
@@ -442,7 +442,7 @@ export default function AdminCoupon() {
                   value={formData.couponTitle}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none"
                   placeholder="Enter coupon title"
                 />
               </div>
@@ -459,7 +459,7 @@ export default function AdminCoupon() {
                   value={formData.couponStatus}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none bg-white">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none bg-white">
                   <option value="">Select Coupon Status</option>
                   <option value="Published">Published</option>
                   <option value="Draft">Draft</option>
@@ -479,7 +479,7 @@ export default function AdminCoupon() {
                   required
                   min="0"
                   step="0.01"
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none"
                   placeholder="Enter min order amount"
                 />
               </div>
@@ -496,7 +496,7 @@ export default function AdminCoupon() {
                   required
                   min="0"
                   step="0.01"
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none"
                   placeholder="Enter coupon value"
                 />
               </div>
@@ -510,7 +510,7 @@ export default function AdminCoupon() {
                   value={formData.couponType}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none bg-white">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none bg-white">
                   <option value="Percentage">Percentage</option>
                   <option value="Fixed">Fixed</option>
                 </select>
@@ -528,7 +528,7 @@ export default function AdminCoupon() {
                 onChange={handleInputChange}
                 required
                 rows={4}
-                className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none resize-none"
+                className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none resize-none"
                 placeholder="Enter coupon description"
               />
             </div>
@@ -538,7 +538,7 @@ export default function AdminCoupon() {
               disabled={uploading}
               className={`w-full px-6 py-3 rounded font-medium transition-colors ${uploading
                   ? "bg-neutral-400 cursor-not-allowed text-white"
-                  : "bg-green-600 hover:bg-green-700 text-white"
+                  : "bg-[#E91E63] hover:bg-[#D81B60] text-white"
                 }`}>
               {uploading ? "Creating Coupon..." : "Add Coupon"}
             </button>
@@ -563,7 +563,7 @@ export default function AdminCoupon() {
                   setRowsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer">
+                className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-[#E91E63] focus:outline-none cursor-pointer">
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
@@ -669,7 +669,7 @@ export default function AdminCoupon() {
                       <td className="p-4 align-middle">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${coupon.isActive
-                              ? "bg-teal-100 text-teal-800"
+                              ? "bg-[#E91E63]/10 text-[#E91E63]"
                               : "bg-gray-100 text-gray-800"
                             }`}>
                           {coupon.isActive ? "Active" : "Inactive"}
@@ -712,9 +712,9 @@ export default function AdminCoupon() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className={`p-2 border border-teal-600 rounded ${currentPage === 1
+                className={`p-2 border border-[#E91E63] rounded ${currentPage === 1
                     ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
-                    : "text-teal-600 hover:bg-teal-50"
+                    : "text-[#E91E63] hover:bg-[#E91E63]/10"
                   }`}
                 aria-label="Previous page">
                 <svg
@@ -732,7 +732,7 @@ export default function AdminCoupon() {
                   />
                 </svg>
               </button>
-              <button className="px-3 py-1.5 border border-teal-600 bg-teal-600 text-white rounded font-medium text-sm">
+              <button className="px-3 py-1.5 border border-[#E91E63] bg-[#E91E63] text-white rounded font-medium text-sm">
                 {currentPage}
               </button>
               <button
@@ -740,9 +740,9 @@ export default function AdminCoupon() {
                   setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                 }
                 disabled={currentPage === totalPages || totalPages === 0}
-                className={`p-2 border border-teal-600 rounded ${currentPage === totalPages || totalPages === 0
+                className={`p-2 border border-[#E91E63] rounded ${currentPage === totalPages || totalPages === 0
                     ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
-                    : "text-teal-600 hover:bg-teal-50"
+                    : "text-[#E91E63] hover:bg-[#E91E63]/10"
                   }`}
                 aria-label="Next page">
                 <svg
@@ -768,7 +768,7 @@ export default function AdminCoupon() {
       {/* Footer */}
       <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
         Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-blue-600 hover:underline">
+        <a href="#" className="text-[#E91E63] hover:underline">
           Geeta Stores - 10 Minute App
         </a>
       </footer>

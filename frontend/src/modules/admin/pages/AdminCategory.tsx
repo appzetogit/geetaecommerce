@@ -448,7 +448,7 @@ export default function AdminCategory() {
            <div className="flex items-center gap-3">
              <button
                 onClick={handleCreateCategory}
-                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-all focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 flex items-center gap-2"
+                className="bg-[#E91E63] hover:bg-[#D81B60] text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-all focus:ring-2 focus:ring-[#E91E63] focus:ring-offset-2 flex items-center gap-2"
              >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                    <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -530,7 +530,7 @@ export default function AdminCategory() {
                              if (e.target.value) setNavigationStack([]); // Reset stack on search to find globally
                           }}
                           placeholder="Search categories..."
-                          className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                          className="w-full pl-9 pr-4 py-2 bg-white border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                        />
                     </div>
 
@@ -586,7 +586,7 @@ export default function AdminCategory() {
            <div className="min-h-[400px]">
              {loading ? (
                <div className="flex flex-col items-center justify-center h-64 text-neutral-500">
-                  <div className="w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                  <div className="w-8 h-8 border-2 border-[#E91E63] border-t-transparent rounded-full animate-spin mb-3"></div>
                   <p className="text-sm font-medium">Loading categories...</p>
                </div>
              ) : error ? (
@@ -628,7 +628,7 @@ export default function AdminCategory() {
       {/* Footer */}
       <div className="text-center py-6 text-xs text-neutral-500 border-t border-neutral-200 mt-auto bg-white">
         <div className="max-w-7xl mx-auto px-4">
-           Copyright © 2025. Developed By <span className="font-semibold text-teal-600">Geeta Stores - 10 Minute App</span>
+           Copyright © 2025. Developed By <span className="font-semibold text-[#E91E63]">Geeta Stores - 10 Minute App</span>
         </div>
       </div>
 

@@ -76,7 +76,7 @@ export default function AdminBarcodeSettings() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full bg-neutral-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E91E63]"></div>
             </div>
         );
     }
@@ -92,7 +92,7 @@ export default function AdminBarcodeSettings() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-colors text-sm flex items-center gap-2"
+                    className="bg-[#E91E63] hover:bg-[#D81B60] text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-colors text-sm flex items-center gap-2"
                 >
                     {saving ? 'Saving...' : 'Save Settings'}
                 </button>
@@ -116,7 +116,7 @@ export default function AdminBarcodeSettings() {
                                     name="width"
                                     value={settings.width}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] outline-none transition-all"
                                 />
                                 <p className="text-xs text-neutral-400 mt-1">e.g. 38</p>
                             </div>
@@ -197,7 +197,7 @@ export default function AdminBarcodeSettings() {
                                     name="showPrice"
                                     checked={settings.showPrice}
                                     onChange={handleChange}
-                                    className="w-5 h-5 text-teal-600 rounded focus:ring-teal-500 border-neutral-300"
+                                    className="w-5 h-5 text-[#E91E63] rounded focus:ring-[#E91E63] border-neutral-300"
                                 />
                                 <span className="text-neutral-700 font-medium">Show Price (MRP/SP)</span>
                             </label>

@@ -277,8 +277,8 @@ export default function AdminHeaderCategory() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <h1 className="text-2xl font-semibold text-neutral-800">Header Category</h1>
-        <div className="text-sm text-blue-500">
-          <span className="text-blue-500 hover:underline cursor-pointer">Home</span>{' '}
+        <div className="text-sm text-[#E91E63]">
+          <span className="text-[#E91E63] hover:underline cursor-pointer">Home</span>{' '}
           <span className="text-neutral-400">/</span> Dashboard
         </div>
       </div>
@@ -286,7 +286,7 @@ export default function AdminHeaderCategory() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Left Panel - Add Header Category */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+          <div className="bg-[#E91E63] text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">
               {editingId ? 'Edit Header Category' : 'Add Header Category'}
             </h2>
@@ -302,7 +302,7 @@ export default function AdminHeaderCategory() {
                 value={headerCategoryName}
                 onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="Enter Category Name (e.g. Dairy, Books, All)"
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#E91E63] focus:border-[#E91E63]"
               />
             </div>
 
@@ -317,7 +317,7 @@ export default function AdminHeaderCategory() {
                   value={customSlug}
                   onChange={(e) => setCustomSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
                   placeholder="e.g. all, grocery, unique-id"
-                  className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[#E91E63]"
                 />
                 <button
                   onClick={() => setCustomSlug(headerCategoryName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
@@ -327,7 +327,7 @@ export default function AdminHeaderCategory() {
                 </button>
               </div>
               <p className="mt-1 text-[10px] text-neutral-500">
-                Use <span className="font-bold text-teal-600">"all"</span> to customize the "All" tab theme and icon.
+                Use <span className="font-bold text-[#E91E63]">"all"</span> to customize the "All" tab theme and icon.
               </p>
             </div>
 
@@ -340,7 +340,7 @@ export default function AdminHeaderCategory() {
                          value="Icon"
                          checked={selectedIconType === 'Icon'}
                          onChange={() => setSelectedIconType('Icon')}
-                         className="text-teal-600 focus:ring-teal-500"
+                         className="text-[#E91E63] focus:ring-[#E91E63]"
                      />
                      <span className="text-sm font-medium text-neutral-700">Select Icon</span>
                  </label>
@@ -351,7 +351,7 @@ export default function AdminHeaderCategory() {
                          value="Image"
                          checked={selectedIconType === 'Image'}
                          onChange={() => setSelectedIconType('Image')}
-                         className="text-teal-600 focus:ring-teal-500"
+                         className="text-[#E91E63] focus:ring-[#E91E63]"
                      />
                      <span className="text-sm font-medium text-neutral-700">Upload Image</span>
                  </label>
@@ -369,7 +369,7 @@ export default function AdminHeaderCategory() {
                   placeholder="Auto-match or type..."
                   value={iconSearchTerm}
                   onChange={(e) => setIconSearchTerm(e.target.value)}
-                  className="px-2 py-1 text-xs border rounded border-neutral-300 w-32 focus:ring-1 focus:ring-teal-500 outline-none"
+                  className="px-2 py-1 text-xs border rounded border-neutral-300 w-32 focus:ring-1 focus:ring-[#E91E63] outline-none"
                 />
               </div>
 
@@ -386,11 +386,11 @@ export default function AdminHeaderCategory() {
                       className={`
                         cursor-pointer flex flex-col items-center justify-center gap-2 p-3 rounded-lg border transition-all
                         ${isSelected
-                          ? 'bg-teal-50 border-teal-500 ring-1 ring-teal-500 text-teal-700'
-                          : 'bg-white border-neutral-200 hover:border-teal-300 hover:shadow-sm text-neutral-600'}
+                          ? 'bg-[#E91E63]/10 border-[#E91E63] ring-1 ring-[#E91E63] text-[#E91E63]'
+                          : 'bg-white border-neutral-200 hover:border-[#E91E63]/50 hover:shadow-sm text-neutral-600'}
                       `}
                     >
-                      <div className={`${isSelected ? 'text-teal-600' : 'text-neutral-500'}`}>
+                      <div className={`${isSelected ? 'text-[#E91E63]' : 'text-neutral-500'}`}>
                         {option.svg}
                       </div>
                       <span className="text-[10px] font-medium text-center leading-tight truncate w-full">
@@ -443,7 +443,7 @@ export default function AdminHeaderCategory() {
                                 ) : (
                                     <>
                                        <label className="cursor-pointer">
-                                           <span className="text-teal-600 font-medium hover:text-teal-700">Click to upload</span>
+                                           <span className="text-[#E91E63] font-medium hover:text-[#D81B60]">Click to upload</span>
                                            <input
                                                type="file"
                                                accept="image/*"
@@ -513,7 +513,7 @@ export default function AdminHeaderCategory() {
                       title={displayColor}
                       className={`
                                 cursor-pointer flex flex-col items-center gap-1 p-2 rounded transition-all
-                                ${isSelected ? 'ring-2 ring-teal-500 bg-white shadow-sm' : 'hover:bg-neutral-200'}
+                                ${isSelected ? 'ring-2 ring-[#E91E63] bg-white shadow-sm' : 'hover:bg-neutral-200'}
                             `}
                     >
                       <div
@@ -533,7 +533,7 @@ export default function AdminHeaderCategory() {
                   title="Custom Color"
                   className={`
                     cursor-pointer flex flex-col items-center gap-1 p-2 rounded transition-all
-                    ${selectedTheme === 'custom' ? 'ring-2 ring-teal-500 bg-white shadow-sm' : 'hover:bg-neutral-200'}
+                    ${selectedTheme === 'custom' ? 'ring-2 ring-[#E91E63] bg-white shadow-sm' : 'hover:bg-neutral-200'}
                   `}
                 >
                   <div className="w-8 h-8 rounded-full shadow-sm border border-black/10 bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500" />
@@ -567,7 +567,7 @@ export default function AdminHeaderCategory() {
                       }}
                       placeholder="#15b24a"
                       maxLength={7}
-                      className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-teal-500"
+                      className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[#E91E63]"
                     />
                   </div>
                   <p className="mt-1 text-xs text-neutral-500">
@@ -585,7 +585,7 @@ export default function AdminHeaderCategory() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#E91E63]"
               >
                 <option value="">Select Category</option>
                 <option value="fashion">Fashion</option>
@@ -605,7 +605,7 @@ export default function AdminHeaderCategory() {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value as any)}
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#E91E63]"
               >
                 <option value="Published">Published</option>
                 <option value="Unpublished">Unpublished</option>
@@ -616,7 +616,7 @@ export default function AdminHeaderCategory() {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleAddOrUpdate}
-                className="flex-1 bg-teal-600 text-white py-2 rounded text-sm font-medium hover:bg-teal-700 transition"
+                className="flex-1 bg-[#E91E63] text-white py-2 rounded text-sm font-medium hover:bg-[#D81B60] transition"
               >
                 {editingId ? 'Update Category' : 'Add Category'}
               </button>
@@ -643,7 +643,7 @@ export default function AdminHeaderCategory() {
                 placeholder="Search category..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-sm border border-neutral-300 rounded-full w-48 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                className="pl-8 pr-3 py-1.5 text-sm border border-neutral-300 rounded-full w-48 focus:outline-none focus:ring-1 focus:ring-[#E91E63]"
               />
               <svg
                 className="w-4 h-4 text-neutral-400 absolute left-2.5 top-2"
@@ -692,7 +692,7 @@ export default function AdminHeaderCategory() {
                                   <img src={category.image} alt={category.name} className="w-full h-full object-contain" />
                                </div>
                            ) : (
-                              <div className="text-teal-600 w-5 h-5 flex items-center justify-center">
+                              <div className="text-[#E91E63] w-5 h-5 flex items-center justify-center">
                                 {getIconByName(category.iconName)}
                               </div>
                            )}
@@ -725,7 +725,7 @@ export default function AdminHeaderCategory() {
                       <td className="px-4 py-3 text-sm flex gap-2">
                         <button
                           onClick={() => handleEdit(category)}
-                          className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded transition-colors"
+                          className="text-[#E91E63] hover:text-[#D81B60] bg-[#E91E63]/10 hover:bg-[#E91E63]/20 p-1.5 rounded transition-colors"
                           title="Edit"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

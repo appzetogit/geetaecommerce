@@ -210,7 +210,7 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
                       }
                     }}
                     placeholder="Search orders, customers, products..."
-                    className="w-full px-4 py-2 pl-10 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full px-4 py-2 pl-10 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
                     autoFocus
                   />
                   <svg
@@ -284,11 +284,11 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
                           if (notif.link) navigate(notif.link);
                           setShowNotificationsDropdown(false);
                         }}
-                        className={`px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer ${!notif.isRead ? 'bg-teal-50/30' : ''
+                        className={`px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer ${!notif.isRead ? 'bg-[#E91E63]/10' : ''
                           }`}
                       >
                         <div className="flex gap-3">
-                          <div className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${!notif.isRead ? 'bg-teal-500' : 'bg-neutral-300'
+                          <div className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${!notif.isRead ? 'bg-[#E91E63]' : 'bg-neutral-300'
                             }`} />
                           <div className="flex-1">
                             <p className="text-sm font-medium text-neutral-900 leading-tight">
@@ -322,7 +322,7 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
                       navigate('/admin/notification');
                       setShowNotificationsDropdown(false);
                     }}
-                    className="w-full text-center text-sm text-teal-600 hover:text-teal-700 font-medium"
+                    className="w-full text-center text-sm text-[#E91E63] hover:text-[#D81B60] font-medium"
                   >
                     View All Notifications
                   </button>

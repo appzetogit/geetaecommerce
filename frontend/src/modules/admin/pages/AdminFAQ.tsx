@@ -235,12 +235,12 @@ export default function AdminFAQ() {
       <div className="p-6 pb-0">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-neutral-800">FAQ</h1>
-          <div className="text-sm text-blue-500">
-            <span className="text-blue-500 hover:underline cursor-pointer">
+          <div className="text-sm text-neutral-500">
+            <span className="text-[#E91E63] hover:underline cursor-pointer">
               Home
             </span>{" "}
             <span className="text-neutral-400">/</span>{" "}
-            <span className="text-blue-500 hover:underline cursor-pointer">
+            <span className="text-[#E91E63] hover:underline cursor-pointer">
               Dashboard
             </span>
           </div>
@@ -252,7 +252,7 @@ export default function AdminFAQ() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
           {/* Left Panel: Add FAQ */}
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg">
+            <div className="bg-[#E91E63] text-white px-6 py-4 rounded-t-lg">
               <h2 className="text-lg font-semibold">Add FAQ</h2>
             </div>
             <div className="p-6 flex-1 flex flex-col">
@@ -266,7 +266,7 @@ export default function AdminFAQ() {
                     value={faqQuestion}
                     onChange={(e) => setFaqQuestion(e.target.value)}
                     placeholder="Enter FAQ Question"
-                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none"
                   />
                 </div>
                 <div>
@@ -278,7 +278,7 @@ export default function AdminFAQ() {
                     onChange={(e) => setFaqAnswer(e.target.value)}
                     placeholder="Enter FAQ Answer"
                     rows={6}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none resize-none"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none resize-none"
                   />
                 </div>
               </div>
@@ -286,7 +286,7 @@ export default function AdminFAQ() {
                 <button
                   onClick={handleAddFAQ}
                   disabled={submitting}
-                  className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium transition-colors flex items-center justify-center">
+                  className="w-full bg-[#E91E63] hover:bg-[#D81B60] disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium transition-colors flex items-center justify-center">
                   {submitting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -315,7 +315,7 @@ export default function AdminFAQ() {
 
           {/* Right Panel: View FAQ */}
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg">
+            <div className="bg-[#E91E63] text-white px-6 py-4 rounded-t-lg">
               <h2 className="text-lg font-semibold">View FAQ</h2>
             </div>
 
@@ -329,7 +329,7 @@ export default function AdminFAQ() {
                     setRowsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer">
+                  className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-[#E91E63] focus:outline-none cursor-pointer">
                   <option value={10}>10</option>
                   <option value={20}>20</option>
                   <option value={50}>50</option>
@@ -339,7 +339,7 @@ export default function AdminFAQ() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleExport}
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors">
+                  className="bg-[#E91E63] hover:bg-[#D81B60] text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors">
                   Export
                   <svg
                     width="10"
@@ -360,7 +360,7 @@ export default function AdminFAQ() {
                   </span>
                   <input
                     type="text"
-                    className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-48"
+                    className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-[#E91E63] w-48"
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
@@ -406,7 +406,7 @@ export default function AdminFAQ() {
                     <tr>
                       <td colSpan={4} className="p-8 text-center">
                         <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600 mr-2"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#E91E63] mr-2"></div>
                           Loading FAQs...
                         </div>
                       </td>
@@ -444,7 +444,7 @@ export default function AdminFAQ() {
                             <button
                               onClick={() => handleEdit(faq)}
                               disabled={submitting}
-                              className="p-1.5 bg-green-600 hover:bg-green-700 disabled:bg-neutral-400 disabled:cursor-not-allowed text-white rounded transition-colors"
+                              className="p-1.5 bg-[#E91E63] hover:bg-[#D81B60] disabled:bg-neutral-400 disabled:cursor-not-allowed text-white rounded transition-colors"
                               title="Edit">
                               <svg
                                 width="14"
@@ -505,9 +505,9 @@ export default function AdminFAQ() {
                     setCurrentPage((prev) => Math.max(1, prev - 1))
                   }
                   disabled={currentPage === 1}
-                  className={`p-2 border border-teal-600 rounded ${currentPage === 1
+                  className={`p-2 border border-[#E91E63] rounded ${currentPage === 1
                       ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
-                      : "text-teal-600 hover:bg-teal-50"
+                      : "text-[#E91E63] hover:bg-[#E91E63]/10"
                     }`}
                   aria-label="Previous page">
                   <svg
@@ -525,7 +525,7 @@ export default function AdminFAQ() {
                     />
                   </svg>
                 </button>
-                <button className="px-3 py-1.5 border border-teal-600 bg-teal-600 text-white rounded font-medium text-sm">
+                <button className="px-3 py-1.5 border border-[#E91E63] bg-[#E91E63] text-white rounded font-medium text-sm">
                   {currentPage}
                 </button>
                 <button
@@ -533,9 +533,9 @@ export default function AdminFAQ() {
                     setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className={`p-2 border border-teal-600 rounded ${currentPage === totalPages
+                  className={`p-2 border border-[#E91E63] rounded ${currentPage === totalPages
                       ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
-                      : "text-teal-600 hover:bg-teal-50"
+                      : "text-[#E91E63] hover:bg-[#E91E63]/10"
                     }`}
                   aria-label="Next page">
                   <svg
@@ -562,7 +562,7 @@ export default function AdminFAQ() {
       {/* Footer */}
       <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
         Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-blue-600 hover:underline">
+        <a href="#" className="text-[#E91E63] hover:underline">
           Geeta Stores - 10 Minute App
         </a>
       </footer>

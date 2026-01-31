@@ -126,6 +126,7 @@ export default function AdminAddProduct() {
     status: "Available" as "Available" | "Sold out",
     barcode: "",
     offerPrice: "",
+    wholesalePrice: "",
     tieredPrices: [] as { minQty: string, price: string }[],
   });
 
@@ -858,6 +859,8 @@ export default function AdminAddProduct() {
     const compareAtPrice = variationForm.compareAtPrice ? parseFloat(variationForm.compareAtPrice) : 0;
     const stock = parseInt(variationForm.stock || "0");
     const offerPrice = variationForm.offerPrice ? parseFloat(variationForm.offerPrice) : undefined;
+    const wholesalePrice = variationForm.wholesalePrice ? parseFloat(variationForm.wholesalePrice) : 0;
+    const discPrice = offerPrice || price; // Use offerPrice as discPrice if provided
 
     // Validate: Selling Price (price) should not be greater than MRP (compareAtPrice) if MRP is set
     if (compareAtPrice > 0 && price > compareAtPrice) {
@@ -871,11 +874,12 @@ export default function AdminAddProduct() {
       name: formData.variationType || "Variation",
       price,
       compareAtPrice,
-      discPrice: price, // For legacy support, or if discPrice is meant to be the final selling price
+      discPrice,
       stock,
       status: variationForm.status,
       barcode: variationForm.barcode,
       offerPrice,
+      wholesalePrice,
       tieredPrices: variationForm.tieredPrices.map(t => ({
         minQty: parseInt(t.minQty) || 0,
         price: parseFloat(t.price) || 0
@@ -892,6 +896,7 @@ export default function AdminAddProduct() {
       status: "Available",
       barcode: "",
       offerPrice: "",
+      wholesalePrice: "",
       tieredPrices: [],
     });
     setUploadError("");
@@ -1014,6 +1019,7 @@ export default function AdminAddProduct() {
            status: "Available" as const,
            barcode: "",
            offerPrice: undefined,
+           wholesalePrice: 0,
            tieredPrices: []
        }));
 
@@ -1186,7 +1192,8 @@ export default function AdminAddProduct() {
       const compareAtPrice = variationForm.compareAtPrice ? parseFloat(variationForm.compareAtPrice) : 0;
       const stock = parseInt(variationForm.stock || "0");
       const offerPrice = variationForm.offerPrice ? parseFloat(variationForm.offerPrice) : undefined;
-      const discPrice = price; // standard behavior for this form
+      const wholesalePrice = variationForm.wholesalePrice ? parseFloat(variationForm.wholesalePrice) : 0;
+      const discPrice = offerPrice || price; // Use offerPrice as discPrice if provided
 
       if (finalVariations.length === 0) {
         if (variationForm.title && variationForm.price) {
@@ -1203,7 +1210,8 @@ export default function AdminAddProduct() {
              discPrice,
              stock,
              status: variationForm.status,
-             offerPrice
+             offerPrice,
+             wholesalePrice
            });
         } else {
           setUploadError("Please add at least one product variation");
@@ -1226,7 +1234,7 @@ export default function AdminAddProduct() {
               discPrice,
               stock,
               offerPrice,
-              // Update title only if needed? Usually we keep it.
+              wholesalePrice
           };
       }
 
@@ -1269,6 +1277,8 @@ export default function AdminAddProduct() {
         variationType: formData.variationType || undefined,
         price: finalVariations[0]?.price || 0,
         compareAtPrice: finalVariations[0]?.compareAtPrice || 0,
+        wholesalePrice: finalVariations[0]?.wholesalePrice || 0,
+        discPrice: finalVariations[0]?.discPrice || 0,
         stock: finalVariations.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0),
         isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",
         shopId: formData.shopId || undefined,
@@ -1519,6 +1529,39 @@ const applySearchedImage = () => {
                     </div>
                  </div>
             </div>
+
+             <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                       Offer Price (Online)
+                     </label>
+                     <div className="relative">
+                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                         <input
+                            type="number"
+                            value={variationForm.offerPrice}
+                            onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
+                            placeholder="0.00"
+                            className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                         />
+                     </div>
+                  </div>
+                  <div>
+                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                       Wholesale Price
+                     </label>
+                     <div className="relative">
+                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                         <input
+                            type="number"
+                            value={variationForm.wholesalePrice}
+                            onChange={(e) => setVariationForm({ ...variationForm, wholesalePrice: e.target.value })}
+                            placeholder="0.00"
+                            className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                         />
+                     </div>
+                  </div>
+             </div>
 
              {/* Purchase Price */}
              {fieldVisibility.purchase_price && (
@@ -2067,21 +2110,7 @@ const applySearchedImage = () => {
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                        Discount Price
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
-                        <input
-                          type="number"
-                          value={variationForm.discPrice}
-                          onChange={(e) => setVariationForm({ ...variationForm, discPrice: e.target.value })}
-                          placeholder="0.00"
-                          className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
-                        />
-                      </div>
-                    </div>
+
                     <div>
                       <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
                         Stock
@@ -2097,7 +2126,7 @@ const applySearchedImage = () => {
                     {fieldVisibility.online_offer_price && (
                     <div>
                       <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                        Offer Price
+                        Offer Price (Online)
                       </label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
@@ -2105,7 +2134,7 @@ const applySearchedImage = () => {
                           type="number"
                           value={variationForm.offerPrice}
                           onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
-                          placeholder="Optional"
+                          placeholder="0.00"
                           className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                         />
                       </div>
@@ -2113,15 +2142,15 @@ const applySearchedImage = () => {
                     )}
                     <div>
                       <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                        Secondary Offer (Optional)
+                        Wholesale Price
                       </label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
                         <input
                           type="number"
-                          value={variationForm.offerPrice}
-                          onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
-                          placeholder="Optional"
+                          value={variationForm.wholesalePrice}
+                          onChange={(e) => setVariationForm({ ...variationForm, wholesalePrice: e.target.value })}
+                          placeholder="0.00"
                           className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
                         />
                       </div>
@@ -2230,6 +2259,7 @@ const applySearchedImage = () => {
                                     <th className="px-4 py-3 min-w-[150px]">Variation</th>
                                     <th className="px-4 py-3 min-w-[100px]">Price (₹) <span className="text-red-500">*</span></th>
                                     <th className="px-4 py-3 min-w-[100px]">Disc. Price</th>
+                                    <th className="px-4 py-3 min-w-[100px]">Wholesale</th>
                                     <th className="px-4 py-3 min-w-[80px]">Stock</th>
                                     <th className="px-4 py-3 min-w-[120px]">SKU/Barcode</th>
                                     <th className="px-4 py-3 min-w-[100px]">Unit Pricing</th>
@@ -2265,6 +2295,21 @@ const applySearchedImage = () => {
                                                     setVariations(prev => {
                                                         const n = [...prev];
                                                         n[idx].discPrice = parseFloat(val) || 0;
+                                                        return n;
+                                                    });
+                                                }}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <input
+                                                type="number"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-teal-500 focus:outline-none"
+                                                value={v.wholesalePrice}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setVariations(prev => {
+                                                        const n = [...prev];
+                                                        n[idx].wholesalePrice = parseFloat(val) || 0;
                                                         return n;
                                                     });
                                                 }}

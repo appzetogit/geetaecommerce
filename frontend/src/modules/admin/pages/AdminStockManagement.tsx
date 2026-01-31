@@ -756,13 +756,13 @@ export default function AdminStockManagement() {
         {/* Main Panel */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
           {/* Header */}
-          <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
+          <div className="bg-[#E91E63] text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
             <h2 className="text-lg font-semibold">View Stock Management</h2>
              {hasUnsavedChanges && (
                 <button
                     onClick={handleSaveChanges}
                     disabled={savingChanges}
-                    className="bg-white text-teal-600 px-4 py-1.5 rounded font-bold text-sm hover:bg-neutral-100 transition-colors shadow-sm flex items-center gap-2"
+                    className="bg-white text-[#E91E63] px-4 py-1.5 rounded font-bold text-sm hover:bg-neutral-100 transition-colors shadow-sm flex items-center gap-2"
                 >
                     {savingChanges ? "Saving..." : "Save Changes"}
                 </button>
@@ -783,7 +783,7 @@ export default function AdminStockManagement() {
                     setFilterCategory(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#E91E63] focus:outline-none cursor-pointer">
                   <option value="All Category">All Category</option>
                   {categories.map((cat) => (
                     <option key={cat._id} value={cat._id}>
@@ -802,7 +802,7 @@ export default function AdminStockManagement() {
                     setFilterSeller(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#E91E63] focus:outline-none cursor-pointer">
                   {sellers.map((seller) => (
                     <option key={seller} value={seller}>
                       {seller}
@@ -820,7 +820,7 @@ export default function AdminStockManagement() {
                     setFilterStatus(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#E91E63] focus:outline-none cursor-pointer">
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>
                       {status}
@@ -838,7 +838,7 @@ export default function AdminStockManagement() {
                     setFilterStock(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#E91E63] focus:outline-none cursor-pointer">
                   {STOCK_OPTIONS.map((stock) => (
                     <option key={stock} value={stock}>
                       {stock}
@@ -861,7 +861,7 @@ export default function AdminStockManagement() {
                         setRowsPerPage(Number(e.target.value));
                         setCurrentPage(1);
                       }}
-                      className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-teal-500 focus:outline-none cursor-pointer">
+                      className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-[#E91E63] focus:outline-none cursor-pointer">
                       <option value={10}>10</option>
                       <option value={20}>20</option>
                       <option value={50}>50</option>
@@ -875,7 +875,7 @@ export default function AdminStockManagement() {
                     </span>
                     <input
                       type="text"
-                      className="pl-14 pr-3 py-2 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-teal-500 w-full sm:w-48"
+                      className="pl-14 pr-3 py-2 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-[#E91E63] w-full sm:w-48"
                       value={searchTerm}
                       onChange={(e) => {
                         setSearchTerm(e.target.value);
@@ -890,7 +890,7 @@ export default function AdminStockManagement() {
               <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
                 <button
                   onClick={() => navigate("/admin/product/add")}
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                  className="bg-[#E91E63] hover:bg-[#D81B60] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -899,7 +899,7 @@ export default function AdminStockManagement() {
                 </button>
                 <button
                   onClick={() => setShowBulkEdit(true)}
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                  className="bg-[#E91E63] hover:bg-[#D81B60] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -908,14 +908,14 @@ export default function AdminStockManagement() {
                 </button>
                 <button
                   onClick={() => setShowBulkImport(true)}
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                  className="bg-[#E91E63] hover:bg-[#D81B60] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors"
                 >
                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                   Import
                 </button>
                 <button
                   onClick={handleExport}
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                  className="bg-[#E91E63] hover:bg-[#D81B60] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
                   Export
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
@@ -1026,7 +1026,7 @@ export default function AdminStockManagement() {
                       <td className="p-4 align-middle text-sm font-medium text-neutral-800 text-right">{product.price}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.deliveryTime}</td>
                       <td className="p-4 align-middle text-sm font-bold text-neutral-800 text-right">{product.stock}</td>
-                      <td className="p-4 align-middle text-sm text-green-600 text-right">{product.offerPrice > 0 ? product.offerPrice : "-"}</td>
+                      <td className="p-4 align-middle text-sm text-[#E91E63] text-right">{product.offerPrice > 0 ? product.offerPrice : "-"}</td>
                       <td className="p-4 align-middle text-sm text-neutral-800 text-right">{product.wholesalePrice > 0 ? product.wholesalePrice : "-"}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600 text-center">{product.lowStockQuantity}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.brand}</td>
@@ -1037,7 +1037,7 @@ export default function AdminStockManagement() {
                           <button
                             onClick={() => handleToggleStatus(product.productId, product.publish)}
                             title="Click to toggle status"
-                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95 ${product.publish ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95 ${product.publish ? 'bg-[#E91E63]/10 text-[#E91E63] hover:bg-[#E91E63]/20' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                           >
                              {product.publish ? 'Active' : 'Inactive'}
                           </button>
@@ -1046,7 +1046,7 @@ export default function AdminStockManagement() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleEdit(product.productId)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            className="p-1 text-[#E91E63] hover:bg-[#E91E63]/20 rounded"
                             title="Edit Details">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1066,7 +1066,7 @@ export default function AdminStockManagement() {
                           </button>
                           <button
                             onClick={() => handlePrintBarcode(product.barcode, product.name, product.price, product.compareAtPrice)}
-                            className="p-1 text-teal-600 hover:bg-teal-50 rounded"
+                            className="p-1 text-[#E91E63] hover:bg-[#E91E63]/20 rounded"
                             title="Print Barcode">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
@@ -1098,9 +1098,9 @@ export default function AdminStockManagement() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className={`p-2 border border-teal-600 rounded ${currentPage === 1
-                  ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
-                  : "text-teal-600 hover:bg-teal-50"
+                className={`p-2 border border-[#E91E63] rounded ${currentPage === 1
+                  ? "text-neutral-400 cursor-not-allowed bg-neutral-50 border-neutral-300"
+                  : "text-[#E91E63] hover:bg-[#E91E63]/20"
                   }`}
                 aria-label="Previous page">
                 <svg
@@ -1118,7 +1118,7 @@ export default function AdminStockManagement() {
                   />
                 </svg>
               </button>
-              <button className="px-3 py-1.5 border border-teal-600 bg-teal-600 text-white rounded font-medium text-sm">
+              <button className="px-3 py-1.5 border border-[#E91E63] bg-[#E91E63] text-white rounded font-medium text-sm">
                 {currentPage}
               </button>
               <button
@@ -1126,9 +1126,9 @@ export default function AdminStockManagement() {
                   setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                 }
                 disabled={currentPage === totalPages}
-                className={`p-2 border border-teal-600 rounded ${currentPage === totalPages
-                  ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
-                  : "text-teal-600 hover:bg-teal-50"
+                className={`p-2 border border-[#E91E63] rounded ${currentPage === totalPages
+                  ? "text-neutral-400 cursor-not-allowed bg-neutral-50 border-neutral-300"
+                  : "text-[#E91E63] hover:bg-[#E91E63]/20"
                   }`}
                 aria-label="Next page">
                 <svg
@@ -1154,7 +1154,7 @@ export default function AdminStockManagement() {
       {/* Footer */}
       <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
         Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-blue-600 hover:underline">
+        <a href="#" className="text-[#E91E63] hover:underline">
           Geeta Stores - 10 Minute App
         </a>
       </footer>

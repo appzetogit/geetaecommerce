@@ -84,7 +84,7 @@ export default function AdminSellerLocation() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Approved':
-        return 'bg-green-100 text-green-800';
+        return 'bg-[#E91E63]/10 text-[#E91E63]';
       case 'Pending':
         return 'bg-yellow-100 text-yellow-800';
       case 'Rejected':
@@ -100,7 +100,7 @@ export default function AdminSellerLocation() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <h1 className="text-2xl font-semibold text-neutral-800">Seller Locations</h1>
         <div className="text-sm text-neutral-600">
-          <span className="text-teal-600 hover:text-teal-700 cursor-pointer">Home</span>
+          <span className="text-[#E91E63] hover:text-[#D81B60] cursor-pointer">Home</span>
           <span className="mx-2">/</span>
           <span className="text-neutral-800">Seller Locations</span>
         </div>
@@ -119,7 +119,7 @@ export default function AdminSellerLocation() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name, store, city, or address..."
-              className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
             />
           </div>
 
@@ -131,7 +131,7 @@ export default function AdminSellerLocation() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-              className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+              className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
             >
               <option value="All">All Status</option>
               <option value="Approved">Approved</option>
@@ -146,7 +146,7 @@ export default function AdminSellerLocation() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Map Section - Takes 2 columns */}
         <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-teal-600 px-4 sm:px-6 py-3">
+          <div className="bg-[#E91E63] px-4 sm:px-6 py-3">
             <h2 className="text-white text-lg font-semibold">Seller Locations Map</h2>
           </div>
           <div className="h-96 sm:h-[600px] w-full">
@@ -169,7 +169,7 @@ export default function AdminSellerLocation() {
             )}
           </div>
           {selectedSeller && (
-            <div className="p-4 sm:p-6 border-t border-neutral-200 bg-teal-50">
+            <div className="p-4 sm:p-6 border-t border-neutral-200 bg-[#E91E63]/5">
               <h3 className="font-semibold text-neutral-900 mb-2">Selected Seller</h3>
               <p className="text-sm text-neutral-700">
                 <span className="font-medium">{selectedSeller.storeName}</span> - {selectedSeller.sellerName}
@@ -188,7 +188,7 @@ export default function AdminSellerLocation() {
 
         {/* Sellers List - Takes 1 column */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-teal-600 px-4 sm:px-6 py-3">
+          <div className="bg-[#E91E63] px-4 sm:px-6 py-3">
             <h2 className="text-white text-lg font-semibold">
               Sellers ({filteredSellers.length})
             </h2>
@@ -206,7 +206,7 @@ export default function AdminSellerLocation() {
                     key={seller._id}
                     onClick={() => handleSellerClick(seller)}
                     className={`p-4 cursor-pointer transition-colors ${selectedSeller?._id === seller._id
-                      ? 'bg-teal-50 border-l-4 border-teal-600'
+                      ? 'bg-[#E91E63]/5 border-l-4 border-[#E91E63]'
                       : 'hover:bg-neutral-50'
                       }`}
                   >
@@ -251,7 +251,7 @@ export default function AdminSellerLocation() {
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
         Copyright © 2025. Developed By{' '}
-        <a href="#" className="text-teal-600 hover:text-teal-700">
+        <a href="#" className="text-[#E91E63] hover:text-[#D81B60]">
           Geeta Stores - 10 Minute App
         </a>
       </div>

@@ -65,12 +65,12 @@ const PricingSlabsModal = ({ slabs, onClose, onSave }: { slabs: {minQty: number,
                         </tbody>
                     </table>
                 </div>
-                <button onClick={addSlab} className="mt-3 text-teal-600 font-bold text-sm flex items-center gap-1">
+                <button onClick={addSlab} className="mt-3 text-[#E91E63] font-bold text-sm flex items-center gap-1">
                     <span className="text-lg">+</span> Add Slab
                 </button>
                 <div className="mt-6 flex justify-end gap-2">
                     <button onClick={onClose} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-sm text-gray-700 font-medium transition-colors">Cancel</button>
-                    <button onClick={() => { onSave(localSlabs.filter(s => s.minQty > 0)); onClose(); }} className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded text-sm font-medium transition-colors">Save Rules</button>
+                    <button onClick={() => { onSave(localSlabs.filter(s => s.minQty > 0)); onClose(); }} className="px-3 py-1.5 bg-[#E91E63] hover:bg-[#D81B60] text-white rounded text-sm font-medium transition-colors">Save Rules</button>
                 </div>
             </div>
         </div>
@@ -445,7 +445,7 @@ export default function AdminStockBulkEdit({
           <input
             type="text"
             placeholder="Search..."
-            className="w-full text-[11px] px-2 py-1 border border-gray-300 rounded font-normal focus:ring-1 focus:ring-teal-500 focus:outline-none"
+            className="w-full text-[11px] px-2 py-1 border border-gray-300 rounded font-normal focus:ring-1 focus:ring-[#E91E63] focus:outline-none"
             value={categorySearch}
             onChange={(e) => setCategorySearch(e.target.value)}
             onClick={(e) => e.stopPropagation()}
@@ -566,7 +566,7 @@ export default function AdminStockBulkEdit({
 
   const ResizeHandle = ({ columnKey }: { columnKey: string }) => (
     <div
-      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-teal-500 z-20"
+      className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-[#E91E63] z-20"
       onMouseDown={(e) => handleResizeStart(e, columnKey)}
       onClick={(e) => e.stopPropagation()}
     />
@@ -591,7 +591,7 @@ export default function AdminStockBulkEdit({
                   {i === 0 && <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] py-[1px]">Main</span>}
                 </div>
               ))}
-              <label htmlFor={`file-input-${originalIndex}`} className="w-10 h-10 border border-dashed border-gray-400 rounded flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 text-gray-500 hover:text-teal-600 transition-colors shrink-0" title="Add Images">
+              <label htmlFor={`file-input-${originalIndex}`} className="w-10 h-10 border border-dashed border-gray-400 rounded flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 text-gray-500 hover:text-[#E91E63] transition-colors shrink-0" title="Add Images">
                 <span className="text-xl leading-none font-light">+</span>
                 <input id={`file-input-${originalIndex}`} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { handleImageChange(originalIndex, e.target.files); e.target.value = ""; }} />
               </label>
@@ -599,11 +599,11 @@ export default function AdminStockBulkEdit({
           </td>
         );
       case "productName":
-        return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-sm" value={product.productName} onChange={(e) => handleFieldChange(originalIndex, "productName", e.target.value)} /></td>;
+        return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#E91E63] focus:bg-white text-sm" value={product.productName} onChange={(e) => handleFieldChange(originalIndex, "productName", e.target.value)} /></td>;
       case "category":
         return (
           <td key={key} className="p-0 border-r border-neutral-200">
-            <select className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-sm cursor-pointer" value={product.categoryId} onChange={(e) => handleFieldChange(originalIndex, "categoryId", e.target.value)}>
+            <select className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#E91E63] focus:bg-white text-sm cursor-pointer" value={product.categoryId} onChange={(e) => handleFieldChange(originalIndex, "categoryId", e.target.value)}>
               <option value="">Category</option>
               {categories.map((cat) => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
             </select>
@@ -645,13 +645,13 @@ export default function AdminStockBulkEdit({
       case "purchasePrice":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm text-right" value={product.purchasePrice} onChange={(e) => handleFieldChange(originalIndex, 'purchasePrice', parseFloat(e.target.value))} /></td>;
       case "compareAtPrice":
-        return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-sm text-right" value={product.compareAtPrice} onChange={(e) => handleFieldChange(originalIndex, "compareAtPrice", parseFloat(e.target.value) || 0)} /></td>;
+        return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#E91E63] focus:bg-white text-sm text-right" value={product.compareAtPrice} onChange={(e) => handleFieldChange(originalIndex, "compareAtPrice", parseFloat(e.target.value) || 0)} /></td>;
       case "price":
-        return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-sm text-right font-medium" value={product.price} onChange={(e) => handleFieldChange(originalIndex, "price", parseFloat(e.target.value) || 0)} /></td>;
+        return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#E91E63] focus:bg-white text-sm text-right font-medium" value={product.price} onChange={(e) => handleFieldChange(originalIndex, "price", parseFloat(e.target.value) || 0)} /></td>;
       case "deliveryTime":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.deliveryTime} onChange={(e) => handleFieldChange(originalIndex, 'deliveryTime', e.target.value)} /></td>;
       case "stock":
-        return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-teal-500 focus:bg-white text-sm text-right" value={product.stock} onChange={(e) => handleFieldChange(originalIndex, "stock", parseInt(e.target.value) || 0)} /></td>;
+        return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#E91E63] focus:bg-white text-sm text-right" value={product.stock} onChange={(e) => handleFieldChange(originalIndex, "stock", parseInt(e.target.value) || 0)} /></td>;
       case "offerPrice":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm text-right" value={product.offerPrice} onChange={(e) => handleFieldChange(originalIndex, 'offerPrice', parseFloat(e.target.value) || 0)} /></td>;
       case "wholesalePrice":
@@ -689,7 +689,7 @@ export default function AdminStockBulkEdit({
                      </div>
                      <button
                         onClick={() => setActivePricingModalIndex(originalIndex)}
-                        className="text-teal-600 hover:text-teal-800 p-1 hover:bg-teal-50 rounded shrink-0"
+                        className="text-[#E91E63] hover:text-[#D81B60] p-1 hover:bg-[#E91E63]/10 rounded shrink-0"
                         title="Edit Pricing Rules"
                      >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -705,7 +705,7 @@ export default function AdminStockBulkEdit({
           <td key={key} className="p-2 text-center">
             <label className="inline-flex items-center cursor-pointer">
               <input type="checkbox" checked={product.publish} onChange={(e) => handleFieldChange(originalIndex, "publish", e.target.checked)} className="sr-only peer" />
-              <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-300 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-teal-600"></div>
+              <div className="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#E91E63]/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-[#E91E63]"></div>
               <span className="ms-2 text-xs font-medium text-gray-900">{product.publish ? "Active" : "Inactive"}</span>
             </label>
           </td>
@@ -719,19 +719,19 @@ export default function AdminStockBulkEdit({
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-teal-600 text-white rounded-t-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-[#E91E63] text-white rounded-t-lg">
           <h2 className="text-lg font-semibold">Bulk Edit Products</h2>
           <div className="flex items-center gap-2">
              <input
                 type="text"
                 placeholder="Search products..."
-                className="px-3 py-1 text-sm text-black rounded border-none focus:ring-2 focus:ring-teal-400"
+                className="px-3 py-1 text-sm text-black rounded border-none focus:ring-2 focus:ring-[#E91E63]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
              />
             <button
               onClick={onClose}
-              className="text-white hover:bg-teal-700 p-2 rounded transition-colors"
+              className="text-white hover:bg-[#D81B60] p-2 rounded transition-colors"
             >
               <svg
                 width="20"
@@ -793,7 +793,7 @@ export default function AdminStockBulkEdit({
             className={`px-4 py-2 rounded text-white text-sm flex items-center gap-2 ${
               saving || !editableProducts.some((p) => p.isChanged)
                 ? "bg-neutral-400 cursor-not-allowed"
-                : "bg-teal-600 hover:bg-teal-700"
+                : "bg-[#E91E63] hover:bg-[#D81B60]"
             }`}
           >
             {saving ? (

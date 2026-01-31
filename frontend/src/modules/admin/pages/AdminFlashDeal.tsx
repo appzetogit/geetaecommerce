@@ -160,14 +160,14 @@ export default function AdminFlashDeal() {
           <div className="lg:col-span-1 space-y-6">
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6">
                 <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center">⚙️</span>
+                    <span className="w-8 h-8 rounded-lg bg-[#E91E63]/10 text-[#E91E63] flex items-center justify-center">⚙️</span>
                     General Settings
                 </h2>
 
-                <label className="flex items-center gap-3 mb-6 p-4 bg-orange-50/50 border border-orange-100 rounded-xl cursor-pointer hover:bg-orange-100/50 transition-colors">
+                    <label className="flex items-center gap-3 mb-6 p-4 bg-[#E91E63]/5 border border-[#E91E63]/20 rounded-xl cursor-pointer hover:bg-[#E91E63]/10 transition-colors">
                     <input
                         type="checkbox"
-                        className="w-5 h-5 accent-[#E65100]"
+                        className="w-5 h-5 accent-[#E91E63]"
                         checked={config.isActive ?? true}
                         onChange={(e) => setConfig({ ...config, isActive: e.target.checked })}
                     />
@@ -179,7 +179,7 @@ export default function AdminFlashDeal() {
                         <span className="text-gray-600 font-bold text-[10px] uppercase tracking-widest mb-1.5 block">End Date</span>
                         <input
                             type="date"
-                            className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#E65100]/20 focus:border-[#E65100] outline-none transition-all font-medium"
+                            className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] outline-none transition-all font-medium"
                             value={getLocalDate(config.flashDealTargetDate)}
                             onChange={(e) => handleDateChange(e.target.value)}
                         />
@@ -188,7 +188,7 @@ export default function AdminFlashDeal() {
                         <span className="text-gray-600 font-bold text-[10px] uppercase tracking-widest mb-1.5 block">End Time</span>
                         <input
                             type="time"
-                            className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#E65100]/20 focus:border-[#E65100] outline-none transition-all font-medium"
+                            className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] outline-none transition-all font-medium"
                             value={getLocalTime(config.flashDealTargetDate)}
                             onChange={(e) => handleTimeChange(e.target.value)}
                         />
@@ -243,7 +243,7 @@ export default function AdminFlashDeal() {
                 <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="w-full bg-[#E65100] text-white p-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-[#EF6C00] disabled:opacity-70 shadow-lg shadow-orange-200 transition-all active:scale-[0.98]"
+                    className="w-full bg-[#E91E63] text-white p-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-[#D81B60] disabled:opacity-70 shadow-lg shadow-pink-200 transition-all active:scale-[0.98]"
                 >
                     {loading ? 'Saving Settings...' : 'Save All Changes'}
                 </button>
@@ -261,14 +261,14 @@ export default function AdminFlashDeal() {
               {/* Product Library */}
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 flex flex-col h-[700px]">
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">📦</span>
+                    <span className="w-8 h-8 rounded-lg bg-[#E91E63]/10 text-[#E91E63] flex items-center justify-center">📦</span>
                     Product Library
                 </h2>
                 <div className="relative mb-4">
                      <input
                         type="text"
                         placeholder="Search products..."
-                        className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+                        className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 outline-none focus:ring-2 focus:ring-[#E91E63]/10 focus:border-[#E91E63] transition-all"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
@@ -283,7 +283,7 @@ export default function AdminFlashDeal() {
                                 <div
                                     key={p._id || p.id}
                                     onClick={() => !isSelected && handleAddProduct(p)}
-                                    className={`p-3 border-b border-neutral-50 flex items-center gap-3 cursor-pointer transition-all ${isSelected ? 'bg-neutral-50 opacity-40 cursor-not-allowed' : 'hover:bg-blue-50'}`}
+                                    className={`p-3 border-b border-neutral-50 flex items-center gap-3 cursor-pointer transition-all ${isSelected ? 'bg-neutral-50 opacity-40 cursor-not-allowed' : 'hover:bg-[#E91E63]/5'}`}
                                 >
                                     <div className="w-12 h-12 flex-shrink-0 bg-white border border-neutral-100 rounded-lg overflow-hidden">
                                         <img src={p.mainImage || p.imageUrl || 'https://via.placeholder.com/40'} className="w-full h-full object-contain" alt="" />
@@ -296,7 +296,7 @@ export default function AdminFlashDeal() {
                                         </div>
                                     </div>
                                     <button
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isSelected ? 'bg-neutral-200 text-white' : 'bg-blue-600 text-white shadow-md shadow-blue-100 hover:scale-110 active:scale-90'}`}
+                                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${isSelected ? 'bg-neutral-200 text-white' : 'bg-[#E91E63] text-white shadow-md shadow-pink-100 hover:scale-110 active:scale-90'}`}
                                     >
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                                     </button>
@@ -315,7 +315,7 @@ export default function AdminFlashDeal() {
               {/* Selected Deals */}
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-6 flex flex-col h-[700px]">
                  <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">🔥</span>
+                    <span className="w-8 h-8 rounded-lg bg-[#E91E63]/10 text-[#E91E63] flex items-center justify-center">🔥</span>
                     Selected Deals ({selectedProducts.length})
                 </h2>
 
@@ -331,7 +331,7 @@ export default function AdminFlashDeal() {
                                       <div className="flex-1 min-w-0">
                                           <h3 className="font-bold text-gray-800 text-sm line-clamp-1 pr-6">{p.productName || p.name}</h3>
                                           <div className="flex items-center gap-2 mt-1">
-                                              <p className="text-[#E65100] font-black text-sm">₹{(p as any).salePrice || p.price}</p>
+                                              <p className="text-[#E91E63] font-black text-sm">₹{(p as any).salePrice || p.price}</p>
                                               <span className="text-[10px] font-black text-green-600 uppercase tracking-widest bg-green-50 px-2 py-0.5 rounded-full">Active</span>
                                           </div>
                                       </div>

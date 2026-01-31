@@ -115,7 +115,7 @@ export default function AdminFreeGiftRules() {
         <h1 className="text-2xl font-bold text-gray-800">Free Gift Rules</h1>
         <button
           onClick={() => handleOpenModal()}
-          className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 transition flex items-center gap-2"
+          className="bg-[#E91E63] text-white px-4 py-2 rounded hover:bg-[#D81B60] transition flex items-center gap-2"
         >
           <span>+</span> Add New Rule
         </button>
@@ -149,12 +149,12 @@ export default function AdminFreeGiftRules() {
                             </div>
                         </td>
                         <td className="px-3 md:px-6 py-3 md:py-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${rule.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${rule.status === 'Active' ? 'bg-[#E91E63]/10 text-[#E91E63]' : 'bg-gray-100 text-gray-800'}`}>
                                 {rule.status}
                             </span>
                         </td>
                         <td className="px-3 md:px-6 py-3 md:py-4 text-sm whitespace-nowrap">
-                            <button onClick={() => handleOpenModal(rule)} className="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
+                            <button onClick={() => handleOpenModal(rule)} className="text-[#E91E63] hover:underline mr-3">Edit</button>
                             <button onClick={() => handleDelete(rule._id || rule.id)} className="text-red-600 hover:text-red-800">Delete</button>
                         </td>
                     </tr>
@@ -177,7 +177,7 @@ export default function AdminFreeGiftRules() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Cart Value (₹)</label>
                         <input
                             type="number"
-                            className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                            className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
                             value={minCartValue}
                             onChange={(e) => setMinCartValue(parseFloat(e.target.value))}
                             placeholder="e.g. 500"
@@ -186,7 +186,7 @@ export default function AdminFreeGiftRules() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Select Free Gift Product</label>
                         <select
-                            className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                            className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
                             value={selectedProductId}
                             onChange={(e) => setSelectedProductId(e.target.value)}
                         >
@@ -200,7 +200,7 @@ export default function AdminFreeGiftRules() {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                         <select
-                            className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                            className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
                             value={status}
                             onChange={(e) => setStatus(e.target.value as 'Active' | 'Inactive')}
                         >
@@ -219,7 +219,7 @@ export default function AdminFreeGiftRules() {
                     </button>
                     <button
                         onClick={handleSave}
-                        className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700"
+                        className="px-4 py-2 bg-[#E91E63] text-white rounded hover:bg-[#D81B60]"
                     >
                         Save Rule
                     </button>

@@ -25,6 +25,7 @@ export interface ProductVariation {
   barcode?: string;
   compareAtPrice?: number;
   offerPrice?: number;
+  wholesalePrice?: number;
   tieredPrices?: { minQty: number; price: number }[];
 }
 
@@ -62,6 +63,8 @@ export interface Product {
   rackNumber?: string;
   hsnCode?: string;
   purchasePrice?: number;
+  wholesalePrice?: number;
+  discPrice?: number;
   lowStockQuantity?: number;
   deliveryTime?: string;
   createdAt?: string;
