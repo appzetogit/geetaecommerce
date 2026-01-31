@@ -117,23 +117,27 @@ export const checkEnabled = async (req: Request, res: Response, next: NextFuncti
       const seller = await Seller.findById(req.user.userId);
 
       if (seller && !seller.isEnabled) {
-        // If disabled, block all write operations (POST, PUT, DELETE, PATCH)
-        if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
-          res.status(403).json({
-            success: false,
-            message: 'Your account is disabled. You can only view data but cannot perform any actions (Add/Update/Delete).',
-          });
-          return;
-        }
+      // If disabled, block all write operations (POST, PUT, DELETE, PATCH)
+      // EXCEPTION: Allow POS related routes even if disabled
+      if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method) && !req.originalUrl.includes('/pos')) {
+        res.status(403).json({
+          success: false,
+          message: 'Your account is disabled. You can only view data but cannot perform any actions (Add/Update/Delete).',
+        });
+        return;
+      }
 
-        // Also block POS related routes for disabled sellers
-        if (req.originalUrl.includes('/pos')) {
-          res.status(403).json({
-            success: false,
-            message: 'Access denied. POS access is disabled for your account.',
-          });
-          return;
-        }
+      // POS related routes are now ALLOWED for disabled sellers (requirement: billing should work)
+      /*
+      // Also block POS related routes for disabled sellers
+      if (req.originalUrl.includes('/pos')) {
+        res.status(403).json({
+          success: false,
+          message: 'Access denied. POS access is disabled for your account.',
+        });
+        return;
+      }
+      */
       }
     } catch (error) {
       console.error('Error checking seller status:', error);
