@@ -60,6 +60,7 @@ export async function generateDeliveryOtp(orderId: string, customerPhone: string
 /**
  * Verify delivery OTP and mark order as delivered if valid
  */
+
 export async function verifyDeliveryOtp(orderId: string, otp: string): Promise<{ success: boolean; message: string }> {
   try {
     const order = await Order.findById(orderId);

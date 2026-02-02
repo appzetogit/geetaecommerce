@@ -180,23 +180,37 @@ function NotificationHandler() {
     initNotifications();
 
     // Listen for foreground messages
-    const unsubscribe = onMessageListener((payload: any) => {
+    const unsubscribe = onMessageListener(async (payload: any) => {
       console.log('🔔 [FCM-REALTIME] Foreground Notification:', {
         title: payload?.notification?.title,
         body: payload?.notification?.body,
         data: payload?.data
       });
 
-      // 1. Show Toast for UI feedback
+      // 1. Show Toast for UI feedback - Positioned for mobile visibility
       toast.success((payload?.notification?.title || 'Notification') + ": " + (payload?.notification?.body || ''), {
         duration: 6000,
-        position: 'top-right',
+        position: window.innerWidth < 768 ? 'top-center' : 'top-right',
         icon: '🔔'
       });
 
       // 2. Show native browser notification as well for better visibility
       if (Notification.permission === 'granted') {
         try {
+          // Use service worker for better reliability on mobile
+          if ('serviceWorker' in navigator) {
+             const registration = await navigator.serviceWorker.getRegistration();
+             if (registration && registration.showNotification) {
+                registration.showNotification(payload.notification.title, {
+                  body: payload.notification.body,
+                  icon: '/notification-icon.png',
+                  tag: 'geeta-notification',
+                  renotify: true
+                } as any);
+                return;
+             }
+          }
+
           new Notification(payload.notification.title, {
             body: payload.notification.body,
             icon: '/notification-icon.png',
