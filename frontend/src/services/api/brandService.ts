@@ -1,5 +1,6 @@
 import api from "./config";
 import { ApiResponse } from "./admin/types";
+import { detectModuleFromPath } from "../../utils/moduleAuth";
 
 // ==================== Brand Interfaces ====================
 export interface Brand {
@@ -13,61 +14,45 @@ export interface Brand {
 // ==================== Brand API Functions ====================
 
 /**
- * Get all brands (accessible for sellers and admins)
- * Uses /products/brands endpoint which is available for authenticated sellers
+ * Get all brands (Public - Filtered by active products)
+ */
+export const getPublicBrands = async (): Promise<ApiResponse<Brand[]>> => {
+    try {
+        const response = await api.get<ApiResponse<Brand[]>>('/customer/products/brands');
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching public brands:", error);
+        return { success: false, data: [], message: "Error fetching brands" };
+    }
+};
+
+/**
+ * Get all brands (Context Aware)
+ * - Admin: Fetches from /admin/brands (All brands)
+ * - Seller: Fetches from /products/brands (All brands allowed for seller)
+ * - Customer: Fetches from /customer/products/brands (Only brands with active products)
  */
 export const getBrands = async (params?: {
     search?: string;
 }): Promise<ApiResponse<Brand[]>> => {
     try {
-        // Try the direct endpoint first (in case it becomes public in future)
-        // But since we know it throws 401 for guests, we should wrap it or switch strategy.
-        // Actually, for the user-side "Shop by Brand" page, we want a robust solution.
-        // Let's rely on fetching products and extracting brands to avoid 401.
+        const module = detectModuleFromPath();
 
-        // Fetch a large number of products to get a good list of brands
-        // We use the customer products endpoint which is public
-        const response = await api.get('/customer/products', {
-            params: {
-                limit: 100, // Fetch enough products to get a variety of brands
-                ...params
-            }
-        });
-
-        if (response.data && response.data.success && Array.isArray(response.data.data)) {
-            const products = response.data.data;
-
-            // Extract unique brands
-            const brandMap = new Map<string, Brand>();
-
-            products.forEach((product: any) => {
-                if (product.brand && typeof product.brand === 'object') {
-                    const brandObj = product.brand;
-                    // Only add if not already present
-                     // Note: customerProductController only populates 'name', not 'image'.
-                     // So we might miss images, but we get the brands.
-                    if (brandObj._id && !brandMap.has(brandObj._id)) {
-                        brandMap.set(brandObj._id, {
-                            _id: brandObj._id,
-                            name: brandObj.name,
-                            image: brandObj.image, // Likely undefined, will fall back to placeholder
-                            createdAt: new Date().toISOString()
-                        });
-                    }
-                }
-            });
-
-            return {
-                success: true,
-                data: Array.from(brandMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
-                message: "Brands fetched from products"
-            };
+        if (module === 'admin') {
+             // Admin needs ALL brands to manage them or add products
+             const response = await api.get<ApiResponse<Brand[]>>('/admin/brands', { params });
+             return response.data;
+        } else if (module === 'seller') {
+             // Seller needs all brands available to them
+             const response = await api.get<ApiResponse<Brand[]>>('/products/brands', { params });
+             return response.data;
+        } else {
+             // Customer - use filtered list to show only relevant brands
+             return getPublicBrands();
         }
 
-        return { success: false, data: [], message: "Failed to fetch brands" };
-
     } catch (error) {
-        console.error("Error fetching public brands:", error);
+        console.error("Error fetching brands:", error);
         return { success: false, data: [], message: "Error fetching brands" };
     }
 };
@@ -79,33 +64,18 @@ export const getBrandById = async (
     id: string
 ): Promise<ApiResponse<Brand>> => {
     try {
-        // Fallback: Fetch products for this brand and extract brand info
-        const response = await api.get('/customer/products', {
-             params: { brand: id, limit: 1 }
-        });
+        // Find public brand details (works for everyone as it is public)
+        const response = await api.get<ApiResponse<Brand>>(`/customer/products/brands/${id}`);
 
-        if (response.data && response.data.success && response.data.data.length > 0) {
-            const product = response.data.data[0];
-            if (product.brand && typeof product.brand === 'object') {
-                 return {
-                    success: true,
-                    data: {
-                        _id: product.brand._id || id,
-                        name: product.brand.name || 'Brand',
-                        image: product.brand.image
-                    },
-                    message: "Brand details fetched from product"
-                 };
-            }
+        if (response.data && response.data.success) {
+            return {
+                success: true,
+                data: response.data.data,
+                message: "Brand details fetched successfully"
+            };
         }
 
-        // If no products found, we can't get the name easily without backend change.
-        // Return a mock or minimal object
-        return {
-            success: true,
-            data: { _id: id, name: 'Brand', createdAt: new Date().toISOString() },
-            message: "Brand details inferred"
-        };
+        return { success: false, data: {} as Brand, message: "Brand not found" };
 
     } catch (error) {
         console.error("Error fetching brand details:", error);

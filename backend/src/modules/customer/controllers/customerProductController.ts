@@ -4,6 +4,7 @@ import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
 import mongoose from "mongoose";
 import Seller from "../../../models/Seller"; // Import Seller model
+import Brand from "../../../models/Brand";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 // Get products with filtering options (public)
@@ -418,6 +419,57 @@ export const getProductById = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: "Error fetching product details",
+      error: error.message,
+    });
+  }
+};
+
+// Get all brands (public)
+export const getAllBrands = async (req: Request, res: Response) => {
+  try {
+    const brands = await Brand.find({}).sort({ name: 1 });
+    return res.status(200).json({
+      success: true,
+      data: brands,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching brands",
+      error: error.message,
+    });
+  }
+};
+
+// Get brand details (public)
+export const getBrandDetails = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid brand ID",
+      });
+    }
+
+    const brand = await Brand.findById(id);
+
+    if (!brand) {
+      return res.status(404).json({
+        success: false,
+        message: "Brand not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: brand,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching brand details",
       error: error.message,
     });
   }

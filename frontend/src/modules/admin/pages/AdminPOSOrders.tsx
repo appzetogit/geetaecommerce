@@ -1832,14 +1832,7 @@ const AdminPOSOrders = () => {
                      </div>
                    )}
 
-                   {/* Mock QR */}
-                   <div className="flex justify-center mb-1">
-                       <div className="w-24 h-24 bg-white p-1.5 rounded-lg border border-gray-200">
-                           <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Invoice:${lastBillDetails.invoiceNum}`} alt="QR" className="w-full h-full" />
-                       </div>
-                   </div>
                    <div className="text-center mb-4">
-                        <p className="text-[9px] text-gray-400 tracking-wider font-bold mb-2">SCAN TO PAY</p>
                         <button className="bg-[#f3f4f6] border border-gray-300 rounded-full px-4 py-1.5 text-[9px] font-bold text-gray-500 tracking-wider shadow-sm">
                            [ STATUS: {paymentMethod.toUpperCase()} ]<br/>(TAP TO CHANGE)
                        </button>
