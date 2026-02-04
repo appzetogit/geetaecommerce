@@ -266,7 +266,7 @@ export default function UnitSelectionModal({
                     <input
                         type="text"
                         placeholder="Search by unit's name"
-                        className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-full border-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all text-sm outline-none"
+                        className="w-full pl-10 pr-4 py-2.5 bg-gray-100 rounded-full border-none focus:ring-2 focus:ring-[#E91E63]/20 focus:bg-white transition-all text-sm outline-none"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                         autoFocus
@@ -288,7 +288,7 @@ export default function UnitSelectionModal({
                             <button
                                 key={unit.code}
                                 onClick={() => handleSelect(unit)}
-                                className="px-4 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                className="px-4 py-2 rounded-full border border-gray-200 text-sm font-medium text-gray-700 hover:border-[#E91E63] hover:text-[#E91E63] hover:bg-pink-50 transition-colors"
                             >
                                 {unit.name}
                             </button>
@@ -308,7 +308,7 @@ export default function UnitSelectionModal({
                             <button
                                 key={unit.code}
                                 onClick={() => handleSelect(unit)}
-                                className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${currentValue === unit.code ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:bg-blue-50'}`}
+                                className={`px-4 py-2 rounded-full border text-sm font-medium transition-colors ${currentValue === unit.code ? 'border-[#E91E63] bg-pink-50 text-[#C2185B]' : 'border-gray-200 text-gray-700 hover:border-[#E91E63] hover:text-[#E91E63] hover:bg-pink-50'}`}
                             >
                                 {unit.name}
                             </button>
@@ -327,13 +327,13 @@ export default function UnitSelectionModal({
                         <button
                             key={unit.code}
                             onClick={() => handleSelect(unit)}
-                            className={`w-full text-left px-4 py-3.5 flex justify-between items-center transition-colors ${index !== filteredUnits.length - 1 ? 'border-b border-gray-50' : ''} ${currentValue === unit.code ? 'bg-blue-50/50' : 'hover:bg-gray-50'}`}
+                            className={`w-full text-left px-4 py-3.5 flex justify-between items-center transition-colors ${index !== filteredUnits.length - 1 ? 'border-b border-gray-50' : ''} ${currentValue === unit.code ? 'bg-pink-50/50' : 'hover:bg-gray-50'}`}
                         >
-                            <span className={`font-medium ${currentValue === unit.code ? 'text-blue-700' : 'text-blue-900'}`}>{unit.name}</span>
+                            <span className={`font-medium ${currentValue === unit.code ? 'text-[#C2185B]' : 'text-[#880E4F]'}`}>{unit.name}</span>
                             <div className="flex items-center gap-3">
                                 <span className="text-sm text-gray-400 font-medium lowercase">{unit.code}</span>
                                 {currentValue === unit.code && (
-                                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                    <svg className="w-5 h-5 text-[#E91E63]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                                 )}
                             </div>
                         </button>

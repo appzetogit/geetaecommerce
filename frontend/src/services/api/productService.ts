@@ -253,3 +253,11 @@ export const getShops = async (): Promise<ApiResponse<Shop[]>> => {
     const response = await api.post<ApiResponse<{ imageUrl: string }>>("/products/search-image", { query });
     return response.data;
  };
+
+ /**
+  * Get POS Products (Seller - Global Search)
+  */
+ export const getSellerPOSProducts = async (params: { search?: string, category?: string, brand?: string }) => {
+     const response = await api.get<ApiResponse<Product[]>>("/seller/pos/products", { params });
+     return response.data;
+ };

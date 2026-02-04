@@ -49,6 +49,7 @@ export interface GetReturnRequestsParams {
   dateFrom?: string;
   dateTo?: string;
   status?: string;
+  requestType?: 'Return' | 'Replacement';
   search?: string;
   page?: number;
   limit?: number;

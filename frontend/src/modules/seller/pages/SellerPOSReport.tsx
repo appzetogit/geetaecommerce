@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { getPOSReport, getStockLedger, deletePOSOrder, updateStockLedgerEntry } from "../../../services/api/admin/adminOrderService";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "../../../context/ToastContext";
+import React, { useState, useEffect } from 'react';
+import { getPOSReport, updateStockLedgerEntry, getPOSStockLedger } from '../../../services/api/orderService';
+import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';
+import { useToast } from '../../../context/ToastContext';
 
 const FiTrendingUp = ({ className }: { className?: string }) => (
   <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -33,7 +34,7 @@ const FiLoader = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const AdminPOSReport = () => {
+const SellerPOSReport = () => {
     const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [reportData, setReportData] = useState<any>(null);
@@ -47,8 +48,6 @@ const AdminPOSReport = () => {
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [selectedPeriod, setSelectedPeriod] = useState("Today");
     const [dateRange, setDateRange] = useState<{start: Date | null, end: Date | null}>({ start: null, end: null });
-
-    const navigate = useNavigate();
 
     const fetchData = async (start?: Date, end?: Date) => {
         setLoading(true);
@@ -66,7 +65,7 @@ const AdminPOSReport = () => {
 
             const [reportRes, ledgerRes] = await Promise.all([
                 getPOSReport(query),
-                getStockLedger(ledgerParams)
+                getPOSStockLedger(ledgerParams)
             ]);
 
             if (reportRes.success) setReportData(reportRes.data);
@@ -152,22 +151,8 @@ const AdminPOSReport = () => {
     };
 
     const handleDeleteOrder = async (orderId: string) => {
-        if (window.confirm("Are you sure you want to delete this POS order? This will restore the stock.")) {
-            try {
-                setLoading(true);
-                const response = await deletePOSOrder(orderId);
-                if (response.success) {
-                    showToast("Order deleted and stock restored", "success");
-                    fetchData(dateRange.start || undefined, dateRange.end || undefined);
-                } else {
-                    showToast(response.message || "Failed to delete order", "error");
-                }
-            } catch (error) {
-                console.error("Error deleting order:", error);
-                showToast("An error occurred while deleting the order", "error");
-            } finally {
-                setLoading(false);
-            }
+        if (window.confirm("Delete is disabled for Sellers in this view.")) {
+            // Disabled
         }
     };
 
@@ -319,7 +304,7 @@ const AdminPOSReport = () => {
                                          </button>
                                          <button
                                             onClick={handleApplyCustomFilter}
-                                            className="flex-1 py-2.5 bg-[#013554] text-white font-semibold rounded-xl hover:bg-[#012a42] transition-colors shadow-sm"
+                                            className="flex-1 py-2.5 bg-[#0d9488] text-white font-semibold rounded-xl hover:bg-[#012a42] transition-colors shadow-sm"
                                          >
                                             Apply Filter
                                          </button>
@@ -335,21 +320,21 @@ const AdminPOSReport = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 <ReportCard
                     title="Today's Sales"
-                    value={`₹${reportData?.summary.totalSales.toLocaleString()}`}
+                    value={`₹${(reportData?.summary?.totalSales || 0).toLocaleString()}`}
                     icon={<FiTrendingUp className="w-6 h-6" />}
                     color="bg-blue-500"
                     desc="Total POS revenue today"
                 />
                 <ReportCard
                     title="Cash Sales"
-                    value={`₹${reportData?.summary.cashSales.toLocaleString()}`}
+                    value={`₹${(reportData?.summary?.cashSales || 0).toLocaleString()}`}
                     icon={<FiDollarSign className="w-6 h-6" />}
                     color="bg-green-500"
                     desc="Physical cash collected"
                 />
                 <ReportCard
                     title="To Collect"
-                    value={`₹${reportData?.summary.unpaidAmount.toLocaleString()}`}
+                    value={`₹${(reportData?.summary?.unpaidAmount || 0).toLocaleString()}`}
                     icon={<FiDollarSign className="w-6 h-6" />}
                     color="bg-red-500"
                     desc="Pending online/credit payments"
@@ -431,7 +416,7 @@ const AdminPOSReport = () => {
                                                     <div className="text-sm font-medium text-gray-700">{order.customerName}</div>
                                                     <div className="text-[10px] text-gray-400">{order.customerPhone}</div>
                                                 </td>
-                                                <td className="px-6 py-4 font-bold text-gray-900">₹{order.total.toLocaleString()}</td>
+                                                <td className="px-6 py-4 font-bold text-gray-900">₹{(order.total || 0).toLocaleString()}</td>
                                                 <td className="px-6 py-4">
                                                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentMethod === 'Cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                                                         {order.paymentMethod}
@@ -743,4 +728,4 @@ const ReportCard = ({ title, value, icon, color, desc }: any) => (
     </div>
 );
 
-export default AdminPOSReport;
+export default SellerPOSReport;

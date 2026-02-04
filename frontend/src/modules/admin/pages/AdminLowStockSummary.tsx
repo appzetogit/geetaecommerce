@@ -1,0 +1,629 @@
+import React, { useState, useEffect } from "react";
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+interface LowStockData {
+  _id: string;
+  name: string;
+  variantName: string;
+  uom: string;
+  purchaseValue: number;
+  mrp: number;
+  sellingPrice: number;
+  quantity: number;
+  lowStockQty: number;
+  supplier: string;
+  category: string;
+}
+
+type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
+
+const AdminLowStockSummary = () => {
+  const [data, setData] = useState<LowStockData[]>([]);
+  const [filteredData, setFilteredData] = useState<LowStockData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilterType, setDateFilterType] = useState<DateFilterType>('alltime');
+  const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("");
+
+  // Dummy data for demonstration - Only LOW STOCK items
+  useEffect(() => {
+    const dummyData: LowStockData[] = [
+      {
+        _id: "1",
+        name: "L'OREAL PARIS",
+        variantName: "-",
+        uom: "Piece",
+        purchaseValue: 165,
+        mrp: 210,
+        sellingPrice: 185,
+        quantity: 0,
+        lowStockQty: 5,
+        supplier: "-",
+        category: "Cosmetic & beauty, perfume,"
+      },
+      {
+        _id: "2",
+        name: "Acrylic Colors",
+        variantName: "-",
+        uom: "Piece",
+        purchaseValue: 0,
+        mrp: 25,
+        sellingPrice: 25,
+        quantity: -55,
+        lowStockQty: 10,
+        supplier: "-",
+        category: "Stationary"
+      },
+      {
+        _id: "3",
+        name: "Pampers L",
+        variantName: "-",
+        uom: "Piece",
+        purchaseValue: 0,
+        mrp: 99,
+        sellingPrice: 90,
+        quantity: 1,
+        lowStockQty: 10,
+        supplier: "-",
+        category: "BABY CARE"
+      },
+      {
+        _id: "4",
+        name: "SHUBH ANNAPRASHAN",
+        variantName: "-",
+        uom: "Piece",
+        purchaseValue: 0,
+        mrp: 220,
+        sellingPrice: 190,
+        quantity: 0,
+        lowStockQty: 5,
+        supplier: "-",
+        category: "Birthday, Welcome, All Decoration"
+      },
+      {
+        _id: "5",
+        name: "Jumar 220",
+        variantName: "-",
+        uom: "Piece",
+        purchaseValue: 0,
+        mrp: 220,
+        sellingPrice: 180,
+        quantity: 0,
+        lowStockQty: 5,
+        supplier: "-",
+        category: "Home Decoration"
+      },
+      {
+        _id: "6",
+        name: "BOX FILE 9",
+        variantName: "-",
+        uom: "Piece",
+        purchaseValue: 0,
+        mrp: 90,
+        sellingPrice: 80,
+        quantity: 0,
+        lowStockQty: 10,
+        supplier: "-",
+        category: "Stationary"
+      },
+      {
+        _id: "7",
+        name: "Rock Well",
+        variantName: "-",
+        uom: "Piece",
+        purchaseValue: 0,
+        mrp: 980,
+        sellingPrice: 750,
+        quantity: -4,
+        lowStockQty: 5,
+        supplier: "-",
+        category: "Home Decoration"
+      },
+      {
+        _id: "8",
+        name: "Teddy Bear",
+        variantName: "-",
+        uom: "Piece",
+        purchaseValue: 0,
+        mrp: 780,
+        sellingPrice: 730,
+        quantity: 0,
+        lowStockQty: 5,
+        supplier: "-",
+        category: "Teddy Bear"
+      }
+    ];
+    setData(dummyData);
+    setFilteredData(dummyData);
+  }, []);
+
+  // Filter data based on search and category
+  useEffect(() => {
+    let filtered = [...data];
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.variantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.supplier.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Category filter
+    if (categoryFilter) {
+      filtered = filtered.filter(item => item.category === categoryFilter);
+    }
+
+    setFilteredData(filtered);
+  }, [searchTerm, categoryFilter, data]);
+
+  const handleCellEdit = (id: string, field: keyof LowStockData, value: any) => {
+    setFilteredData(prev => prev.map(item =>
+      item._id === id ? { ...item, [field]: value } : item
+    ));
+    setData(prev => prev.map(item =>
+      item._id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(new Set(filteredData.map(item => item._id)));
+    } else {
+      setSelectedRows(new Set());
+    }
+  };
+
+  const handleSelectRow = (id: string) => {
+    const newSelected = new Set(selectedRows);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedRows(newSelected);
+  };
+
+  const handleDateFilterChange = (type: DateFilterType) => {
+    setDateFilterType(type);
+    if (type === 'custom') {
+      setShowCustomDatePicker(true);
+    } else {
+      setShowCustomDatePicker(false);
+    }
+  };
+
+  const downloadExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+      "Name": item.name,
+      "Variant": item.variantName,
+      "UOM": item.uom,
+      "Purchase Value": item.purchaseValue,
+      "MRP": item.mrp,
+      "Selling Price": item.sellingPrice,
+      "Quantity": item.quantity,
+      "Low Stock Qty": item.lowStockQty,
+      "Supplier": item.supplier,
+      "Category": item.category
+    })));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Low Stock");
+    XLSX.writeFile(workbook, `Low_Stock_Summary_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const downloadPDF = () => {
+    const doc = new jsPDF('landscape');
+
+    doc.setFontSize(18);
+    doc.text('Low Stock Summary Report', 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
+
+    const tableData = filteredData.map(item => [
+      item.name,
+      item.variantName,
+      item.quantity.toString(),
+      item.lowStockQty.toString(),
+      item.sellingPrice.toString(),
+      item.category
+    ]);
+
+    autoTable(doc, {
+      head: [['Product', 'Variant', 'Qty', 'Low Stock Qty', 'SP', 'Category']],
+      body: tableData,
+      startY: 28,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [255, 45, 148] }
+    });
+
+    doc.save(`Low_Stock_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const uniqueCategories = Array.from(new Set(data.map(item => item.category)));
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header Section */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Low Stock Summary</h1>
+              <p className="text-sm text-gray-500 mt-1">Items running low on stock - requires attention</p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setEditMode(!editMode)}
+                className="inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm font-semibold rounded-lg hover:bg-purple-700 active:scale-95 transition-all shadow-sm">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                {editMode ? 'Done Editing' : 'Bulk Edit'}
+              </button>
+
+              <button
+                onClick={downloadExcel}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Excel
+              </button>
+
+              <button
+                onClick={downloadPDF}
+                className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 active:scale-95 transition-all shadow-sm">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                PDF
+              </button>
+            </div>
+          </div>
+
+          {/* Date Filter Tabs */}
+          <div className="mt-4 flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-lg">
+            <button
+              onClick={() => handleDateFilterChange('today')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                dateFilterType === 'today'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+              }`}>
+              Today
+            </button>
+            <button
+              onClick={() => handleDateFilterChange('tomorrow')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                dateFilterType === 'tomorrow'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+              }`}>
+              Tomorrow
+            </button>
+            <button
+              onClick={() => handleDateFilterChange('last7days')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                dateFilterType === 'last7days'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+              }`}>
+              Last 7 Days
+            </button>
+            <button
+              onClick={() => handleDateFilterChange('last30days')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                dateFilterType === 'last30days'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+              }`}>
+              Last 30 Days
+            </button>
+            <button
+              onClick={() => handleDateFilterChange('alltime')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                dateFilterType === 'alltime'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+              }`}>
+              All Time
+            </button>
+            <button
+              onClick={() => handleDateFilterChange('custom')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                dateFilterType === 'custom'
+                  ? 'bg-teal-600 text-white shadow-sm'
+                  : 'text-teal-600 hover:bg-teal-50'
+              }`}>
+              Custom
+            </button>
+            <button className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-all">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Custom Date Range Picker */}
+          {showCustomDatePicker && (
+            <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Start Date</label>
+                  <input
+                    type="date"
+                    value={customDateRange.start}
+                    onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">End Date</label>
+                  <input
+                    type="date"
+                    value={customDateRange.end}
+                    onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Search and Category Filters */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Search</label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by product name, variant, category, or supplier..."
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Category Filter</label>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all">
+                <option value="">All Categories</option>
+                {uniqueCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Table Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Warning Alert */}
+        <div className="mb-6 bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-500 p-4 rounded-lg">
+          <div className="flex items-center">
+            <svg className="w-6 h-6 text-orange-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="text-sm font-bold text-orange-800">Low Stock Alert!</p>
+              <p className="text-xs text-orange-700 mt-1">These items are running low on stock. Please reorder soon.</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gradient-to-r from-orange-50 to-red-50 border-b-2 border-orange-200">
+                  {editMode && (
+                    <th className="px-3 py-3 text-left sticky left-0 bg-orange-50 z-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.size === filteredData.length && filteredData.length > 0}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
+                      />
+                    </th>
+                  )}
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider sticky left-0 bg-orange-50 z-10">Name</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Variant</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">UOM</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Purchase Value</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">MRP</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Selling Price</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-red-50">Quantity</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-orange-50">Low Stock Qty</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Supplier</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Category</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredData.length === 0 ? (
+                  <tr>
+                    <td colSpan={editMode ? 12 : 11} className="px-6 py-12 text-center text-gray-400 text-sm">
+                      No low stock items found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredData.map((item) => (
+                    <tr key={item._id} className="hover:bg-orange-50/30 transition-colors">
+                      {editMode && (
+                        <td className="px-3 py-3 sticky left-0 bg-white">
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.has(item._id)}
+                            onChange={() => handleSelectRow(item._id)}
+                            className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
+                          />
+                        </td>
+                      )}
+                      <td className="px-3 py-3 sticky left-0 bg-white">
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => handleCellEdit(item._id, 'name', e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-gray-900">{item.name}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={item.variantName}
+                            onChange={(e) => handleCellEdit(item._id, 'variantName', e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
+                          />
+                        ) : (
+                          <span className="text-sm text-gray-700">{item.variantName}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={item.uom}
+                            onChange={(e) => handleCellEdit(item._id, 'uom', e.target.value)}
+                            className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
+                          />
+                        ) : (
+                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">{item.uom}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={item.purchaseValue}
+                            onChange={(e) => handleCellEdit(item._id, 'purchaseValue', parseFloat(e.target.value))}
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
+                          />
+                        ) : (
+                          <span className="text-sm text-gray-700">₹{item.purchaseValue}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={item.mrp}
+                            onChange={(e) => handleCellEdit(item._id, 'mrp', parseFloat(e.target.value))}
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-gray-900">₹{item.mrp}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={item.sellingPrice}
+                            onChange={(e) => handleCellEdit(item._id, 'sellingPrice', parseFloat(e.target.value))}
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold text-green-600"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-green-600">₹{item.sellingPrice}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 bg-red-50">
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleCellEdit(item._id, 'quantity', parseInt(e.target.value))}
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-bold text-red-700"
+                          />
+                        ) : (
+                          <span className="text-sm font-bold text-red-700">{item.quantity}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 bg-orange-50">
+                        {editMode ? (
+                          <input
+                            type="number"
+                            value={item.lowStockQty}
+                            onChange={(e) => handleCellEdit(item._id, 'lowStockQty', parseInt(e.target.value))}
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold text-orange-700"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-orange-700">{item.lowStockQty}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={item.supplier}
+                            onChange={(e) => handleCellEdit(item._id, 'supplier', e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
+                          />
+                        ) : (
+                          <span className="text-sm text-gray-700">{item.supplier}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        {editMode ? (
+                          <input
+                            type="text"
+                            value={item.category}
+                            onChange={(e) => handleCellEdit(item._id, 'category', e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
+                          />
+                        ) : (
+                          <span className="text-xs px-2 py-1 bg-teal-100 text-teal-700 rounded-full font-medium">{item.category}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Low Stock Items</p>
+            <p className="text-3xl font-black text-orange-600 mt-2">
+              {filteredData.length}
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Critical (Qty ≤ 0)</p>
+            <p className="text-3xl font-black text-red-600 mt-2">
+              {filteredData.filter(item => item.quantity <= 0).length}
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Value at Risk</p>
+            <p className="text-3xl font-black text-purple-600 mt-2">
+              ₹{filteredData.reduce((sum, item) => sum + (item.sellingPrice * Math.max(item.lowStockQty - item.quantity, 0)), 0).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminLowStockSummary;

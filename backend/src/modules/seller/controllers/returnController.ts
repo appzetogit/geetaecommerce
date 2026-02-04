@@ -7,11 +7,14 @@ import OrderItem from "../../../models/OrderItem";
 export const getReturnRequests = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = req.user?.userId;
-    const { status, page = 1, limit = 10 } = req.query;
+    const { status, requestType, page = 1, limit = 10 } = req.query;
 
     const query: any = {};
     if (status && status !== 'All Status') {
       query.status = status;
+    }
+    if (requestType) {
+      query.requestType = requestType;
     }
 
     // Find return requests where the associated OrderItem belongs to this seller

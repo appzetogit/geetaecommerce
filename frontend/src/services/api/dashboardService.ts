@@ -38,3 +38,41 @@ export const getSellerDashboardStats = async (): Promise<DashboardResponse> => {
     const response = await api.get<DashboardResponse>('/seller/dashboard/stats');
     return response.data;
 };
+
+export interface SalesSummaryData {
+  summary: {
+    totalSales: number;
+    totalSalesChange: number;
+    totalOrders: number;
+    totalOrdersChange: number;
+    paidAmount: number;
+    paidAmountChange: number;
+    creditAmount: number;
+    creditAmountChange: number;
+    totalProfit: number;
+    totalLoss: number;
+    netProfit: number;
+  };
+  dailySales: Array<{
+    day: string;
+    date: string;
+    sales: number;
+    orders: number;
+  }>;
+}
+
+export interface SalesSummaryResponse {
+    success: boolean;
+    message: string;
+    data: SalesSummaryData;
+}
+
+/**
+ * Get seller's sales summary
+ */
+export const getSellerSalesSummary = async (startDate: string, endDate: string): Promise<SalesSummaryResponse> => {
+    const response = await api.get<SalesSummaryResponse>('/seller/dashboard/sales-summary', {
+        params: { startDate, endDate }
+    });
+    return response.data;
+};

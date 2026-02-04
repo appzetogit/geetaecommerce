@@ -214,8 +214,9 @@ export const updateOrderItems = asyncHandler(
       });
     }
 
-    // Do not allow editing if already delivered, cancelled or returned
-    const restrictedStatuses = ["Delivered", "Cancelled", "Returned"];
+    // Do not allow editing if already cancelled or returned, but ALLOW Delivered
+    // We explicitly allow Delivered to fix mistakes on completed bills.
+    const restrictedStatuses = ["Cancelled", "Returned"];
     if (restrictedStatuses.includes(order.status)) {
        return res.status(400).json({
            success: false,
@@ -235,16 +236,22 @@ export const updateOrderItems = asyncHandler(
         if (item.product) {
           const product = await Product.findById(item.product).session(session);
           if (product) {
-             const qty = item.quantity;
+             const qty = Number(item.quantity) || 0;
              let restored = false;
 
              // Try to match variation by SKU
              if (item.sku && product.variations && product.variations.length > 0) {
                 const vIndex = product.variations.findIndex((v: any) => v.sku === item.sku);
                 if (vIndex > -1) {
-                   const prevVarStock = product.variations[vIndex].stock || 0;
-                   product.variations[vIndex].stock = prevVarStock + qty;
-                   product.stock = (product.stock || 0) + qty;
+                   const prevVarStock = Number(product.variations[vIndex].stock) || 0;
+                   const newVarStock = prevVarStock + qty;
+
+                   const prevParentStock = Number(product.stock) || 0;
+                   const newParentStock = prevParentStock + qty;
+
+                   product.variations[vIndex].stock = newVarStock;
+                   product.stock = newParentStock;
+
                    await product.save({ session });
 
                    await StockLedger.create([{
@@ -256,7 +263,7 @@ export const updateOrderItems = asyncHandler(
                        source: "ORDER_EDIT_RESTORE",
                        referenceId: order._id,
                        previousStock: prevVarStock,
-                       newStock: product.variations[vIndex].stock,
+                       newStock: newVarStock,
                        admin: adminId
                    }], { session });
                    restored = true;
@@ -264,19 +271,21 @@ export const updateOrderItems = asyncHandler(
              }
 
              if (!restored) {
-                const prevStock = product.stock || 0;
-                product.stock = prevStock + qty;
+                const prevStock = Number(product.stock) || 0;
+                const newStockVal = prevStock + qty;
+
+                product.stock = newStockVal;
                 await product.save({ session });
 
                 await StockLedger.create([{
                     product: product._id,
-                    sku: item.sku || product.sku,
+                    sku: item.sku || product.sku || "NO-SKU",
                     quantity: qty,
                     type: "IN",
                     source: "ORDER_EDIT_RESTORE",
                     referenceId: order._id,
                     previousStock: prevStock,
-                    newStock: product.stock,
+                    newStock: newStockVal,
                     admin: adminId
                 }], { session });
              }
@@ -292,34 +301,41 @@ export const updateOrderItems = asyncHandler(
       const newItemIds = [];
 
       for (const itemData of newItemsData) {
+        const quantity = Number(itemData.quantity) || 0; // Force number
+
         const product = await Product.findById(itemData.productId).populate("seller").session(session);
         if (!product) {
           throw new Error(`Product not found: ${itemData.productId}`);
         }
 
-        let unitPrice = itemData.unitPrice || product.price;
+        let unitPrice = Number(itemData.unitPrice) || product.price; // Force number
         let variationName = "";
-        let sku = itemData.sku || product.sku;
+        let sku = itemData.sku || product.sku || "NO-SKU";
         let variationId = null;
 
-        if (itemData.variationId && product.variations) {
-          const variation = (product.variations as any).id(itemData.variationId);
+        let foundVariation: any = null;
+
+        if (itemData.variationId && product.variations && product.variations.length > 0) {
+          // Fix: Use find instead of .id to safely match string or objectID
+          const variation = product.variations.find((v: any) => v._id.toString() === itemData.variationId.toString());
           if (variation) {
-            unitPrice = itemData.unitPrice || variation.price || unitPrice;
-            variationName = `${variation.name}: ${variation.value}`;
+            foundVariation = variation;
+            unitPrice = Number(itemData.unitPrice) || variation.price || unitPrice;
+            variationName = variation.title || variation.name ? `${variation.name}: ${variation.value}` : 'Variation';
             sku = variation.sku || sku;
             variationId = variation._id;
 
             const prevVarStock = variation.stock || 0;
-            variation.stock = Math.max(0, prevVarStock - itemData.quantity);
+            // Stock deduction from variation
+            variation.stock = Math.max(0, prevVarStock - quantity);
           }
         }
 
         const prevStock = product.stock || 0;
-        product.stock = Math.max(0, prevStock - itemData.quantity);
+        product.stock = Math.max(0, prevStock - quantity);
         await product.save({ session });
 
-        const total = unitPrice * itemData.quantity;
+        const total = unitPrice * quantity;
         newSubtotal += total;
 
         const newOrderItem = new OrderItem({
@@ -330,7 +346,7 @@ export const updateOrderItems = asyncHandler(
           productImage: product.mainImage,
           sku: sku,
           unitPrice: unitPrice,
-          quantity: itemData.quantity,
+          quantity: quantity,
           total: total,
           variation: variationName,
           status: "Pending"
@@ -344,12 +360,12 @@ export const updateOrderItems = asyncHandler(
             product: product._id,
             variationId: variationId,
             sku: sku,
-            quantity: itemData.quantity,
+            quantity: quantity,
             type: "OUT",
             source: "ORDER_EDIT_DEDUCT",
             referenceId: order._id,
-            previousStock: variationId ? ((product.variations as any).id(variationId).stock + itemData.quantity) : (product.stock + itemData.quantity),
-            newStock: variationId ? (product.variations as any).id(variationId).stock : product.stock,
+            previousStock: foundVariation ? (foundVariation.stock + quantity) : (product.stock + quantity),
+            newStock: foundVariation ? foundVariation.stock : product.stock,
             admin: adminId
         }], { session });
       }
@@ -1341,25 +1357,63 @@ export const verifyPOSPayment = asyncHandler(
  */
 export const getPOSReport = asyncHandler(
   async (req: Request, res: Response) => {
+    const { startDate, endDate } = req.query;
+
+    let start: Date, end: Date;
+
+    // Default to Today if no filter provided
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Filter POS orders for today
-    // POS orders have adminNotes saying "Created via POS System" or "POS Online Order..."
-    // Ideally we should have a 'source' field in Order model, but since we don't,
-    // we'll check adminNotes or if deliveryAddress is 'POS Order' (set in createPOSOrder)
-    const posQuery: any = {
-      orderDate: { $gte: today, $lt: tomorrow },
+    if (startDate && endDate) {
+      start = new Date(startDate as string);
+      end = new Date(endDate as string);
+      // Ensure end date includes the full day if it's just a date string (e.g. YYYY-MM-DD)
+      // If end date is same as start date or just a day, set it to end of that day?
+      // Usually user sends YYYY-MM-DD. We treat start as 00:00 and end as 23:59:59.999
+      // Assuming frontend sends precise or we adjust here.
+      // Let's assume frontend sends ISO strings or plain dates.
+      // If we just get "2023-01-01", "new Date()" sets it to 00:00 UTC (or local).
+      // Safest is to handle "End of Day" logic if frontend sends same date.
+      // But typically easier to rely on frontend sending correct timestamps.
+      // We will trust the input for now, but ensure validity.
+    } else {
+      start = today;
+      end = tomorrow;
+    }
+
+    // Common POS Check
+    const posFilter = {
       $or: [
         { adminNotes: { $regex: "POS", $options: "i" } },
         { "deliveryAddress.address": "POS Order" }
       ]
     };
 
+    // 1. Summary Query: Always respects the determined range (Default Today, or Filtered Range)
+    const summaryQuery: any = {
+      orderDate: { $gte: start, $lt: end },
+      ...posFilter
+    };
+
+    // 2. List Query:
+    // If Filter is applied: respect the range.
+    // If No Filter (Default Dashboard): Show Recent 50 (Any Date)
+    let listQuery: any;
+    let limit = 50;
+
+    if (startDate && endDate) {
+        listQuery = { ...summaryQuery };
+        limit = 500; // Increase limit for filtered reports to see more data
+    } else {
+        // Default Dashboard: Recent 50 (ignoring date, just last 50 POS orders)
+        listQuery = { ...posFilter };
+    }
+
     const summary = await Order.aggregate([
-      { $match: posQuery },
+      { $match: summaryQuery },
       {
         $group: {
           _id: null,
@@ -1381,9 +1435,9 @@ export const getPOSReport = asyncHandler(
       }
     ]);
 
-    const recentOrders = await Order.find(posQuery)
+    const recentOrders = await Order.find(listQuery)
       .sort({ orderDate: -1 })
-      .limit(50)
+      .limit(limit)
       .populate("customer", "name phone");
 
     return res.status(200).json({
@@ -1397,7 +1451,8 @@ export const getPOSReport = asyncHandler(
           paidAmount: 0,
           unpaidAmount: 0
         },
-        orders: recentOrders
+        orders: recentOrders,
+        period: { start, end }
       }
     });
   }
@@ -1408,12 +1463,18 @@ export const getPOSReport = asyncHandler(
  */
 export const getPOSStockLedger = asyncHandler(
   async (req: Request, res: Response) => {
-    const { page = 1, limit = 50, productId, sku, type } = req.query;
+    const { page = 1, limit = 50, productId, sku, type, startDate, endDate } = req.query;
     const query: any = {};
 
     if (productId) query.product = productId;
     if (sku) query.sku = sku;
     if (type) query.type = type;
+
+    if (startDate && endDate) {
+        const start = new Date(startDate as string);
+        const end = new Date(endDate as string);
+        query.createdAt = { $gte: start, $lte: end };
+    }
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 

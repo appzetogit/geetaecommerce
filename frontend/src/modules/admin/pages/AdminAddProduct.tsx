@@ -84,7 +84,7 @@ export default function AdminAddProduct() {
     category: "",
     subcategory: "",
     subSubCategory: "",
-    publish: "No",
+    publish: "Yes",
     popular: "No",
     dealOfDay: "No",
     brand: "",
@@ -514,8 +514,8 @@ export default function AdminAddProduct() {
                 jsbarcode-marginTop="2">
               </svg>
               <div class="price-row">
-                  ${mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
-                  ${sp ? `<div class="price-item">SP:${sp}</div>` : ''}
+                  ${barcodeSettings?.mrpLabel ? `<div class="price-item">${barcodeSettings.mrpLabel}:${mrp}</div>` : mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
+                  ${barcodeSettings?.spLabel ? `<div class="price-item">${barcodeSettings.spLabel}:${sp}</div>` : sp ? `<div class="price-item">SP:${sp}</div>` : ''}
               </div>
             </div>
           `).join('')}
@@ -1426,7 +1426,7 @@ const applySearchedImage = () => {
                         <span className="text-sm font-semibold text-neutral-700 mb-2">Main Image <span className="text-red-500">*</span></span>
                         <div
                          onClick={() => setShowImageSourceModal(true)}
-                         className="w-40 h-40 border-2 border-blue-500 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 transition-colors relative overflow-hidden bg-white">
+                         className="w-40 h-40 border-2 border-[#E91E63] border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-pink-50 transition-colors relative overflow-hidden bg-white">
                             {mainImagePreview ? (
                                 <div className="w-full h-full relative group">
                                     <img src={mainImagePreview} className="w-full h-full object-contain" alt="Main" />
@@ -1445,8 +1445,8 @@ const applySearchedImage = () => {
                                 </div>
                             ) : (
                                 <>
-                                    <svg className="w-10 h-10 text-blue-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                    <span className="text-xs text-blue-600 font-bold">Upload Main</span>
+                                    <svg className="w-10 h-10 text-[#E91E63] mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <span className="text-xs text-[#E91E63] font-bold">Upload Main</span>
                                 </>
                             )}
                             <input ref={mainImageInputRef} type="file" accept="image/*" onChange={handleMainImageChange} className="hidden" disabled={uploading} />
@@ -1470,7 +1470,7 @@ const applySearchedImage = () => {
                                 </div>
                             ))}
                              {galleryItems.length < 6 && (
-                                <label className="w-24 h-24 border-2 border-gray-300 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors text-gray-400 hover:text-blue-600">
+                                <label className="w-24 h-24 border-2 border-gray-300 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors text-gray-400 hover:text-[#E91E63]">
                                     <span className="text-3xl font-light mb-1">+</span>
                                     <span className="text-[10px] font-medium uppercase">Add</span>
                                     <input type="file" accept="image/*" multiple onChange={handleGalleryImagesChange} className="hidden" disabled={uploading} />
@@ -1492,7 +1492,7 @@ const applySearchedImage = () => {
                  value={formData.productName}
                  onChange={handleChange}
                  placeholder="Enter Product Name"
-                 className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                 className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                />
             </div>
 
@@ -1509,7 +1509,7 @@ const applySearchedImage = () => {
                            value={variationForm.price}
                            onChange={(e) => setVariationForm({ ...variationForm, price: e.target.value })}
                            placeholder="0.00"
-                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                         />
                     </div>
                  </div>
@@ -1524,7 +1524,7 @@ const applySearchedImage = () => {
                            value={variationForm.compareAtPrice}
                            onChange={(e) => setVariationForm({ ...variationForm, compareAtPrice: e.target.value })}
                            placeholder="0.00"
-                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                         />
                     </div>
                  </div>
@@ -1542,7 +1542,7 @@ const applySearchedImage = () => {
                             value={variationForm.offerPrice}
                             onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
                             placeholder="0.00"
-                            className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                          />
                      </div>
                   </div>
@@ -1557,7 +1557,7 @@ const applySearchedImage = () => {
                             value={variationForm.wholesalePrice}
                             onChange={(e) => setVariationForm({ ...variationForm, wholesalePrice: e.target.value })}
                             placeholder="0.00"
-                            className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                            className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                          />
                      </div>
                   </div>
@@ -1577,11 +1577,25 @@ const applySearchedImage = () => {
                          value={(formData as any).purchasePrice}
                          onChange={handleChange}
                          placeholder="0.00"
-                         className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                         className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                        />
                    </div>
                 </div>
              )}
+
+             {/* Stock Field */}
+             <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                 Stock
+                </label>
+                <input
+                  type="number"
+                  value={variationForm.stock}
+                  onChange={(e) => setVariationForm({ ...variationForm, stock: e.target.value })}
+                  placeholder="0 = Unlimited"
+                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
+                />
+             </div>
           </div>
 
           {/* Product Section Details */}
@@ -1601,7 +1615,7 @@ const applySearchedImage = () => {
                        onClick={() => setIsUnitModalOpen(true)}
                        readOnly
                        placeholder="Select Unit Size"
-                       className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all cursor-pointer bg-white"
+                       className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all cursor-pointer bg-white"
                      />
                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -1619,7 +1633,7 @@ const applySearchedImage = () => {
                      value={formData.itemCode}
                      onChange={handleChange}
                      placeholder="Enter Item Code / SKU"
-                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                    />
                 </div>
                 <div className="md:col-span-1">
@@ -1632,7 +1646,7 @@ const applySearchedImage = () => {
                      value={formData.rackNumber}
                      onChange={handleChange}
                      placeholder="Enter Rack Number"
-                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                    />
                 </div>
 
@@ -1697,7 +1711,7 @@ const applySearchedImage = () => {
                         value={formData.subSubCategory}
                         onChange={handleChange}
                         placeholder="Enter Sub-SubCategory"
-                        className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                        className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                       />
                     </div>
                   </>
@@ -1760,7 +1774,7 @@ const applySearchedImage = () => {
                     value={formData.tags}
                     onChange={handleChange}
                     placeholder="Enter tags for search optimization"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                   />
                 </div>
               </div>
@@ -1776,7 +1790,7 @@ const applySearchedImage = () => {
                     onChange={handleChange}
                     placeholder="Enter a brief product description..."
                     rows={4}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] resize-none transition-all"
                   />
                 </div>
               )}
@@ -1785,7 +1799,7 @@ const applySearchedImage = () => {
 
 
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-[#E91E63] text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">SEO Configuration</h2>
             </div>
             <div className="p-6 space-y-6">
@@ -1800,7 +1814,7 @@ const applySearchedImage = () => {
                     value={formData.seoTitle}
                     onChange={handleChange}
                     placeholder="Enter meta Title"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                   />
                 </div>
                 <div>
@@ -1813,7 +1827,7 @@ const applySearchedImage = () => {
                     value={formData.seoKeywords}
                     onChange={handleChange}
                     placeholder="Enter meta Keywords"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -1826,7 +1840,7 @@ const applySearchedImage = () => {
                     value={formData.seoImageAlt}
                     onChange={handleChange}
                     placeholder="Enter Image Alt Text"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -1839,7 +1853,7 @@ const applySearchedImage = () => {
                     onChange={handleChange}
                     placeholder="Enter meta Description"
                     rows={4}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] resize-none transition-all"
                   />
                 </div>
               </div>
@@ -1848,14 +1862,14 @@ const applySearchedImage = () => {
 
           {/* Add Variation Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
+            <div className="bg-[#E91E63] text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
               <h2 className="text-lg font-semibold tracking-wide">Product Variations</h2>
               <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-white/90">Enable Attributes</span>
                   <button
                       type="button"
                       onClick={() => setEnableAttributes(!enableAttributes)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${enableAttributes ? 'bg-teal-200' : 'bg-teal-800'}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${enableAttributes ? 'bg-pink-200' : 'bg-pink-800'}`}
                   >
                       <span className={`inline-block h-4 w-4 transform rounded-full transition-transform bg-white ${enableAttributes ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
@@ -1889,7 +1903,7 @@ const applySearchedImage = () => {
                              <button
                                 type="button"
                                 onClick={() => setEnableColors(!enableColors)}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${enableColors ? 'bg-blue-600' : 'bg-neutral-300'}`}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${enableColors ? 'bg-[#E91E63]' : 'bg-neutral-300'}`}
                             >
                                 <span className={`inline-block h-4 w-4 transform rounded-full transition-transform bg-white ${enableColors ? 'translate-x-6' : 'translate-x-1'}`} />
                             </button>
@@ -1949,7 +1963,7 @@ const applySearchedImage = () => {
                                      <button
                                         type="button"
                                         onClick={handleAddColor}
-                                         className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 text-sm font-medium"
+                                         className="px-4 py-2 bg-pink-50 text-[#E91E63] border border-pink-200 rounded hover:bg-pink-100 text-sm font-medium"
                                      >Add</button>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -1973,7 +1987,7 @@ const applySearchedImage = () => {
                           </label>
                           <div className="flex flex-col sm:flex-row gap-2 max-w-md">
                              <select
-                                  className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                  className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]"
                                   value={selectedAttributeId}
                                   onChange={(e) => setSelectedAttributeId(e.target.value)}
                              >
@@ -1987,7 +2001,7 @@ const applySearchedImage = () => {
                              <button
                                  type="button"
                                  onClick={handleAddAttribute}
-                                 className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700"
+                                 className="px-4 py-2 bg-[#E91E63] text-white rounded-lg text-sm font-medium hover:bg-[#D81B60]"
                              >
                                  Add
                              </button>
@@ -1998,12 +2012,12 @@ const applySearchedImage = () => {
                        {selectedAttributes.map((attr) => (
                            <div key={attr.id} className="bg-white p-4 rounded-lg border border-neutral-200 shadow-sm relative">
                                <button type="button" onClick={() => handleRemoveAttribute(attr.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-lg leading-none">&times;</button>
-                               <h4 className="font-semibold text-teal-800 mb-2">{attr.name} Values</h4>
+                               <h4 className="font-semibold text-[#AD1457] mb-2">{attr.name} Values</h4>
                                <div className="flex flex-col sm:flex-row gap-2 mb-3 max-w-lg">
                                    <input
                                        type="text"
                                        placeholder={`Add ${attr.name} value (e.g. Red, XL)`}
-                                       className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-teal-500"
+                                       className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#E91E63]"
                                        value={attrInputValues[attr.id] || ""}
                                        onChange={(e) => setAttrInputValues(prev => ({...prev, [attr.id]: e.target.value}))}
                                        onKeyDown={(e) => {
@@ -2020,15 +2034,15 @@ const applySearchedImage = () => {
                                            handleAddAttributeValue(attr.id, attrInputValues[attr.id] || "");
                                            setAttrInputValues(prev => ({...prev, [attr.id]: ""}));
                                        }}
-                                        className="px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded hover:bg-teal-100 text-sm font-medium"
+                                         className="px-4 py-2 bg-pink-50 text-[#E91E63] border border-pink-200 rounded hover:bg-pink-100 text-sm font-medium"
                                     >Add</button>
                                </div>
                                <div className="flex flex-wrap gap-2">
                                    {attr.values.length === 0 && <span className="text-xs text-gray-400 italic">No values added yet</span>}
                                    {attr.values.map(val => (
-                                       <span key={val} className="px-3 py-1 bg-teal-50 text-teal-700 border border-teal-200 rounded-full text-xs font-medium flex items-center gap-2">
+                                       <span key={val} className="px-3 py-1 bg-pink-50 text-[#AD1457] border border-pink-200 rounded-full text-xs font-medium flex items-center gap-2">
                                            {val}
-                                           <button type="button" onClick={() => handleRemoveAttributeValue(attr.id, val)} className="text-teal-400 hover:text-red-500 font-bold focus:outline-none">&times;</button>
+                                           <button type="button" onClick={() => handleRemoveAttributeValue(attr.id, val)} className="text-[#E91E63]/60 hover:text-red-500 font-bold focus:outline-none">&times;</button>
                                        </span>
                                    ))}
                                </div>
@@ -2037,12 +2051,12 @@ const applySearchedImage = () => {
 
                        {/* Unit Values */}
                        <div className="bg-white p-4 rounded-lg border border-neutral-200 shadow-sm">
-                           <h4 className="font-semibold text-teal-800 mb-2">Unit Values (Optional)</h4>
+                           <h4 className="font-semibold text-[#AD1457] mb-2">Unit Values (Optional)</h4>
                            <div className="flex flex-col sm:flex-row gap-2 mb-3 max-w-lg">
                                <input
                                    type="text"
                                    placeholder="e.g. 1kg, 5kg"
-                                   className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-blue-500"
+                                   className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#E91E63]"
                                    value={currentUnitInput}
                                    onChange={e => setCurrentUnitInput(e.target.value)}
                                    onKeyDown={(e) => {
@@ -2055,15 +2069,15 @@ const applySearchedImage = () => {
                                <button
                                    type="button"
                                    onClick={handleAddUnit}
-                                   className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100 text-sm font-medium"
+                                   className="px-4 py-2 bg-pink-50 text-[#E91E63] border border-pink-200 rounded hover:bg-pink-100 text-sm font-medium"
                                >Add</button>
                            </div>
                            <div className="flex flex-wrap gap-2">
                                {variationUnits.length === 0 && <span className="text-xs text-gray-400 italic">No units added (Will generate single variation per attribute combo)</span>}
                                {variationUnits.map(unit => (
-                                   <span key={unit} className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-medium flex items-center gap-2">
+                                   <span key={unit} className="px-3 py-1 bg-pink-50 text-[#AD1457] border border-pink-200 rounded-full text-xs font-medium flex items-center gap-2">
                                        {unit}
-                                       <button type="button" onClick={() => handleRemoveUnit(unit)} className="text-blue-400 hover:text-red-500 font-bold focus:outline-none">&times;</button>
+                                       <button type="button" onClick={() => handleRemoveUnit(unit)} className="text-[#E91E63]/60 hover:text-red-500 font-bold focus:outline-none">&times;</button>
                                    </span>
                                ))}
                            </div>
@@ -2073,7 +2087,7 @@ const applySearchedImage = () => {
                            <button
                                type="button"
                                onClick={generateVariations}
-                               className="px-6 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 shadow-sm font-medium transition-colors"
+                               className="px-6 py-2.5 bg-[#E91E63] text-white rounded-lg hover:bg-[#D81B60] shadow-sm font-medium transition-colors"
                            >
                                Generate Variations Table
                            </button>
@@ -2092,7 +2106,7 @@ const applySearchedImage = () => {
                         value={variationForm.title}
                         onChange={(e) => setVariationForm({ ...variationForm, title: e.target.value })}
                         placeholder="e.g. XL, 1kg"
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                       />
                     </div>
                     <div>
@@ -2106,7 +2120,7 @@ const applySearchedImage = () => {
                           value={variationForm.price}
                           onChange={(e) => setVariationForm({ ...variationForm, price: e.target.value })}
                           placeholder="0.00"
-                          className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                          className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                         />
                       </div>
                     </div>
@@ -2120,7 +2134,7 @@ const applySearchedImage = () => {
                         value={variationForm.stock}
                         onChange={(e) => setVariationForm({ ...variationForm, stock: e.target.value })}
                         placeholder="0 = Unlimited"
-                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                       />
                     </div>
                     {fieldVisibility.online_offer_price && (
@@ -2135,7 +2149,7 @@ const applySearchedImage = () => {
                           value={variationForm.offerPrice}
                           onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
                           placeholder="0.00"
-                          className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                          className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                         />
                       </div>
                     </div>
@@ -2151,7 +2165,7 @@ const applySearchedImage = () => {
                           value={variationForm.wholesalePrice}
                           onChange={(e) => setVariationForm({ ...variationForm, wholesalePrice: e.target.value })}
                           placeholder="0.00"
-                          className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                          className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                         />
                       </div>
                     </div>
@@ -2165,7 +2179,7 @@ const applySearchedImage = () => {
                             <button
                               type="button"
                               onClick={handleAddTier}
-                              className="text-xs font-bold text-teal-600 hover:text-teal-700"
+                              className="text-xs font-bold text-[#E91E63] hover:text-[#D81B60]"
                             >
                               + Add Tier
                             </button>
@@ -2207,32 +2221,34 @@ const applySearchedImage = () => {
                           <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
                               Barcode
                           </label>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col md:flex-row gap-2">
                                <input
                                   type="text"
                                   value={variationForm.barcode}
                                   onChange={(e) => setVariationForm({ ...variationForm, barcode: e.target.value })}
                                   placeholder="Scan or Enter"
-                                  className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                  className="w-full md:w-auto md:flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                               />
-                              <button
-                                  type="button"
-                                  onClick={() => handleAutoGenerateBarcode("variation")}
-                                  className="px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors flex items-center gap-2"
-                                  title="Auto Generate Barcode"
-                                  >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                  <span className="text-xs font-bold whitespace-nowrap">Auto Generate</span>
-                              </button>
-                              <button
-                                  type="button"
-                                  onClick={() => startScanning("variation")}
-                                  className="px-3 py-2 bg-neutral-100 border border-neutral-300 rounded-lg hover:bg-neutral-200 text-neutral-600 transition-colors flex items-center gap-2"
-                                  title="Scan Barcode"
-                                  >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                                  <span className="text-xs font-bold whitespace-nowrap">Scan Code</span>
-                              </button>
+                              <div className="flex gap-2 shrink-0">
+                                  <button
+                                      type="button"
+                                      onClick={() => handleAutoGenerateBarcode("variation")}
+                                      className="flex-1 md:flex-none px-3 py-2 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#E91E63] transition-colors flex items-center justify-center gap-2"
+                                      title="Auto Generate Barcode"
+                                      >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                      <span className="text-xs font-bold whitespace-nowrap">Auto Generate</span>
+                                  </button>
+                                  <button
+                                      type="button"
+                                      onClick={() => startScanning("variation")}
+                                      className="flex-1 md:flex-none px-3 py-2 bg-neutral-100 border border-neutral-300 rounded-lg hover:bg-neutral-200 text-neutral-600 transition-colors flex items-center justify-center gap-2"
+                                      title="Scan Barcode"
+                                      >
+                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                      <span className="text-xs font-bold whitespace-nowrap">Scan Code</span>
+                                  </button>
+                              </div>
                           </div>
                        </div>
                     </div>
@@ -2240,7 +2256,7 @@ const applySearchedImage = () => {
                       <button
                         type="button"
                         onClick={addVariation}
-                        className="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                        className="px-6 py-2 bg-[#E91E63] hover:bg-[#D81B60] text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
                       >
                         Add Variation +
                       </button>
@@ -2254,7 +2270,7 @@ const applySearchedImage = () => {
                 enableAttributes ? (
                     <div className="overflow-x-auto border border-neutral-200 rounded-lg">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-teal-50 text-teal-900 font-semibold border-b border-teal-100">
+                            <thead className="bg-pink-50 text-[#880E4F] font-semibold border-b border-pink-100">
                                 <tr>
                                     <th className="px-4 py-3 min-w-[150px]">Variation</th>
                                     <th className="px-4 py-3 min-w-[100px]">Price (₹) <span className="text-red-500">*</span></th>
@@ -2273,7 +2289,7 @@ const applySearchedImage = () => {
                                         <td className="px-4 py-2">
                                             <input
                                                 type="number"
-                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-teal-500 focus:outline-none"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#E91E63] focus:outline-none"
                                                 value={v.price}
                                                 onChange={e => {
                                                     const val = e.target.value;
@@ -2288,7 +2304,7 @@ const applySearchedImage = () => {
                                         <td className="px-4 py-2">
                                             <input
                                                 type="number"
-                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-teal-500 focus:outline-none"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#E91E63] focus:outline-none"
                                                 value={v.discPrice}
                                                 onChange={e => {
                                                     const val = e.target.value;
@@ -2303,7 +2319,7 @@ const applySearchedImage = () => {
                                         <td className="px-4 py-2">
                                             <input
                                                 type="number"
-                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-teal-500 focus:outline-none"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#E91E63] focus:outline-none"
                                                 value={v.wholesalePrice}
                                                 onChange={e => {
                                                     const val = e.target.value;
@@ -2318,7 +2334,7 @@ const applySearchedImage = () => {
                                         <td className="px-4 py-2">
                                             <input
                                                 type="number"
-                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-teal-500 focus:outline-none"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#E91E63] focus:outline-none"
                                                 value={v.stock}
                                                 onChange={e => {
                                                     const val = e.target.value;
@@ -2333,7 +2349,7 @@ const applySearchedImage = () => {
                                         <td className="px-4 py-2">
                                             <input
                                                 type="text"
-                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-teal-500 focus:outline-none"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#E91E63] focus:outline-none"
                                                 value={v.barcode}
                                                 placeholder="SKU"
                                                 onChange={e => {
@@ -2356,7 +2372,7 @@ const applySearchedImage = () => {
                                                 }}
                                                 className={`text-xs px-2 py-1 rounded border font-medium transition-colors ${
                                                     v.tieredPrices && v.tieredPrices.length > 0
-                                                    ? "bg-teal-100 text-teal-800 border-teal-200 hover:bg-teal-200"
+                                                    ? "bg-pink-100 text-[#AD1457] border-pink-200 hover:bg-pink-200"
                                                     : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
                                                 }`}
                                             >
@@ -2395,14 +2411,14 @@ const applySearchedImage = () => {
                           </div>
                           <div>
                             <span className="text-xs text-neutral-400 block">Price</span>
-                            <span className="font-medium text-teal-600">₹{variation.price}</span>
+                            <span className="font-medium text-[#E91E63]">₹{variation.price}</span>
                             {variation.discPrice > 0 && (
                                <span className="text-xs text-neutral-400 line-through ml-2">₹{variation.discPrice}</span>
                             )}
                             {variation.tieredPrices && variation.tieredPrices.length > 0 && (
                                 <div className="mt-1 flex flex-wrap gap-1">
                                     {variation.tieredPrices.map((t, idx) => (
-                                        <span key={idx} className="text-[10px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded border border-teal-100">
+                                        <span key={idx} className="text-[10px] bg-pink-50 text-[#AD1457] px-1.5 py-0.5 rounded border border-pink-100">
                                             {t.minQty}+ @ ₹{t.price}
                                         </span>
                                     ))}
@@ -2438,7 +2454,7 @@ const applySearchedImage = () => {
 
           {/* Add Other Details Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-[#E91E63] text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Additional Details</h2>
             </div>
             <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
@@ -2453,7 +2469,7 @@ const applySearchedImage = () => {
                     value={formData.manufacturer}
                     onChange={handleChange}
                     placeholder="Enter Manufacturer Name"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                   />
                 </div>
                 <div>
@@ -2466,7 +2482,7 @@ const applySearchedImage = () => {
                     value={formData.madeIn}
                     onChange={handleChange}
                     placeholder="Enter Country/Region"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                   />
                 </div>
                 {fieldVisibility.tax && (
@@ -2502,7 +2518,7 @@ const applySearchedImage = () => {
                     value={formData.maxReturnDays}
                     onChange={handleChange}
                     placeholder="e.g. 7"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                   />
                 </div>
                 <div>
@@ -2515,7 +2531,7 @@ const applySearchedImage = () => {
                     value={formData.fssaiLicNo}
                     onChange={handleChange}
                     placeholder="Enter License Number"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                   />
                 </div>
                 <div>
@@ -2528,7 +2544,7 @@ const applySearchedImage = () => {
                     value={formData.totalAllowedQuantity}
                     onChange={handleChange}
                     placeholder="e.g. 10"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                   />
                   <p className="text-xs text-neutral-500 mt-1">
                     Max quantity a user can buy at once
@@ -2545,7 +2561,7 @@ const applySearchedImage = () => {
                     value={(formData as any).lowStockQuantity}
                     onChange={handleChange}
                     placeholder="Alert when stock below..."
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                   />
                 </div>
 
@@ -2560,9 +2576,9 @@ const applySearchedImage = () => {
                      name="hsnCode"
                      value={(formData as any).hsnCode}
                      onChange={handleChange}
-                     placeholder="Enter HSN Code"
-                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                   />
+                      placeholder="Enter HSN Code"
+                      className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
+                    />
                 </div>
 
                 <div>
@@ -2574,40 +2590,42 @@ const applySearchedImage = () => {
                      name="deliveryTime"
                      value={(formData as any).deliveryTime}
                      onChange={handleChange}
-                     placeholder="e.g. 2 Days, 24 Hours"
-                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                   />
+                      placeholder="e.g. 2 Days, 24 Hours"
+                      className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
+                    />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Barcode (EAN/UPC)
                   </label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col md:flex-row gap-2">
                         <input
                           type="text"
                           name="barcode"
                           value={(formData as any).barcode}
                           onChange={handleChange}
                           placeholder="Scan or enter barcode manually"
-                          className="flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                          className="w-full md:w-auto md:flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63] transition-all"
                         />
-                        <button
-                            type="button"
-                            onClick={() => handleAutoGenerateBarcode("product")}
-                            className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 text-blue-700 flex items-center gap-2 font-medium transition-colors"
-                            title="Auto Generate Barcode"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            Auto Generate
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => startScanning("product")}
-                            className="px-4 py-2 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 text-teal-700 flex items-center gap-2 font-medium transition-colors"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                            Scan Code
-                        </button>
+                        <div className="flex gap-2 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => handleAutoGenerateBarcode("product")}
+                                className="flex-1 md:flex-none px-4 py-2 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#E91E63] flex items-center justify-center gap-2 font-medium transition-colors"
+                                title="Auto Generate Barcode"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                Auto Generate
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => startScanning("product")}
+                                className="flex-1 md:flex-none px-4 py-2 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#E91E63] flex items-center justify-center gap-2 font-medium transition-colors"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                Scan Code
+                            </button>
+                        </div>
                       </div>
                 </div>
 
@@ -2625,7 +2643,7 @@ const applySearchedImage = () => {
                              min="1"
                              value={printQuantity}
                              onChange={(e) => setPrintQuantity(e.target.value)}
-                             className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                             className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                              placeholder="How many copies?"
                           />
                        </div>
@@ -2633,7 +2651,7 @@ const applySearchedImage = () => {
                        <div>
                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">Select Barcode</label>
                          <select
-                           className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                           className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63]/20 focus:border-[#E91E63]"
                            value={selectedPrintBarcode}
                              onChange={(e) => {
                              const selectedVal = e.target.value;
@@ -2690,13 +2708,13 @@ const applySearchedImage = () => {
           {/* Shop by Store Section */}
           {fieldVisibility.shop_by_store_only && (
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-[#E91E63] text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Store Visibility</h2>
             </div>
             <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
-              <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 flex gap-3 items-start">
-                 <svg className="w-5 h-5 text-teal-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                 <p className="text-sm text-teal-800">
+              <div className="bg-pink-50 border border-pink-200 rounded-lg p-4 flex gap-3 items-start">
+                 <svg className="w-5 h-5 text-[#E91E63] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                 <p className="text-sm text-[#AD1457]">
                    <strong>Note:</strong> If you select "Show in Shop by Store only", this product will <strong>only</strong> be visible in the selected store's specific page and will not appear on general category pages or the home page.
                  </p>
               </div>
@@ -2743,7 +2761,7 @@ const applySearchedImage = () => {
               className={`px-8 py-3 rounded-lg font-medium text-lg transition-colors shadow-sm ${
                 uploading
                   ? "bg-neutral-400 cursor-not-allowed text-white"
-                  : "bg-teal-600 hover:bg-teal-700 text-white"
+                  : "bg-[#E91E63] hover:bg-[#D81B60] text-white"
               }`}>
               {uploading ? "Uploading Images..." : id ? "Update Product" : "Add Product"}
             </button>
@@ -2754,11 +2772,11 @@ const applySearchedImage = () => {
       {isScanning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
-            <div className="p-4 bg-teal-600 text-white flex justify-between items-center">
+            <div className="p-4 bg-[#E91E63] text-white flex justify-between items-center">
               <h3 className="font-semibold">Scan Barcode</h3>
               <button
                 onClick={stopScanning}
-                className="p-1 hover:bg-teal-700 rounded-full transition-colors"
+                className="p-1 hover:bg-[#D81B60] rounded-full transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
@@ -2774,13 +2792,13 @@ const applySearchedImage = () => {
         {unitPricingModal.isOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
                 <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-                    <div className="bg-teal-600 text-white px-6 py-4 flex justify-between items-center shrink-0">
+                    <div className="bg-[#E91E63] text-white px-6 py-4 flex justify-between items-center shrink-0">
                         <h3 className="text-lg font-semibold">Unit Wise Pricing</h3>
-                        <button onClick={() => setUnitPricingModal({...unitPricingModal, isOpen: false})} className="text-white hover:bg-teal-700 p-1 rounded-full">✕</button>
+                        <button onClick={() => setUnitPricingModal({...unitPricingModal, isOpen: false})} className="text-white hover:bg-[#D81B60] p-1 rounded-full">✕</button>
                     </div>
 
                     <div className="p-6 overflow-y-auto flex-1">
-                        <p className="text-sm text-gray-500 mb-4 bg-blue-50 p-3 rounded border border-blue-100">
+                        <p className="text-sm text-gray-500 mb-4 bg-pink-50 p-3 rounded border border-pink-100">
                            Set discount prices when users buy in bulk. (e.g. Buy 2+ get at ₹95)
                         </p>
 
@@ -2792,7 +2810,7 @@ const applySearchedImage = () => {
                                         <input
                                             type="number"
                                             placeholder="e.g. 2"
-                                            className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:border-teal-500 focus:outline-none"
+                                            className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:border-[#E91E63] focus:outline-none"
                                             value={tier.minQty}
                                             onChange={e => {
                                                 const val = parseInt(e.target.value) || 0;
@@ -2811,7 +2829,7 @@ const applySearchedImage = () => {
                                             <input
                                                 type="number"
                                                 placeholder="Price"
-                                                className="w-full pl-6 pr-3 py-2 border border-neutral-300 rounded text-sm focus:border-teal-500 focus:outline-none"
+                                                className="w-full pl-6 pr-3 py-2 border border-neutral-300 rounded text-sm focus:border-[#E91E63] focus:outline-none"
                                                 value={tier.price}
                                                 onChange={e => {
                                                     const val = parseFloat(e.target.value) || 0;
@@ -2837,7 +2855,7 @@ const applySearchedImage = () => {
                         <button
                             type="button"
                             onClick={() => setTempTieredPrices(prev => [...prev, { minQty: 0, price: 0 }])}
-                            className="mt-4 text-sm font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1"
+                            className="mt-4 text-sm font-bold text-[#E91E63] hover:text-[#D81B60] flex items-center gap-1"
                         >
                             + Add Price Slab
                         </button>
@@ -2865,7 +2883,7 @@ const applySearchedImage = () => {
                                     setUnitPricingModal({ isOpen: false, variationIndex: null });
                                 }
                             }}
-                            className="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium"
+                            className="px-6 py-2 bg-[#E91E63] hover:bg-[#D81B60] text-white rounded-lg font-medium"
                         >
                             Save Prices
                         </button>
@@ -2889,7 +2907,7 @@ const applySearchedImage = () => {
         {showImageSourceModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                 <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden transform transition-all scale-100">
-                    <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                    <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-pink-50/30">
                         <h3 className="font-bold text-gray-800 text-lg">Choose Image</h3>
                         <button onClick={() => setShowImageSourceModal(false)} className="text-gray-400 hover:text-gray-600 p-1 bg-white rounded-full shadow-sm border border-gray-100">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -2900,16 +2918,16 @@ const applySearchedImage = () => {
                         {/* Live Search Section */}
                         <div>
                              <div className="flex items-center justify-between mb-2">
-                                <label className="text-xs font-bold text-purple-600 uppercase tracking-wider flex items-center gap-1">
+                                <label className="text-xs font-bold text-[#E91E63] uppercase tracking-wider flex items-center gap-1">
                                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                                     Live Image Search
                                 </label>
-                                <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded font-bold">AI</span>
+                                <span className="text-[10px] bg-pink-100 text-[#AD1457] px-1.5 py-0.5 rounded font-bold">AI</span>
                              </div>
                              <div className="flex gap-2">
                                 <input
                                     type="text"
-                                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63] outline-none"
                                     placeholder="e.g. 10 Vala Pen, Dove Soap"
                                     value={imageSearchQuery}
                                     onChange={(e) => setImageSearchQuery(e.target.value)}
@@ -2919,7 +2937,7 @@ const applySearchedImage = () => {
                                 <button
                                     onClick={handleImageSearch}
                                     disabled={isSearchingImage}
-                                    className="bg-purple-600 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-purple-700 disabled:opacity-70 transition-colors"
+                                    className="bg-[#E91E63] text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wide hover:bg-[#D81B60] disabled:opacity-70 transition-colors"
                                 >
                                     {isSearchingImage ? '...' : 'GO'}
                                 </button>
@@ -2927,16 +2945,16 @@ const applySearchedImage = () => {
 
                              {/* Search Result Preview */}
                              {searchedImage && (
-                                <div className="mt-3 p-3 bg-purple-50 rounded-xl border border-purple-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                                <div className="mt-3 p-3 bg-pink-50 rounded-xl border border-pink-100 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
                                     <img src={searchedImage} className="w-14 h-14 object-cover rounded-lg bg-white shadow-sm" alt="Result" />
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs text-purple-800 font-medium mb-1 truncate">Image Found!</p>
+                                        <p className="text-xs text-[#AD1457] font-medium mb-1 truncate">Image Found!</p>
                                         <button
                                             onClick={() => {
                                                 applySearchedImage();
                                                 setShowImageSourceModal(false);
                                             }}
-                                            className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-purple-700 w-full shadow-sm hover:shadow"
+                                            className="text-xs bg-[#E91E63] text-white px-3 py-1.5 rounded-lg font-bold hover:bg-[#D81B60] w-full shadow-sm hover:shadow"
                                         >
                                             Use This Image
                                         </button>
@@ -2954,22 +2972,22 @@ const applySearchedImage = () => {
                         <div className="grid grid-cols-2 gap-4">
                             <button
                                 onClick={() => { setShowImageSourceModal(false); setTimeout(() => mainImageInputRef.current?.click(), 200); }}
-                                className="flex flex-col items-center justify-center gap-3 p-4 border border-gray-100 rounded-2xl bg-gray-50 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all group active:scale-[0.98]"
+                                className="flex flex-col items-center justify-center gap-3 p-4 border border-gray-100 rounded-2xl bg-gray-50 hover:bg-pink-50 hover:border-pink-200 hover:text-[#E91E63] transition-all group active:scale-[0.98]"
                             >
-                                <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-transform">
+                                <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-600 group-hover:text-[#E91E63] group-hover:scale-110 transition-transform">
                                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                 </div>
-                                <span className="font-semibold text-sm text-gray-600 group-hover:text-blue-600">Gallery</span>
+                                <span className="font-semibold text-sm text-gray-600 group-hover:text-[#E91E63]">Gallery</span>
                             </button>
 
                             <button
                                 onClick={() => { setShowImageSourceModal(false); setTimeout(() => mainImageInputRef.current?.click(), 200); }}
-                                className="flex flex-col items-center justify-center gap-3 p-4 border border-gray-100 rounded-2xl bg-gray-50 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-600 transition-all group active:scale-[0.98]"
+                                className="flex flex-col items-center justify-center gap-3 p-4 border border-gray-100 rounded-2xl bg-gray-50 hover:bg-pink-50 hover:border-pink-200 hover:text-[#E91E63] transition-all group active:scale-[0.98]"
                             >
-                                <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-600 group-hover:text-blue-600 group-hover:scale-110 transition-transform">
+                                <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-600 group-hover:text-[#E91E63] group-hover:scale-110 transition-transform">
                                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                 </div>
-                                <span className="font-semibold text-sm text-gray-600 group-hover:text-blue-600">Camera</span>
+                                <span className="font-semibold text-sm text-gray-600 group-hover:text-[#E91E63]">Camera</span>
                             </button>
                         </div>
                     </div>

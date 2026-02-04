@@ -118,6 +118,7 @@ export default function AdminStockBulkEdit({
   const [editableProducts, setEditableProducts] = useState<EditableProduct[]>([]);
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [productNameSearch, setProductNameSearch] = useState("");
   const [activePricingModalIndex, setActivePricingModalIndex] = useState<number | null>(null); // For modal
 
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
@@ -344,17 +345,19 @@ export default function AdminStockBulkEdit({
   const [categorySearch, setCategorySearch] = useState("");
 
   // Column Resizing Logic
+  // Column filtering logic
   const filteredProducts = useMemo(() => {
      return editableProducts.filter(p => {
         const nameMatch = p.productName.toLowerCase().includes(searchTerm.toLowerCase());
+        const colProductNameMatch = p.productName.toLowerCase().includes(productNameSearch.toLowerCase());
 
         // Resolve category name for filtering
         const catName = categories.find(c => c._id === p.categoryId)?.name || "";
         const catMatch = catName.toLowerCase().includes(categorySearch.toLowerCase());
 
-        return nameMatch && catMatch;
+        return nameMatch && colProductNameMatch && catMatch;
      });
-  }, [editableProducts, searchTerm, categorySearch, categories]);
+  }, [editableProducts, searchTerm, productNameSearch, categorySearch, categories]);
 
   // Column Resizing Logic
 
@@ -448,6 +451,23 @@ export default function AdminStockBulkEdit({
             className="w-full text-[11px] px-2 py-1 border border-gray-300 rounded font-normal focus:ring-1 focus:ring-[#E91E63] focus:outline-none"
             value={categorySearch}
             onChange={(e) => setCategorySearch(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()} // Prevent focus loss on drag start
+          />
+        </div>
+      );
+    }
+
+    if (key === "productName") {
+      content = (
+        <div className="flex flex-col gap-2 w-full">
+          <span>{COLUMN_LABELS[key]}</span>
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full text-[11px] px-2 py-1 border border-gray-300 rounded font-normal focus:ring-1 focus:ring-[#E91E63] focus:outline-none"
+            value={productNameSearch}
+            onChange={(e) => setProductNameSearch(e.target.value)}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()} // Prevent focus loss on drag start
           />

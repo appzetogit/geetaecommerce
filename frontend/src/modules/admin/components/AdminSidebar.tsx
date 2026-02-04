@@ -7,6 +7,8 @@ interface SubMenuItem {
   icon: JSX.Element;
   badge?: string;
   badgeColor?: string;
+  hasSubmenu?: boolean;
+  submenuItems?: SubMenuItem[];
 }
 
 interface MenuItem {
@@ -28,6 +30,153 @@ interface AdminSidebarProps {
 }
 
 const menuSections: MenuSection[] = [
+  {
+    title: "Reports",
+    items: [
+      {
+        label: "Reports",
+        path: "/admin/reports",
+        hasSubmenu: true,
+        icon: (
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        ),
+        submenuItems: [
+          {
+            label: "Order Report",
+            path: "/admin/reports/order",
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            )
+          },
+          {
+            label: "Invoice Report",
+            path: "/admin/reports/invoice",
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            )
+          },
+          {
+            label: "Customer Report",
+            path: "/admin/reports/customer",
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21"/><circle cx="9" cy="7" r="4"/><path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13"/><path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88"/></svg>
+            )
+          },
+          {
+            label: "Product Inventory Report",
+            path: "/admin/reports/inventory",
+            hasSubmenu: true,
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            ),
+            submenuItems: [
+              {
+                label: "Stock Summary",
+                path: "/admin/reports/inventory/stock-summary",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                )
+              },
+              {
+                label: "Stock Balance summary",
+                path: "/admin/reports/inventory/stock-balance",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                )
+              },
+              {
+                label: "Low Stock summary",
+                path: "/admin/reports/inventory/low-stock",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                )
+              },
+              {
+                label: "Out of stock summary",
+                path: "/admin/reports/inventory/out-of-stock",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                )
+              },
+              {
+                label: "Loss summary",
+                path: "/admin/reports/inventory/loss-summary",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                )
+              },
+            ]
+          },
+          {
+            label: "GST Sales Report",
+            path: "/admin/reports/gst-sales",
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H9h1"/></svg>
+            )
+          },
+          {
+            label: "Payment Report",
+            path: "/admin/reports/payment",
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            )
+          },
+          {
+            label: "Sales Reports",
+            path: "/admin/reports/sales",
+            hasSubmenu: true,
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            ),
+            submenuItems: [
+              {
+                label: "Sales Summary",
+                path: "/admin/reports/sales/summary",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                )
+              },
+              {
+                label: "Return and Exchange summary",
+                path: "/admin/reports/sales/return-exchange",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                )
+              },
+              {
+                label: "Stock Sales Summary",
+                path: "/admin/reports/sales/stock-sales",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                )
+              },
+              {
+                label: "Due Summary",
+                path: "/admin/reports/sales/due-summary",
+                icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                )
+              },
+            ]
+          },
+        ]
+      },
+    ],
+  },
   {
     title: "POS SECTION",
     items: [
@@ -1298,11 +1447,18 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
                       <ul className="mt-1 space-y-1 ml-4">
                         {item.submenuItems &&
                           item.submenuItems.map((subItem) => {
-                            const subActive = location.pathname === subItem.path;
+                            const subActive = location.pathname === subItem.path || location.pathname.startsWith(subItem.path + '/');
+                            const subExpanded = isExpanded(subItem.path);
                             return (
                               <li key={subItem.path}>
                                 <button
-                                  onClick={() => handleNavigation(subItem.path)}
+                                  onClick={() => {
+                                    if (subItem.hasSubmenu) {
+                                      toggleMenu(subItem.path);
+                                    } else {
+                                      handleNavigation(subItem.path);
+                                    }
+                                  }}
                                   className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left transition-colors ${subActive
                                     ? "bg-white/20 text-white"
                                     : "text-white/80 hover:bg-black/10 hover:text-white"
@@ -1315,7 +1471,47 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
                                       {subItem.label}
                                     </span>
                                   </div>
+                                  {subItem.hasSubmenu && (
+                                    <svg
+                                      width="14"
+                                      height="14"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      className={`transition-transform flex-shrink-0 ${subExpanded ? "rotate-90" : ""
+                                        } ${subActive ? "text-white" : "text-white/70"}`}>
+                                      <path
+                                        d="M9 18L15 12L9 6"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"></path>
+                                    </svg>
+                                  )}
                                 </button>
+                                {subItem.hasSubmenu && subExpanded && subItem.submenuItems && (
+                                  <ul className="mt-1 space-y-1 ml-4">
+                                    {subItem.submenuItems.map((nestedItem) => {
+                                      const nestedActive = location.pathname === nestedItem.path;
+                                      return (
+                                        <li key={nestedItem.path}>
+                                          <button
+                                            onClick={() => handleNavigation(nestedItem.path)}
+                                            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${nestedActive
+                                              ? "bg-white/30 text-white"
+                                              : "text-white/70 hover:bg-black/10 hover:text-white"
+                                              }`}>
+                                            <span className="flex-shrink-0">
+                                              {nestedItem.icon}
+                                            </span>
+                                            <span className="text-xs font-medium truncate">
+                                              {nestedItem.label}
+                                            </span>
+                                          </button>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                )}
                               </li>
                             );
                           })}

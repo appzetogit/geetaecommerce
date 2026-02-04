@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getProducts, getProductById, getPOSProducts, Product, getSellers, updateProduct, createProduct } from '../../../services/api/admin/adminProductService';
-import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getOrderById, updateOrderItems } from '../../../services/api/admin/adminOrderService';
+import { getProducts, getProductById, Product, updateProduct, createProduct, getSellerPOSProducts } from '../../../services/api/productService';
+import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getOrderById } from '../../../services/api/orderService';
 import { getAllCustomers, Customer } from '../../../services/api/admin/adminCustomerService';
 import { getAppSettings, AppSettings } from '../../../services/api/admin/adminSettingsService';
 import { getCategories } from '../../../services/api/categoryService';
@@ -9,6 +9,8 @@ import { useToast } from '../../../context/ToastContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { jsPDF } from "jspdf";
 import { Html5Qrcode } from "html5-qrcode";
+
+// Seller version does not support updateOrderItems yet in service, removing from import.
 
 // Interface for Cart Item extending Product
 interface CartItem extends Product {
@@ -36,13 +38,12 @@ interface Bill {
   createdAt: number;
 }
 
-const AdminPOSOrders = () => {
+const SellerPOSOrders = () => {
    const [searchParams] = useSearchParams();
    const editOrderId = searchParams.get('edit');
   const navigate = useNavigate();
   const { showToast } = useToast();
 
-  const [selectedSeller, setSelectedSeller] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Multi-Bill State
@@ -267,7 +268,7 @@ const AdminPOSOrders = () => {
     loadEditOrder();
   }, [editOrderId]);
 
-  const [sellers, setSellers] = useState<Seller[]>([]);
+  // const [sellers, setSellers] = useState<Seller[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -302,14 +303,14 @@ const AdminPOSOrders = () => {
     useEffect(() => {
     const fetchData = async () => {
       try {
-        const [settingsRes, sellersRes, categoriesRes, brandsRes] = await Promise.all([
+        const [settingsRes, categoriesRes, brandsRes] = await Promise.all([
             getAppSettings(),
-            getSellers(),
+            // getSellers(),
             getCategories(),
             getBrands()
         ]);
         if (settingsRes.success) setSettings(settingsRes.data);
-        if (sellersRes.success) setSellers(sellersRes.data);
+        // if (sellersRes.success) setSellers(sellersRes.data);
         if (categoriesRes.success) setCategories(categoriesRes.data);
         if (brandsRes.success) setBrands(brandsRes.data);
       } catch (e) {
@@ -355,7 +356,8 @@ const AdminPOSOrders = () => {
           // However, user might have cleared search so 'products' is empty.
           // We'll fetch from API directly.
 
-          const res = await getProducts({ search: decodedText });
+          // Use POS Product Search
+          const res = await getSellerPOSProducts({ search: decodedText });
           if (res.success && res.data && res.data.length > 0) {
              const productsFound = res.data;
              // Try to find exact match on Barcode or SKU
@@ -491,19 +493,19 @@ const AdminPOSOrders = () => {
   // Fetch Products
   useEffect(() => {
     const fetchProducts = async () => {
-      if (!searchQuery.trim()) {
+      if (!searchQuery.trim() && !selectedCategory && !selectedBrand) {
         setProducts([]);
         setLoading(false);
         return;
       }
+
       setLoading(true);
       try {
-        const response = await getProducts({
-          search: searchQuery,
-          seller: selectedSeller || undefined,
+        // Use new POS dedicated endpoint
+        const response = await getSellerPOSProducts({
+          search: searchQuery.trim(),
           category: selectedCategory || undefined,
-          brand: selectedBrand || undefined,
-          limit: 1000 // Fetch all for client-side pagination
+          brand: selectedBrand || undefined
         });
         if (response.success && response.data) {
           // Expand Variations
@@ -551,7 +553,7 @@ const AdminPOSOrders = () => {
     }, 500);
 
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery, selectedSeller, selectedCategory, selectedBrand]);
+  }, [searchQuery, selectedCategory, selectedBrand]);
 
   // Barcode Scanner Handler
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -667,7 +669,7 @@ const AdminPOSOrders = () => {
                 stock: parseInt(quickForm.qty) || 0,
                 category: quickForm.categoryId,
                 brand: quickForm.brandId,
-                seller: selectedSeller || undefined, // Will default to Admin Store in backend if undefined
+                // seller: selectedSeller || undefined, // Will use authenticated seller context
                 publish: true
             });
 
@@ -1204,7 +1206,7 @@ const AdminPOSOrders = () => {
 
         <button
           onClick={() => navigate('/admin/pos/customers')}
-          className="px-4 py-2 bg-[#E91E63] text-white border border-[#E91E63] rounded-lg text-sm font-bold hover:bg-[#D81B60] transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-[#0d9488] text-white border border-[#0d9488] rounded-lg text-sm font-bold hover:bg-[#0f766e] transition-colors flex items-center gap-2"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -1223,19 +1225,7 @@ const AdminPOSOrders = () => {
             {/* Top Bar (Filters) */}
             <div className="p-4 border-b border-gray-100 flex flex-col gap-3 bg-white z-10">
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <select
-                      className="border border-gray-300 rounded px-3 py-2 text-sm w-full sm:w-1/3 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      value={selectedSeller}
-                      onChange={(e) => {
-                          setSelectedSeller(e.target.value);
-                          setCurrentPage(1); // Reset page on seller change
-                      }}
-                    >
-                      <option value="">-- All Sellers --</option>
-                      {sellers.map(s => (
-                          <option key={s._id} value={s._id}>{s.sellerName} ({s.storeName})</option>
-                      ))}
-                    </select>
+                    {/* Seller Select Removed */}
 
                     <select
                       className="border border-gray-300 rounded px-3 py-2 text-sm w-full sm:w-1/3 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -1343,17 +1333,17 @@ const AdminPOSOrders = () => {
                     <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
-                        className="w-10 h-10 flex items-center justify-center border border-[#E91E63] rounded text-[#E91E63] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#E91E63]/10 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center border border-[#0d9488] rounded text-[#0d9488] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0d9488]/10 transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
-                    <button className="w-10 h-10 flex items-center justify-center bg-[#E91E63] text-white rounded font-bold shadow-sm">
+                    <button className="w-10 h-10 flex items-center justify-center bg-[#0d9488] text-white rounded font-bold shadow-sm">
                         {currentPage}
                     </button>
                      <button
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(products.length / itemsPerPage)))}
                         disabled={currentPage === Math.ceil(products.length / itemsPerPage)}
-                        className="w-10 h-10 flex items-center justify-center border border-[#E91E63] rounded text-[#E91E63] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#E91E63]/10 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center border border-[#0d9488] rounded text-[#0d9488] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0d9488]/10 transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                     </button>
@@ -1381,7 +1371,7 @@ const AdminPOSOrders = () => {
                 </div>
                 <button
                   onClick={() => setShowQuickAdd(true)}
-                  className="bg-[#E91E63] hover:bg-[#D81B60] text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 font-medium transition-colors"
+                  className="bg-[#0d9488] hover:bg-[#0f766e] text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 font-medium transition-colors"
                 >
                   + Quick Add
                 </button>
@@ -1397,7 +1387,7 @@ const AdminPOSOrders = () => {
                   className={`
                     flex items-center gap-2 px-3 py-2 rounded-t-lg cursor-pointer border-t border-l border-r transition-all min-w-[100px] justify-between select-none text-xs font-medium
                     ${activeBillId === bill.id
-                      ? 'bg-white border-b-transparent text-[#E91E63] relative -mb-[1px] z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]'
+                      ? 'bg-white border-b-transparent text-[#0d9488] relative -mb-[1px] z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]'
                       : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200/50'}
                   `}
                 >
@@ -1414,7 +1404,7 @@ const AdminPOSOrders = () => {
 
               <button
                 onClick={() => createNewBill()}
-                className="flex items-center justify-center w-6 h-6 rounded-full bg-[#E91E63]/10 text-[#E91E63] hover:bg-[#E91E63]/20 transition-colors ml-1 flex-shrink-0"
+                className="flex items-center justify-center w-6 h-6 rounded-full bg-[#0d9488]/10 text-[#0d9488] hover:bg-[#0d9488]/20 transition-colors ml-1 flex-shrink-0"
                 title="New Bill"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
@@ -1429,7 +1419,7 @@ const AdminPOSOrders = () => {
                    <div className="relative mb-3">
                        <button
                            onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
-                           className="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#E91E63]"
+                           className="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0d9488]"
                        >
                            <span className="font-medium">{paymentMethod || 'Cash'}</span>
                            <svg className={`w-4 h-4 text-gray-400 transition-transform ${showPaymentDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -1480,7 +1470,7 @@ const AdminPOSOrders = () => {
                       <input
                         type="text"
                         placeholder="Search Customer / Mobile..."
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#E91E63] bg-gray-50 focus:bg-white transition-colors"
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d9488] bg-gray-50 focus:bg-white transition-colors"
                         value={customerSearch}
                         onChange={(e) => {
                             setCustomerSearch(e.target.value);
@@ -1525,7 +1515,7 @@ const AdminPOSOrders = () => {
                   </div>
                   <button
                     onClick={() => setShowScanner(true)}
-                    className="bg-[#E91E63] text-white px-3 rounded hover:bg-[#D81B60] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
+                    className="bg-[#0d9488] text-white px-3 rounded hover:bg-[#0f766e] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
                     title="Scan Product"
                   >
                     <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -1663,7 +1653,7 @@ const AdminPOSOrders = () => {
                       <button
                         onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
                         disabled={loading}
-                        className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#E91E63] hover:bg-[#D81B60]' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#0d9488] hover:bg-[#0f766e]' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                       >
                          {loading ? (
                             <>
@@ -1688,7 +1678,7 @@ const AdminPOSOrders = () => {
       {showQuickAdd && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div className="bg-[#E91E63] px-6 py-4 text-white flex justify-between items-center">
+                <div className="bg-[#0d9488] px-6 py-4 text-white flex justify-between items-center">
                     <h3 className="font-semibold text-lg">Quick Add Item</h3>
                     <button onClick={() => setShowQuickAdd(false)} className="text-white/80 hover:text-white">✕</button>
                 </div>
@@ -1698,7 +1688,7 @@ const AdminPOSOrders = () => {
                         <input
                            type="text" required
                            value={quickForm.name} onChange={e => setQuickForm({...quickForm, name: e.target.value})}
-                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
                            placeholder="Enter item name"
                            autoFocus
                         />
@@ -1709,7 +1699,7 @@ const AdminPOSOrders = () => {
                             <input
                                type="number" min="0" step="0.01"
                                value={quickForm.mrp} onChange={e => setQuickForm({...quickForm, mrp: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1718,7 +1708,7 @@ const AdminPOSOrders = () => {
                             <input
                                type="number" required min="0" step="0.01"
                                value={quickForm.price} onChange={e => setQuickForm({...quickForm, price: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1727,7 +1717,7 @@ const AdminPOSOrders = () => {
                             <input
                                type="number" min="0" step="0.01"
                                value={quickForm.wholesalePrice} onChange={e => setQuickForm({...quickForm, wholesalePrice: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1736,7 +1726,7 @@ const AdminPOSOrders = () => {
                             <input
                                type="number" min="0" step="0.01"
                                value={quickForm.purchasePrice} onChange={e => setQuickForm({...quickForm, purchasePrice: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1745,7 +1735,7 @@ const AdminPOSOrders = () => {
                             <input
                                type="number" required min="1"
                                value={quickForm.qty} onChange={e => setQuickForm({...quickForm, qty: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
                             />
                         </div>
                     </div>
@@ -1768,7 +1758,7 @@ const AdminPOSOrders = () => {
                         </label>
                     </div>
 
-                    <button type="submit" className="w-full bg-[#E91E63] hover:bg-[#D81B60] text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
+                    <button type="submit" className="w-full bg-[#0d9488] hover:bg-[#0f766e] text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
                         Add to Cart
                     </button>
                 </form>
@@ -1924,7 +1914,7 @@ const AdminPOSOrders = () => {
                    </div>
 
                    <div className="flex justify-center mb-4">
-                       <div className="bg-[#E91E63] rounded-full p-1.5">
+                       <div className="bg-[#0d9488] rounded-full p-1.5">
                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                        </div>
                    </div>
@@ -2003,7 +1993,7 @@ const AdminPOSOrders = () => {
                                     setShowSuccessModal(false);
                                     setShowPaymentModal(true);
                                 }}
-                                className="w-full bg-[#E91E63] text-white font-bold py-3 text-[10px] tracking-widest hover:bg-[#D81B60] uppercase rounded shadow-lg animate-pulse"
+                                className="w-full bg-[#0d9488] text-white font-bold py-3 text-[10px] tracking-widest hover:bg-[#0f766e] uppercase rounded shadow-lg animate-pulse"
                             >
                                 [ PROCEED TO PAY ]
                             </button>
@@ -2158,4 +2148,4 @@ const AdminPOSOrders = () => {
   );
 };
 
-export default AdminPOSOrders;
+export default SellerPOSOrders;

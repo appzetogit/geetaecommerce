@@ -294,8 +294,8 @@ export default function SellerAddProduct() {
                 jsbarcode-marginTop="2">
               </svg>
               <div class="price-row">
-                  ${mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
-                  ${sp ? `<div class="price-item">SP:${sp}</div>` : ''}
+                  ${barcodeSettings?.mrpLabel ? `<div class="price-item">${barcodeSettings.mrpLabel}:${mrp}</div>` : mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
+                  ${barcodeSettings?.spLabel ? `<div class="price-item">${barcodeSettings.spLabel}:${sp}</div>` : sp ? `<div class="price-item">SP:${sp}</div>` : ''}
               </div>
             </div>
           `).join('')}

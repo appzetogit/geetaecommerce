@@ -95,6 +95,22 @@ const SellerReturnRequest = lazy(() => import("./modules/seller/pages/SellerRetu
 const SellerAccountSettings = lazy(() => import("./modules/seller/pages/SellerAccountSettings"));
 const SellerLogin = lazy(() => import("./modules/seller/pages/SellerLogin"));
 const SellerSignUp = lazy(() => import("./modules/seller/pages/SellerSignUp"));
+const SellerPOSOrders = lazy(() => import("./modules/seller/pages/SellerPOSOrders"));
+const SellerPOSReport = lazy(() => import("./modules/seller/pages/SellerPOSReport"));
+const SellerSalesSummary = lazy(() => import("./modules/seller/pages/SellerSalesSummary"));
+const SellerAttributeSetup = lazy(() => import("./modules/seller/pages/SellerAttributeSetup"));
+const SellerProductDisplaySettings = lazy(() => import("./modules/seller/pages/SellerProductDisplaySettings"));
+const SellerBarcodeSettings = lazy(() => import("./modules/seller/pages/SellerBarcodeSettings"));
+const SellerAllOrders = lazy(() => import("./modules/seller/pages/SellerAllOrders"));
+const SellerPendingOrders = lazy(() => import("./modules/seller/pages/SellerPendingOrders"));
+const SellerReceivedOrders = lazy(() => import("./modules/seller/pages/SellerReceivedOrders"));
+const SellerProcessedOrders = lazy(() => import("./modules/seller/pages/SellerProcessedOrders"));
+const SellerShippedOrders = lazy(() => import("./modules/seller/pages/SellerShippedOrders"));
+const SellerOutForDeliveryOrders = lazy(() => import("./modules/seller/pages/SellerOutForDeliveryOrders"));
+const SellerDeliveredOrders = lazy(() => import("./modules/seller/pages/SellerDeliveredOrders"));
+const SellerCancelledOrders = lazy(() => import("./modules/seller/pages/SellerCancelledOrders"));
+const SellerReturnRequests = lazy(() => import("./modules/seller/pages/SellerReturnRequests"));
+const SellerReplaceRequests = lazy(() => import("./modules/seller/pages/SellerReplaceRequests"));
 
 // Lazy load admin routes
 const AdminLayout = lazy(() => import("./modules/admin/components/AdminLayout"));
@@ -159,6 +175,18 @@ const AdminFreeGiftRules = lazy(() => import("./modules/admin/pages/AdminFreeGif
 const AdminReturnRequests = lazy(() => import("./modules/admin/pages/AdminReturnRequests"));
 const AdminReplaceRequests = lazy(() => import("./modules/admin/pages/AdminReplaceRequests"));
 const AdminAttributeSetup = lazy(() => import("./modules/admin/pages/AdminAttributeSetup"));
+const AdminReportSalesSummary = lazy(() => import("./modules/admin/pages/AdminReportSalesSummary"));
+const AdminReturnExchangeSummary = lazy(() => import("./modules/admin/pages/AdminReturnExchangeSummary"));
+const AdminStockSalesSummary = lazy(() => import("./modules/admin/pages/AdminStockSalesSummary"));
+const AdminDueSummary = lazy(() => import("./modules/admin/pages/AdminDueSummary"));
+const AdminStockSummary = lazy(() => import("./modules/admin/pages/AdminStockSummary"));
+const AdminStockBalanceSummary = lazy(() => import("./modules/admin/pages/AdminStockBalanceSummary"));
+const AdminLowStockSummary = lazy(() => import("./modules/admin/pages/AdminLowStockSummary"));
+const AdminOutOfStockSummary = lazy(() => import("./modules/admin/pages/AdminOutOfStockSummary"));
+const AdminLossSummary = lazy(() => import("./modules/admin/pages/AdminLossSummary"));
+const AdminGSTSalesReport = lazy(() => import("./modules/admin/pages/AdminGSTSalesReport"));
+const AdminPaymentReport = lazy(() => import("./modules/admin/pages/AdminPaymentReport"));
+
 import { useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 
@@ -351,20 +379,34 @@ function App() {
                           <SellerLayout>
                             <Routes>
                               <Route path="" element={<SellerDashboard />} />
-                              <Route path="orders" element={<SellerOrders />} />
+                               <Route path="orders" element={<SellerOrders />} />
+                              <Route path="orders/all" element={<SellerAllOrders />} />
+                              <Route path="orders/pending" element={<SellerPendingOrders />} />
+                              <Route path="orders/received" element={<SellerReceivedOrders />} />
+                              <Route path="orders/processed" element={<SellerProcessedOrders />} />
+                              <Route path="orders/shipped" element={<SellerShippedOrders />} />
+                              <Route path="orders/out-for-delivery" element={<SellerOutForDeliveryOrders />} />
+                              <Route path="orders/delivered" element={<SellerDeliveredOrders />} />
+                              <Route path="orders/cancelled" element={<SellerCancelledOrders />} />
                               <Route path="orders/:id" element={<SellerOrderDetail />} />
+                              <Route path="return-requests" element={<SellerReturnRequests />} />
+                              <Route path="replace-requests" element={<SellerReplaceRequests />} />
                               <Route path="category" element={<SellerCategory />} />
                               <Route path="subcategory" element={<SellerSubCategory />} />
                               <Route path="product/add" element={<SellerAddProduct />} />
                               <Route path="product/edit/:id" element={<SellerAddProduct />} />
                               <Route path="product/taxes" element={<SellerTaxes />} />
                               <Route path="product/list" element={<SellerProductList />} />
+                              <Route path="product/attribute-setup" element={<SellerAttributeSetup />} />
                               <Route path="product/stock" element={<SellerStockManagement />} />
-                              {/* <Route path="return" element={<SellerReturnRequest />} />
-                              <Route path="return-order" element={<SellerReturnRequest />} /> */}
                               {/* <Route path="wallet" element={<SellerWallet />} /> */}
                               <Route path="reports/sales" element={<SellerSalesReport />} />
+                              <Route path="sales-summary" element={<SellerSalesSummary />} />
                               <Route path="account-settings" element={<SellerAccountSettings />} />
+                              <Route path="pos/orders" element={<SellerPOSOrders />} />
+                              <Route path="pos/report" element={<SellerPOSReport />} />
+                              <Route path="product-display-settings" element={<SellerProductDisplaySettings />} />
+                              <Route path="barcode-settings" element={<SellerBarcodeSettings />} />
                             </Routes>
                           </SellerLayout>
                         </Suspense>
@@ -436,6 +478,19 @@ function App() {
                             <Route path="barcode-settings" element={<AdminBarcodeSettings />} />
                             <Route path="delivery-settings" element={<AdminDeliverySettings />} />
                             <Route path="sales-summary" element={<AdminSalesSummary />} />
+
+                            {/* Report Routes */}
+                            <Route path="reports/sales/summary" element={<AdminReportSalesSummary />} />
+                            <Route path="reports/sales/return-exchange" element={<AdminReturnExchangeSummary />} />
+                            <Route path="reports/sales/stock-sales" element={<AdminStockSalesSummary />} />
+                            <Route path="reports/sales/due-summary" element={<AdminDueSummary />} />
+                            <Route path="reports/inventory/stock-summary" element={<AdminStockSummary />} />
+                            <Route path="reports/inventory/stock-balance" element={<AdminStockBalanceSummary />} />
+                            <Route path="reports/inventory/low-stock" element={<AdminLowStockSummary />} />
+                            <Route path="reports/inventory/out-of-stock" element={<AdminOutOfStockSummary />} />
+                            <Route path="reports/inventory/loss-summary" element={<AdminLossSummary />} />
+                            <Route path="reports/gst-sales" element={<AdminGSTSalesReport />} />
+                            <Route path="reports/payment" element={<AdminPaymentReport />} />
 
                             {/* Promotion Routes */}
                             <Route path="promotion/banner-setup" element={<AdminBannerSetup />} />

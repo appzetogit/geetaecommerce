@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getDashboardStats } from "../modules/seller/controllers/dashboardController";
+import { getDashboardStats, getSalesSummaryController } from "../modules/seller/controllers/dashboardController";
 import { authenticate, requireUserType, checkEnabled } from "../middleware/auth";
 
 const router = Router();
@@ -11,5 +11,6 @@ router.use(checkEnabled);
 
 // Get seller's dashboard statistics
 router.get("/stats", getDashboardStats);
+router.get("/sales-summary", getSalesSummaryController);
 
 export default router;

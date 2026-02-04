@@ -412,8 +412,8 @@ export default function AdminStockManagement() {
                   jsbarcode-marginTop="2">
                 </svg>
                 <div class="price-row">
-                    ${mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
-                    ${sp ? `<div class="price-item">SP:${sp}</div>` : ''}
+                    ${customSettings?.mrpLabel ? `<div class="price-item">${customSettings.mrpLabel}:${mrp}</div>` : mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
+                    ${customSettings?.spLabel ? `<div class="price-item">${customSettings.spLabel}:${sp}</div>` : sp ? `<div class="price-item">SP:${sp}</div>` : ''}
                 </div>
               </div>
             </div>

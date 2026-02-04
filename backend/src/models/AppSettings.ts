@@ -147,15 +147,17 @@ export interface IAppSettings extends Document {
   };
 
   // Barcode Settings
-  barcodeSettings?: {
-      width: number;
-      height: number;
-      fontSize: number;
-      barcodeHeight: number;
-      productNameSize: number;
-      showPrice: boolean;
-      showName: boolean;
-  };
+    barcodeSettings?: {
+        width: number;
+        height: number;
+        fontSize: number;
+        barcodeHeight: number;
+        productNameSize: number;
+        showPrice: boolean;
+        showName: boolean;
+        mrpLabel?: string;
+        spLabel?: string;
+    };
 
   // Updated By
   updatedBy?: mongoose.Types.ObjectId;
@@ -224,7 +226,7 @@ const AppSettingsSchema = new Schema<IAppSettings>(
       type: String,
       trim: true,
     },
-    
+
     companyCountry: {
       type: String,
       default: "India",
@@ -532,7 +534,9 @@ const AppSettingsSchema = new Schema<IAppSettings>(
         barcodeHeight: { type: Number, default: 40 },
         productNameSize: { type: Number, default: 10 },
         showPrice: { type: Boolean, default: true },
-        showName: { type: Boolean, default: true }
+        showName: { type: Boolean, default: true },
+        mrpLabel: { type: String, default: "MRP" },
+        spLabel: { type: String, default: "SP" }
     },
 
     // Updated By

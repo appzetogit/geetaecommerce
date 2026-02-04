@@ -110,3 +110,51 @@ export const updateOrderStatus = async (id: string, data: UpdateOrderStatusData)
   const response = await api.patch<ApiResponse<{ id: string; status: string }>>(`/orders/${id}/status`, data);
   return response.data;
 };
+
+/**
+ * Create POS Order
+ */
+export const createPOSOrder = async (data: any): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>('/seller/pos/orders', data);
+  return response.data;
+};
+
+/**
+ * Initiate Online POS Order
+ */
+export const initiatePOSOnlineOrder = async (data: any): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>('/seller/pos/orders/online', data);
+  return response.data;
+};
+
+/**
+ * Verify POS Payment
+ */
+export const verifyPOSPayment = async (data: any): Promise<ApiResponse<any>> => {
+  const response = await api.post<ApiResponse<any>>('/seller/pos/orders/verify', data);
+  return response.data;
+};
+
+/**
+ * Get POS Report
+ */
+export const getPOSReport = async (params: any): Promise<ApiResponse<any>> => {
+  const response = await api.get<ApiResponse<any>>('/seller/pos/report', { params });
+  return response.data;
+};
+
+/**
+ * Get POS Stock Ledger
+ */
+export const getPOSStockLedger = async (params: any): Promise<ApiResponse<any>> => {
+  const response = await api.get<ApiResponse<any>>('/seller/pos/stock-ledger', { params });
+  return response.data;
+};
+
+/**
+ * Update Stock Ledger Entry
+ */
+export const updateStockLedgerEntry = async (id: string, data: any): Promise<ApiResponse<any>> => {
+  const response = await api.put<ApiResponse<any>>(`/seller/pos/stock-ledger/${id}`, data);
+  return response.data;
+};

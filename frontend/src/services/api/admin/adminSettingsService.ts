@@ -122,6 +122,8 @@ export interface AppSettings {
     productNameSize: number;
     showPrice: boolean;
     showName: boolean;
+    mrpLabel?: string;
+    spLabel?: string;
   };
   maintenanceMode: boolean;
   maintenanceMessage?: string;

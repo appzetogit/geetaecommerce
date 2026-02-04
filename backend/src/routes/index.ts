@@ -160,6 +160,14 @@ router.use("/returns", returnRoutes);
 // Report routes (protected, seller only)
 router.use("/seller/reports", reportRoutes);
 
+// Seller POS Routes
+import sellerPOSRoutes from "./sellerPOSRoutes";
+router.use("/seller/pos", sellerPOSRoutes);
+
+// Seller Attribute Routes
+import sellerAttributeRoutes from "./sellerAttributeRoutes";
+router.use("/seller/attributes", sellerAttributeRoutes);
+
 // Wallet routes (protected, seller only)
 router.use("/seller/wallet", walletRoutes);
 

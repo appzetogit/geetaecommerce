@@ -10,6 +10,7 @@ import * as productController from "../modules/admin/controllers/adminProductCon
 // Order Controllers
 import * as orderController from "../modules/admin/controllers/adminOrderController";
 import * as deletePOSOrderController from "../modules/admin/controllers/deletePOSOrderController";
+import * as updateStockLedgerController from "../modules/admin/controllers/updateStockLedgerController";
 
 // Customer Controllers
 import * as customerController from "../modules/admin/controllers/adminCustomerController";
@@ -79,6 +80,7 @@ router.use(authenticate);
 
 // Settings Routes (Accessible to all authenticated users - Sellers need this)
 router.get("/settings", settingsController.getAppSettings);
+router.put("/settings", requireUserType("Admin", "Seller"), settingsController.updateAppSettings);
 
 router.use(requireUserType("Admin"));
 
@@ -159,6 +161,7 @@ router.post("/orders/pos/online", orderController.initiatePOSOnlineOrder);
 router.post("/orders/pos/verify", orderController.verifyPOSPayment);
 router.get("/pos/report", orderController.getPOSReport);
 router.get("/pos/stock-ledger", orderController.getPOSStockLedger);
+router.put("/pos/stock-ledger/:id", updateStockLedgerController.updateStockLedgerEntry);
 router.post("/pos/exchange", orderController.processPOSExchange);
 router.delete("/orders/pos/:id", deletePOSOrderController.deletePOSOrder);
 
@@ -226,7 +229,7 @@ router.patch(
 
 // ==================== Settings Routes ====================
 // router.get("/settings", settingsController.getAppSettings); // Moved to top
-router.put("/settings", settingsController.updateAppSettings);
+// router.put("/settings", settingsController.updateAppSettings); // Moved to top
 router.get("/settings/payment-methods", settingsController.getPaymentMethods);
 router.put(
   "/settings/payment-methods",
