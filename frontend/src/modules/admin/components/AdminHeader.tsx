@@ -6,6 +6,7 @@ import { io, Socket } from 'socket.io-client';
 import { getSocketBaseURL } from '../../../services/api/config';
 import { getNotifications, Notification as AdminNotificationData } from '../../../services/api/admin/adminNotificationService';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'react-hot-toast';
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -81,17 +82,49 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
       newSocket.emit('join-admin-room', user.userId || user.id);
     });
 
-    newSocket.on('new-notification', (notification: AdminNotificationData) => {
+    newSocket.on('new-notification', async (notification: AdminNotificationData) => {
       console.log('🔔 New dynamic notification received:', notification);
       setNotifications(prev => [notification, ...prev].slice(0, 10));
       setUnreadCount(prev => prev + 1);
 
-      // Optional: Show browser notification if permitted
+      // Show Toast for immediate UI feedback (especially important on mobile)
+      toast.success(
+        <div>
+          <p className="font-bold text-sm">{notification.title}</p>
+          <p className="text-xs">{notification.message}</p>
+        </div>,
+        {
+          duration: 5000,
+          position: window.innerWidth < 768 ? 'top-center' : 'top-right',
+          icon: '🔔',
+        }
+      );
+
+      // Improved Native Browser Notification for Mobile
       if (window.Notification && window.Notification.permission === "granted") {
-         new window.Notification(notification.title, {
+        try {
+          // On mobile browsers, using service worker registration is much more reliable
+          if ('serviceWorker' in navigator) {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration && registration.showNotification) {
+              registration.showNotification(notification.title, {
+                body: notification.message,
+                icon: '/notification-icon.png',
+                tag: 'admin-notification',
+                renotify: true
+              } as any);
+              return;
+            }
+          }
+
+          // Fallback to basic notification
+          new window.Notification(notification.title, {
             body: notification.message,
             icon: '/notification-icon.png'
-         });
+          });
+        } catch (err) {
+          console.error('[AdminNotification] Native notification failed:', err);
+        }
       }
     });
 
