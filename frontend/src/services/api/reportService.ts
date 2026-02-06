@@ -12,6 +12,7 @@ export interface SalesReportParams {
 
 export interface SalesReport {
     orderId: string;
+    dbOrderId: string;
     orderItemId: string;
     product: string;
     variant: string;

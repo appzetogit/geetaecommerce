@@ -92,6 +92,7 @@ const DeliveryTrackingSchema = new Schema<IDeliveryTracking>(
       enum: ['idle', 'picked_up', 'in_transit', 'nearby', 'delivered'],
       default: 'idle',
     },
+
     notes: {
       type: String,
       trim: true,

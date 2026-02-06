@@ -42,4 +42,5 @@ CartItemSchema.index({ product: 1 });
 
 const CartItem = mongoose.model<ICartItem>("CartItem", CartItemSchema);
 
+
 export default CartItem;

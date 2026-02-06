@@ -62,6 +62,7 @@ export const createTax = asyncHandler(async (req: Request, res: Response) => {
 /**
  * Update tax status
  */
+
 export const updateTaxStatus = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;

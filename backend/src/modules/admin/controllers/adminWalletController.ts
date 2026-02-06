@@ -6,69 +6,190 @@ import Order from "../../../models/Order";
 import Payment from "../../../models/Payment";
 import Commission from "../../../models/Commission";
 import WalletTransaction from "../../../models/WalletTransaction";
+import WithdrawRequest from "../../../models/WithdrawRequest";
 import Delivery from "../../../models/Delivery";
+import mongoose from "mongoose";
 
 /**
- * Get wallet transactions
+ * Get wallet transactions - Updated to be fully dynamic using WalletTransaction model
  */
 export const getWalletTransactions = asyncHandler(
   async (req: Request, res: Response) => {
     const {
       page = 1,
       limit = 10,
-      type, // 'seller' | 'customer'
-      userId,
-      // transactionType, // 'credit' | 'debit'
-      transactionType: _transactionType, // 'credit' | 'debit'
+      sellerId,
+      type, // 'Credit' | 'Debit'
+      status,
+      search,
+      startDate,
+      endDate
     } = req.query;
 
-    // This is a simplified version - in a real app, you'd have a Transaction model
-    // For now, we'll return orders and payments as transactions
-
     const query: any = {};
-    if (type === "customer" && userId) {
-      query.customer = userId;
-    } else if (type === "seller" && userId) {
-      // Get seller's orders through order items
-      const orders = await Order.find().populate({
-        path: "items",
-        match: { seller: userId },
-      });
-      query._id = { $in: orders.map((o) => o._id) };
+    if (sellerId) query.sellerId = new mongoose.Types.ObjectId(sellerId as string);
+    if (type) query.type = type;
+    if (status) query.status = status;
+
+    // Case-insensitive search on description or reference
+    if (search) {
+      query.$or = [
+        { description: { $regex: search, $options: "i" } },
+        { reference: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate as string);
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
     }
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    const [payments, total] = await Promise.all([
-      Payment.find(query)
-        .populate("order")
-        .populate("customer", "name email")
-        .sort({ paymentDate: -1 })
+    const [transactions, total] = await Promise.all([
+      WalletTransaction.find(query)
+        .populate("sellerId", "storeName sellerName")
+        .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit as string)),
-      Payment.countDocuments(query),
+      WalletTransaction.countDocuments(query),
     ]);
 
-    const transactions = payments.map((payment) => ({
-      id: payment._id,
-      type: "payment",
-      amount: payment.amount,
-      transactionType: payment.status === "Completed" ? "debit" : "pending",
-      description: `Order ${(payment.order as any)?.orderNumber || "N/A"}`,
-      date: payment.paymentDate,
-      status: payment.status,
+    const formattedTransactions = transactions.map((t: any) => ({
+      id: t._id,
+      sellerName: t.sellerId?.storeName || t.sellerId?.sellerName || "N/A",
+      type: t.type,
+      amount: t.amount,
+      description: t.description,
+      reference: t.reference,
+      date: t.createdAt,
+      status: t.status,
     }));
 
     return res.status(200).json({
       success: true,
       message: "Wallet transactions fetched successfully",
-      data: transactions,
+      data: formattedTransactions,
       pagination: {
         page: parseInt(page as string),
         limit: parseInt(limit as string),
         total,
         pages: Math.ceil(total / parseInt(limit as string)),
       },
+    });
+  }
+);
+
+/**
+ * Get all withdrawal requests for Admin
+ */
+export const getWithdrawalRequests = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { page = 1, limit = 10, status, search, startDate, endDate } = req.query;
+
+    const query: any = {};
+    if (status && status !== 'All') query.status = status;
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate as string);
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    }
+
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+    // If search is provided, we might need to find sellers first
+    if (search) {
+      const sellers = await Seller.find({
+        $or: [
+          { storeName: { $regex: search, $options: 'i' } },
+          { sellerName: { $regex: search, $options: 'i' } }
+        ]
+      }).select('_id');
+      query.sellerId = { $in: sellers.map(s => s._id) };
+    }
+
+    const [requests, total] = await Promise.all([
+      WithdrawRequest.find(query)
+        .populate('sellerId', 'storeName sellerName accountName bankName accountNumber ifsc')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit as string)),
+      WithdrawRequest.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: requests,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
+  }
+);
+
+/**
+ * Approve or Reject withdrawal request
+ */
+export const updateWithdrawalStatus = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { status, remarks } = req.body; // status: 'Approved' | 'Rejected' | 'Completed'
+
+    if (!['Approved', 'Rejected', 'Completed'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status' });
+    }
+
+    const request = await WithdrawRequest.findById(id);
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Withdrawal request not found' });
+    }
+
+    if (request.status !== 'Pending' && request.status !== 'Approved') {
+      return res.status(400).json({ success: false, message: `Request is already ${request.status}` });
+    }
+
+    // If rejecting, refund the seller balance
+    if (status === 'Rejected') {
+      const seller = await Seller.findById(request.sellerId);
+      if (seller) {
+        seller.balance += request.amount;
+        await seller.save();
+      }
+
+      // Update transaction status to Failed
+      await WalletTransaction.findOneAndUpdate(
+        { description: { $regex: new RegExp(request._id.toString(), 'i') } },
+        { status: 'Failed' }
+      );
+    } else if (status === 'Completed' || status === 'Approved') {
+       // Update transaction status to Completed
+       await WalletTransaction.findOneAndUpdate(
+        { description: { $regex: new RegExp(request._id.toString(), 'i') } },
+        { status: 'Completed' }
+      );
+    }
+
+    request.status = status;
+    if (remarks) request.remarks = remarks;
+    await request.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Withdrawal request ${status.toLowerCase()} successfully`,
+      data: request
     });
   }
 );
@@ -426,6 +547,12 @@ export const getFinancialDashboard = asyncHandler(
       totalCashCollected: 0,
     };
 
+    // Get recent transactions for the dashboard
+    const recentTransactions = await WalletTransaction.find()
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean();
+
     return res.status(200).json({
       success: true,
       message: 'Financial dashboard data fetched successfully',
@@ -453,6 +580,7 @@ export const getFinancialDashboard = asyncHandler(
           cashCollected: deliveryBoys.totalCashCollected,
         },
         walletTransactions: walletStats,
+        recentTransactions,
         dailyTrends,
       },
     });

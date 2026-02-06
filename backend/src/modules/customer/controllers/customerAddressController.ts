@@ -16,9 +16,9 @@ export const addAddress = async (req: Request, res: Response) => {
             });
         }
 
-        // Combine flat and street for the single 'address' field in schema, 
+        // Combine flat and street for the single 'address' field in schema,
         // or we could change schema. For now, we store them combined or rely on schema update.
-        // Looking at the schema, it has 'address', 'city', 'pincode'. 
+        // Looking at the schema, it has 'address', 'city', 'pincode'.
         // We will store "Flat, Street" in 'address'.
         const fullAddress = `${flat}, ${street}`;
 
@@ -39,7 +39,7 @@ export const addAddress = async (req: Request, res: Response) => {
             existingAddress.state = state;
             existingAddress.pincode = pincode;
             existingAddress.isDefault = isDefault || false;
-            
+
             await existingAddress.save();
 
             return res.status(200).json({

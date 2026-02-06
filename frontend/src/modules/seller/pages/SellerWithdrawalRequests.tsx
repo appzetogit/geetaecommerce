@@ -1,112 +1,86 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from 'xlsx';
+import * as walletService from '../../../services/api/walletService';
+import toast from 'react-hot-toast';
 
 interface WithdrawalRequest {
-  id: number;
+  _id: string;
   amount: number;
-  message: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-  remark: string;
-  requestDate: string;
-  paymentDate: string;
+  remarks: string;
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Completed';
+  paymentMethod: string;
+  accountDetails: string;
+  createdAt: string;
+  updatedAt: string;
 }
-
-// Mock data
-const MOCK_WITHDRAWALS: WithdrawalRequest[] = [
-  {
-    id: 1,
-    amount: 5000.00,
-    message: "Monthly withdrawal for business expenses",
-    status: "Approved",
-    remark: "Processed successfully",
-    requestDate: "2026-02-01",
-    paymentDate: "2026-02-03"
-  },
-  {
-    id: 2,
-    amount: 3000.00,
-    message: "Urgent withdrawal needed",
-    status: "Pending",
-    remark: "Under review",
-    requestDate: "2026-02-04",
-    paymentDate: "-"
-  },
-  {
-    id: 3,
-    amount: 2500.00,
-    message: "Regular monthly payout",
-    status: "Approved",
-    remark: "Payment completed",
-    requestDate: "2026-01-28",
-    paymentDate: "2026-01-30"
-  },
-  {
-    id: 4,
-    amount: 10000.00,
-    message: "Large withdrawal for inventory purchase",
-    status: "Rejected",
-    remark: "Insufficient balance at the time",
-    requestDate: "2026-01-25",
-    paymentDate: "-"
-  },
-  {
-    id: 5,
-    amount: 1500.00,
-    message: "Small withdrawal for operational costs",
-    status: "Approved",
-    remark: "Processed via UPI",
-    requestDate: "2026-01-20",
-    paymentDate: "2026-01-21"
-  },
-];
 
 export default function SellerWithdrawalRequests() {
   const navigate = useNavigate();
-  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>(MOCK_WITHDRAWALS);
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [totalEntries, setTotalEntries] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
   // Form state
   const [formAmount, setFormAmount] = useState("");
   const [formMessage, setFormMessage] = useState("");
-  const [formBankAccount, setFormBankAccount] = useState("HDFC Bank - ****1234");
+  const [formMethod, setFormMethod] = useState<'Bank Transfer' | 'UPI'>('Bank Transfer');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Filter withdrawals
-  const filteredWithdrawals = withdrawals.filter((withdrawal) => {
-    const matchesSearch =
-      withdrawal.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      withdrawal.remark.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      withdrawal.status.toLowerCase().includes(searchQuery.toLowerCase());
-
-    let matchesDate = true;
-    if (fromDate && toDate) {
-      const requestDate = new Date(withdrawal.requestDate);
-      matchesDate = requestDate >= new Date(fromDate) && requestDate <= new Date(toDate);
-    }
-
-    return matchesSearch && matchesDate;
+  // Bank form state
+  const [bankDetails, setBankDetails] = useState({
+    accountHolderName: '',
+    accountNumber: '',
+    bankName: '',
+    ifscCode: '',
   });
 
-  // Pagination
-  const totalPages = Math.ceil(filteredWithdrawals.length / entriesPerPage);
-  const startIndex = (currentPage - 1) * entriesPerPage;
-  const endIndex = startIndex + entriesPerPage;
-  const paginatedWithdrawals = filteredWithdrawals.slice(startIndex, endIndex);
+  // UPI form state
+  const [upiId, setUpiId] = useState('');
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {
+        page: currentPage,
+        limit: entriesPerPage,
+        search: searchQuery || undefined,
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined,
+      };
+
+      const response = await walletService.getWithdrawalRequests(params);
+      if (response.success) {
+        setWithdrawals(response.data.requests);
+        setTotalEntries(response.data.pagination.total);
+        setTotalPages(response.data.pagination.pages);
+      }
+    } catch (err) {
+      console.error('Error fetching withdrawal requests:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, entriesPerPage, searchQuery, fromDate, toDate]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleExport = () => {
-    const exportData = filteredWithdrawals.map(w => ({
-      ID: w.id,
+    const exportData = withdrawals.map(w => ({
+      ID: w._id,
       Amount: w.amount,
-      Message: w.message,
+      Message: w.remarks,
       Status: w.status,
-      Remark: w.remark,
-      'Request Date': w.requestDate,
-      'Payment Date': w.paymentDate
+      Method: w.paymentMethod,
+      'Request Date': new Date(w.createdAt).toLocaleString(),
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -119,33 +93,57 @@ export default function SellerWithdrawalRequests() {
     setFromDate("");
     setToDate("");
     setSearchQuery("");
+    setCurrentPage(1);
   };
 
-  const handleSubmitRequest = () => {
+  const handleSubmitRequest = async () => {
     if (!formAmount || Number(formAmount) <= 0) {
-      alert("Please enter a valid amount");
-      return;
-    }
-    if (!formMessage.trim()) {
-      alert("Please enter a message");
+      toast.error("Please enter a valid amount");
       return;
     }
 
-    const newRequest: WithdrawalRequest = {
-      id: withdrawals.length + 1,
-      amount: Number(formAmount),
-      message: formMessage,
-      status: "Pending",
-      remark: "Request submitted",
-      requestDate: new Date().toISOString().split('T')[0],
-      paymentDate: "-"
-    };
+    if (formMethod === 'Bank Transfer') {
+      if (!bankDetails.accountHolderName || !bankDetails.accountNumber || !bankDetails.bankName || !bankDetails.ifscCode) {
+        toast.error('Please fill all bank details');
+        return;
+      }
+    } else if (formMethod === 'UPI') {
+      if (!upiId) {
+        toast.error('Please enter UPI ID');
+        return;
+      }
+    }
 
-    setWithdrawals([newRequest, ...withdrawals]);
-    setShowModal(false);
-    setFormAmount("");
-    setFormMessage("");
-    alert("Withdrawal request submitted successfully!");
+    setIsSubmitting(true);
+    try {
+      let formattedDetails = '';
+      if (formMethod === 'Bank Transfer') {
+        formattedDetails = `A/C Holder: ${bankDetails.accountHolderName}, A/C No: ${bankDetails.accountNumber}, Bank: ${bankDetails.bankName}, IFSC: ${bankDetails.ifscCode}`;
+      } else {
+        formattedDetails = `UPI ID: ${upiId}`;
+      }
+
+      const response = await walletService.createWithdrawalRequest({
+        amount: Number(formAmount),
+        paymentMethod: formMethod,
+        accountDetails: formattedDetails,
+        remarks: formMessage
+      });
+
+      if (response.success) {
+        toast.success("Withdrawal request submitted successfully!");
+        setShowModal(false);
+        setFormAmount("");
+        setFormMessage("");
+        setBankDetails({ accountHolderName: '', accountNumber: '', bankName: '', ifscCode: '' });
+        setUpiId('');
+        fetchData();
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Failed to submit request");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -177,7 +175,7 @@ export default function SellerWithdrawalRequests() {
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            Add Fund Request
+            New Withdrawal Request
           </button>
         </div>
 
@@ -268,32 +266,46 @@ export default function SellerWithdrawalRequests() {
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="bg-neutral-50 text-xs font-bold text-neutral-600 uppercase">
-                <th className="p-4 border-b border-neutral-200">Id</th>
+                <th className="p-4 border-b border-neutral-200">Date</th>
                 <th className="p-4 border-b border-neutral-200">Amount</th>
-                <th className="p-4 border-b border-neutral-200">Message</th>
+                <th className="p-4 border-b border-neutral-200">Method</th>
                 <th className="p-4 border-b border-neutral-200">Status</th>
                 <th className="p-4 border-b border-neutral-200">Remark</th>
-                <th className="p-4 border-b border-neutral-200">Req. Date</th>
-                <th className="p-4 border-b border-neutral-200">Payment Date</th>
+                <th className="p-4 border-b border-neutral-200">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {paginatedWithdrawals.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-sm text-neutral-500">
+                  <td colSpan={6} className="p-8 text-center text-sm text-neutral-500">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600"></div>
+                      <span>Loading requests...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : withdrawals.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-sm text-neutral-500">
                     No data available in table
                   </td>
                 </tr>
               ) : (
-                paginatedWithdrawals.map((withdrawal) => (
-                  <tr key={withdrawal.id} className="hover:bg-neutral-50/50 transition-colors">
-                    <td className="p-4 text-sm text-neutral-900">{withdrawal.id}</td>
+                withdrawals.map((withdrawal) => (
+                  <tr key={withdrawal._id} className="hover:bg-neutral-50/50 transition-colors">
+                    <td className="p-4 text-sm text-neutral-600">{new Date(withdrawal.createdAt).toLocaleDateString()}</td>
                     <td className="p-4 text-sm font-bold text-neutral-900">₹{withdrawal.amount.toFixed(2)}</td>
-                    <td className="p-4 text-sm text-neutral-900 max-w-xs truncate">{withdrawal.message}</td>
+                    <td className="p-4 text-sm text-neutral-900">{withdrawal.paymentMethod}</td>
                     <td className="p-4">
+<<<<<<< HEAD
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                         withdrawal.status === 'Approved'
                           ? 'bg-[#f187b5]/10 text-[#f187b5]'
+=======
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
+                        withdrawal.status === 'Approved' || withdrawal.status === 'Completed'
+                          ? 'bg-green-100 text-green-700'
+>>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
                           : withdrawal.status === 'Pending'
                           ? 'bg-yellow-100 text-yellow-700'
                           : 'bg-red-100 text-red-700'
@@ -301,9 +313,8 @@ export default function SellerWithdrawalRequests() {
                         {withdrawal.status}
                       </span>
                     </td>
-                    <td className="p-4 text-sm text-neutral-600">{withdrawal.remark}</td>
-                    <td className="p-4 text-sm text-neutral-600">{new Date(withdrawal.requestDate).toLocaleDateString()}</td>
-                    <td className="p-4 text-sm text-neutral-600">{withdrawal.paymentDate !== '-' ? new Date(withdrawal.paymentDate).toLocaleDateString() : '-'}</td>
+                    <td className="p-4 text-sm text-neutral-600 truncate max-w-[200px]">{withdrawal.remarks || '-'}</td>
+                    <td className="p-4 text-xs text-neutral-500 font-mono truncate max-w-[200px]">{withdrawal.accountDetails}</td>
                   </tr>
                 ))
               )}
@@ -314,7 +325,7 @@ export default function SellerWithdrawalRequests() {
         {/* Pagination */}
         <div className="p-4 border-t border-neutral-200 flex items-center justify-between bg-neutral-50/30">
           <p className="text-xs text-neutral-500">
-            Showing {startIndex + 1} to {Math.min(endIndex, filteredWithdrawals.length)} of {filteredWithdrawals.length} entries
+            Showing {(currentPage - 1) * entriesPerPage + 1} to {Math.min(currentPage * entriesPerPage, totalEntries)} of {totalEntries} entries
           </p>
           <div className="flex gap-2">
             <button
@@ -340,8 +351,13 @@ export default function SellerWithdrawalRequests() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in duration-200">
             {/* Modal Header */}
+<<<<<<< HEAD
             <div className="bg-[#f187b5] px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
               <h3 className="text-lg font-bold">Add Fund Request</h3>
+=======
+            <div className="bg-teal-600 px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
+              <h3 className="text-lg font-bold">New Withdrawal Request</h3>
+>>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
               <button
                 onClick={() => setShowModal(false)}
                 className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
@@ -382,8 +398,9 @@ export default function SellerWithdrawalRequests() {
                 />
               </div>
 
-              {/* Bank Account */}
+              {/* Method Selection */}
               <div className="space-y-2">
+<<<<<<< HEAD
                 <label className="text-sm font-bold text-neutral-700">Bank Account</label>
                 <select
                   value={formBankAccount}
@@ -395,6 +412,86 @@ export default function SellerWithdrawalRequests() {
                   <option value="ICICI Bank - ****9012">ICICI Bank - ****9012</option>
                   <option value="Axis Bank - ****3456">Axis Bank - ****3456</option>
                 </select>
+=======
+                <label className="text-sm font-bold text-neutral-700">Select Method</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setFormMethod('Bank Transfer')}
+                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-xl transition-all ${formMethod === 'Bank Transfer' ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-neutral-100 bg-white text-neutral-500'}`}>
+                    <span className="text-xs font-bold">Bank Transfer</span>
+                  </button>
+                  <button
+                    onClick={() => setFormMethod('UPI')}
+                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-xl transition-all ${formMethod === 'UPI' ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-neutral-100 bg-white text-neutral-500'}`}>
+                    <span className="text-xs font-bold">UPI</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Dynamic Details Fields */}
+              <div className="space-y-3 pt-2 animate-in slide-in-from-top-2 duration-300">
+                {formMethod === 'Bank Transfer' ? (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Holder Name</label>
+                        <input
+                          type="text"
+                          value={bankDetails.accountHolderName}
+                          onChange={(e) => setBankDetails({ ...bankDetails, accountHolderName: e.target.value })}
+                          placeholder="John Doe"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-semibold shadow-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">A/C Number</label>
+                        <input
+                          type="text"
+                          value={bankDetails.accountNumber}
+                          onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                          placeholder="000011112222"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-semibold shadow-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Bank Name</label>
+                        <input
+                          type="text"
+                          value={bankDetails.bankName}
+                          onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                          placeholder="HDFC Bank"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-semibold shadow-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">IFSC Code</label>
+                        <input
+                          type="text"
+                          value={bankDetails.ifscCode}
+                          onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value })}
+                          placeholder="HDFC0000"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-bold text-teal-800 uppercase shadow-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider ml-1">UPI ID (VPA)</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={upiId}
+                        onChange={(e) => setUpiId(e.target.value)}
+                        placeholder="yourname@upi"
+                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-sm font-bold text-teal-900 shadow-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+>>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
               </div>
             </div>
 
@@ -403,14 +500,21 @@ export default function SellerWithdrawalRequests() {
               <button
                 onClick={() => setShowModal(false)}
                 className="flex-1 px-4 py-3 bg-neutral-200 hover:bg-neutral-300 text-neutral-800 font-bold rounded-lg transition-colors"
+                disabled={isSubmitting}
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmitRequest}
+<<<<<<< HEAD
                 className="flex-1 px-4 py-3 bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold rounded-lg transition-colors"
+=======
+                className="flex-1 px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                disabled={isSubmitting}
+>>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
               >
-                Submit Request
+                {isSubmitting && <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {isSubmitting ? 'Submitting...' : 'Submit Request'}
               </button>
             </div>
           </div>

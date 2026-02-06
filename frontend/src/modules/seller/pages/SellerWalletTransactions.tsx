@@ -1,133 +1,73 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from 'xlsx';
+import * as walletService from '../../../services/api/walletService';
 
 interface Transaction {
-  id: number;
-  sellerName: string;
-  orderId: string;
-  productName: string;
-  variation: string;
-  flag: 'Credit' | 'Debit';
+  _id: string;
+  sellerId: {
+    storeName: string;
+  };
   amount: number;
-  remark: string;
-  date: string;
+  type: 'Credit' | 'Debit';
+  description: string;
+  status: 'Completed' | 'Pending' | 'Failed';
+  reference: string;
+  createdAt: string;
 }
-
-// Mock data
-const MOCK_TRANSACTIONS: Transaction[] = [
-  {
-    id: 1,
-    sellerName: "Geeta Stores",
-    orderId: "#ORD12345",
-    productName: "Samsung Galaxy S23 Ultra",
-    variation: "256GB, Black",
-    flag: "Credit",
-    amount: 2500.00,
-    remark: "Order Payment Received",
-    date: "2026-02-03"
-  },
-  {
-    id: 2,
-    sellerName: "Geeta Stores",
-    orderId: "#ORD12346",
-    productName: "Apple iPhone 15 Pro",
-    variation: "512GB, Blue",
-    flag: "Credit",
-    amount: 4500.00,
-    remark: "Order Payment Received",
-    date: "2026-02-02"
-  },
-  {
-    id: 3,
-    sellerName: "Geeta Stores",
-    orderId: "#WD001",
-    productName: "-",
-    variation: "-",
-    flag: "Debit",
-    amount: 1000.00,
-    remark: "Withdrawal Request Processed",
-    date: "2026-02-01"
-  },
-  {
-    id: 4,
-    sellerName: "Geeta Stores",
-    orderId: "#ORD12347",
-    productName: "Sony WH-1000XM5 Headphones",
-    variation: "Black",
-    flag: "Credit",
-    amount: 850.50,
-    remark: "Order Payment Received",
-    date: "2026-01-31"
-  },
-  {
-    id: 5,
-    sellerName: "Geeta Stores",
-    orderId: "#FEE001",
-    productName: "-",
-    variation: "-",
-    flag: "Debit",
-    amount: 125.00,
-    remark: "Platform Commission Fee",
-    date: "2026-01-30"
-  },
-  {
-    id: 6,
-    sellerName: "Geeta Stores",
-    orderId: "#ORD12348",
-    productName: "Dell XPS 15 Laptop",
-    variation: "i7, 16GB RAM",
-    flag: "Credit",
-    amount: 7200.00,
-    remark: "Order Payment Received",
-    date: "2026-01-29"
-  },
-];
 
 export default function SellerWalletTransactions() {
   const navigate = useNavigate();
-  const [transactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [filterMethod, setFilterMethod] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [loading, setLoading] = useState(false);
+  const [totalEntries, setTotalEntries] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  // Filter transactions
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesFilter = filterMethod === "All" || transaction.flag === filterMethod;
-    const matchesSearch =
-      transaction.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      transaction.remark.toLowerCase().includes(searchQuery.toLowerCase());
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = {
+        page: currentPage,
+        limit: entriesPerPage,
+        type: filterMethod === 'All' ? undefined : filterMethod,
+        searchQuery: searchQuery || undefined,
+        fromDate: fromDate || undefined,
+        toDate: toDate || undefined,
+      };
 
-    let matchesDate = true;
-    if (fromDate && toDate) {
-      const transactionDate = new Date(transaction.date);
-      matchesDate = transactionDate >= new Date(fromDate) && transactionDate <= new Date(toDate);
+      const response = await walletService.getWalletTransactions(params);
+      if (response.success) {
+        setTransactions(response.data.transactions);
+        setTotalEntries(response.data.pagination.total);
+        setTotalPages(response.data.pagination.pages);
+      }
+    } catch (err) {
+      console.error('Error fetching transactions:', err);
+    } finally {
+      setLoading(false);
     }
+  }, [currentPage, entriesPerPage, filterMethod, searchQuery, fromDate, toDate]);
 
-    return matchesFilter && matchesSearch && matchesDate;
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(filteredTransactions.length / entriesPerPage);
-  const startIndex = (currentPage - 1) * entriesPerPage;
-  const endIndex = startIndex + entriesPerPage;
-  const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleExport = () => {
-    const exportData = filteredTransactions.map(t => ({
-      ID: t.id,
-      'Seller Name': t.sellerName,
-      'Order ID': t.orderId,
-      'Product Name': t.productName,
-      Variation: t.variation,
-      Flag: t.flag,
+    const exportData = transactions.map(t => ({
+      ID: t._id,
+      'Seller Name': (t.sellerId as any)?.storeName || 'N/A',
+      'Type': t.type,
       Amount: t.amount,
-      Remark: t.remark,
-      Date: t.date
+      Description: t.description,
+      Reference: t.reference,
+      Status: t.status,
+      Date: new Date(t.createdAt).toLocaleString()
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -141,6 +81,7 @@ export default function SellerWalletTransactions() {
     setToDate("");
     setFilterMethod("All");
     setSearchQuery("");
+    setCurrentPage(1);
   };
 
   return (
@@ -261,25 +202,32 @@ export default function SellerWalletTransactions() {
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
               <tr className="bg-neutral-50 text-xs font-bold text-neutral-600 uppercase">
-                <th className="p-4 border-b border-neutral-200">Id</th>
-                <th className="p-4 border-b border-neutral-200">Seller Name</th>
-                <th className="p-4 border-b border-neutral-200">Order Id</th>
-                <th className="p-4 border-b border-neutral-200">Product Name</th>
-                <th className="p-4 border-b border-neutral-200">Variation</th>
-                <th className="p-4 border-b border-neutral-200">Flag</th>
-                <th className="p-4 border-b border-neutral-200">Amount</th>
-                <th className="p-4 border-b border-neutral-200">Remark</th>
                 <th className="p-4 border-b border-neutral-200">Date</th>
+                <th className="p-4 border-b border-neutral-200">Description</th>
+                <th className="p-4 border-b border-neutral-200">Reference</th>
+                <th className="p-4 border-b border-neutral-200">Type</th>
+                <th className="p-4 border-b border-neutral-200">Amount</th>
+                <th className="p-4 border-b border-neutral-200">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {paginatedTransactions.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-sm text-neutral-500">
+                  <td colSpan={6} className="p-8 text-center text-sm text-neutral-500">
+                    <div className="flex items-center justify-center gap-2">
+                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600"></div>
+                       <span>Loading transactions...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-sm text-neutral-500">
                     No data available in table
                   </td>
                 </tr>
               ) : (
+<<<<<<< HEAD
                 paginatedTransactions.map((transaction) => (
                   <tr key={transaction.id} className="hover:bg-neutral-50/50 transition-colors">
                     <td className="p-4 text-sm text-neutral-900">{transaction.id}</td>
@@ -291,18 +239,39 @@ export default function SellerWalletTransactions() {
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                         transaction.flag === 'Credit'
                           ? 'bg-[#f187b5]/10 text-[#f187b5]'
+=======
+                transactions.map((transaction) => (
+                  <tr key={transaction._id} className="hover:bg-neutral-50/50 transition-colors">
+                    <td className="p-4 text-sm text-neutral-600">{new Date(transaction.createdAt).toLocaleString()}</td>
+                    <td className="p-4 text-sm font-medium text-neutral-900">{transaction.description}</td>
+                    <td className="p-4 text-xs font-mono text-neutral-400">{transaction.reference}</td>
+                    <td className="p-4">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
+                        transaction.type === 'Credit'
+                          ? 'bg-green-100 text-green-700'
+>>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
                           : 'bg-red-100 text-red-700'
                       }`}>
-                        {transaction.flag}
+                        {transaction.type}
                       </span>
                     </td>
                     <td className={`p-4 text-sm font-bold ${
+<<<<<<< HEAD
                       transaction.flag === 'Credit' ? 'text-[#f187b5]' : 'text-red-600'
+=======
+                      transaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'
+>>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
                     }`}>
-                      {transaction.flag === 'Credit' ? '+' : '-'} ₹{transaction.amount.toFixed(2)}
+                      {transaction.type === 'Credit' ? '+' : '-'} ₹{transaction.amount.toFixed(2)}
                     </td>
-                    <td className="p-4 text-sm text-neutral-600">{transaction.remark}</td>
-                    <td className="p-4 text-sm text-neutral-600">{new Date(transaction.date).toLocaleDateString()}</td>
+                    <td className="p-4">
+                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                         transaction.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                         transaction.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                       }`}>
+                         {transaction.status}
+                       </span>
+                    </td>
                   </tr>
                 ))
               )}
@@ -313,7 +282,7 @@ export default function SellerWalletTransactions() {
         {/* Pagination */}
         <div className="p-4 border-t border-neutral-200 flex items-center justify-between bg-neutral-50/30">
           <p className="text-xs text-neutral-500">
-            Showing {startIndex + 1} to {Math.min(endIndex, filteredTransactions.length)} of {filteredTransactions.length} entries
+            Showing {(currentPage - 1) * entriesPerPage + 1} to {Math.min(currentPage * entriesPerPage, totalEntries)} of {totalEntries} entries
           </p>
           <div className="flex gap-2">
             <button

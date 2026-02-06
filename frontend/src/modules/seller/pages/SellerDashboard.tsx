@@ -167,6 +167,12 @@ export default function SellerDashboard() {
   );
 
   // Alert icons
+  const revenueIcon = (
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+
   const soldOutIcon = (
     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
@@ -230,6 +236,9 @@ export default function SellerDashboard() {
   if (error || !stats) {
     return (
       <div className="p-8 text-center text-red-500 bg-white rounded-lg shadow-sm border border-neutral-200">
+        <svg className="w-16 h-16 mx-auto mb-4 text-red-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
         {error || 'Stats not available'}
       </div>
     );
@@ -259,36 +268,50 @@ export default function SellerDashboard() {
         </motion.div>
       )}
 
-      {/* KPI Cards Grid */}
+      {/* Main Stats Summary */}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          <motion.div whileHover={{ scale: 1.02 }} className="md:col-span-1">
+             <div className="bg-gradient-to-br from-teal-600 to-teal-800 rounded-2xl shadow-xl p-6 text-white h-full flex flex-col justify-between overflow-hidden relative group">
+                <div className="absolute -right-8 -bottom-8 opacity-10 transform group-hover:scale-110 transition-transform duration-500">
+                   <svg width="180" height="180" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                </div>
+                <div>
+                   <p className="text-teal-100 text-sm font-bold uppercase tracking-wider mb-1">Total Revenue</p>
+                   <h3 className="text-4xl font-black tracking-tight">₹{(stats.totalRevenue || 0).toLocaleString('en-IN')}</h3>
+                </div>
+                <div className="mt-4 flex items-center text-teal-100 text-xs font-medium">
+                   <span className="bg-white/20 px-2 py-1 rounded-full mr-2">Lifetime</span>
+                   <span>Available in wallet: ₹{(user?.balance || 0).toLocaleString('en-IN')}</span>
+                </div>
+             </div>
+          </motion.div>
+          <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
+             <DashboardCard icon={productIcon} title="Products" value={stats.totalProduct} accentColor="#f97316" />
+             <DashboardCard icon={ordersIcon} title="Orders" value={stats.totalOrders} accentColor="#3b82f6" />
+             <DashboardCard icon={completedOrdersIcon} title="Completed" value={stats.completedOrders} accentColor="#16a34a" />
+             <DashboardCard icon={pendingOrdersIcon} title="Pending" value={stats.pendingOrders} accentColor="#a855f7" />
+          </div>
+      </motion.div>
+
+      {/* KPI Cards Grid - Secondary Row */}
       <motion.div
         className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4"
         variants={itemVariants}
       >
         <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }} className="h-full">
-          <DashboardCard icon={userIcon} title="Total User" value={stats.totalUser} accentColor="#3b82f6" />
+          <DashboardCard icon={userIcon} title="Total Customers" value={stats.totalUser} accentColor="#6366f1" />
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }} className="h-full">
-          <DashboardCard icon={categoryIcon} title="Total Category" value={stats.totalCategory} accentColor="#eab308" />
+          <DashboardCard icon={categoryIcon} title="Active Categories" value={stats.totalCategory} accentColor="#eab308" />
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }} className="h-full">
-          <DashboardCard icon={subcategoryIcon} title="Total Subcategory" value={stats.totalSubcategory} accentColor="#ec4899" />
-        </motion.div>
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }} className="h-full">
-          <DashboardCard icon={productIcon} title="Total Product" value={stats.totalProduct} accentColor="#f97316" />
-        </motion.div>
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }} className="h-full">
-          <DashboardCard icon={ordersIcon} title="Total Orders" value={stats.totalOrders} accentColor="#3b82f6" />
-        </motion.div>
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }} className="h-full">
-          <DashboardCard icon={completedOrdersIcon} title="Completed Orders" value={stats.completedOrders} accentColor="#16a34a" />
-        </motion.div>
-        <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }} className="h-full">
-          <DashboardCard icon={pendingOrdersIcon} title="Pending Orders" value={stats.pendingOrders} accentColor="#a855f7" />
+          <DashboardCard icon={subcategoryIcon} title="Subcategories" value={stats.totalSubcategory} accentColor="#ec4899" />
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }} className="h-full">
           <DashboardCard icon={cancelledOrdersIcon} title="Cancelled Orders" value={stats.cancelledOrders} accentColor="#ef4444" />
         </motion.div>
       </motion.div>
+
 
       {/* Charts Row */}
       <motion.div
@@ -325,7 +348,11 @@ export default function SellerDashboard() {
         {/* seller Header Bar */}
         <div className="bg-gradient-to-r from-seller-600 to-seller-500 text-white px-6 py-4 flex justify-between items-center">
           <h2 className="text-lg font-bold tracking-tight">View New Orders</h2>
-          <div className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
+          <div className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+            </span>
             Live Updates
           </div>
         </div>

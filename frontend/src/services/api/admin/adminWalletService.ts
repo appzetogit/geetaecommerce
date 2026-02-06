@@ -129,3 +129,27 @@ export const processWithdrawal = async (
   );
   return response.data;
 };
+
+/**
+ * Get all withdrawal requests for admin
+ */
+export const getWithdrawalRequests = async (params?: any): Promise<ApiResponse<any>> => {
+  const response = await api.get<ApiResponse<any>>("/admin/wallet/withdrawals", { params });
+  return response.data;
+};
+
+/**
+ * Update withdrawal request status (Approve/Reject)
+ */
+export const updateWithdrawalStatus = async (id: string, data: { status: string; remarks?: string }): Promise<ApiResponse<any>> => {
+  const response = await api.put<ApiResponse<any>>(`/admin/wallet/withdrawals/${id}`, data);
+  return response.data;
+};
+
+/**
+ * Get financial dashboard stats
+ */
+export const getFinancialDashboard = async (params?: any): Promise<ApiResponse<any>> => {
+  const response = await api.get<ApiResponse<any>>("/admin/financial/dashboard", { params });
+  return response.data;
+};

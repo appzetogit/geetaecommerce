@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import OrderItem from "../../../models/OrderItem";
+import Order from "../../../models/Order"; // Direct import to ensure model is registered
 import { asyncHandler } from "../../../utils/asyncHandler";
 
 /**
@@ -20,26 +21,36 @@ export const getSalesReport = asyncHandler(
         } = req.query;
 
         // Build query - filter by authenticated seller
-        const query: any = { seller: sellerId };
+        const query: any = { seller: new mongoose.Types.ObjectId(sellerId) };
 
-        // Date range filter
-        if (fromDate || toDate) {
+        // Date range filter - Improved to handle empty strings or invalid dates
+        if ((fromDate && fromDate !== '') || (toDate && toDate !== '')) {
             query.createdAt = {};
-            if (fromDate) {
-                query.createdAt.$gte = new Date(fromDate as string);
+            if (fromDate && fromDate !== '') {
+                const startDate = new Date(fromDate as string);
+                if (!isNaN(startDate.getTime())) {
+                    query.createdAt.$gte = startDate;
+                }
             }
-            if (toDate) {
-                // Set to end of day
-                const endDay = new Date(toDate as string);
-                endDay.setHours(23, 59, 59, 999);
-                query.createdAt.$lte = endDay;
+            if (toDate && toDate !== '') {
+                const endDate = new Date(toDate as string);
+                if (!isNaN(endDate.getTime())) {
+                    // Set to end of day
+                    endDate.setHours(23, 59, 59, 999);
+                    query.createdAt.$lte = endDate;
+                }
+            }
+
+            // If query.createdAt is still empty, remove it
+            if (Object.keys(query.createdAt).length === 0) {
+                delete query.createdAt;
             }
         }
 
         // Search filter
         if (search) {
             // Find orders that match the search term (orderNumber)
-            const matchedOrders = await mongoose.model("Order").find({
+            const matchedOrders = await Order.find({
                 orderNumber: { $regex: search, $options: "i" }
             }).select("_id");
 
@@ -89,6 +100,7 @@ export const getSalesReport = asyncHandler(
         // Format response for frontend
         const reports = orderItems.map(item => ({
             orderId: (item.order as any)?.orderNumber || '',
+            dbOrderId: (item.order as any)?._id || '', // Added for linking
             orderItemId: item._id.toString().slice(-6).toUpperCase(), // Item ID shortcut
             product: item.productName,
             variant: item.variation || 'N/A',

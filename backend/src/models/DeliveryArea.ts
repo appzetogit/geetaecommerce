@@ -56,4 +56,5 @@ const DeliveryArea = mongoose.model<IDeliveryArea>(
   DeliveryAreaSchema
 );
 
+
 export default DeliveryArea;
