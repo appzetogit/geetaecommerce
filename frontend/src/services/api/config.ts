@@ -112,21 +112,24 @@ api.interceptors.response.use(
         }
 
         // Token expired or invalid - clear token and redirect to appropriate login
-        const currentModule = detectModuleFromPath(currentPath);
+        // STRICTLY check path to ensure correct redirect
+        const path = currentPath.toLowerCase();
 
         let redirectPath = "/login";
         let module: ModuleType = 'user';
 
-        if (currentModule === 'admin' || currentPath.includes('/admin')) {
+        if (path.startsWith('/admin') || path.includes('/admin/')) {
           redirectPath = "/admin/login";
           module = 'admin';
-        } else if (currentModule === 'seller' || currentPath.includes('/seller')) {
+        } else if (path.startsWith('/seller') || path.includes('/seller/')) {
           redirectPath = "/seller/login";
           module = 'seller';
-        } else if (currentModule === 'delivery' || currentPath.includes('/delivery')) {
+        } else if (path.startsWith('/delivery') || path.includes('/delivery/')) {
           redirectPath = "/delivery/login";
           module = 'delivery';
         }
+
+        console.log(`🔒 Auth Error (401) on ${currentPath} -> Redirecting to ${redirectPath} (Module: ${module})`);
 
         removeModuleAuthToken(module);
         window.location.href = redirectPath;

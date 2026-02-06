@@ -27,9 +27,10 @@ export const detectModuleFromPath = (path?: string): ModuleType => {
   const pathname = path || (typeof window !== 'undefined' ? window.location.pathname : '/');
 
   // Check if path starts with module prefix (with or without trailing slash)
-  if (pathname.startsWith('/admin')) return 'admin';
-  if (pathname.startsWith('/seller')) return 'seller';
-  if (pathname.startsWith('/delivery')) return 'delivery';
+  // Check for admin first and most robustly
+  if (pathname.startsWith('/admin') || pathname.includes('/admin/')) return 'admin';
+  if (pathname.startsWith('/seller') || pathname.includes('/seller/')) return 'seller';
+  if (pathname.startsWith('/delivery') || pathname.includes('/delivery/')) return 'delivery';
   return 'user';
 };
 
