@@ -150,9 +150,9 @@ export default function SellerWalletTransactions() {
         <div>
           <h1 className="text-2xl font-bold text-neutral-800">View Transaction List</h1>
           <div className="text-sm text-neutral-600 mt-1">
-            <span className="text-teal-600 hover:text-teal-700 cursor-pointer" onClick={() => navigate('/seller')}>Home</span>
+            <span className="text-[#f187b5] hover:text-[#e076a5] cursor-pointer" onClick={() => navigate('/seller')}>Home</span>
             <span className="mx-2">/</span>
-            <span className="text-teal-600 hover:text-teal-700 cursor-pointer" onClick={() => navigate('/seller/wallet')}>Wallet</span>
+            <span className="text-[#f187b5] hover:text-[#e076a5] cursor-pointer" onClick={() => navigate('/seller/wallet')}>Wallet</span>
             <span className="mx-2">/</span>
             <span className="text-neutral-800">Transactions</span>
           </div>
@@ -162,7 +162,7 @@ export default function SellerWalletTransactions() {
       {/* Main Content */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
         {/* Filters */}
-        <div className="p-4 sm:p-6 border-b border-neutral-200 bg-teal-600">
+        <div className="p-4 sm:p-6 border-b border-neutral-200 bg-[#f187b5]">
           <h2 className="text-lg font-bold text-white mb-4">View Transaction List</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -174,13 +174,13 @@ export default function SellerWalletTransactions() {
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
                 />
                 <input
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
                 />
               </div>
             </div>
@@ -201,7 +201,7 @@ export default function SellerWalletTransactions() {
               <select
                 value={filterMethod}
                 onChange={(e) => setFilterMethod(e.target.value)}
-                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
               >
                 <option value="All">All</option>
                 <option value="Credit">Credit</option>
@@ -218,7 +218,7 @@ export default function SellerWalletTransactions() {
               <select
                 value={entriesPerPage}
                 onChange={(e) => setEntriesPerPage(Number(e.target.value))}
-                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
               >
                 <option value="10">10</option>
                 <option value="25">25</option>
@@ -250,7 +250,7 @@ export default function SellerWalletTransactions() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
-                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
               />
             </div>
           </div>
@@ -284,20 +284,20 @@ export default function SellerWalletTransactions() {
                   <tr key={transaction.id} className="hover:bg-neutral-50/50 transition-colors">
                     <td className="p-4 text-sm text-neutral-900">{transaction.id}</td>
                     <td className="p-4 text-sm text-neutral-900">{transaction.sellerName}</td>
-                    <td className="p-4 text-sm font-medium text-teal-600">{transaction.orderId}</td>
+                    <td className="p-4 text-sm font-medium text-[#f187b5]">{transaction.orderId}</td>
                     <td className="p-4 text-sm text-neutral-900">{transaction.productName}</td>
                     <td className="p-4 text-sm text-neutral-600">{transaction.variation}</td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                         transaction.flag === 'Credit'
-                          ? 'bg-green-100 text-green-700'
+                          ? 'bg-[#f187b5]/10 text-[#f187b5]'
                           : 'bg-red-100 text-red-700'
                       }`}>
                         {transaction.flag}
                       </span>
                     </td>
                     <td className={`p-4 text-sm font-bold ${
-                      transaction.flag === 'Credit' ? 'text-green-600' : 'text-red-600'
+                      transaction.flag === 'Credit' ? 'text-[#f187b5]' : 'text-red-600'
                     }`}>
                       {transaction.flag === 'Credit' ? '+' : '-'} ₹{transaction.amount.toFixed(2)}
                     </td>

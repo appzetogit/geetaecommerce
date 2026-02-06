@@ -155,9 +155,9 @@ export default function SellerWithdrawalRequests() {
         <div>
           <h1 className="text-2xl font-bold text-neutral-800">View Withdrawal Request List</h1>
           <div className="text-sm text-neutral-600 mt-1">
-            <span className="text-teal-600 hover:text-teal-700 cursor-pointer" onClick={() => navigate('/seller')}>Home</span>
+            <span className="text-[#f187b5] hover:text-[#e076a5] cursor-pointer" onClick={() => navigate('/seller')}>Home</span>
             <span className="mx-2">/</span>
-            <span className="text-teal-600 hover:text-teal-700 cursor-pointer" onClick={() => navigate('/seller/wallet')}>Wallet</span>
+            <span className="text-[#f187b5] hover:text-[#e076a5] cursor-pointer" onClick={() => navigate('/seller/wallet')}>Wallet</span>
             <span className="mx-2">/</span>
             <span className="text-neutral-800">Withdrawal Requests</span>
           </div>
@@ -167,7 +167,7 @@ export default function SellerWithdrawalRequests() {
       {/* Main Content */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
         {/* Header with Add Button */}
-        <div className="p-4 sm:p-6 border-b border-neutral-200 bg-teal-600 flex items-center justify-between">
+        <div className="p-4 sm:p-6 border-b border-neutral-200 bg-[#f187b5] flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">View Withdrawal Request List</h2>
           <button
             onClick={() => setShowModal(true)}
@@ -192,13 +192,13 @@ export default function SellerWithdrawalRequests() {
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none"
                 />
                 <input
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none"
                 />
               </div>
             </div>
@@ -225,7 +225,7 @@ export default function SellerWithdrawalRequests() {
               <select
                 value={entriesPerPage}
                 onChange={(e) => setEntriesPerPage(Number(e.target.value))}
-                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
               >
                 <option value="10">10</option>
                 <option value="25">25</option>
@@ -257,7 +257,7 @@ export default function SellerWithdrawalRequests() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
-                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
               />
             </div>
           </div>
@@ -293,7 +293,7 @@ export default function SellerWithdrawalRequests() {
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                         withdrawal.status === 'Approved'
-                          ? 'bg-green-100 text-green-700'
+                          ? 'bg-[#f187b5]/10 text-[#f187b5]'
                           : withdrawal.status === 'Pending'
                           ? 'bg-yellow-100 text-yellow-700'
                           : 'bg-red-100 text-red-700'
@@ -340,7 +340,7 @@ export default function SellerWithdrawalRequests() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in duration-200">
             {/* Modal Header */}
-            <div className="bg-teal-600 px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
+            <div className="bg-[#f187b5] px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
               <h3 className="text-lg font-bold">Add Fund Request</h3>
               <button
                 onClick={() => setShowModal(false)}
@@ -365,7 +365,7 @@ export default function SellerWithdrawalRequests() {
                     value={formAmount}
                     onChange={(e) => setFormAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full pl-8 pr-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-base"
+                    className="w-full pl-8 pr-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-base"
                   />
                 </div>
               </div>
@@ -378,7 +378,7 @@ export default function SellerWithdrawalRequests() {
                   onChange={(e) => setFormMessage(e.target.value)}
                   placeholder="Enter your message..."
                   rows={4}
-                  className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-base resize-none"
+                  className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-base resize-none"
                 />
               </div>
 
@@ -388,7 +388,7 @@ export default function SellerWithdrawalRequests() {
                 <select
                   value={formBankAccount}
                   onChange={(e) => setFormBankAccount(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-base"
+                  className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-base"
                 >
                   <option value="HDFC Bank - ****1234">HDFC Bank - ****1234</option>
                   <option value="SBI - ****5678">SBI - ****5678</option>
@@ -408,7 +408,7 @@ export default function SellerWithdrawalRequests() {
               </button>
               <button
                 onClick={handleSubmitRequest}
-                className="flex-1 px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg transition-colors"
+                className="flex-1 px-4 py-3 bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold rounded-lg transition-colors"
               >
                 Submit Request
               </button>

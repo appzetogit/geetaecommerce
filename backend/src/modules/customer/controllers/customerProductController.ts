@@ -5,6 +5,7 @@ import SubCategory from "../../../models/SubCategory";
 import mongoose from "mongoose";
 import Seller from "../../../models/Seller"; // Import Seller model
 import Brand from "../../../models/Brand";
+import AppSettings from "../../../models/AppSettings";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
 
 // Get products with filtering options (public)
@@ -27,6 +28,10 @@ export const getProducts = async (req: Request, res: Response) => {
 
     console.log("DEBUG: getProducts called with query:", req.query);
 
+    const settings = await AppSettings.findOne().lean();
+    const inventorySection = settings?.productDisplaySettings?.find(s => s.id === 'inventory');
+    const negativeStockSoldOut = inventorySection?.fields?.find(f => f.id === 'negative_stock_sold_out')?.isEnabled;
+
     const query: any = {
       status: "Active",
       publish: true,
@@ -36,6 +41,10 @@ export const getProducts = async (req: Request, res: Response) => {
         { isShopByStoreOnly: { $exists: false } },
       ],
     };
+
+    if (negativeStockSoldOut) {
+      query.stock = { $gt: 0 };
+    }
 
     // Location-based filtering: Only show products from sellers within user's range
     const userLat = latitude ? parseFloat(latitude as string) : null;
@@ -260,6 +269,18 @@ export const getProductById = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: false,
         message: "Product not found or unavailable",
+      });
+    }
+
+    // Check Negative Stock Setting
+    const settings = await AppSettings.findOne().lean();
+    const inventorySection = settings?.productDisplaySettings?.find(s => s.id === 'inventory');
+    const negativeStockSoldOut = inventorySection?.fields?.find(f => f.id === 'negative_stock_sold_out')?.isEnabled;
+
+    if (negativeStockSoldOut && product.stock <= 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Product is currently sold out",
       });
     }
 

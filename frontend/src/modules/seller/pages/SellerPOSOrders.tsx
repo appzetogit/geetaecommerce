@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getProducts, getProductById, Product, updateProduct, createProduct, getSellerPOSProducts } from '../../../services/api/productService';
 import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getOrderById } from '../../../services/api/orderService';
-import { getAllCustomers, Customer } from '../../../services/api/admin/adminCustomerService';
+import { getAllCustomers, Customer, createCustomer } from '../../../services/api/admin/adminCustomerService';
 import { getAppSettings, AppSettings } from '../../../services/api/admin/adminSettingsService';
 import { getCategories } from '../../../services/api/categoryService';
 import { getBrands } from '../../../services/api/brandService';
@@ -325,6 +325,19 @@ const SellerPOSOrders = () => {
   const [showModalBreakdown, setShowModalBreakdown] = useState(false);
   const [lastBillDetails, setLastBillDetails] = useState<{total: number, invoiceNum: string, date: string, time: string, cart: CartItem[], isPaid: boolean} | null>(null);
 
+  // Add Customer Modal State
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [newCustomerLoading, setNewCustomerLoading] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: ''
+  });
+
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
   const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
@@ -484,6 +497,51 @@ const SellerPOSOrders = () => {
       // setCustomerSearch('');
       updateActiveBill({ selectedCustomer: null, customerSearch: '' });
       setCustomers([]);
+  };
+
+  const submitAddCustomer = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newCustomer.name || !newCustomer.phone) {
+          showToast("Name and Phone are required", "error");
+          return;
+      }
+
+      setNewCustomerLoading(true);
+      try {
+          const res = await createCustomer({
+              ...newCustomer,
+              email: newCustomer.email || `${newCustomer.phone}@placeholder.com` // Backend requires email
+          });
+
+          if (res.success && res.data) {
+              showToast("Customer added successfully", "success");
+              // setSelectedCustomer(res.data);
+              // setCustomerSearch(`${res.data.name} (${res.data.phone})`);
+              const displayName = `${res.data.name} (${res.data.phone})`;
+              updateActiveBill({ selectedCustomer: res.data, customerSearch: displayName });
+
+              // If the user wants to jump to Credit
+              setPaymentMethod("Credit");
+
+              setShowAddCustomerModal(false);
+              setNewCustomer({
+                  name: '',
+                  phone: '',
+                  email: '',
+                  address: '',
+                  city: '',
+                  state: '',
+                  pincode: ''
+              });
+          } else {
+              showToast(res.message || "Failed to add customer", "error");
+          }
+      } catch (err: any) {
+          console.error("Error adding customer", err);
+          showToast(err.response?.data?.message || "Failed to add customer", "error");
+      } finally {
+          setNewCustomerLoading(false);
+      }
   };
 
   const handleCustomerSearchChange = (val: string) => {
@@ -1204,15 +1262,27 @@ const SellerPOSOrders = () => {
            </div>
         </div>
 
-        <button
-          onClick={() => navigate('/admin/pos/customers')}
-          className="px-4 py-2 bg-[#0d9488] text-white border border-[#0d9488] rounded-lg text-sm font-bold hover:bg-[#0f766e] transition-colors flex items-center gap-2"
-        >
+        <div className="flex gap-2">
+            <button
+              onClick={() => setShowAddCustomerModal(true)}
+              className="px-4 py-2 bg-[#f187b5] text-white rounded-lg text-sm font-bold hover:bg-[#e076a5] transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              Add Customer
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/pos/customers')}
+              className="px-4 py-2 bg-[#f187b5] text-white border border-[#f187b5] rounded-lg text-sm font-bold hover:bg-[#e076a5] transition-colors flex items-center gap-2 shadow-sm"
+            >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
           </svg>
           Customers (Credit)
         </button>
+        </div>
       </div>
 
 
@@ -1304,7 +1374,7 @@ const SellerPOSOrders = () => {
                                     )}
                                 </div>
                                 <h3 className="text-sm font-medium text-gray-800 line-clamp-2">{product.productName}</h3>
-                                <div className="mt-2 text-green-600 font-bold">
+                                 <div className="mt-2 text-[#f187b5] font-bold">
                                     ₹{ (orderType === 'Wholesale' && product.wholesalePrice) ? product.wholesalePrice : product.price }
                                     {orderType === 'Wholesale' && product.wholesalePrice && <span className="text-[10px] ml-1 text-gray-400 font-normal">(Wholesale)</span>}
                                 </div>
@@ -1333,17 +1403,17 @@ const SellerPOSOrders = () => {
                     <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
-                        className="w-10 h-10 flex items-center justify-center border border-[#0d9488] rounded text-[#0d9488] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0d9488]/10 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center border border-[#f187b5] rounded text-[#f187b5] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#f187b5]/10 transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
-                    <button className="w-10 h-10 flex items-center justify-center bg-[#0d9488] text-white rounded font-bold shadow-sm">
+                    <button className="w-10 h-10 flex items-center justify-center bg-[#f187b5] text-white rounded font-bold shadow-sm">
                         {currentPage}
                     </button>
                      <button
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(products.length / itemsPerPage)))}
                         disabled={currentPage === Math.ceil(products.length / itemsPerPage)}
-                        className="w-10 h-10 flex items-center justify-center border border-[#0d9488] rounded text-[#0d9488] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#0d9488]/10 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center border border-[#f187b5] rounded text-[#f187b5] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#f187b5]/10 transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                     </button>
@@ -1362,7 +1432,7 @@ const SellerPOSOrders = () => {
                   <span className="text-[10px] font-bold text-gray-500 uppercase">Profit Show</span>
                   <button
                     onClick={() => setShowProfit(!showProfit)}
-                    className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${showProfit ? 'bg-teal-500' : 'bg-gray-300'}`}
+                    className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${showProfit ? 'bg-[#f187b5]' : 'bg-gray-300'}`}
                   >
                     <span
                       className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${showProfit ? 'translate-x-4.5' : 'translate-x-1'}`}
@@ -1371,7 +1441,7 @@ const SellerPOSOrders = () => {
                 </div>
                 <button
                   onClick={() => setShowQuickAdd(true)}
-                  className="bg-[#0d9488] hover:bg-[#0f766e] text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 font-medium transition-colors"
+                  className="bg-[#f187b5] hover:bg-[#e076a5] text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 font-medium transition-colors"
                 >
                   + Quick Add
                 </button>
@@ -1387,7 +1457,7 @@ const SellerPOSOrders = () => {
                   className={`
                     flex items-center gap-2 px-3 py-2 rounded-t-lg cursor-pointer border-t border-l border-r transition-all min-w-[100px] justify-between select-none text-xs font-medium
                     ${activeBillId === bill.id
-                      ? 'bg-white border-b-transparent text-[#0d9488] relative -mb-[1px] z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]'
+                      ? 'bg-white border-b-transparent text-[#f187b5] relative -mb-[1px] z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]'
                       : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200/50'}
                   `}
                 >
@@ -1404,7 +1474,7 @@ const SellerPOSOrders = () => {
 
               <button
                 onClick={() => createNewBill()}
-                className="flex items-center justify-center w-6 h-6 rounded-full bg-[#0d9488]/10 text-[#0d9488] hover:bg-[#0d9488]/20 transition-colors ml-1 flex-shrink-0"
+                className="flex items-center justify-center w-6 h-6 rounded-full bg-[#f187b5]/10 text-[#f187b5] hover:bg-[#f187b5]/20 transition-colors ml-1 flex-shrink-0"
                 title="New Bill"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
@@ -1419,7 +1489,7 @@ const SellerPOSOrders = () => {
                    <div className="relative mb-3">
                        <button
                            onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
-                           className="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0d9488]"
+                           className="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#f187b5]"
                        >
                            <span className="font-medium">{paymentMethod || 'Cash'}</span>
                            <svg className={`w-4 h-4 text-gray-400 transition-transform ${showPaymentDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -1470,7 +1540,7 @@ const SellerPOSOrders = () => {
                       <input
                         type="text"
                         placeholder="Search Customer / Mobile..."
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#0d9488] bg-gray-50 focus:bg-white transition-colors"
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#f187b5] bg-gray-50 focus:bg-white transition-colors"
                         value={customerSearch}
                         onChange={(e) => {
                             setCustomerSearch(e.target.value);
@@ -1515,7 +1585,7 @@ const SellerPOSOrders = () => {
                   </div>
                   <button
                     onClick={() => setShowScanner(true)}
-                    className="bg-[#0d9488] text-white px-3 rounded hover:bg-[#0f766e] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
+                    className="bg-[#f187b5] text-white px-3 rounded hover:bg-[#e076a5] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
                     title="Scan Product"
                   >
                     <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -1566,13 +1636,13 @@ const SellerPOSOrders = () => {
                                    <div className="flex-1">
                                        <div className="flex items-center gap-2 text-xs mb-1">
                                            <span className="text-gray-500">MRP: <span className="line-through decoration-gray-400">₹{mrp}</span></span>
-                                           <span className="font-bold text-green-600">
+                                             <span className="font-bold text-[#f187b5]">
                                                {orderType === 'Wholesale' && (item.wholesalePrice || 0) > 0 ? 'WSP' : 'SP'}: ₹{sp}
                                            </span>
                                        </div>
                                        {showProfit && (
                                            purchasePrice > 0 ? (
-                                               <div className={`text-xs font-medium ${parseFloat(profitPercent) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                 <div className={`text-xs font-medium ${parseFloat(profitPercent) >= 0 ? 'text-[#f187b5]' : 'text-red-500'}`}>
                                                    Profit: {profitPercent}%
                                                </div>
                                            ) : (
@@ -1613,7 +1683,7 @@ const SellerPOSOrders = () => {
 
                                         <button
                                           onClick={() => updateQuantity(item._id, 1)}
-                                          className="w-7 h-7 flex items-center justify-center text-green-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold"
+                                           className="w-7 h-7 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold"
                                         >+</button>
                                    </div>
                               </div>
@@ -1641,7 +1711,7 @@ const SellerPOSOrders = () => {
                         <button
                           onClick={handleGenerateBill}
                           disabled={cart.length === 0}
-                          className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                            Generate Bill
@@ -1653,7 +1723,7 @@ const SellerPOSOrders = () => {
                       <button
                         onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
                         disabled={loading}
-                        className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#0d9488] hover:bg-[#0f766e]' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#f187b5] hover:bg-[#e076a5]' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                       >
                          {loading ? (
                             <>
@@ -1678,7 +1748,7 @@ const SellerPOSOrders = () => {
       {showQuickAdd && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div className="bg-[#0d9488] px-6 py-4 text-white flex justify-between items-center">
+                <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center">
                     <h3 className="font-semibold text-lg">Quick Add Item</h3>
                     <button onClick={() => setShowQuickAdd(false)} className="text-white/80 hover:text-white">✕</button>
                 </div>
@@ -1688,7 +1758,7 @@ const SellerPOSOrders = () => {
                         <input
                            type="text" required
                            value={quickForm.name} onChange={e => setQuickForm({...quickForm, name: e.target.value})}
-                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
+                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                            placeholder="Enter item name"
                            autoFocus
                         />
@@ -1699,7 +1769,7 @@ const SellerPOSOrders = () => {
                             <input
                                type="number" min="0" step="0.01"
                                value={quickForm.mrp} onChange={e => setQuickForm({...quickForm, mrp: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1708,7 +1778,7 @@ const SellerPOSOrders = () => {
                             <input
                                type="number" required min="0" step="0.01"
                                value={quickForm.price} onChange={e => setQuickForm({...quickForm, price: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1717,7 +1787,7 @@ const SellerPOSOrders = () => {
                             <input
                                type="number" min="0" step="0.01"
                                value={quickForm.wholesalePrice} onChange={e => setQuickForm({...quickForm, wholesalePrice: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1726,7 +1796,7 @@ const SellerPOSOrders = () => {
                             <input
                                type="number" min="0" step="0.01"
                                value={quickForm.purchasePrice} onChange={e => setQuickForm({...quickForm, purchasePrice: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1735,7 +1805,7 @@ const SellerPOSOrders = () => {
                             <input
                                type="number" required min="1"
                                value={quickForm.qty} onChange={e => setQuickForm({...quickForm, qty: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#0d9488] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                             />
                         </div>
                     </div>
@@ -1758,7 +1828,7 @@ const SellerPOSOrders = () => {
                         </label>
                     </div>
 
-                    <button type="submit" className="w-full bg-[#0d9488] hover:bg-[#0f766e] text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
+                    <button type="submit" className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
                         Add to Cart
                     </button>
                 </form>
@@ -1892,10 +1962,10 @@ const SellerPOSOrders = () => {
 
                          <button
                           onClick={() => handlePaymentSelection('Cash')}
-                          className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all"
+                          className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[#f187b5] hover:bg-[#f187b5]/10 transition-all"
                         >
-                            <span className="font-semibold text-gray-700 group-hover:text-green-700">Cash</span>
-                            <span className="text-gray-300 group-hover:text-green-500">→</span>
+                            <span className="font-semibold text-gray-700 group-hover:text-[#e076a5]">Cash</span>
+                            <span className="text-gray-300 group-hover:text-[#f187b5]">→</span>
                         </button>
                      </div>
                 </div>
@@ -1914,7 +1984,7 @@ const SellerPOSOrders = () => {
                    </div>
 
                    <div className="flex justify-center mb-4">
-                       <div className="bg-[#0d9488] rounded-full p-1.5">
+                       <div className="bg-[#f187b5] rounded-full p-1.5">
                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                        </div>
                    </div>
@@ -1993,7 +2063,7 @@ const SellerPOSOrders = () => {
                                     setShowSuccessModal(false);
                                     setShowPaymentModal(true);
                                 }}
-                                className="w-full bg-[#0d9488] text-white font-bold py-3 text-[10px] tracking-widest hover:bg-[#0f766e] uppercase rounded shadow-lg animate-pulse"
+                                className="w-full bg-[#f187b5] text-white font-bold py-3 text-[10px] tracking-widest hover:bg-[#e076a5] uppercase rounded shadow-lg animate-pulse"
                             >
                                 [ PROCEED TO PAY ]
                             </button>
@@ -2120,7 +2190,119 @@ const SellerPOSOrders = () => {
           </div>
       </div>
 
-  {/* --- SCANNER MODAL --- */}
+  {/* --- ADD CUSTOMER MODAL --- */}
+      {showAddCustomerModal && (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="bg-[#f472b6] px-6 py-4 text-white flex justify-between items-center">
+                    <h3 className="text-xl font-bold">Register New Customer</h3>
+                    <button onClick={() => setShowAddCustomerModal(false)} className="text-white hover:text-white/80 transition-colors">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <form onSubmit={submitAddCustomer} className="p-7">
+                    <div className="space-y-5">
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Full Name *</label>
+                            <input
+                                type="text"
+                                required
+                                value={newCustomer.name}
+                                onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all placeholder:text-gray-300"
+                                placeholder="Enter customer name"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Phone Number *</label>
+                                <input
+                                    type="tel"
+                                    required
+                                    pattern="[0-9]{10}"
+                                    value={newCustomer.phone}
+                                    onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all placeholder:text-gray-300"
+                                    placeholder="10 digit mobile"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Email (Optional)</label>
+                                <input
+                                    type="email"
+                                    value={newCustomer.email}
+                                    onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
+                                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all placeholder:text-gray-300"
+                                    placeholder="customer@email.com"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Address</label>
+                            <textarea
+                                value={newCustomer.address}
+                                onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
+                                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all h-24 resize-none placeholder:text-gray-300"
+                                placeholder="Street address, building, etc."
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">City</label>
+                                <input
+                                    type="text"
+                                    value={newCustomer.city}
+                                    onChange={(e) => setNewCustomer({...newCustomer, city: e.target.value})}
+                                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all placeholder:text-gray-300"
+                                    placeholder="City"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pincode</label>
+                                <input
+                                    type="text"
+                                    value={newCustomer.pincode}
+                                    onChange={(e) => setNewCustomer({...newCustomer, pincode: e.target.value})}
+                                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all placeholder:text-gray-300"
+                                    placeholder="6 digit PIN"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-10 flex gap-4">
+                        <button
+                            type="button"
+                            onClick={() => setShowAddCustomerModal(false)}
+                            className="flex-1 py-4 border border-gray-200 text-gray-500 rounded-2xl font-bold hover:bg-gray-50 transition-all text-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={newCustomerLoading}
+                            className="flex-1 py-4 bg-[#f472b6] text-white rounded-2xl font-bold hover:bg-[#ec4899] transition-all shadow-lg shadow-[#f472b6]/30 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                        >
+                            {newCustomerLoading ? (
+                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            ) : (
+                                <>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                                    Save Customer
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+      )}
+
+      {/* --- SCANNER MODAL --- */}
       {showScanner && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative">

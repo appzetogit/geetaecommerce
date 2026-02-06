@@ -81,7 +81,7 @@ export default function SellerSubCategory() {
     };
 
     const SortIcon = ({ column }: { column: string }) => (
-        <span className={`ml-1 transition-colors ${sortColumn === column ? 'text-teal-600' : 'text-neutral-300 group-hover:text-neutral-400'}`}>
+        <span className={`ml-1 transition-colors ${sortColumn === column ? 'text-seller-600' : 'text-neutral-300 group-hover:text-neutral-400'}`}>
             {sortColumn === column ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
         </span>
     );
@@ -117,7 +117,7 @@ export default function SellerSubCategory() {
                     <p className="text-sm text-neutral-500 mt-1">View and manage product subcategories</p>
                 </div>
                 <div className="flex items-center gap-2 text-sm bg-neutral-50 px-3 py-1.5 rounded-lg border border-neutral-200 mt-3 sm:mt-0">
-                    <Link to="/seller" className="text-teal-600 hover:text-teal-700 font-medium cursor-pointer hover:underline">Home</Link>
+                    <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium cursor-pointer hover:underline">Home</Link>
                     <span className="text-neutral-400">/</span>
                     <span className="text-neutral-600">SubCategory</span>
                 </div>
@@ -153,7 +153,7 @@ export default function SellerSubCategory() {
                 {/* Loading and Error States */}
                 {loading && (
                     <div className="flex flex-col items-center justify-center p-12">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600 mb-4"></div>
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-seller-600 mb-4"></div>
                         <div className="text-neutral-500 font-medium">Loading subcategories...</div>
                     </div>
                 )}
@@ -219,7 +219,7 @@ export default function SellerSubCategory() {
                                 {displayedSubcategories.map((subcategory, index) => (
                                     <motion.tr
                                         key={subcategory._id || subcategory.id}
-                                        className="hover:bg-teal-50/30 transition-colors group text-sm text-neutral-700"
+                                        className="hover:bg-seller-50/30 transition-colors group text-sm text-neutral-700"
                                         variants={itemVariants}
                                         custom={index}
                                     >
@@ -239,7 +239,7 @@ export default function SellerSubCategory() {
                                             </div>
                                         </td>
                                         <td className="p-4 px-6 align-middle text-center">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-seller-100 text-seller-800">
                                                 {subcategory.totalProduct || 0}
                                             </span>
                                         </td>
@@ -276,7 +276,7 @@ export default function SellerSubCategory() {
                                 className={`p-2 rounded-lg border transition-all ${
                                     currentPage === 1
                                         ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-white'
-                                        : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-teal-500 hover:text-teal-600 shadow-sm hover:shadow'
+                                        : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm hover:shadow'
                                 }`}
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -289,7 +289,7 @@ export default function SellerSubCategory() {
                                         onClick={() => setCurrentPage(page)}
                                         className={`min-w-[32px] h-8 flex items-center justify-center rounded-md text-sm font-medium transition-all ${
                                             currentPage === page
-                                                ? 'bg-teal-600 text-white shadow-md'
+                                                ? 'bg-seller-600 text-white shadow-md'
                                                 : 'text-neutral-600 hover:bg-neutral-200'
                                         }`}
                                     >
@@ -304,7 +304,7 @@ export default function SellerSubCategory() {
                                 className={`p-2 rounded-lg border transition-all ${
                                     currentPage === displayTotalPages
                                         ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-white'
-                                        : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-teal-500 hover:text-teal-600 shadow-sm hover:shadow'
+                                        : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm hover:shadow'
                                 }`}
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -318,7 +318,7 @@ export default function SellerSubCategory() {
             <footer className="text-center py-4">
                 <p className="text-sm text-neutral-500">
                 Copyright © 2025. Developed By{' '}
-                <Link to="/seller" className="text-teal-600 hover:text-teal-700 font-medium hover:underline">
+                <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium hover:underline">
                     Geeta Stores
                 </Link>
                 </p>

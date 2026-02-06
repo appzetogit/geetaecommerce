@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import Cart from '../../../models/Cart';
 import CartItem from '../../../models/CartItem';
 import Product from '../../../models/Product';
+import AppSettings from '../../../models/AppSettings';
 import { findSellersWithinRange } from '../../../utils/locationHelper';
 import mongoose from 'mongoose';
 
@@ -27,10 +28,19 @@ const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.O
         adminSellerIds = adminSellers.map(s => s._id.toString());
     } catch (e) { console.error("Error fetching admin sellers", e); }
 
+    const settings = await AppSettings.findOne().lean();
+    const inventorySection = settings?.productDisplaySettings?.find(s => s.id === 'inventory');
+    const negativeStockSoldOut = inventorySection?.fields?.find(f => f.id === 'negative_stock_sold_out')?.isEnabled;
+
     let total = 0;
     for (const item of items) {
         const product = item.product as any;
         if (product && product.status === 'Active' && product.publish) {
+            // Check stock if setting is enabled
+            if (negativeStockSoldOut && product.stock <= 0) {
+                continue;
+            }
+
             // Check if seller is in range OR is Admin
             const sellerId = product.seller.toString();
             const isAvailable = nearbySellerIds.some(id => id.toString() === sellerId) || adminSellerIds.includes(sellerId);
@@ -79,6 +89,10 @@ export const getCart = async (req: Request, res: Response) => {
         } catch (e) { }
 
 
+        const settings = await AppSettings.findOne().lean();
+        const inventorySection = settings?.productDisplaySettings?.find(s => s.id === 'inventory');
+        const negativeStockSoldOut = inventorySection?.fields?.find(f => f.id === 'negative_stock_sold_out')?.isEnabled;
+
         let cart = await Cart.findOne({ customer: userId }).populate({
             path: 'items',
             populate: {
@@ -100,6 +114,10 @@ export const getCart = async (req: Request, res: Response) => {
         for (const item of (cart.items as any)) {
             const product = item.product;
             if (product && product.status === 'Active' && product.publish) {
+                // Check stock if setting is enabled
+                if (negativeStockSoldOut && product.stock <= 0) {
+                    continue; // Skip items with no stock if setting is on
+                }
 
                 let isAvailable = true; // Default to true if no location
 
@@ -164,6 +182,18 @@ export const addToCart = async (req: Request, res: Response) => {
         const product = await Product.findOne({ _id: productId, status: 'Active', publish: true });
         if (!product) {
             return res.status(404).json({ success: false, message: 'Product not found or unavailable' });
+        }
+
+        // Check Negative Stock Setting
+        const settings = await AppSettings.findOne().lean();
+        const inventorySection = settings?.productDisplaySettings?.find(s => s.id === 'inventory');
+        const negativeStockSoldOut = inventorySection?.fields?.find(f => f.id === 'negative_stock_sold_out')?.isEnabled;
+
+        if (negativeStockSoldOut && product.stock <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'This product is currently sold out and cannot be added to cart'
+            });
         }
 
         // Only check location if location is provided

@@ -7,6 +7,7 @@ import { getSocketBaseURL } from '../../../services/api/config';
 import { getNotifications, Notification as AdminNotificationData } from '../../../services/api/admin/adminNotificationService';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-hot-toast';
+import { useAppContext } from '../../../context/AppContext';
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -146,6 +147,8 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
     navigate('/admin');
   };
 
+  const { config } = useAppContext();
+
   return (
     <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-30">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 gap-3 sm:gap-0">
@@ -185,8 +188,8 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
             className="hover:opacity-80 transition-opacity"
           >
             <img
-              src="/assets/geetastoreslogo.png"
-              alt="Geeta Stores"
+              src={config?.appLogo || "/assets/geetastoreslogo.png"}
+              alt={config?.appName || "Geeta Stores"}
               className="h-10 sm:h-12 w-auto object-contain cursor-pointer"
               style={{ maxWidth: '200px' }}
             />

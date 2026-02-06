@@ -53,10 +53,10 @@ export default function CategoryTreeView({
             <div
               className={`${
                 isSubcategory
-                  ? "bg-[#E91E63]/10 border-l-4 border-l-[#E91E63] border border-[#E91E63]/30 rounded-r-lg p-3"
+                  ? "bg-[#f187b5]/10 border-l-4 border-l-[#f187b5] border border-[#f187b5]/30 rounded-r-lg p-3"
                   : "bg-white border border-neutral-200 rounded-lg p-4"
               } hover:shadow-md transition-all ${
-                isSubcategory ? "hover:bg-[#E91E63]/5" : ""
+                isSubcategory ? "hover:bg-[#f187b5]/5" : ""
               }`}
               style={{ marginLeft: `${indentLevel}px` }}>
               <div className="flex items-start gap-3">
@@ -66,7 +66,7 @@ export default function CategoryTreeView({
                     onClick={() => onToggleExpand(category._id)}
                     className={`flex-shrink-0 mt-1 transition-colors ${
                       isSubcategory
-                        ? "text-[#E91E63] hover:text-[#D81B60]"
+                        ? "text-[#f187b5] hover:text-[#e076a5]"
                         : "text-neutral-400 hover:text-neutral-600"
                     }`}>
                     <svg
@@ -95,7 +95,7 @@ export default function CategoryTreeView({
                       fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
-                      className="text-[#E91E63]">
+                      className="text-[#f187b5]">
                       <path
                         d="M9 18l6-6-6-6"
                         strokeLinecap="round"
@@ -132,13 +132,13 @@ export default function CategoryTreeView({
                       className={`${
                         isSubcategory ? "w-12 h-12" : "w-16 h-16"
                       } rounded-lg ${
-                        isSubcategory ? "bg-[#E91E63]/10" : "bg-neutral-100"
+                        isSubcategory ? "bg-[#f187b5]/10" : "bg-neutral-100"
                       } flex items-center justify-center`}>
                       <span
                         className={`${
                           isSubcategory ? "text-lg" : "text-2xl"
                         } font-semibold ${
-                          isSubcategory ? "text-[#E91E63]" : "text-neutral-400"
+                          isSubcategory ? "text-[#f187b5]" : "text-neutral-400"
                         }`}>
                         {category.name.charAt(0).toUpperCase()}
                       </span>
@@ -154,13 +154,13 @@ export default function CategoryTreeView({
                         <h3
                           className={`${
                             isSubcategory
-                              ? "text-sm font-medium text-[#E91E63]"
+                              ? "text-sm font-medium text-[#f187b5]"
                               : "text-base font-semibold text-neutral-900"
                           } truncate`}>
                           {category.name}
                         </h3>
                         {isSubcategory && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#E91E63]/20 text-[#E91E63] shrink-0">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#f187b5]/20 text-[#f187b5] shrink-0">
                             Subcategory
                           </span>
                         )}
@@ -211,7 +211,7 @@ export default function CategoryTreeView({
 
                         {/* Children Count Badge */}
                         {hasChildren && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#E91E63]/20 text-[#E91E63]">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f187b5]/20 text-[#f187b5]">
                             {category.childrenCount ||
                               category.children?.length ||
                               0}{" "}
@@ -236,7 +236,7 @@ export default function CategoryTreeView({
                         onClick={() => onAddSubcategory(category)}
                         className={`${
                           isSubcategory ? "px-2 py-1" : "px-3 py-1.5"
-                        } text-xs font-medium text-white bg-[#E91E63] hover:bg-[#D81B60] rounded transition-colors flex-1 sm:flex-none justify-center flex items-center`}
+                        } text-xs font-medium text-white bg-[#f187b5] hover:bg-[#e076a5] rounded transition-colors flex-1 sm:flex-none justify-center flex items-center`}
                         title="Add Subcategory">
                         {isSubcategory ? (
                           <svg
@@ -316,7 +316,7 @@ export default function CategoryTreeView({
                         onClick={() => onEdit(category)}
                         className={`${
                           isSubcategory ? "px-2 py-1" : "px-3 py-1.5"
-                        } text-xs font-medium text-white bg-[#E91E63] hover:bg-[#D81B60] rounded transition-colors flex-1 sm:flex-none justify-center`}
+                        } text-xs font-medium text-white bg-[#f187b5] hover:bg-[#e076a5] rounded transition-colors flex-1 sm:flex-none justify-center`}
                         title="Edit">
                         <svg
                           width={isSubcategory ? "14" : "16"}

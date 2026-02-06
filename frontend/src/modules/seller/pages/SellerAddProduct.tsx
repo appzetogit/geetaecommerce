@@ -1113,7 +1113,7 @@ export default function SellerAddProduct() {
           {/* Product Section Details */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
             {/* Header Removed for Mobile Look */}
-            {/* <div className="bg-teal-600 text-white px-6 py-4 rounded-t-xl">
+            {/* <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
                <h2 className="text-lg font-semibold tracking-wide">Product Details</h2>
              </div> */}
             <div className="p-6 space-y-6 rounded-b-xl">
@@ -1135,7 +1135,7 @@ export default function SellerAddProduct() {
                        onClick={() => setIsUnitModalOpen(true)}
                        readOnly
                        placeholder="Select Unit Size"
-                       className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all cursor-pointer bg-white"
+                       className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all cursor-pointer bg-white"
                      />
                      <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -1155,7 +1155,7 @@ export default function SellerAddProduct() {
                      value={(formData as any).itemCode}
                      onChange={handleChange}
                      placeholder="Enter Item Code / SKU"
-                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                    />
                 </div>
                 )}
@@ -1170,7 +1170,7 @@ export default function SellerAddProduct() {
                      value={(formData as any).rackNumber}
                      onChange={handleChange}
                      placeholder="Enter Rack Number"
-                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                    />
                 </div>
                 )}
@@ -1241,7 +1241,7 @@ export default function SellerAddProduct() {
                     value={formData.subSubCategory}
                     onChange={handleChange}
                     placeholder="Enter Sub-SubCategory"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
                 )}
@@ -1304,7 +1304,7 @@ export default function SellerAddProduct() {
                     value={formData.tags}
                     onChange={handleChange}
                     placeholder="Enter tags for search optimization"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
                 )}
@@ -1321,7 +1321,7 @@ export default function SellerAddProduct() {
                   onChange={handleChange}
                   placeholder="Enter a brief product description..."
                   rows={4}
-                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none transition-all"
+                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 resize-none transition-all"
                 />
               </div>
               )}
@@ -1331,7 +1331,7 @@ export default function SellerAddProduct() {
           {/* SEO Content Section */}
           {/* SEO Content Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">SEO Configuration</h2>
             </div>
             <div className="p-6 space-y-6">
@@ -1347,7 +1347,7 @@ export default function SellerAddProduct() {
                     value={formData.seoTitle}
                     onChange={handleChange}
                     placeholder="Enter meta Title"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
                 )}
@@ -1362,7 +1362,7 @@ export default function SellerAddProduct() {
                     value={formData.seoKeywords}
                     onChange={handleChange}
                     placeholder="Enter meta Keywords"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
                 )}
@@ -1377,7 +1377,7 @@ export default function SellerAddProduct() {
                     value={formData.seoImageAlt}
                     onChange={handleChange}
                     placeholder="Enter Image Alt Text"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
                 )}
@@ -1392,7 +1392,7 @@ export default function SellerAddProduct() {
                     onChange={handleChange}
                     placeholder="Enter meta Description"
                     rows={4}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-none transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 resize-none transition-all"
                   />
                 </div>
                 )}
@@ -1402,7 +1402,7 @@ export default function SellerAddProduct() {
 
           {/* Add Variation Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Product Variations</h2>
             </div>
             <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
@@ -1432,7 +1432,7 @@ export default function SellerAddProduct() {
                       value={variationForm.title}
                       onChange={(e) => setVariationForm({ ...variationForm, title: e.target.value })}
                       placeholder="e.g. XL, 1kg"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
                     />
                   </div>
                   <div>
@@ -1446,7 +1446,7 @@ export default function SellerAddProduct() {
                         value={variationForm.price}
                         onChange={(e) => setVariationForm({ ...variationForm, price: e.target.value })}
                         placeholder="0.00"
-                        className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
                       />
                     </div>
                   </div>
@@ -1461,7 +1461,7 @@ export default function SellerAddProduct() {
                         value={variationForm.discPrice}
                         onChange={(e) => setVariationForm({ ...variationForm, discPrice: e.target.value })}
                         placeholder="0.00"
-                        className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
                       />
                     </div>
                   </div>
@@ -1474,7 +1474,7 @@ export default function SellerAddProduct() {
                       value={variationForm.stock}
                       onChange={(e) => setVariationForm({ ...variationForm, stock: e.target.value })}
                       placeholder="0 = Unlimited"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
                     />
                   </div>
                   {shouldShowField('online_offer_price') && (
@@ -1489,7 +1489,7 @@ export default function SellerAddProduct() {
                         value={variationForm.offerPrice}
                         onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
                         placeholder="Optional"
-                        className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                        className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
                       />
                     </div>
                   </div>
@@ -1505,7 +1505,7 @@ export default function SellerAddProduct() {
                                 value={variationForm.barcode}
                                 onChange={(e) => setVariationForm({ ...variationForm, barcode: e.target.value })}
                                 placeholder="Scan or Enter"
-                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
                             />
                             <button
                                 type="button"
@@ -1522,7 +1522,7 @@ export default function SellerAddProduct() {
                     <button
                       type="button"
                       onClick={addVariation}
-                      className="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                      className="px-6 py-2 bg-seller-600 hover:bg-seller-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
                     >
                       Add Variation +
                     </button>
@@ -1553,7 +1553,7 @@ export default function SellerAddProduct() {
                           </div>
                           <div>
                             <span className="text-xs text-neutral-400 block">Price</span>
-                            <span className="font-medium text-teal-600">₹{variation.price}</span>
+                            <span className="font-medium text-seller-600">₹{variation.price}</span>
                             {variation.discPrice > 0 && (
                                <span className="text-xs text-neutral-400 line-through ml-2">₹{variation.discPrice}</span>
                             )}
@@ -1564,7 +1564,7 @@ export default function SellerAddProduct() {
                           </div>
                           <div>
                             <span className="text-xs text-neutral-400 block">Status</span>
-                            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${variation.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${variation.status === 'Available' ? 'bg-seller-100 text-seller-800' : 'bg-red-100 text-red-800'}`}>
                               {variation.status}
                             </span>
                           </div>
@@ -1587,7 +1587,7 @@ export default function SellerAddProduct() {
 
           {/* Add Other Details Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Additional Details</h2>
             </div>
             <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
@@ -1603,7 +1603,7 @@ export default function SellerAddProduct() {
                     value={formData.manufacturer}
                     onChange={handleChange}
                     placeholder="Enter Manufacturer Name"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
                 )}
@@ -1618,7 +1618,7 @@ export default function SellerAddProduct() {
                     value={formData.madeIn}
                     onChange={handleChange}
                     placeholder="Enter Country/Region"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
                 )}
@@ -1658,7 +1658,7 @@ export default function SellerAddProduct() {
                     value={formData.maxReturnDays}
                     onChange={handleChange}
                     placeholder="e.g. 7"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
                 )}
@@ -1673,7 +1673,7 @@ export default function SellerAddProduct() {
                     value={formData.fssaiLicNo}
                     onChange={handleChange}
                     placeholder="Enter License Number"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
                 )}
@@ -1688,7 +1688,7 @@ export default function SellerAddProduct() {
                     value={formData.totalAllowedQuantity}
                     onChange={handleChange}
                     placeholder="e.g. 10"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                   <p className="text-xs text-neutral-500 mt-1">
                     Max quantity a user can buy at once
@@ -1706,7 +1706,7 @@ export default function SellerAddProduct() {
                     value={(formData as any).lowStockQuantity}
                     onChange={handleChange}
                     placeholder="Alert when stock below..."
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
 
@@ -1721,7 +1721,7 @@ export default function SellerAddProduct() {
                      value={(formData as any).purchasePrice}
                      onChange={handleChange}
                      placeholder="Enter Purchase Price"
-                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                    />
                 </div>
                 )}
@@ -1737,7 +1737,7 @@ export default function SellerAddProduct() {
                      value={(formData as any).hsnCode}
                      onChange={handleChange}
                      placeholder="Enter HSN Code"
-                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                    />
                 </div>
                 )}
@@ -1753,7 +1753,7 @@ export default function SellerAddProduct() {
                      value={(formData as any).deliveryTime}
                      onChange={handleChange}
                      placeholder="e.g. 2 Days, 24 Hours"
-                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                    />
                 </div>
                 )}
@@ -1769,12 +1769,12 @@ export default function SellerAddProduct() {
                       value={(formData as any).barcode}
                       onChange={handleChange}
                       placeholder="Scan or enter barcode manually"
-                      className="flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                      className="flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                     />
                     <button
                         type="button"
                         onClick={() => startScanning("product")}
-                        className="px-4 py-2 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 text-teal-700 flex items-center gap-2 font-medium transition-colors"
+                        className="px-4 py-2 bg-seller-50 border border-seller-200 rounded-lg hover:bg-seller-100 text-seller-700 flex items-center gap-2 font-medium transition-colors"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
                         Scan Code
@@ -1788,7 +1788,7 @@ export default function SellerAddProduct() {
 
           {/* Print Barcodes Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Print Barcodes</h2>
             </div>
             <div className="p-6 border-x border-b border-neutral-200 rounded-b-xl">
@@ -1799,7 +1799,7 @@ export default function SellerAddProduct() {
                       type="number"
                       value={printQuantity}
                       onChange={(e) => setPrintQuantity(e.target.value)}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 shadow-sm"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-seller-500/20 shadow-sm"
                       placeholder="Enter Quantity"
                    />
                 </div>
@@ -1807,7 +1807,7 @@ export default function SellerAddProduct() {
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">Select Barcode</label>
                     <div className="relative">
                         <select
-                            className="w-full px-4 py-2 border border-neutral-300 rounded-lg appearance-none bg-white focus:ring-2 focus:ring-teal-500/20 shadow-sm pr-10 cursor-pointer"
+                            className="w-full px-4 py-2 border border-neutral-300 rounded-lg appearance-none bg-white focus:ring-2 focus:ring-seller-500/20 shadow-sm pr-10 cursor-pointer"
                             value={selectedPrintBarcode}
                             onChange={(e) => {
                                 const val = e.target.value;
@@ -1830,8 +1830,8 @@ export default function SellerAddProduct() {
                         </div>
                     </div>
                 </div>
-                <div className="text-sm text-neutral-500 italic bg-teal-50 p-3 rounded-lg border border-teal-100 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div className="text-sm text-neutral-500 italic bg-seller-50 p-3 rounded-lg border border-seller-100 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-seller-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     * Select a barcode to immediately open the print preview.
                 </div>
               </div>
@@ -1883,7 +1883,7 @@ export default function SellerAddProduct() {
                             <button
                                 type="button"
                                 onClick={applySearchedImage}
-                                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                                className="px-4 py-2 bg-seller-600 hover:bg-seller-700 text-white rounded-lg text-sm font-medium transition-colors"
                             >
                                 Use this Image
                             </button>
@@ -1898,13 +1898,13 @@ export default function SellerAddProduct() {
           {/* Shop by Store Section */}
           {shouldShowField('shop_by_store_only') && (
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-teal-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Store Visibility</h2>
             </div>
             <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
-              <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 flex gap-3 items-start">
-                 <svg className="w-5 h-5 text-teal-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                 <p className="text-sm text-teal-800">
+              <div className="bg-seller-50 border border-seller-200 rounded-lg p-4 flex gap-3 items-start">
+                 <svg className="w-5 h-5 text-seller-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                 <p className="text-sm text-seller-800">
                    <strong>Note:</strong> If you select "Show in Shop by Store only", this product will <strong>only</strong> be visible in the selected store's specific page and will not appear on general category pages or the home page.
                  </p>
               </div>
@@ -1951,7 +1951,7 @@ export default function SellerAddProduct() {
               className={`px-8 py-3 rounded-lg font-medium text-lg transition-colors shadow-sm ${
                 uploading || !isEnabled
                   ? "bg-neutral-400 cursor-not-allowed text-white"
-                  : "bg-teal-600 hover:bg-teal-700 text-white"
+                  : "bg-seller-600 hover:bg-seller-700 text-white"
               }`}>
               {uploading ? "Uploading Images..." : id ? "Update Product" : "Add Product"}
             </button>
@@ -1962,11 +1962,11 @@ export default function SellerAddProduct() {
       {isScanning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
-            <div className="p-4 bg-teal-600 text-white flex justify-between items-center">
+            <div className="p-4 bg-seller-600 text-white flex justify-between items-center">
               <h3 className="font-semibold">Scan Barcode</h3>
               <button
                 onClick={stopScanning}
-                className="p-1 hover:bg-teal-700 rounded-full transition-colors"
+                className="p-1 hover:bg-seller-700 rounded-full transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>

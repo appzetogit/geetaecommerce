@@ -55,7 +55,7 @@ export default function CategoryListView({
                   type="checkbox"
                   checked={allSelected}
                   onChange={onSelectAll}
-                  className="rounded border-neutral-300 text-[#E91E63] focus:ring-[#E91E63]"
+                  className="rounded border-neutral-300 text-[#f187b5] focus:ring-[#f187b5]"
                   ref={(input) => {
                     if (input) {
                       input.indeterminate = someSelected;
@@ -91,14 +91,14 @@ export default function CategoryListView({
               <tr
                 key={category._id}
                 className={`hover:bg-neutral-50 ${
-                  selectedIds.has(category._id) ? "bg-[#E91E63]/10" : ""
+                  selectedIds.has(category._id) ? "bg-[#f187b5]/10" : ""
                 }`}>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <input
                     type="checkbox"
                     checked={selectedIds.has(category._id)}
                     onChange={() => onSelect(category._id)}
-                    className="rounded border-neutral-300 text-[#E91E63] focus:ring-[#E91E63]"
+                    className="rounded border-neutral-300 text-[#f187b5] focus:ring-[#f187b5]"
                   />
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
@@ -130,7 +130,7 @@ export default function CategoryListView({
                     onClick={() => onCategoryClick(category)}
                     className={`text-sm font-medium text-neutral-900 transition-colors flex items-center gap-2 ${
                        (category.childrenCount || 0) > 0
-                         ? "cursor-pointer hover:text-[#E91E63]"
+                         ? "cursor-pointer hover:text-[#f187b5]"
                          : ""
                     }`}
                   >
@@ -193,7 +193,7 @@ export default function CategoryListView({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onEdit(category)}
-                      className="text-[#E91E63] hover:text-[#D81B60]"
+                      className="text-[#f187b5] hover:text-[#e076a5]"
                       title="Edit">
                       <svg
                         width="16"
@@ -260,7 +260,7 @@ export default function CategoryListView({
                       onClick={() => onPageChange(page)}
                       className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                         currentPage === page
-                          ? "bg-[#E91E63] text-white"
+                          ? "bg-[#f187b5] text-white"
                           : "bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50"
                       }`}>
                       {page}

@@ -88,14 +88,14 @@ export default function SellerShippedOrders() {
           <p className="text-sm text-neutral-500 mt-1">View and manage orders that have been shipped</p>
         </div>
         <div className="flex items-center gap-2 text-sm bg-neutral-50 px-3 py-1.5 rounded-lg border border-neutral-200">
-          <Link to="/seller" className="text-teal-600 hover:text-teal-700 font-medium">Home</Link>
+          <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium">Home</Link>
           <span className="text-neutral-400">/</span>
           <span className="text-neutral-600">Shipped Orders</span>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
-        <div className="bg-teal-600 text-white px-4 sm:px-6 py-2 sm:py-3">
+        <div className="bg-seller-600 text-white px-4 sm:px-6 py-2 sm:py-3">
           <h2 className="text-base sm:text-lg font-semibold">View Order List</h2>
         </div>
 
@@ -104,7 +104,7 @@ export default function SellerShippedOrders() {
             <div className="flex flex-col md:flex-row gap-4 w-full xl:w-auto">
               <div className="w-full md:w-auto">
                 <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5 block">Date Range</label>
-                <div className="flex items-center gap-2 bg-white border border-neutral-300 rounded-lg px-3 py-2 w-full md:w-64 focus-within:ring-2 focus-within:ring-teal-500/20 focus-within:border-teal-500 transition-all">
+                <div className="flex items-center gap-2 bg-white border border-neutral-300 rounded-lg px-3 py-2 w-full md:w-64 focus-within:ring-2 focus-within:ring-seller-500/20 focus-within:border-seller-500 transition-all">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-neutral-400"><path d="M8 7V3M16 7V3M7 11H17M5 21H19C20.1046 21 21 20.1046 21 19V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V19C3 20.1046 3.89543 21 5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   <input type="text" value={dateRange} onChange={(e) => { setDateRange(e.target.value); setCurrentPage(1); }} className="flex-1 text-sm bg-transparent focus:outline-none text-neutral-700 placeholder:text-neutral-400" placeholder="MM/DD/YYYY - MM/DD/YYYY" />
                   {dateRange && <button onClick={handleClearDate} className="text-neutral-400 hover:text-neutral-600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6L18 18"></path></svg></button>}
@@ -116,17 +116,17 @@ export default function SellerShippedOrders() {
                <div className="w-full md:w-64">
                 <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5 block">Search</label>
                 <div className="relative">
-                  <input type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all placeholder:text-neutral-400" placeholder="Search orders..." />
+                  <input type="text" value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }} className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all placeholder:text-neutral-400" placeholder="Search orders..." />
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                 </div>
               </div>
-              <div className="w-full md:w-auto self-end"><button onClick={handleExport} className="w-full md:w-auto flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow active:scale-95"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/></svg><span>Export</span></button></div>
+              <div className="w-full md:w-auto self-end"><button onClick={handleExport} className="w-full md:w-auto flex items-center justify-center gap-2 bg-seller-600 hover:bg-seller-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow active:scale-95"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/></svg><span>Export</span></button></div>
             </div>
           </div>
         </div>
 
-        {loading && <div className="flex flex-col items-center justify-center p-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600 mb-4"></div><div className="text-neutral-500 font-medium">Loading orders data...</div></div>}
-        {error && !loading && <div className="p-6 text-center"><div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-4"><svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div><h3 className="text-lg font-medium text-neutral-900">Error Loading Orders</h3><p className="text-neutral-500 mt-1">{error}</p><button onClick={() => window.location.reload()} className="mt-4 text-teal-600 hover:text-teal-700 font-medium">Try Again</button></div>}
+        {loading && <div className="flex flex-col items-center justify-center p-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-seller-600 mb-4"></div><div className="text-neutral-500 font-medium">Loading orders data...</div></div>}
+        {error && !loading && <div className="p-6 text-center"><div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mb-4"><svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div><h3 className="text-lg font-medium text-neutral-900">Error Loading Orders</h3><p className="text-neutral-500 mt-1">{error}</p><button onClick={() => window.location.reload()} className="mt-4 text-seller-600 hover:text-seller-700 font-medium">Try Again</button></div>}
 
         {!loading && !error && (
           <div className="overflow-x-auto">
@@ -135,7 +135,7 @@ export default function SellerShippedOrders() {
                 <tr>
                   {[{ id: 'orderId', label: 'Order ID' }, { id: 'deliveryDate', label: 'Delivery Date' }, { id: 'orderDate', label: 'Order Date' }, { id: 'status', label: 'Status' }, { id: 'amount', label: 'Amount' }].map((header) => (
                     <th key={header.id} className="px-6 py-4 text-left text-xs font-bold text-neutral-500 uppercase tracking-wider">
-                      <button onClick={() => handleSort(header.id as SortField)} className="flex items-center gap-2 hover:text-teal-700 transition-colors group">{header.label}<span className={`transition-colors ${sortField === header.id ? 'text-teal-600' : 'text-neutral-300 group-hover:text-neutral-400'}`}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d={sortField === header.id && sortDirection === 'desc' ? "M6 9l6 6 6-6" : "M18 15l-6-6-6 6"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span></button>
+                      <button onClick={() => handleSort(header.id as SortField)} className="flex items-center gap-2 hover:text-seller-700 transition-colors group">{header.label}<span className={`transition-colors ${sortField === header.id ? 'text-seller-600' : 'text-neutral-300 group-hover:text-neutral-400'}`}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d={sortField === header.id && sortDirection === 'desc' ? "M6 9l6 6 6-6" : "M18 15l-6-6-6 6"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span></button>
                     </th>
                   ))}
                   <th className="px-6 py-4 text-left text-xs font-bold text-neutral-500 uppercase tracking-wider">Action</th>
@@ -146,14 +146,14 @@ export default function SellerShippedOrders() {
                   <tr><td colSpan={6} className="px-6 py-12 text-center"><div className="flex flex-col items-center justify-center"><div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mb-4"><svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 022-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg></div><h3 className="text-lg font-medium text-neutral-900">No shipped orders</h3><p className="text-neutral-500 mt-1">Try adjusting your search or filters</p></div></td></tr>
                 ) : (
                   paginatedOrders.map((order, index) => (
-                    <motion.tr key={order.id} className="hover:bg-teal-50/30 transition-colors group" variants={itemVariants} custom={index}>
-                      <td className="px-6 py-4 text-sm font-medium text-neutral-900"><span className="font-mono text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-100">#{order.orderId}</span></td>
+                    <motion.tr key={order.id} className="hover:bg-seller-50/30 transition-colors group" variants={itemVariants} custom={index}>
+                      <td className="px-6 py-4 text-sm font-medium text-neutral-900"><span className="font-mono text-seller-700 bg-seller-50 px-2 py-0.5 rounded border border-seller-100">#{order.orderId}</span></td>
                       <td className="px-6 py-4 text-sm text-neutral-600">{order.deliveryDate}</td>
                       <td className="px-6 py-4 text-sm text-neutral-600">{order.orderDate}</td>
                       <td className="px-6 py-4"><span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}><span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-purple-500"></span>{order.status}</span></td>
                       <td className="px-6 py-4 text-sm font-semibold text-neutral-900">₹{order.amount.toFixed(2)}</td>
                       <td className="px-6 py-4">
-                        <button onClick={() => navigate(`/seller/orders/${order.id}`)} className="text-teal-600 hover:text-teal-700 hover:bg-teal-50 p-2 rounded-lg transition-all transform hover:scale-105 active:scale-95" title="View Details"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
+                        <button onClick={() => navigate(`/seller/orders/${order.id}`)} className="text-seller-600 hover:text-seller-700 hover:bg-seller-50 p-2 rounded-lg transition-all transform hover:scale-105 active:scale-95" title="View Details"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
                       </td>
                     </motion.tr>
                   ))
@@ -166,13 +166,13 @@ export default function SellerShippedOrders() {
         <div className="px-6 py-4 border-t border-neutral-200 bg-neutral-50 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-sm text-neutral-500">Showing <span className="font-semibold text-neutral-900">{orders.length === 0 ? 0 : startIndex + 1}</span> to <span className="font-semibold text-neutral-900">{Math.min(endIndex, orders.length)}</span> of <span className="font-semibold text-neutral-900">{orders.length}</span> entries</div>
           <div className="flex items-center gap-2">
-            <button onClick={handlePreviousPage} disabled={currentPage === 1} className={`p-2 rounded-lg border transition-all ${currentPage === 1 ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-white' : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-teal-500 hover:text-teal-600 shadow-sm hover:shadow'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
-            <div className="hidden sm:flex items-center gap-1">{[...Array(Math.min(5, totalPages))].map((_, i) => { let p = i + 1; if (totalPages > 5 && currentPage > 3) { p = currentPage - 2 + i; if (p > totalPages) p = i + 1 + (totalPages - 5); } if (p > totalPages || p <= 0) return null; return (<button key={p} onClick={() => setCurrentPage(p)} className={`min-w-[32px] h-8 flex items-center justify-center rounded-md text-sm font-medium transition-all ${currentPage === p ? 'bg-teal-600 text-white shadow-md' : 'text-neutral-600 hover:bg-neutral-200'}`}>{p}</button>); })}</div>
-            <button onClick={handleNextPage} disabled={currentPage >= totalPages} className={`p-2 rounded-lg border transition-all ${currentPage >= totalPages ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-white' : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-teal-500 hover:text-teal-600 shadow-sm hover:shadow'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+            <button onClick={handlePreviousPage} disabled={currentPage === 1} className={`p-2 rounded-lg border transition-all ${currentPage === 1 ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-white' : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm hover:shadow'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+            <div className="hidden sm:flex items-center gap-1">{[...Array(Math.min(5, totalPages))].map((_, i) => { let p = i + 1; if (totalPages > 5 && currentPage > 3) { p = currentPage - 2 + i; if (p > totalPages) p = i + 1 + (totalPages - 5); } if (p > totalPages || p <= 0) return null; return (<button key={p} onClick={() => setCurrentPage(p)} className={`min-w-[32px] h-8 flex items-center justify-center rounded-md text-sm font-medium transition-all ${currentPage === p ? 'bg-seller-600 text-white shadow-md' : 'text-neutral-600 hover:bg-neutral-200'}`}>{p}</button>); })}</div>
+            <button onClick={handleNextPage} disabled={currentPage >= totalPages} className={`p-2 rounded-lg border transition-all ${currentPage >= totalPages ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-white' : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm hover:shadow'}`}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
           </div>
         </div>
       </div>
-      <footer className="text-center py-6"><p className="text-sm text-neutral-500">Copyright © 2025. Developed By <Link to="/seller" className="text-teal-600 hover:text-teal-700 font-medium hover:underline">Geeta Stores</Link></p></footer>
+      <footer className="text-center py-6"><p className="text-sm text-neutral-500">Copyright © 2025. Developed By <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium hover:underline">Geeta Stores</Link></p></footer>
     </motion.div>
   );
 }

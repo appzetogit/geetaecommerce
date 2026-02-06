@@ -257,7 +257,7 @@ export default function SellerStockManagement() {
                         Monitor and update your product inventory
                     </p>
                 </div>
-                <div className="text-sm font-medium text-teal-600 bg-teal-50 px-3 py-1 rounded-full border border-teal-100">
+                <div className="text-sm font-medium text-seller-600 bg-seller-50 px-3 py-1 rounded-full border border-seller-100">
                     Dashboard / Stock
                 </div>
             </div>
@@ -334,13 +334,13 @@ export default function SellerStockManagement() {
                                 </label>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <svg className="h-4 w-4 text-neutral-400 group-focus-within:text-teal-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="h-4 w-4 text-neutral-400 group-focus-within:text-seller-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                         </svg>
                                     </div>
                                     <input
                                         type="text"
-                                        className="block w-full pl-10 pr-3 py-2.5 border border-neutral-300 rounded-lg text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
+                                        className="block w-full pl-10 pr-3 py-2.5 border border-neutral-300 rounded-lg text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all shadow-sm"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                         placeholder="Name, Seller, SKU..."
@@ -456,18 +456,18 @@ export default function SellerStockManagement() {
                         </thead>
                         <tbody className="divide-y divide-neutral-100">
                             {filteredItems.map((item) => (
-                                <tr key={item.variationId} className="hover:bg-teal-50/30 transition-colors text-sm text-neutral-700 group">
+                                <tr key={item.variationId} className="hover:bg-seller-50/30 transition-colors text-sm text-neutral-700 group">
                                     <td className="p-4 align-middle text-xs text-neutral-500">
                                         <button
                                             onClick={() => copyToClipboard(item.variationId)}
-                                            className="flex items-center gap-1 hover:text-teal-600 transition-colors"
+                                            className="flex items-center gap-1 hover:text-seller-600 transition-colors"
                                             title="Click to copy ID"
                                         >
                                             <span className="truncate max-w-[80px] inline-block font-mono">
                                                 {item.variationId.substring(0, 10)}...
                                             </span>
                                             {copiedId === item.variationId ? (
-                                                <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                                <svg className="w-3 h-3 text-seller-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                                             ) : (
                                                 <svg className="w-3 h-3 text-neutral-400 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                                             )}
@@ -476,14 +476,14 @@ export default function SellerStockManagement() {
                                     <td className="p-4 align-middle text-xs text-neutral-500">
                                         <button
                                             onClick={() => copyToClipboard(item.productId)}
-                                            className="flex items-center gap-1 hover:text-teal-600 transition-colors"
+                                            className="flex items-center gap-1 hover:text-seller-600 transition-colors"
                                             title="Click to copy ID"
                                         >
                                             <span className="truncate max-w-[80px] inline-block font-mono">
                                                 {item.productId.substring(0, 10)}...
                                             </span>
                                             {copiedId === item.productId ? (
-                                                <svg className="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                                <svg className="w-3 h-3 text-seller-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                                             ) : (
                                                 <svg className="w-3 h-3 text-neutral-400 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                                             )}
@@ -492,7 +492,7 @@ export default function SellerStockManagement() {
                                     <td className="p-4 align-middle font-medium text-neutral-800">
                                         <button
                                             onClick={() => navigate(`/seller/product/edit/${item.productId}`)}
-                                            className="hover:text-teal-600 hover:underline text-left transition-all"
+                                            className="hover:text-seller-600 hover:underline text-left transition-all"
                                             title="Edit product"
                                         >
                                             {item.name}
@@ -522,7 +522,7 @@ export default function SellerStockManagement() {
                                                 ? 'bg-red-50 text-red-600 border border-red-100'
                                                 : (typeof item.stock === 'number' && item.stock < 10)
                                                     ? 'bg-amber-50 text-amber-600 border border-amber-100' // Low stock warning
-                                                    : 'bg-green-50 text-green-600 border border-green-100'
+                                                    : 'bg-seller-50 text-seller-600 border border-seller-100'
                                                 }`}
                                         >
                                                 {item.stock} Units
@@ -531,7 +531,7 @@ export default function SellerStockManagement() {
                                     <td className="p-4 align-middle text-center">
                                         <button
                                             onClick={() => handleToggleStatus(item.productId, item.status === 'Published')}
-                                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95 ${item.status === 'Published' ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95 ${item.status === 'Published' ? 'bg-seller-100 text-seller-700 hover:bg-seller-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                                             title="Click to toggle visibility"
                                         >
                                             {item.status}
@@ -559,7 +559,7 @@ export default function SellerStockManagement() {
                                                     min="0"
                                                     disabled={!isEnabled}
                                                     defaultValue={item.stock}
-                                                    className={`w-14 px-2 py-1 text-center text-sm focus:outline-none focus:bg-teal-50/50 appearance-none m-0 border-none transition-all ${!isEnabled ? 'bg-neutral-50 text-neutral-400' : ''}`}
+                                                    className={`w-14 px-2 py-1 text-center text-sm focus:outline-none focus:bg-seller-50/50 appearance-none m-0 border-none transition-all ${!isEnabled ? 'bg-neutral-50 text-neutral-400' : ''}`}
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter' && isEnabled) {
                                                             const val = parseInt((e.target as HTMLInputElement).value);
@@ -600,7 +600,7 @@ export default function SellerStockManagement() {
                                                 }}
                                                 className={`p-2 rounded-lg transition-all shadow-sm ${
                                                     isEnabled
-                                                    ? "bg-teal-600 text-white hover:bg-teal-700 hover:scale-110 active:scale-95"
+                                                    ? "bg-seller-600 text-white hover:bg-seller-700 hover:scale-110 active:scale-95"
                                                     : "bg-neutral-300 text-white cursor-not-allowed"
                                                 }`}
                                                 title={isEnabled ? "Update Stock" : "Account Disabled"}
@@ -670,7 +670,7 @@ export default function SellerStockManagement() {
                             disabled={currentPage === 1}
                             className={`p-2 rounded-lg border transition-all ${currentPage === 1
                                 ? 'border-neutral-200 text-neutral-300 cursor-not-allowed'
-                                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-teal-500 hover:text-teal-600 shadow-sm'
+                                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm'
                                 }`}
                             aria-label="Previous page"
                         >
@@ -685,7 +685,7 @@ export default function SellerStockManagement() {
                                     onClick={() => setCurrentPage(page)}
                                      className={`min-w-[36px] h-[36px] flex items-center justify-center rounded-lg text-sm font-medium transition-all ${
                                         currentPage === page
-                                            ? "bg-teal-600 text-white shadow-md shadow-teal-200"
+                                            ? "bg-seller-600 text-white shadow-md shadow-seller-200"
                                             : "text-neutral-600 hover:bg-neutral-100"
                                     }`}
                                 >
@@ -699,7 +699,7 @@ export default function SellerStockManagement() {
                             disabled={currentPage === totalPages}
                             className={`p-2 rounded-lg border transition-all ${currentPage === totalPages
                                 ? 'border-neutral-200 text-neutral-300 cursor-not-allowed'
-                                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-teal-500 hover:text-teal-600 shadow-sm'
+                                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm'
                                 }`}
                             aria-label="Next page"
                         >

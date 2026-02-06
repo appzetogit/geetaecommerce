@@ -416,9 +416,9 @@ export default function CategoryFormModal({
         <div className="px-6 py-4">
           {/* Parent Category Info (for subcategory mode) */}
           {isSubcategoryMode && parentCategory && (
-            <div className="mb-4 p-3 bg-[#E91E63]/10 border border-[#E91E63]/30 rounded-lg">
-              <p className="text-sm text-[#E91E63]">Parent Category</p>
-              <p className="text-base font-semibold text-[#E91E63]">
+            <div className="mb-4 p-3 bg-[#f187b5]/10 border border-[#f187b5]/30 rounded-lg">
+              <p className="text-sm text-[#f187b5]">Parent Category</p>
+              <p className="text-base font-semibold text-[#f187b5]">
                 {parentCategory.name}
               </p>
             </div>
@@ -441,7 +441,7 @@ export default function CategoryFormModal({
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${
                 errors.name ? "border-red-300" : "border-neutral-300"
               }`}
               placeholder="Enter category name"
@@ -507,7 +507,7 @@ export default function CategoryFormModal({
                   disabled
                   className="w-full px-3 py-2 border border-neutral-300 rounded-lg bg-neutral-50 text-neutral-600 cursor-not-allowed"
                 />
-                <p className="mt-1 text-xs text-[#E91E63]">
+                <p className="mt-1 text-xs text-[#f187b5]">
                   Inherited from parent category
                 </p>
                 {errors.headerCategoryId && (
@@ -546,7 +546,7 @@ export default function CategoryFormModal({
                           headerCategoryId: e.target.value || null,
                         }))
                       }
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${
                         errors.headerCategoryId
                           ? "border-red-300"
                           : "border-neutral-300"
@@ -582,8 +582,8 @@ export default function CategoryFormModal({
             <label
               className={`block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
                 isDragging
-                  ? "border-[#E91E63] bg-[#E91E63]/10"
-                  : "border-neutral-300 hover:border-[#E91E63]"
+                  ? "border-[#f187b5] bg-[#f187b5]/10"
+                  : "border-neutral-300 hover:border-[#f187b5]"
               }`}
               onDragEnter={handleDragEnter}
               onDragOver={handleDragOver}
@@ -659,7 +659,7 @@ export default function CategoryFormModal({
                     parentId: e.target.value || null,
                   }))
                 }
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${
                   errors.parentId ? "border-red-300" : "border-neutral-300"
                 }`}
                 disabled={submitting}>
@@ -687,7 +687,7 @@ export default function CategoryFormModal({
               value={formData.order}
               onChange={handleInputChange}
               min="0"
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${
                 errors.order ? "border-red-300" : "border-neutral-300"
               }`}
               disabled={submitting}
@@ -790,7 +790,7 @@ export default function CategoryFormModal({
                     name="groupCategory"
                     value={formData.groupCategory}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]"
                     placeholder="Enter group category"
                     disabled={submitting}
                   />
@@ -814,7 +814,7 @@ export default function CategoryFormModal({
             className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
               submitting || uploading
                 ? "bg-neutral-400 cursor-not-allowed"
-                : "bg-[#E91E63] hover:bg-[#D81B60]"
+                : "bg-[#f187b5] hover:bg-[#e076a5]"
             }`}>
             {submitting
               ? "Saving..."

@@ -1266,7 +1266,7 @@ const AdminPOSOrders = () => {
         <div className="flex gap-2">
             <button
               onClick={() => setShowAddCustomerModal(true)}
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-bold hover:bg-teal-700 transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-[#f187b5] text-white rounded-lg text-sm font-bold hover:bg-[#e076a5] transition-colors flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -1276,7 +1276,7 @@ const AdminPOSOrders = () => {
 
             <button
               onClick={() => navigate('/admin/pos/customers')}
-              className="px-4 py-2 bg-[#E91E63] text-white border border-[#E91E63] rounded-lg text-sm font-bold hover:bg-[#D81B60] transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-[#f187b5] text-white border border-[#f187b5] rounded-lg text-sm font-bold hover:bg-[#e076a5] transition-colors flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -1387,7 +1387,7 @@ const AdminPOSOrders = () => {
                                     )}
                                 </div>
                                 <h3 className="text-sm font-medium text-gray-800 line-clamp-2">{product.productName}</h3>
-                                <div className="mt-2 text-green-600 font-bold">
+                                <div className="mt-2 text-[#f187b5] font-bold">
                                     ₹{ (orderType === 'Wholesale' && product.wholesalePrice) ? product.wholesalePrice : product.price }
                                     {orderType === 'Wholesale' && product.wholesalePrice && <span className="text-[10px] ml-1 text-gray-400 font-normal">(Wholesale)</span>}
                                 </div>
@@ -1416,17 +1416,17 @@ const AdminPOSOrders = () => {
                     <button
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                         disabled={currentPage === 1}
-                        className="w-10 h-10 flex items-center justify-center border border-[#E91E63] rounded text-[#E91E63] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#E91E63]/10 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center border border-[#f187b5] rounded text-[#f187b5] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#f187b5]/10 transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
-                    <button className="w-10 h-10 flex items-center justify-center bg-[#E91E63] text-white rounded font-bold shadow-sm">
+                    <button className="w-10 h-10 flex items-center justify-center bg-[#f187b5] text-white rounded font-bold shadow-sm">
                         {currentPage}
                     </button>
                      <button
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(products.length / itemsPerPage)))}
                         disabled={currentPage === Math.ceil(products.length / itemsPerPage)}
-                        className="w-10 h-10 flex items-center justify-center border border-[#E91E63] rounded text-[#E91E63] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#E91E63]/10 transition-colors"
+                        className="w-10 h-10 flex items-center justify-center border border-[#f187b5] rounded text-[#f187b5] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#f187b5]/10 transition-colors"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                     </button>
@@ -1445,7 +1445,7 @@ const AdminPOSOrders = () => {
                   <span className="text-[10px] font-bold text-gray-500 uppercase">Profit Show</span>
                   <button
                     onClick={() => setShowProfit(!showProfit)}
-                    className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${showProfit ? 'bg-teal-500' : 'bg-gray-300'}`}
+                    className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${showProfit ? 'bg-[#f187b5]' : 'bg-gray-300'}`}
                   >
                     <span
                       className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${showProfit ? 'translate-x-4.5' : 'translate-x-1'}`}
@@ -1454,7 +1454,7 @@ const AdminPOSOrders = () => {
                 </div>
                 <button
                   onClick={() => setShowQuickAdd(true)}
-                  className="bg-[#E91E63] hover:bg-[#D81B60] text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 font-medium transition-colors"
+                  className="bg-[#f187b5] hover:bg-[#e076a5] text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 font-medium transition-colors"
                 >
                   + Quick Add
                 </button>
@@ -1598,7 +1598,7 @@ const AdminPOSOrders = () => {
                   </div>
                   <button
                     onClick={() => setShowAddCustomerModal(true)}
-                    className="bg-teal-600 text-white px-3 rounded hover:bg-teal-700 transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
+                    className="bg-[#f187b5] text-white px-3 rounded hover:bg-[#e076a5] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
                     title="Add New Customer"
                   >
                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
@@ -1606,7 +1606,7 @@ const AdminPOSOrders = () => {
 
                   <button
                     onClick={() => setShowScanner(true)}
-                    className="bg-[#E91E63] text-white px-3 rounded hover:bg-[#D81B60] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
+                    className="bg-[#f187b5] text-white px-3 rounded hover:bg-[#e076a5] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
                     title="Scan Product"
                   >
                     <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -1657,13 +1657,13 @@ const AdminPOSOrders = () => {
                                    <div className="flex-1">
                                        <div className="flex items-center gap-2 text-xs mb-1">
                                            <span className="text-gray-500">MRP: <span className="line-through decoration-gray-400">₹{mrp}</span></span>
-                                           <span className="font-bold text-green-600">
+                                           <span className="font-bold text-[#f187b5]">
                                                {orderType === 'Wholesale' && (item.wholesalePrice || 0) > 0 ? 'WSP' : 'SP'}: ₹{sp}
                                            </span>
                                        </div>
                                        {showProfit && (
                                            purchasePrice > 0 ? (
-                                               <div className={`text-xs font-medium ${parseFloat(profitPercent) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                               <div className={`text-xs font-medium ${parseFloat(profitPercent) >= 0 ? 'text-[#f187b5]' : 'text-red-500'}`}>
                                                    Profit: {profitPercent}%
                                                </div>
                                            ) : (
@@ -1704,7 +1704,7 @@ const AdminPOSOrders = () => {
 
                                         <button
                                           onClick={() => updateQuantity(item._id, 1)}
-                                          className="w-7 h-7 flex items-center justify-center text-green-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold"
+                                          className="w-7 h-7 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold"
                                         >+</button>
                                    </div>
                               </div>
@@ -1732,7 +1732,7 @@ const AdminPOSOrders = () => {
                         <button
                           onClick={handleGenerateBill}
                           disabled={cart.length === 0}
-                          className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                            Generate Bill
@@ -2005,10 +2005,10 @@ const AdminPOSOrders = () => {
 
                          <button
                           onClick={() => handlePaymentSelection('Cash')}
-                          className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all"
+                          className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[#f187b5] hover:bg-pink-50 transition-all"
                         >
-                            <span className="font-semibold text-gray-700 group-hover:text-green-700">Cash</span>
-                            <span className="text-gray-300 group-hover:text-green-500">→</span>
+                            <span className="font-semibold text-gray-700 group-hover:text-[#e076a5]">Cash</span>
+                            <span className="text-gray-300 group-hover:text-[#f187b5]">→</span>
                         </button>
                      </div>
                 </div>
@@ -2237,7 +2237,7 @@ const AdminPOSOrders = () => {
       {showAddCustomerModal && (
         <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="bg-teal-600 px-6 py-4 text-white flex justify-between items-center">
+                <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center">
                     <h3 className="text-lg font-bold">Register New Customer</h3>
                     <button onClick={() => setShowAddCustomerModal(false)} className="text-white/80 hover:text-white transition-colors">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -2253,7 +2253,7 @@ const AdminPOSOrders = () => {
                                 required
                                 value={newCustomer.name}
                                 onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                                 placeholder="Enter customer name"
                             />
                         </div>
@@ -2328,7 +2328,7 @@ const AdminPOSOrders = () => {
                         <button
                             type="submit"
                             disabled={newCustomerLoading}
-                            className="flex-1 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-all shadow-lg shadow-teal-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="flex-1 py-3 bg-[#f187b5] text-white rounded-xl font-semibold hover:bg-[#e076a5] transition-all shadow-lg shadow-[#f187b5]/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {newCustomerLoading ? (
                               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -2445,7 +2445,7 @@ const AdminPOSOrders = () => {
                               <span className="text-gray-500">
                                 MRP: <span className="line-through">₹{product.mrp}</span>
                               </span>
-                              <span className="font-bold text-green-600">
+                              <span className="font-bold text-[#f187b5]">
                                 {orderType === 'Wholesale' && (product.wholesalePrice || 0) > 0
                                   ? `WSP: ₹${product.wholesalePrice}`
                                   : `SP: ₹${product.price}`}
