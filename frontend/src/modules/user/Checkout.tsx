@@ -120,16 +120,21 @@ export default function Checkout() {
   // Fetch similar products dynamically
   useEffect(() => {
     const fetchSimilar = async () => {
-      const items = (cart?.items || []).filter(item => item && item.product);
+      const items = (cart?.items || []).filter((item: any) => {
+        const p = item?.product;
+        return !!p;
+      });
       if (items.length === 0) return;
 
-      const cartItem = items[0];
+      const cartItem: any = items[0];
       try {
         let response;
-        if (cartItem && cartItem.product) {
+        if (cartItem) {
           // Try to fetch by category of the first item
           let catId = '';
           const product = cartItem.product;
+
+          if (!product) return;
 
           if (product.categoryId) {
             catId = typeof product.categoryId === 'string'
@@ -186,25 +191,32 @@ export default function Checkout() {
     );
   }
 
-  const displayItems = (cart?.items || []).filter(item => item && item.product);
+  const displayItems = (cart?.items || []).filter((item: any) => {
+    const p = item?.product;
+    return !!p;
+  });
   const displayCart = {
     ...cart,
     items: displayItems,
     itemCount: displayItems.reduce((sum, item) => sum + (item.quantity || 0), 0),
-    total: displayItems.reduce((sum, item) => {
+    total: displayItems.reduce((sum: number, item: any) => {
       if (item.isFreeGift) return sum;
-      const unitPrice = getApplicableUnitPrice(item.product, item.variant, item.quantity || 0);
-      return sum + unitPrice * (item.quantity || 0);
+      const p = item.product;
+      const v = item.variant;
+      const q = item.quantity || 0;
+      const unitPrice = getApplicableUnitPrice(p, v, q);
+      return sum + unitPrice * q;
     }, 0)
   };
 
   const amountNeededForFreeDelivery = Math.max(0, config.freeDeliveryThreshold - (displayCart.total || 0));
   const cartItem = displayItems[0];
 
-  const itemsTotal = displayItems.reduce((sum, item) => {
-    if (!item?.product || item.isFreeGift) return sum;
+  const itemsTotal = displayItems.reduce((sum: number, item: any) => {
+    const p = item?.product;
+    if (!p || item.isFreeGift) return sum;
     // For MRp calculation in savings, we still compare MRP vs Tier Price
-    const { mrp } = calculateProductPrice(item.product, item.variant);
+    const { mrp } = calculateProductPrice(p, item.variant);
     // Determine the effective price we are selling at (this is 'discountedTotal' effectively, but 'Items total' in UI usually means MRP total in Indian e-commerce to show savings, OR it means Selling Price total.
     // Usually:
     // Items Total (MRP): ₹200
@@ -213,7 +225,8 @@ export default function Checkout() {
     //
     // The code below suggests 'itemsTotal' is used to calculate 'savedAmount' = itemsTotal - discountedTotal.
     // So itemsTotal MUST be the MRP total.
-    return sum + (mrp * (item.quantity || 0));
+    const q = item.quantity || 0;
+    return sum + (mrp * q);
   }, 0);
 
   const discountedTotal = displayCart.total;
@@ -365,22 +378,23 @@ export default function Checkout() {
     setIsProcessingPayment(true);
     try {
         const orderData = {
-            items: cart.items.map(item => {
-                if (!item.product) return null;
+            items: cart.items.map((item: any) => {
+                if (!item?.product) return null;
 
                 const product = item.product;
                 const activeRule = getActiveFreeGiftRule();
                 const isFreeGiftItem = item.isFreeGift;
 
                 // Get the most reliable ID
-                const productId = (product as any).id || (product as any)._id;
+                const productId = product.id || product._id;
                 const qty = item.quantity ?? 0;
-                const price = isFreeGiftItem ? 0 : (item as any).price ?? 0;
+                const price = isFreeGiftItem ? 0 : item.price ?? 0;
+                const variant = item.variant;
 
                 return {
                     product: { id: productId },
                     quantity: qty,
-                    variant: item.variant, // Assuming backend handles this structure
+                    variant: variant, // Assuming backend handles this structure
                     isFreeGift: isFreeGiftItem || false,
                     price: price,
                     freeGiftReason: isFreeGiftItem && activeRule ? `Cart value ≥ ₹${activeRule.minCartValue}` : undefined
@@ -486,14 +500,16 @@ export default function Checkout() {
 
     const order: Order = {
       id: orderId,
-      items: cart.items.map(item => {
-          if (!item.product) return null;
+      items: cart.items.map((item: any) => {
+          if (!item?.product) return null;
 
           const product = item.product;
+          const productId = product.id || product._id;
           const activeRule = getActiveFreeGiftRule();
           const isFreeGiftItem = item.isFreeGift;
           const qty = item.quantity ?? 0;
-          const price = isFreeGiftItem ? 0 : (item as any).price || getApplicableUnitPrice(product, item.variant, qty);
+          const variant = item.variant;
+          const price = isFreeGiftItem ? 0 : item.price || getApplicableUnitPrice(product, variant, qty);
 
           return {
               ...item,
@@ -931,9 +947,11 @@ export default function Checkout() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
-                          const variantTitle = (item.product as any).variantTitle || (item.product as any).pack;
-                          updateQuantity((item.product?.id || item.product?._id || '') as string, (item.quantity || 1) - 1, variantId, variantTitle);
+                          const prod = item.product;
+                          const vId = (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
+                          const vTitle = (prod as any).variantTitle || (prod as any).pack;
+                          const pId = prod?.id || prod?._id || '';
+                          updateQuantity(pId as string, (item.quantity || 1) - 1, vId, vTitle);
                         }}
                         className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors text-xs"
                       >
@@ -947,9 +965,11 @@ export default function Checkout() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          const variantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id || item.variant;
-                          const variantTitle = (item.product as any).variantTitle || (item.product as any).pack;
-                          updateQuantity((item.product?.id || item.product?._id || '') as string, (item.quantity || 1) + 1, variantId, variantTitle);
+                           const prod = item.product;
+                           const vId = (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
+                           const vTitle = (prod as any).variantTitle || (prod as any).pack;
+                           const pId = prod?.id || prod?._id || '';
+                           updateQuantity(pId as string, (item.quantity || 1) + 1, vId, vTitle);
                         }}
                         className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors text-xs"
                       >
@@ -996,8 +1016,9 @@ export default function Checkout() {
 
             // Get quantity in cart
             const productId = product.id || product._id;
-            const inCartItem = (cart?.items || []).find(item => {
-              const itemProductId = item.product?.id || item.product?._id;
+            const inCartItem = (cart?.items || []).find((item: any) => {
+              const itemProd = item?.product;
+              const itemProductId = itemProd?.id || itemProd?._id;
               return itemProductId === productId;
             });
             const inCartQty = inCartItem?.quantity || 0;
