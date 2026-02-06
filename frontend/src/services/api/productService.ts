@@ -67,6 +67,10 @@ export interface Product {
   discPrice?: number;
   lowStockQuantity?: number;
   deliveryTime?: string;
+  price?: number;
+  stock?: number;
+  compareAtPrice?: number;
+  barcode?: string;
   createdAt?: string;
   updatedAt?: string;
   // Fallback for old fields if any legacy code uses them

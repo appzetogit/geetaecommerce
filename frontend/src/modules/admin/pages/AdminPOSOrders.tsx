@@ -2476,7 +2476,7 @@ const AdminPOSOrders = () => {
                             </h4>
                             <div className="flex items-center gap-2 text-xs mb-2">
                               <span className="text-gray-500">
-                                MRP: <span className="line-through">₹{product.mrp}</span>
+                                MRP: <span className="line-through">₹{product.compareAtPrice || 0}</span>
                               </span>
                               <span className="font-bold text-[#f187b5]">
                                 {orderType === 'Wholesale' && (product.wholesalePrice || 0) > 0

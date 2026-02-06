@@ -9,17 +9,20 @@ export interface Category {
 
 export interface Product {
   id: string;
-  _id?: string;
+  _id: string;
   name: string;
   productName?: string;
   description?: string;
   smallDescription?: string;
   pack: string;
-  price: number;
+  price?: number;
   mrp?: number;
   discPrice?: number;
+  compareAtPrice?: number;
+  sku?: string;
+  isVariation?: boolean;
   variations?: Array<{
-    title?: string; // made optional as per user data which has name/value
+    title?: string;
     name?: string;
     value?: string;
     price: number;
@@ -27,7 +30,7 @@ export interface Product {
     stock?: number;
     status?: string;
     _id?: { $oid: string } | string;
-    tieredPrices?: { minQty: number; price: number }[]; // Added
+    tieredPrices?: { minQty: number; price: number }[];
   }>;
   imageUrl?: string;
   mainImage?: string;
