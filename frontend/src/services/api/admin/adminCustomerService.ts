@@ -103,3 +103,13 @@ export const getCustomerOrders = async (
   );
   return response.data;
 };
+
+/**
+ * Create a new customer
+ */
+export const createCustomer = async (
+  data: Partial<Customer>
+): Promise<ApiResponse<Customer>> => {
+  const response = await api.post<ApiResponse<Customer>>("/admin/customers", data);
+  return response.data;
+};

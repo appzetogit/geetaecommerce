@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { getProducts, getProductById, getPOSProducts, Product, getSellers, updateProduct, createProduct } from '../../../services/api/admin/adminProductService';
 import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getOrderById, updateOrderItems } from '../../../services/api/admin/adminOrderService';
-import { getAllCustomers, Customer } from '../../../services/api/admin/adminCustomerService';
+import { getAllCustomers, createCustomer, Customer } from '../../../services/api/admin/adminCustomerService';
 import { getAppSettings, AppSettings } from '../../../services/api/admin/adminSettingsService';
 import { getCategories } from '../../../services/api/categoryService';
 import { getBrands } from '../../../services/api/brandService';
@@ -324,10 +324,27 @@ const AdminPOSOrders = () => {
   const [showModalBreakdown, setShowModalBreakdown] = useState(false);
   const [lastBillDetails, setLastBillDetails] = useState<{total: number, invoiceNum: string, date: string, time: string, cart: CartItem[], isPaid: boolean} | null>(null);
 
+  // Add Customer Modal State
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [newCustomerLoading, setNewCustomerLoading] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: ''
+  });
+
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
   const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
   const lastScanRef = useRef({ code: '', time: 0 });
+
+  // Mobile Search Modal State
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
 
   // Handle Barcode Scan from Camera
   const onScanSuccess = async (decodedText: string, decodedResult: any) => {
@@ -484,6 +501,49 @@ const AdminPOSOrders = () => {
       setCustomers([]);
   };
 
+  const submitAddCustomer = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newCustomer.name || !newCustomer.phone) {
+          showToast("Name and Phone are required", "error");
+          return;
+      }
+
+      setNewCustomerLoading(true);
+      try {
+          const res = await createCustomer({
+              ...newCustomer,
+              email: newCustomer.email || `${newCustomer.phone}@placeholder.com` // Backend requires email
+          });
+
+          if (res.success && res.data) {
+              showToast("Customer added successfully", "success");
+              setSelectedCustomer(res.data);
+              setCustomerSearch(`${res.data.name} (${res.data.phone})`);
+
+              // If the user wants to jump to Credit
+              setPaymentMethod("Credit");
+
+              setShowAddCustomerModal(false);
+              setNewCustomer({
+                  name: '',
+                  phone: '',
+                  email: '',
+                  address: '',
+                  city: '',
+                  state: '',
+                  pincode: ''
+              });
+          } else {
+              showToast(res.message || "Failed to add customer", "error");
+          }
+      } catch (err: any) {
+          console.error("Error adding customer", err);
+          showToast(err.response?.data?.message || "Failed to add customer", "error");
+      } finally {
+          setNewCustomerLoading(false);
+      }
+  };
+
   const handleCustomerSearchChange = (val: string) => {
     updateActiveBill({ customerSearch: val });
   };
@@ -491,7 +551,8 @@ const AdminPOSOrders = () => {
   // Fetch Products
   useEffect(() => {
     const fetchProducts = async () => {
-      if (!searchQuery.trim()) {
+      const activeSearch = (showMobileSearch ? mobileSearchQuery : searchQuery).trim();
+      if (!activeSearch) {
         setProducts([]);
         setLoading(false);
         return;
@@ -499,10 +560,10 @@ const AdminPOSOrders = () => {
       setLoading(true);
       try {
         const response = await getProducts({
-          search: searchQuery,
-          seller: selectedSeller || undefined,
-          category: selectedCategory || undefined,
-          brand: selectedBrand || undefined,
+          search: activeSearch,
+          seller: !showMobileSearch ? (selectedSeller || undefined) : undefined,
+          category: !showMobileSearch ? (selectedCategory || undefined) : undefined,
+          brand: !showMobileSearch ? (selectedBrand || undefined) : undefined,
           limit: 1000 // Fetch all for client-side pagination
         });
         if (response.success && response.data) {
@@ -551,7 +612,7 @@ const AdminPOSOrders = () => {
     }, 500);
 
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery, selectedSeller, selectedCategory, selectedBrand]);
+  }, [searchQuery, mobileSearchQuery, selectedSeller, selectedCategory, selectedBrand, showMobileSearch]);
 
   // Barcode Scanner Handler
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1202,26 +1263,38 @@ const AdminPOSOrders = () => {
            </div>
         </div>
 
-        <button
-          onClick={() => navigate('/admin/pos/customers')}
-          className="px-4 py-2 bg-[#E91E63] text-white border border-[#E91E63] rounded-lg text-sm font-bold hover:bg-[#D81B60] transition-colors flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          Customers (Credit)
-        </button>
+        <div className="flex gap-2">
+            <button
+              onClick={() => setShowAddCustomerModal(true)}
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-bold hover:bg-teal-700 transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              Add Customer
+            </button>
+
+            <button
+              onClick={() => navigate('/admin/pos/customers')}
+              className="px-4 py-2 bg-[#E91E63] text-white border border-[#E91E63] rounded-lg text-sm font-bold hover:bg-[#D81B60] transition-colors flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Customers (Credit)
+            </button>
+        </div>
       </div>
 
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-        {/* LEFT COLUMN - PRODUCTS */}
-        <div className="lg:col-span-7 flex flex-col gap-4">
+        {/* LEFT COLUMN - PRODUCTS (Hidden on Mobile) */}
+        <div className="hidden lg:flex lg:col-span-7 flex-col gap-4">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col overflow-hidden">
 
-            {/* Top Bar (Filters) */}
-            <div className="p-4 border-b border-gray-100 flex flex-col gap-3 bg-white z-10">
+            {/* Top Bar (Filters) - Hidden on Mobile */}
+            <div className="p-4 border-b border-gray-100 hidden md:flex flex-col gap-3 bg-white z-10">
                 <div className="flex flex-col sm:flex-row gap-3">
                     <select
                       className="border border-gray-300 rounded px-3 py-2 text-sm w-full sm:w-1/3 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -1266,7 +1339,7 @@ const AdminPOSOrders = () => {
                     </select>
                 </div>
 
-                  <div className="flex w-full gap-2">
+                  <div className="hidden md:flex w-full gap-2">
                    <div className="relative flex-1">
                        <input
                        type="text"
@@ -1524,6 +1597,14 @@ const AdminPOSOrders = () => {
                       )}
                   </div>
                   <button
+                    onClick={() => setShowAddCustomerModal(true)}
+                    className="bg-teal-600 text-white px-3 rounded hover:bg-teal-700 transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
+                    title="Add New Customer"
+                  >
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                  </button>
+
+                  <button
                     onClick={() => setShowScanner(true)}
                     className="bg-[#E91E63] text-white px-3 rounded hover:bg-[#D81B60] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
                     title="Scan Product"
@@ -1677,6 +1758,28 @@ const AdminPOSOrders = () => {
                             </>
                          )}
                       </button>
+                  </div>
+
+                  {/* Mobile Search and Scan Buttons - Only visible on mobile */}
+                  <div className="md:hidden flex gap-2 mt-4">
+                    <button
+                      onClick={() => setShowMobileSearch(true)}
+                      className="flex-[2] bg-white border border-gray-200 text-gray-700 px-3 py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98]"
+                    >
+                      <svg className="w-5 h-5 text-[#E91E63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                      </svg>
+                      <span className="font-semibold text-sm whitespace-nowrap">Search Items</span>
+                    </button>
+                    <button
+                      onClick={() => setShowScanner(true)}
+                      className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98]"
+                    >
+                      <span className="font-semibold text-sm">Scan</span>
+                      <svg className="w-5 h-5 text-[#E91E63]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"/>
+                      </svg>
+                    </button>
                   </div>
               </div>
             </div>
@@ -2130,7 +2233,119 @@ const AdminPOSOrders = () => {
           </div>
       </div>
 
-  {/* --- SCANNER MODAL --- */}
+      {/* --- ADD CUSTOMER MODAL --- */}
+      {showAddCustomerModal && (
+        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="bg-teal-600 px-6 py-4 text-white flex justify-between items-center">
+                    <h3 className="text-lg font-bold">Register New Customer</h3>
+                    <button onClick={() => setShowAddCustomerModal(false)} className="text-white/80 hover:text-white transition-colors">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <form onSubmit={submitAddCustomer} className="p-6">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Full Name *</label>
+                            <input
+                                type="text"
+                                required
+                                value={newCustomer.name}
+                                onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                placeholder="Enter customer name"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Phone Number *</label>
+                                <input
+                                    type="tel"
+                                    required
+                                    pattern="[0-9]{10}"
+                                    value={newCustomer.phone}
+                                    onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                    placeholder="10 digit mobile"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email (Optional)</label>
+                                <input
+                                    type="email"
+                                    value={newCustomer.email}
+                                    onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                    placeholder="customer@email.com"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Address</label>
+                            <textarea
+                                value={newCustomer.address}
+                                onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
+                                className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all h-20 resize-none"
+                                placeholder="Street address, building, etc."
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">City</label>
+                                <input
+                                    type="text"
+                                    value={newCustomer.city}
+                                    onChange={(e) => setNewCustomer({...newCustomer, city: e.target.value})}
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                    placeholder="City"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Pincode</label>
+                                <input
+                                    type="text"
+                                    value={newCustomer.pincode}
+                                    onChange={(e) => setNewCustomer({...newCustomer, pincode: e.target.value})}
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                    placeholder="6 digit PIN"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setShowAddCustomerModal(false)}
+                            className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={newCustomerLoading}
+                            className="flex-1 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-all shadow-lg shadow-teal-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                            {newCustomerLoading ? (
+                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            ) : (
+                                <>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                    Save Customer
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+      )}
+
+      {/* --- SCANNER MODAL --- */}
       {showScanner && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative">
@@ -2151,6 +2366,148 @@ const AdminPOSOrders = () => {
                     </button>
                 </div>
             </div>
+        </div>
+      )}
+
+      {/* --- MOBILE SEARCH MODAL --- */}
+      {showMobileSearch && (
+        <div className="fixed inset-0 bg-white z-50 flex flex-col md:hidden">
+          {/* Header */}
+          <div className="bg-[#E91E63] px-4 py-3 flex items-center gap-3 shadow-md">
+            <button
+              onClick={() => {
+                setShowMobileSearch(false);
+                setMobileSearchQuery('');
+              }}
+              className="text-white"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+            <input
+              type="text"
+              value={mobileSearchQuery}
+              onChange={(e) => setMobileSearchQuery(e.target.value)}
+              placeholder="Search products..."
+              className="flex-1 px-4 py-2 rounded-lg border-none outline-none text-gray-800"
+              autoFocus
+            />
+          </div>
+
+          {/* Product List */}
+          <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+            {loading ? (
+              <div className="flex justify-center items-center h-40">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E91E63]"></div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {products
+                  .filter(product => {
+                    if (!mobileSearchQuery) return true;
+                    const query = mobileSearchQuery.toLowerCase();
+                    return (
+                      product.productName.toLowerCase().includes(query) ||
+                      (product.barcode && product.barcode.toLowerCase().includes(query))
+                    );
+                  })
+                  .slice(0, 20)
+                  .map(product => {
+                    const cartItem = cart.find(item => item._id === product._id);
+                    const inCart = !!cartItem;
+
+                    return (
+                      <div
+                        key={product._id}
+                        className={`bg-white p-4 rounded-lg border shadow-sm ${
+                          product.stock <= 0 ? 'opacity-60 grayscale' : ''
+                        }`}
+                      >
+                        <div className="flex gap-3">
+                          {/* Product Image */}
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {product.mainImage ? (
+                              <img src={product.mainImage} alt="" className="w-full h-full object-contain" />
+                            ) : (
+                              <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                              </svg>
+                            )}
+                          </div>
+
+                          {/* Product Info */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-gray-800 text-sm line-clamp-2 mb-1">
+                              {product.productName}
+                            </h4>
+                            <div className="flex items-center gap-2 text-xs mb-2">
+                              <span className="text-gray-500">
+                                MRP: <span className="line-through">₹{product.mrp}</span>
+                              </span>
+                              <span className="font-bold text-green-600">
+                                {orderType === 'Wholesale' && (product.wholesalePrice || 0) > 0
+                                  ? `WSP: ₹${product.wholesalePrice}`
+                                  : `SP: ₹${product.price}`}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Quantity: {product.stock} Piece
+                            </div>
+                          </div>
+
+                          {/* Add Button */}
+                          <div className="flex items-center">
+                            {inCart ? (
+                              <div className="flex items-center gap-2 bg-[#E91E63]/10 rounded-lg px-2 py-1">
+                                <button
+                                  onClick={() => updateQuantity(product._id, -1)}
+                                  className="w-7 h-7 flex items-center justify-center bg-white text-[#E91E63] rounded hover:bg-[#E91E63] hover:text-white transition-colors border border-[#E91E63]"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"></path>
+                                  </svg>
+                                </button>
+                                <span className="font-bold text-[#E91E63] min-w-[20px] text-center">
+                                  {cartItem?.qty || 0}
+                                </span>
+                                <button
+                                  onClick={() => updateQuantity(product._id, 1)}
+                                  className="w-7 h-7 flex items-center justify-center bg-[#E91E63] text-white rounded hover:bg-[#D81B60] transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                                  </svg>
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  addToCart(product);
+                                }}
+                                disabled={product.stock <= 0}
+                                className="px-4 py-2 bg-[#E91E63] text-white rounded-lg hover:bg-[#D81B60] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                              >
+                                Add
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                {mobileSearchQuery && products.filter(p => {
+                  const query = mobileSearchQuery.toLowerCase();
+                  return p.productName.toLowerCase().includes(query) || (p.barcode && p.barcode.toLowerCase().includes(query));
+                }).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No products found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

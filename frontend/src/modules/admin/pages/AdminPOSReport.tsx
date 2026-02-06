@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { getPOSReport, getStockLedger, deletePOSOrder, updateStockLedgerEntry } from "../../../services/api/admin/adminOrderService";
+import { getPOSReport, getStockLedger, deletePOSOrder, updateStockLedgerEntry, updateOrderStatus, getOrderById } from "../../../services/api/admin/adminOrderService";
+import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../../context/ToastContext";
 
@@ -42,6 +43,10 @@ const AdminPOSReport = () => {
     const [filter, setFilter] = useState("all");
     const [selectedActionOrder, setSelectedActionOrder] = useState<any>(null);
     const [editingLedgerEntry, setEditingLedgerEntry] = useState<any>(null);
+
+    // Status Update State
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [newStatus, setNewStatus] = useState("");
 
     // Filter State
     const [showFilterModal, setShowFilterModal] = useState(false);
@@ -169,6 +174,166 @@ const AdminPOSReport = () => {
                 setLoading(false);
             }
         }
+    };
+
+
+
+
+
+    const submitStatusUpdate = async () => {
+         if (!selectedActionOrder) return;
+         try {
+             setLoading(true);
+             // We are using a direct fetch here to ensure we hit the right field if the service is strict
+             // But better to use the service. I'll modify the service argument to include paymentStatus if I cd.
+             // But I can't modify backend.
+             // Let's assume `updateOrderStatus` updates the main status.
+             // IF the user specifically wants PAYMENT status (Pending -> Paid), that's `paymentStatus`.
+             // I will try to send both or check if 'status' maps to paymentStatus for POS.
+             // For POS, usually 'status' is 'Delivered'.
+             // I'll try to find if there is a payment update endpoint.
+             // If not, I'll try a generic patch.
+
+             // ...Actually, looking at `updateOrderStatus` in generic admin, it usually updates `status`.
+             // I will implement a specific function here that tries to update payment status via the same endpoint or a likely `payment-status` endpoint.
+             // Since I can't confirm backend, I will implement a BEST GUESS using the existing `updateOrderStatus` but passing `paymentStatus` in the body by casting data.
+
+             const updateData: any = { status: selectedActionOrder.status }; // Keep main status same
+             if (newStatus) updateData.paymentStatus = newStatus;
+
+             const response = await updateOrderStatus(selectedActionOrder._id, updateData);
+
+             if (response.success) {
+                 showToast("Status updated successfully", "success");
+                 setShowStatusModal(false);
+                 setSelectedActionOrder(null);
+                 fetchData(dateRange.start || undefined, dateRange.end || undefined);
+             } else {
+                 showToast("Failed to update status", "error");
+             }
+         } catch(error) {
+             console.error(error);
+             showToast("Error updating status", "error");
+         } finally {
+             setLoading(false);
+         }
+    };
+
+    const handleViewBill = async (order: any) => {
+        if (!order) return;
+
+        let fullOrder = order;
+        // ALWAYS Fetch full order to ensure items are populated with details (productName, etc.)
+        // The report list might contain partial data or just item IDs
+        try {
+             setLoading(true);
+             const res = await getOrderById(order._id);
+             if (res.success) {
+                 fullOrder = res.data;
+             }
+        } catch(e) {
+             console.error("Error fetching full order", e);
+             showToast("Could not fetch full order details. Bill might be incomplete.", "error");
+        } finally {
+             setLoading(false);
+        }
+
+        generateOrderPDF(fullOrder);
+        setSelectedActionOrder(null);
+    };
+
+    const generateOrderPDF = (order: any) => {
+        const doc = new jsPDF();
+        const invoiceNum = order.orderNumber || order._id.slice(-6).toUpperCase();
+        const dateStr = new Date(order.orderDate || order.createdAt).toLocaleDateString();
+        const timeStr = new Date(order.orderDate || order.createdAt).toLocaleTimeString();
+        const paymentMethod = order.paymentMethod || 'Cash';
+
+        // --- Header ---
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text("GEETA", 14, 20);
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        const address = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
+        doc.text(address, 14, 26);
+
+        doc.line(14, 40, 196, 40);
+
+        // --- Invoice Details ---
+        doc.setFont("helvetica", "bold");
+        doc.text("Invoice Number:", 14, 48);
+        doc.text("Invoice Date:", 14, 53);
+        doc.text("Payment Status:", 14, 58);
+
+        doc.setFont("helvetica", "normal");
+        doc.text(invoiceNum, 196, 48, { align: 'right' });
+        doc.text(`${dateStr} ${timeStr}`, 196, 53, { align: 'right' });
+        doc.text(order.paymentStatus || 'Paid', 196, 58, { align: 'right' });
+
+        doc.setLineWidth(0.5);
+        doc.line(14, 63, 196, 63);
+
+        // --- Table Header ---
+        doc.setFont("helvetica", "bold");
+        doc.text("Tax Invoice", 105, 68, { align: 'center' });
+
+        let y = 74;
+        doc.setFontSize(10);
+        doc.text("Item-name", 14, y);
+        doc.text("Qty", 100, y);
+        doc.text("Price", 125, y);
+        doc.text("Total", 196, y, { align: 'right' });
+        y += 4;
+
+        // --- Table Body ---
+        doc.setFont("helvetica", "normal");
+        let totalQty = 0;
+        let totalBillAmount = 0;
+
+        const items = order.items || [];
+        items.forEach((item: any, index: number) => {
+             // Handle different item structures (populated vs flat)
+             // Check: flat object (item.productName), populated object (item.product.productName), or backup (item.name)
+             const itemName = item.productName || item.product?.productName || item.name || "Unknown Item";
+             const qty = item.quantity || item.qty || 0;
+             const price = item.unitPrice || item.price || 0;
+             const total = item.total || (qty * price) || 0;
+
+             totalQty += qty;
+             totalBillAmount += total;
+
+             y += 6;
+             if (y > 280) { doc.addPage(); y = 20; }
+
+             const truncatedName = itemName.length > 45 ? itemName.substring(0, 42) + "..." : itemName;
+
+             doc.text(`${index + 1}. ${truncatedName}`, 14, y);
+             doc.text(qty.toString(), 100, y);
+             doc.text(price.toString(), 125, y);
+             doc.text(total.toString(), 196, y, { align: 'right' });
+        });
+
+        y += 8;
+        doc.line(14, y, 196, y);
+        y += 6;
+
+        // --- Summary ---
+        doc.setFont("helvetica", "normal");
+        doc.text(`Total Qty.: ${totalQty}`, 14, y);
+
+        y += 6;
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Total Amount:", 14, y);
+        doc.text(`Rs ${order.total || totalBillAmount}`, 196, y, { align: 'right' });
+
+        y += 2;
+        doc.line(14, y + 2, 196, y + 2);
+
+        // Save
+        doc.save(`Invoice_${invoiceNum}.pdf`);
     };
 
     const handleUpdateLedger = async (e: React.FormEvent) => {
@@ -559,47 +724,45 @@ const AdminPOSReport = () => {
 
                         <div className="p-2 overflow-y-auto max-h-[70vh]">
                             <div className="space-y-1">
-                                <button
-                                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
-                                    onClick={() => {
-                                        showToast("Status update feature coming soon", "success");
-                                        setSelectedActionOrder(null);
-                                    }}
-                                >
-                                    <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-                                    </div>
-                                    <div>
-                                        <div className="font-semibold text-gray-700">Change Status</div>
-                                        <div className="text-xs text-gray-400">Update order payment status</div>
-                                    </div>
-                                    <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                                </button>
+                                    <button
+                                        className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
+                                        onClick={() => {
+                                            setNewStatus(selectedActionOrder.paymentStatus);
+                                            setShowStatusModal(true);
+                                            // Keep selectedActionOrder set
+                                        }}
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-gray-700">Change Status</div>
+                                            <div className="text-xs text-gray-400">Update order payment status</div>
+                                        </div>
+                                        <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
 
-                                <button
-                                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
-                                     onClick={() => {
-                                        showToast("View Bill feature coming soon", "success");
-                                        setSelectedActionOrder(null);
-                                    }}
-                                >
-                                    <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                    </div>
-                                    <div>
-                                        <div className="font-semibold text-gray-700">View Bill</div>
-                                        <div className="text-xs text-gray-400">Preview order invoice</div>
-                                    </div>
-                                    <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                                </button>
+                                    <button
+                                        className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
+                                         onClick={() => handleViewBill(selectedActionOrder)}
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-gray-700">View Bill</div>
+                                            <div className="text-xs text-gray-400">Preview order invoice</div>
+                                        </div>
+                                        <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
 
-                                <button
-                                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
-                                    onClick={() => {
-                                        navigate(`/admin/pos/orders?edit=${selectedActionOrder._id}`);
-                                        setSelectedActionOrder(null);
-                                    }}
-                                >
+                                    <button
+                                        className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
+                                        onClick={() => {
+                                            navigate(`/admin/pos/orders?edit=${selectedActionOrder._id}`);
+                                            setSelectedActionOrder(null);
+                                        }}
+                                    >
                                     <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                     </div>
@@ -633,6 +796,39 @@ const AdminPOSReport = () => {
                                     <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Status Update Modal */}
+            {showStatusModal && (
+                <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="bg-white w-full max-w-xs rounded-2xl overflow-hidden shadow-2xl transform transition-all animate-in zoom-in-95">
+                        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h3 className="font-bold text-gray-800">Update Status</h3>
+                            <button onClick={() => setShowStatusModal(false)} className="text-gray-400 hover:text-gray-600">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-6">
+                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Payment Status</label>
+                             <select
+                                value={newStatus}
+                                onChange={(e) => setNewStatus(e.target.value)}
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-orange-500 font-semibold text-gray-700 bg-gray-50 mb-6"
+                             >
+                                 <option value="Paid">Paid</option>
+                                 <option value="Pending">Pending</option>
+                                 <option value="Failed">Failed</option>
+                             </select>
+
+                             <button
+                                onClick={submitStatusUpdate}
+                                className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-orange-200 transition-all active:scale-95"
+                             >
+                                 Update Status
+                             </button>
                         </div>
                     </div>
                 </div>

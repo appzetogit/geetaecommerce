@@ -192,6 +192,7 @@ router.put("/return-requests/:id", orderController.processReturnRequest);
 router.patch("/returns/:id/process", orderController.processReturnRequest);
 
 // ==================== Customer Routes ====================
+router.post("/customers", customerController.createCustomer);
 router.get("/customers", customerController.getAllCustomers);
 router.get("/customers/:id", customerController.getCustomerById);
 router.patch("/customers/:id/status", customerController.updateCustomerStatus);

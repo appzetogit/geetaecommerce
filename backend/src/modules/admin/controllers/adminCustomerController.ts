@@ -153,3 +153,44 @@ export const getCustomerOrders = asyncHandler(
   }
 );
 
+/**
+ * Create a new customer
+ */
+export const createCustomer = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { name, email, phone, address, city, state, pincode } = req.body;
+
+    // Check if customer already exists
+    const existingCustomer = await Customer.findOne({
+      $or: [{ email }, { phone }],
+    });
+
+    if (existingCustomer) {
+      return res.status(400).json({
+        success: false,
+        message: existingCustomer.email === email
+          ? "Customer with this email already exists"
+          : "Customer with this phone number already exists",
+      });
+    }
+
+    const customer = await Customer.create({
+      name,
+      email,
+      phone,
+      address,
+      city,
+      state,
+      pincode,
+      registrationDate: new Date(),
+      status: 'Active',
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Customer created successfully",
+      data: customer,
+    });
+  }
+);
+

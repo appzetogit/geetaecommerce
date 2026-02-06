@@ -90,6 +90,8 @@ const SellerTaxes = lazy(() => import("./modules/seller/pages/SellerTaxes"));
 const SellerProductList = lazy(() => import("./modules/seller/pages/SellerProductList"));
 const SellerStockManagement = lazy(() => import("./modules/seller/pages/SellerStockManagement"));
 const SellerWallet = lazy(() => import("./modules/seller/pages/SellerWallet"));
+const SellerWalletTransactions = lazy(() => import("./modules/seller/pages/SellerWalletTransactions"));
+const SellerWithdrawalRequests = lazy(() => import("./modules/seller/pages/SellerWithdrawalRequests"));
 const SellerSalesReport = lazy(() => import("./modules/seller/pages/SellerSalesReport"));
 const SellerReturnRequest = lazy(() => import("./modules/seller/pages/SellerReturnRequest"));
 const SellerAccountSettings = lazy(() => import("./modules/seller/pages/SellerAccountSettings"));
@@ -126,6 +128,7 @@ const AdminStockManagement = lazy(() => import("./modules/admin/pages/AdminStock
 const AdminAddProduct = lazy(() => import("./modules/admin/pages/AdminAddProduct"));
 const AdminSubcategoryOrder = lazy(() => import("./modules/admin/pages/AdminSubcategoryOrder"));
 const AdminManageSellerList = lazy(() => import("./modules/admin/pages/AdminManageSellerList"));
+const AdminAddSeller = lazy(() => import("./modules/admin/pages/AdminAddSeller"));
 const AdminCoupon = lazy(() => import("./modules/admin/pages/AdminCoupon"));
 const AdminNotification = lazy(() => import("./modules/admin/pages/AdminNotification"));
 const AdminSellerLocation = lazy(() => import("./modules/admin/pages/AdminSellerLocation"));
@@ -186,6 +189,8 @@ const AdminOutOfStockSummary = lazy(() => import("./modules/admin/pages/AdminOut
 const AdminLossSummary = lazy(() => import("./modules/admin/pages/AdminLossSummary"));
 const AdminGSTSalesReport = lazy(() => import("./modules/admin/pages/AdminGSTSalesReport"));
 const AdminPaymentReport = lazy(() => import("./modules/admin/pages/AdminPaymentReport"));
+const AdminOnlineOrderReport = lazy(() => import("./modules/admin/pages/AdminOnlineOrderReport"));
+const AdminPOSInvoiceReport = lazy(() => import("./modules/admin/pages/AdminPOSInvoiceReport"));
 
 import { useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
@@ -208,37 +213,23 @@ function NotificationHandler() {
     initNotifications();
 
     // Listen for foreground messages
-    const unsubscribe = onMessageListener(async (payload: any) => {
+    const unsubscribe = onMessageListener((payload: any) => {
       console.log('🔔 [FCM-REALTIME] Foreground Notification:', {
         title: payload?.notification?.title,
         body: payload?.notification?.body,
         data: payload?.data
       });
 
-      // 1. Show Toast for UI feedback - Positioned for mobile visibility
+      // 1. Show Toast for UI feedback
       toast.success((payload?.notification?.title || 'Notification') + ": " + (payload?.notification?.body || ''), {
         duration: 6000,
-        position: window.innerWidth < 768 ? 'top-center' : 'top-right',
+        position: 'top-right',
         icon: '🔔'
       });
 
       // 2. Show native browser notification as well for better visibility
       if (Notification.permission === 'granted') {
         try {
-          // Use service worker for better reliability on mobile
-          if ('serviceWorker' in navigator) {
-             const registration = await navigator.serviceWorker.getRegistration();
-             if (registration && registration.showNotification) {
-                registration.showNotification(payload.notification.title, {
-                  body: payload.notification.body,
-                  icon: '/notification-icon.png',
-                  tag: 'geeta-notification',
-                  renotify: true
-                } as any);
-                return;
-             }
-          }
-
           new Notification(payload.notification.title, {
             body: payload.notification.body,
             icon: '/notification-icon.png',
@@ -413,7 +404,9 @@ function App() {
                               <Route path="product/list" element={<SellerProductList />} />
                               <Route path="product/attribute-setup" element={<SellerAttributeSetup />} />
                               <Route path="product/stock" element={<SellerStockManagement />} />
-                              {/* <Route path="wallet" element={<SellerWallet />} /> */}
+                              <Route path="wallet" element={<SellerWallet />} />
+                              <Route path="wallet/transactions" element={<SellerWalletTransactions />} />
+                              <Route path="wallet/withdrawals" element={<SellerWithdrawalRequests />} />
                               <Route path="reports/sales" element={<SellerSalesReport />} />
                               <Route path="sales-summary" element={<SellerSalesSummary />} />
                               <Route path="account-settings" element={<SellerAccountSettings />} />
@@ -452,6 +445,7 @@ function App() {
                             <Route path="product/list" element={<AdminStockManagement />} />
                             <Route path="product/add" element={<AdminAddProduct />} />
                             <Route path="product/edit/:id" element={<AdminAddProduct />} />
+                            <Route path="manage-seller/add" element={<AdminAddSeller />} />
                             <Route path="manage-seller/list" element={<AdminManageSellerList />} />
                             <Route path="manage-seller/transaction" element={<AdminSellerTransaction />} />
                             <Route path="delivery-boy/manage" element={<AdminManageDeliveryBoy />} />
@@ -505,6 +499,8 @@ function App() {
                             <Route path="reports/inventory/loss-summary" element={<AdminLossSummary />} />
                             <Route path="reports/gst-sales" element={<AdminGSTSalesReport />} />
                             <Route path="reports/payment" element={<AdminPaymentReport />} />
+                            <Route path="reports/order" element={<AdminOnlineOrderReport />} />
+                            <Route path="reports/invoice" element={<AdminPOSInvoiceReport />} />
 
                             {/* Promotion Routes */}
                             <Route path="promotion/banner-setup" element={<AdminBannerSetup />} />
