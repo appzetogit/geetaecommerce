@@ -508,6 +508,11 @@ const AdminPOSOrders = () => {
           return;
       }
 
+      if (newCustomer.phone.length !== 10) {
+          showToast("Phone number must be 10 digits", "error");
+          return;
+      }
+
       setNewCustomerLoading(true);
       try {
           const res = await createCustomer({
@@ -516,12 +521,21 @@ const AdminPOSOrders = () => {
           });
 
           if (res.success && res.data) {
+              const customer = res.data;
               showToast("Customer added successfully", "success");
-              setSelectedCustomer(res.data);
-              setCustomerSearch(`${res.data.name} (${res.data.phone})`);
 
-              // If the user wants to jump to Credit
-              setPaymentMethod("Credit");
+              const displayName = customer.phone ? `${customer.name} (${customer.phone})` : customer.name;
+
+              // Update bill state atomically
+              updateActiveBill({
+                  selectedCustomer: customer,
+                  customerSearch: displayName,
+                  paymentMethod: "Credit"
+              });
+
+              // Also update the local customers list used for the search dropdown
+              setCustomers([customer]);
+              setShowCustomerDropdown(false);
 
               setShowAddCustomerModal(false);
               setNewCustomer({
@@ -2264,10 +2278,16 @@ const AdminPOSOrders = () => {
                                 <input
                                     type="tel"
                                     required
+                                    maxLength={10}
                                     pattern="[0-9]{10}"
                                     value={newCustomer.phone}
-                                    onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
-                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        if (val.length <= 10) {
+                                            setNewCustomer({...newCustomer, phone: val});
+                                        }
+                                    }}
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-mono"
                                     placeholder="10 digit mobile"
                                 />
                             </div>
