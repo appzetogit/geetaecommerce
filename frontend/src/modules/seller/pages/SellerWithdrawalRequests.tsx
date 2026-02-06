@@ -297,15 +297,9 @@ export default function SellerWithdrawalRequests() {
                     <td className="p-4 text-sm font-bold text-neutral-900">₹{withdrawal.amount.toFixed(2)}</td>
                     <td className="p-4 text-sm text-neutral-900">{withdrawal.paymentMethod}</td>
                     <td className="p-4">
-<<<<<<< HEAD
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        withdrawal.status === 'Approved'
-                          ? 'bg-[#f187b5]/10 text-[#f187b5]'
-=======
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
                         withdrawal.status === 'Approved' || withdrawal.status === 'Completed'
                           ? 'bg-green-100 text-green-700'
->>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
                           : withdrawal.status === 'Pending'
                           ? 'bg-yellow-100 text-yellow-700'
                           : 'bg-red-100 text-red-700'
@@ -351,13 +345,8 @@ export default function SellerWithdrawalRequests() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in duration-200">
             {/* Modal Header */}
-<<<<<<< HEAD
-            <div className="bg-[#f187b5] px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
-              <h3 className="text-lg font-bold">Add Fund Request</h3>
-=======
             <div className="bg-teal-600 px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
               <h3 className="text-lg font-bold">New Withdrawal Request</h3>
->>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
               <button
                 onClick={() => setShowModal(false)}
                 className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
@@ -400,19 +389,6 @@ export default function SellerWithdrawalRequests() {
 
               {/* Method Selection */}
               <div className="space-y-2">
-<<<<<<< HEAD
-                <label className="text-sm font-bold text-neutral-700">Bank Account</label>
-                <select
-                  value={formBankAccount}
-                  onChange={(e) => setFormBankAccount(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-base"
-                >
-                  <option value="HDFC Bank - ****1234">HDFC Bank - ****1234</option>
-                  <option value="SBI - ****5678">SBI - ****5678</option>
-                  <option value="ICICI Bank - ****9012">ICICI Bank - ****9012</option>
-                  <option value="Axis Bank - ****3456">Axis Bank - ****3456</option>
-                </select>
-=======
                 <label className="text-sm font-bold text-neutral-700">Select Method</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -427,6 +403,7 @@ export default function SellerWithdrawalRequests() {
                   </button>
                 </div>
               </div>
+
 
               {/* Dynamic Details Fields */}
               <div className="space-y-3 pt-2 animate-in slide-in-from-top-2 duration-300">
@@ -491,7 +468,7 @@ export default function SellerWithdrawalRequests() {
                     </div>
                   </div>
                 )}
->>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
+
               </div>
             </div>
 
@@ -506,12 +483,8 @@ export default function SellerWithdrawalRequests() {
               </button>
               <button
                 onClick={handleSubmitRequest}
-<<<<<<< HEAD
-                className="flex-1 px-4 py-3 bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold rounded-lg transition-colors"
-=======
                 className="flex-1 px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
                 disabled={isSubmitting}
->>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
               >
                 {isSubmitting && <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                 {isSubmitting ? 'Submitting...' : 'Submit Request'}

@@ -102,7 +102,8 @@ api.interceptors.response.use(
       // 1. It's not an auth endpoint
       // 2. There was a token in the request (user was logged in but token expired)
       // 3. User is not already on login/signup pages
-      if (!isAuthEndpoint && hadToken) {
+      // 4. Request is not explicitly marked to skip auth redirect
+      if (!isAuthEndpoint && hadToken && !(error.config as any).skipAuthRedirect) {
         const currentPath = window.location.pathname;
 
         // Skip redirect if already on public auth pages (login/signup)
@@ -116,13 +117,13 @@ api.interceptors.response.use(
         let redirectPath = "/login";
         let module: ModuleType = 'user';
 
-        if (currentModule === 'admin') {
+        if (currentModule === 'admin' || currentPath.includes('/admin')) {
           redirectPath = "/admin/login";
           module = 'admin';
-        } else if (currentModule === 'seller') {
+        } else if (currentModule === 'seller' || currentPath.includes('/seller')) {
           redirectPath = "/seller/login";
           module = 'seller';
-        } else if (currentModule === 'delivery') {
+        } else if (currentModule === 'delivery' || currentPath.includes('/delivery')) {
           redirectPath = "/delivery/login";
           module = 'delivery';
         }

@@ -227,19 +227,6 @@ export default function SellerWalletTransactions() {
                   </td>
                 </tr>
               ) : (
-<<<<<<< HEAD
-                paginatedTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="hover:bg-neutral-50/50 transition-colors">
-                    <td className="p-4 text-sm text-neutral-900">{transaction.id}</td>
-                    <td className="p-4 text-sm text-neutral-900">{transaction.sellerName}</td>
-                    <td className="p-4 text-sm font-medium text-[#f187b5]">{transaction.orderId}</td>
-                    <td className="p-4 text-sm text-neutral-900">{transaction.productName}</td>
-                    <td className="p-4 text-sm text-neutral-600">{transaction.variation}</td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        transaction.flag === 'Credit'
-                          ? 'bg-[#f187b5]/10 text-[#f187b5]'
-=======
                 transactions.map((transaction) => (
                   <tr key={transaction._id} className="hover:bg-neutral-50/50 transition-colors">
                     <td className="p-4 text-sm text-neutral-600">{new Date(transaction.createdAt).toLocaleString()}</td>
@@ -249,18 +236,13 @@ export default function SellerWalletTransactions() {
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
                         transaction.type === 'Credit'
                           ? 'bg-green-100 text-green-700'
->>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
                           : 'bg-red-100 text-red-700'
                       }`}>
                         {transaction.type}
                       </span>
                     </td>
                     <td className={`p-4 text-sm font-bold ${
-<<<<<<< HEAD
-                      transaction.flag === 'Credit' ? 'text-[#f187b5]' : 'text-red-600'
-=======
                       transaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'
->>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
                     }`}>
                       {transaction.type === 'Credit' ? '+' : '-'} ₹{transaction.amount.toFixed(2)}
                     </td>

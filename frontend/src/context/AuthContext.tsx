@@ -4,6 +4,7 @@ import {
   useState,
   ReactNode,
   useEffect,
+  useLayoutEffect,
 } from "react";
 import {
   setAuthToken,
@@ -54,7 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   // Sync axios token header whenever token changes
-  useEffect(() => {
+  // Use useLayoutEffect to ensure token is set before any child components' effects run
+  useLayoutEffect(() => {
     if (token) {
       setAuthToken(token);
     } else {
@@ -68,7 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(userData);
     setIsAuthenticated(true);
     setModuleUserData(userData, module);
-    // setAuthToken handled by effect
+    // Explicitly set token in localStorage immediately to avoid race conditions
+    // where navigation happens before the useEffect runs
+    setAuthToken(newToken);
   };
 
   const logout = () => {
