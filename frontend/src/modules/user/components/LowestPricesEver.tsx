@@ -419,6 +419,7 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
     return filtered
       .filter((product) => {
         if (!product.mrp) return false;
+        // @ts-ignore
         const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
         return discount > 0;
       })

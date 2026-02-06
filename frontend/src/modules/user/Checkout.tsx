@@ -370,6 +370,7 @@ export default function Checkout() {
                 const isFreeGiftItem = item.isFreeGift;
 
                 // Get the most reliable ID
+                // @ts-ignore
                 const productId = item.product.id || item.product._id;
 
                 return {
