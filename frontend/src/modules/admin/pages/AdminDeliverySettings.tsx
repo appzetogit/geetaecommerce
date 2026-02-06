@@ -280,7 +280,7 @@ export default function AdminDeliverySettings() {
           onClick={handleSave}
           disabled={saving}
           className={`text-white font-semibold py-2.5 px-6 rounded-lg shadow-sm transition-colors text-sm sm:text-base flex items-center justify-center min-w-[140px] ${
-            saving ? 'bg-green-500 cursor-not-allowed' : 'bg-[#E91E63] hover:bg-[#D81B60]'
+            saving ? 'bg-[#f187b5] cursor-not-allowed opacity-70' : 'bg-[#E91E63] hover:bg-[#D81B60]'
           }`}
         >
           {saving ? (

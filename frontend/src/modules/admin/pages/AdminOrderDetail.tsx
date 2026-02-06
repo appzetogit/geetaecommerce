@@ -170,7 +170,7 @@ export default function AdminOrderDetail() {
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={() => navigate('/admin/orders/all')}
-            className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-lg transition-colors"
+            className="bg-[#f187b5] hover:bg-[#e076a5] text-white px-6 py-2 rounded-lg transition-colors"
           >
             Back to Orders
           </button>
@@ -186,7 +186,7 @@ export default function AdminOrderDetail() {
           <h2 className="text-xl font-bold text-neutral-900 mb-4">Order Not Found</h2>
           <button
             onClick={() => navigate('/admin/orders/all')}
-            className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-lg transition-colors"
+            className="bg-[#f187b5] hover:bg-[#e076a5] text-white px-6 py-2 rounded-lg transition-colors"
           >
             Back to Orders
           </button>
@@ -227,7 +227,7 @@ export default function AdminOrderDetail() {
       <div className="mb-6">
         <button
           onClick={() => navigate('/admin/orders/all')}
-          className="text-teal-600 hover:text-teal-700 mb-4 flex items-center gap-2"
+          className="text-[#f187b5] hover:text-[#e076a5] mb-4 flex items-center gap-2"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -252,7 +252,7 @@ export default function AdminOrderDetail() {
                 value={order.status}
                 onChange={(e) => handleStatusUpdate(e.target.value)}
                 disabled={updating}
-                className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f187b5]"
               >
                 {statusOptions.map((status) => (
                   <option key={status} value={status}>
@@ -281,7 +281,7 @@ export default function AdminOrderDetail() {
                 <button
                   onClick={() => setIsEditingItems(true)}
                   disabled={updating || order.status === 'Delivered' || order.status === 'Cancelled'}
-                  className="text-teal-600 hover:text-teal-700 text-sm font-medium flex items-center gap-1"
+                  className="text-[#f187b5] hover:text-[#e076a5] text-sm font-medium flex items-center gap-1"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -304,7 +304,7 @@ export default function AdminOrderDetail() {
                   <button
                     onClick={handleSaveItems}
                     disabled={updating}
-                    className="bg-teal-600 hover:bg-teal-700 text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
+                    className="bg-[#f187b5] hover:bg-[#e076a5] text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
                   >
                     Save Changes
                   </button>
@@ -356,7 +356,7 @@ export default function AdminOrderDetail() {
                         <td className="py-3 px-2">
                           <div>
                             <div className="font-medium">{item.productName || product?.productName || 'N/A'}</div>
-                            {item.variation && <div className="text-xs text-teal-600 font-medium">{item.variation}</div>}
+                            {item.variation && <div className="text-xs text-[#f187b5] font-medium">{item.variation}</div>}
                             {seller && (
                               <div className="text-sm text-neutral-500">
                                 Seller: {seller.storeName || seller.sellerName}
@@ -404,8 +404,8 @@ export default function AdminOrderDetail() {
             {showProductSearch && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                 <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[80vh]">
-                  <div className="p-4 border-b flex justify-between items-center bg-teal-50">
-                    <h3 className="font-bold text-teal-900">Add Product to Order</h3>
+                  <div className="p-4 border-b flex justify-between items-center bg-pink-50">
+                    <h3 className="font-bold text-[#cf6594]">Add Product to Order</h3>
                     <button onClick={() => setShowProductSearch(false)} className="text-neutral-500 hover:text-neutral-700">
                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <line x1="18" y1="6" x2="6" y2="18" />
@@ -419,7 +419,7 @@ export default function AdminOrderDetail() {
                          autoFocus
                          type="text"
                          placeholder="Search product by name or SKU..."
-                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500"
+                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#f187b5]"
                          value={searchQuery}
                          onChange={(e) => setSearchQuery(e.target.value)}
                        />
@@ -442,13 +442,13 @@ export default function AdminOrderDetail() {
                                          <div>
                                             <p className="font-semibold text-neutral-900">{product.productName}</p>
                                             <p className="text-xs text-neutral-500">SKU: {product.sku}</p>
-                                            <p className="text-sm font-medium text-teal-600">₹{product.price}</p>
+                                            <p className="text-sm font-medium text-[#f187b5]">₹{product.price}</p>
                                          </div>
                                       </div>
                                       {!product.variations || product.variations.length === 0 ? (
                                          <button
                                            onClick={() => handleAddItem(product)}
-                                           className="bg-teal-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-teal-700"
+                                           className="bg-[#f187b5] text-white text-xs px-3 py-1.5 rounded-lg hover:bg-[#e076a5]"
                                          >
                                             Select
                                          </button>
@@ -460,7 +460,7 @@ export default function AdminOrderDetail() {
                                             <button
                                               key={v._id}
                                               onClick={() => handleAddItem(product, v)}
-                                              className="text-[10px] p-2 border rounded bg-white hover:border-teal-500 hover:text-teal-600 text-left"
+                                              className="text-[10px] p-2 border rounded bg-white hover:border-teal-500 hover:text-[#f187b5] text-left"
                                             >
                                                <p className="font-bold">{v.name}: {v.value}</p>
                                                <p>₹{v.price}</p>
@@ -484,24 +484,24 @@ export default function AdminOrderDetail() {
 
             {/* Free Gift Section */}
             {items.some((item: any) => item.isFreeGift) && (
-                <div className="mt-6 bg-green-50 border border-green-200 rounded-lg overflow-hidden">
-                    <div className="bg-green-100 px-4 py-2 border-b border-green-200 flex items-center gap-2">
+                <div className="mt-6 bg-pink-50 border border-pink-200 rounded-lg overflow-hidden">
+                    <div className="bg-pink-100 px-4 py-2 border-b border-pink-200 flex items-center gap-2">
                         <span className="text-lg">🎁</span>
-                        <h3 className="font-bold text-green-800">Free Gift Applied</h3>
+                        <h3 className="font-bold text-[#cf6594]">Free Gift Applied</h3>
                     </div>
                     <div className="p-4">
                         {items.filter((item: any) => item.isFreeGift).map((item: any, index: number) => (
-                            <div key={index} className="flex justify-between items-start border-b border-green-100 last:border-0 pb-3 last:pb-0 mb-3 last:mb-0">
+                            <div key={index} className="flex justify-between items-start border-b border-pink-100 last:border-0 pb-3 last:pb-0 mb-3 last:mb-0">
                                 <div>
-                                    <p className="font-bold text-green-900">{item.productName || item.product?.productName || 'Free Gift'}</p>
-                                    <p className="text-sm text-green-700">Qty: {item.quantity}</p>
+                                    <p className="font-bold text-[#cf6594]">{item.productName || item.product?.productName || 'Free Gift'}</p>
+                                    <p className="text-sm text-[#cf6594]">Qty: {item.quantity}</p>
                                     {item.freeGiftReason && (
-                                        <p className="text-xs text-green-600 mt-1 italic">Reason: {item.freeGiftReason}</p>
+                                        <p className="text-xs text-[#cf6594] mt-1 italic">Reason: {item.freeGiftReason}</p>
                                     )}
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-bold text-green-900">₹0</p>
-                                    <span className="inline-block px-2 py-0.5 bg-green-200 text-green-800 text-[10px] rounded uppercase font-bold mt-1">Free</span>
+                                    <p className="font-bold text-[#cf6594]">₹0</p>
+                                    <span className="inline-block px-2 py-0.5 bg-pink-200 text-[#cf6594] text-[10px] rounded uppercase font-bold mt-1">Free</span>
                                 </div>
                             </div>
                         ))}

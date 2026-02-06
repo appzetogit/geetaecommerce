@@ -171,7 +171,7 @@ export default function AdminProfile() {
                 <div className="max-w-3xl mx-auto">
                     {/* Success Message */}
                     {success && (
-                        <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+                        <div className="mb-4 p-4 bg-pink-100 border border-pink-400 text-[#cf6594] rounded">
                             {success}
                         </div>
                     )}
@@ -305,7 +305,7 @@ export default function AdminProfile() {
                                     <button
                                         onClick={handleSave}
                                         disabled={saving}
-                                        className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="px-6 py-2 bg-[#f187b5] hover:bg-[#e076a5] text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {saving ? 'Saving...' : 'Save Changes'}
                                     </button>

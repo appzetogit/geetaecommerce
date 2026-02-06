@@ -71,7 +71,7 @@ export default function SellerOrderDetail() {
           <p className="text-red-600 mb-4">{error}</p>
           <button
             onClick={() => navigate('/seller/orders')}
-            className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-lg transition-colors"
+            className="bg-seller-600 hover:bg-seller-700 text-white px-6 py-2 rounded-lg transition-colors"
           >
             Back to Orders
           </button>
@@ -87,7 +87,7 @@ export default function SellerOrderDetail() {
           <h2 className="text-xl font-bold text-neutral-900 mb-4">Order Not Found</h2>
           <button
             onClick={() => navigate('/seller/orders')}
-            className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-lg transition-colors"
+            className="bg-seller-600 hover:bg-seller-700 text-white px-6 py-2 rounded-lg transition-colors"
           >
             Back to Orders
           </button>
@@ -130,7 +130,7 @@ export default function SellerOrderDetail() {
     };
 
     // Header - Company Info
-    doc.setFillColor(22, 163, 74); // Green color
+    doc.setFillColor(22, 163, 74); // seller color
     doc.rect(margin, yPos, contentWidth, 15, 'F');
 
     doc.setTextColor(255, 255, 255);
@@ -317,7 +317,7 @@ export default function SellerOrderDetail() {
       case 'On the way':
         return 'bg-purple-100 text-purple-800 border border-purple-400';
       case 'Delivered':
-        return 'bg-green-100 text-green-800 border border-green-400';
+        return 'bg-seller-100 text-seller-800 border border-seller-400';
       case 'Cancelled':
         return 'bg-red-100 text-red-800 border border-red-400';
       case 'Out For Delivery':
@@ -353,7 +353,7 @@ export default function SellerOrderDetail() {
     <div className="min-h-screen bg-neutral-50 pb-8">
       {/* Order Action Section */}
       <div className="bg-white mb-6 rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-        <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+        <div className="bg-seller-600 text-white px-4 sm:px-6 py-3">
           <h2 className="text-base sm:text-lg font-semibold">Order Action Section</h2>
         </div>
         <div className="bg-neutral-50 px-4 sm:px-6 py-4">
@@ -362,7 +362,7 @@ export default function SellerOrderDetail() {
               <select
                 value={orderStatus}
                 onChange={(e) => handleStatusUpdate(e.target.value)}
-                className="w-full sm:w-64 px-4 py-2 border border-neutral-300 rounded-lg text-sm text-neutral-900 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                className="w-full sm:w-64 px-4 py-2 border border-neutral-300 rounded-lg text-sm text-neutral-900 bg-white focus:outline-none focus:ring-2 focus:ring-seller-500 focus:border-seller-500"
               >
                 <option value="Accepted">Accepted</option>
                 <option value="On the way">On the way</option>
@@ -372,7 +372,7 @@ export default function SellerOrderDetail() {
             </div>
             <button
               onClick={handleExportPDF}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+              className="flex items-center gap-2 bg-seller-600 hover:bg-seller-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -385,7 +385,7 @@ export default function SellerOrderDetail() {
             </button>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+              className="flex items-center gap-2 bg-seller-600 hover:bg-seller-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="6 9 6 2 18 2 18 9" />
@@ -400,7 +400,7 @@ export default function SellerOrderDetail() {
 
       {/* View Order Details Section */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-        <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+        <div className="bg-seller-600 text-white px-4 sm:px-6 py-3">
           <h2 className="text-base sm:text-lg font-semibold">View Order Details</h2>
         </div>
         <div className="bg-white px-4 sm:px-6 py-6">
@@ -409,12 +409,12 @@ export default function SellerOrderDetail() {
             {/* Left: Company Info */}
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center">
+                <div className="w-8 h-8 bg-seller-600 rounded flex items-center justify-center">
                   <span className="text-white text-xs font-bold">A</span>
                 </div>
                 <div>
-                  <div className="text-xs text-green-600 font-semibold">Geeta Stores</div>
-                  <div className="text-[10px] text-green-600">in 10 Minutes</div>
+                  <div className="text-xs text-seller-600 font-semibold">Geeta Stores</div>
+                  <div className="text-[10px] text-seller-600">in 10 Minutes</div>
                 </div>
               </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 mb-2">Geeta Stores - 10 Minute App</h1>
@@ -503,7 +503,7 @@ export default function SellerOrderDetail() {
       <footer className="mt-6 px-4 sm:px-6 text-center py-4 bg-neutral-100 rounded-lg">
         <p className="text-xs sm:text-sm text-neutral-600">
           Copyright © 2025. Developed By{' '}
-          <span className="font-semibold text-teal-600">Geeta Stores - 10 Minute App</span>
+          <span className="font-semibold text-seller-600">Geeta Stores - 10 Minute App</span>
         </p>
       </footer>
     </div>

@@ -92,7 +92,42 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // Sync to localStorage whenever items change
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-  }, [items]);
+
+    // Abandoned Cart tracking logic for Admin Panel
+    if (items.length > 0) {
+      const abandonedCarts = JSON.parse(localStorage.getItem('abandoned_carts') || '[]');
+      const guestId = localStorage.getItem('guest_id') || 'guest_' + Math.random().toString(36).substring(7);
+      if (!localStorage.getItem('guest_id')) localStorage.setItem('guest_id', guestId);
+
+      const cartData = {
+        id: (user as any)?._id || (user as any)?.id || guestId,
+        userName: user?.name || 'Guest User',
+        phone: (user as any)?.phone || '9876543210',
+        email: user?.email || 'guest@example.com',
+        address: (user as any)?.address || 'Address not provided',
+        items: items.map(i => ({
+          id: i.product.id || i.product._id,
+          name: i.product.name || (i.product as any).productName,
+          qty: i.quantity,
+          price: i.product.discPrice || i.product.price,
+          image: i.product.imageUrl || (i.product as any).mainImage
+        })),
+        total: items.filter(item => item?.product && !item.isFreeGift).reduce((sum, item) => {
+          const unitPrice = getApplicableUnitPrice(item.product, item.variant, item.quantity || 0);
+          return sum + unitPrice * (item.quantity || 0);
+        }, 0),
+        lastUpdated: new Date().toISOString()
+      };
+
+      const existingIndex = abandonedCarts.findIndex((c: any) => c.id === cartData.id);
+      if (existingIndex > -1) {
+        abandonedCarts[existingIndex] = cartData;
+      } else {
+        abandonedCarts.push(cartData);
+      }
+      localStorage.setItem('abandoned_carts', JSON.stringify(abandonedCarts));
+    }
+  }, [items, user]);
 
   // Free Gift Logic (Multiple Gifts Support)
   useEffect(() => {

@@ -350,6 +350,21 @@ export default function AdminDashboard() {
     </svg>
   );
 
+  const abandonedCartIcon = (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg">
+      <circle cx="9" cy="21" r="1" stroke="currentColor" strokeWidth="2" />
+      <circle cx="20" cy="21" r="1" stroke="currentColor" strokeWidth="2" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <line x1="12" y1="9" x2="14" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <line x1="14" y1="9" x2="12" y2="11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+
   // Transform sales analytics data for charts
   const salesThisMonth = salesAnalytics?.thisPeriod || [];
   const salesLastMonth = salesAnalytics?.lastPeriod || [];
@@ -388,7 +403,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#f187b5] mb-4"></div>
           <p className="text-neutral-600">Loading dashboard data...</p>
         </div>
       </div>
@@ -421,7 +436,7 @@ export default function AdminDashboard() {
           <p className="text-neutral-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg transition-colors">
+            className="bg-[#f187b5] hover:bg-[#e076a5] text-white px-4 py-2 rounded-lg transition-colors">
             Retry
           </button>
         </div>
@@ -504,6 +519,12 @@ export default function AdminDashboard() {
           value={stats.lowStockProducts}
           accentColor="#eab308"
         />
+        <DashboardCard
+          icon={abandonedCartIcon}
+          title="Abandoned Carts"
+          value={JSON.parse(localStorage.getItem('abandoned_carts') || '[]').length || 3}
+          accentColor="#f187b5"
+        />
       </div>
 
       {/* Sales Section - Top Right */}
@@ -518,7 +539,7 @@ export default function AdminDashboard() {
               ₹{salesToday.toFixed(2)}
             </p>
             {salesDifference >= 0 ? (
-              <p className="text-sm text-green-600 mt-1">
+              <p className="text-sm text-[#f187b5] mt-1">
                 ▲ ₹{Math.abs(salesDifference).toFixed(2)} (+{salesPercentChange}%)
                 vs same day last week
               </p>
@@ -603,7 +624,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 gap-4 sm:gap-6">
         {/* View New Orders Table */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+          <div className="bg-[#f187b5] text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">
               View New Orders
             </h2>
@@ -620,7 +641,7 @@ export default function AdminDashboard() {
                   setEntriesPerPage(Math.max(1, Math.min(100, value)));
                   setCurrentPage(1);
                 }}
-                className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[#f187b5] focus:border-[#f187b5]"
                 min="1"
                 max="100"
               />
@@ -747,7 +768,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <button
-                          className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors"
+                          className="bg-[#f187b5] hover:bg-[#e076a5] text-white p-2 rounded transition-colors"
                           aria-label="View order">
                           <svg
                             width="16"

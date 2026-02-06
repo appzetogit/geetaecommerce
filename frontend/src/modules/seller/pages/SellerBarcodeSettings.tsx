@@ -85,7 +85,7 @@ export default function SellerBarcodeSettings() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full bg-neutral-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f187b5]"></div>
             </div>
         );
     }
@@ -101,7 +101,7 @@ export default function SellerBarcodeSettings() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="bg-teal-600 hover:bg-teal-700 text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-colors text-sm flex items-center gap-2"
+                    className="bg-[#f187b5] hover:bg-[#e076a5] text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-colors text-sm flex items-center gap-2"
                 >
                     {saving ? 'Saving...' : 'Save Settings'}
                 </button>
@@ -125,7 +125,7 @@ export default function SellerBarcodeSettings() {
                                     name="width"
                                     value={settings.width}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                 />
                                 <p className="text-xs text-neutral-400 mt-1">e.g. 38</p>
                             </div>
@@ -136,7 +136,7 @@ export default function SellerBarcodeSettings() {
                                     name="height"
                                     value={settings.height}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                 />
                                 <p className="text-xs text-neutral-400 mt-1">e.g. 25</p>
                             </div>
@@ -157,7 +157,7 @@ export default function SellerBarcodeSettings() {
                                     name="productNameSize"
                                     value={settings.productNameSize}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                 />
                             </div>
                              <div>
@@ -167,7 +167,7 @@ export default function SellerBarcodeSettings() {
                                     name="fontSize"
                                     value={settings.fontSize}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                 />
                             </div>
                             <div>
@@ -177,7 +177,7 @@ export default function SellerBarcodeSettings() {
                                     name="barcodeHeight"
                                     value={settings.barcodeHeight}
                                     onChange={handleChange}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                 />
                             </div>
                         </div>
@@ -197,7 +197,7 @@ export default function SellerBarcodeSettings() {
                                         name="showName"
                                         checked={settings.showName}
                                         onChange={handleChange}
-                                        className="w-5 h-5 text-teal-600 rounded focus:ring-teal-500 border-neutral-300"
+                                        className="w-5 h-5 text-[#f187b5] rounded focus:ring-[#f187b5] border-neutral-300"
                                     />
                                     <span className="text-neutral-700 font-medium">Show Product Name</span>
                                 </label>
@@ -207,7 +207,7 @@ export default function SellerBarcodeSettings() {
                                         name="showPrice"
                                         checked={settings.showPrice}
                                         onChange={handleChange}
-                                        className="w-5 h-5 text-teal-600 rounded focus:ring-teal-500 border-neutral-300"
+                                        className="w-5 h-5 text-[#f187b5] rounded focus:ring-[#f187b5] border-neutral-300"
                                     />
                                     <span className="text-neutral-700 font-medium">Show Price (MRP/SP)</span>
                                 </label>
@@ -222,7 +222,7 @@ export default function SellerBarcodeSettings() {
                                         value={settings.mrpLabel}
                                         onChange={handleChange}
                                         placeholder="e.g. MRP"
-                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
+                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                     />
                                 </div>
                                 <div>
@@ -233,7 +233,7 @@ export default function SellerBarcodeSettings() {
                                         value={settings.spLabel}
                                         onChange={handleChange}
                                         placeholder="e.g. SP"
-                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all"
+                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                     />
                                 </div>
                             </div>

@@ -59,8 +59,8 @@ export default function ThemedDropdown({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={`w-full flex items-center justify-between px-3 py-2 bg-white border border-neutral-300 rounded-lg text-sm transition-all duration-200 outline-none
-          ${disabled ? 'opacity-50 cursor-not-allowed bg-neutral-50' : 'hover:border-[#E91E63] focus:ring-1 focus:ring-[#E91E63]/20 active:bg-neutral-50 cursor-pointer'}
-          ${isOpen ? 'border-[#E91E63] ring-1 ring-[#E91E63]/20' : ''}
+          ${disabled ? 'opacity-50 cursor-not-allowed bg-neutral-50' : 'hover:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5]/20 active:bg-neutral-50 cursor-pointer'}
+          ${isOpen ? 'border-[#f187b5] ring-1 ring-[#f187b5]/20' : ''}
         `}
       >
         <span className={`truncate ${!selectedOption ? 'text-neutral-400' : 'text-neutral-700'}`}>
@@ -88,7 +88,7 @@ export default function ThemedDropdown({
                 onClick={() => handleSelect(option)}
                 className={`w-full text-left px-3 py-2 text-sm transition-colors duration-150
                   ${option.value === value
-                    ? 'bg-[#E91E63]/10 text-[#E91E63] font-medium'
+                    ? 'bg-[#f187b5]/10 text-[#f187b5] font-medium'
                     : 'text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900'
                   }
                 `}

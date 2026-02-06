@@ -180,11 +180,24 @@ const DEFAULT_SECTIONS: SettingSection[] = [
         description: 'Purchase price of goods (visible only to you)',
         isEnabled: true,
       },
-       {
+      {
          id: 'delivery_time',
          label: 'Delivery Time',
          description: 'Estimated delivery days',
          isEnabled: true,
+      },
+    ],
+  },
+  {
+    id: 'inventory',
+    title: 'Inventory & Stock',
+    description: 'Manage how stock is handled and displayed.',
+    fields: [
+      {
+        id: 'negative_stock_sold_out',
+        label: 'Negative stock as Sold Out',
+        description: 'If negative stock is shown as sold out, then customer will not be able to buy it. Tip: Keep this on to avoid accidental orders for out-of-stock items.',
+        isEnabled: true,
       },
     ],
   },

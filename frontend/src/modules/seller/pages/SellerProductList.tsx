@@ -291,7 +291,7 @@ export default function SellerProductList() {
             Manage your product inventory and variations
           </p>
         </div>
-        <div className="text-sm font-medium text-teal-600 bg-teal-50 px-3 py-1 rounded-full border border-teal-100">
+        <div className="text-sm font-medium text-seller-600 bg-seller-50 px-3 py-1 rounded-full border border-seller-100">
            Dashboard / Product List
         </div>
       </div>
@@ -376,20 +376,20 @@ export default function SellerProductList() {
                 </label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-4 w-4 text-neutral-400 group-focus-within:text-teal-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-4 w-4 text-neutral-400 group-focus-within:text-seller-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
                   <input
                     type="text"
-                    className="block w-full pl-10 pr-10 py-2.5 border border-neutral-300 rounded-lg text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
+                    className="block w-full pl-10 pr-10 py-2.5 border border-neutral-300 rounded-lg text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all shadow-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search by Name, SKU..."
                   />
                   <button
                       onClick={() => setShowScanner(true)}
-                      className="absolute inset-y-0 right-0 px-3 flex items-center text-teal-600 bg-teal-50 hover:bg-teal-100 hover:text-teal-700 transition-colors border-l border-neutral-200 rounded-r-lg"
+                      className="absolute inset-y-0 right-0 px-3 flex items-center text-seller-600 bg-seller-50 hover:bg-seller-100 hover:text-seller-700 transition-colors border-l border-neutral-200 rounded-r-lg"
                       title="Scan Barcode"
                   >
                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -470,7 +470,7 @@ export default function SellerProductList() {
         {/* Loading State */}
         {loading && (
           <div className="p-8 text-center text-neutral-400">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto mb-2"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-seller-600 mx-auto mb-2"></div>
             Loading products...
           </div>
         )}
@@ -481,7 +481,7 @@ export default function SellerProductList() {
             <p>{error}</p>
             <button
               onClick={fetchProducts}
-              className="mt-4 px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700">
+              className="mt-4 px-4 py-2 bg-seller-600 text-white rounded hover:bg-seller-700">
               Retry
             </button>
           </div>
@@ -585,13 +585,13 @@ export default function SellerProductList() {
                 return (
                   <tr
                     key={`${variation.productId}-${variation.variationId}`}
-                    className="hover:bg-teal-50/30 transition-colors text-sm text-neutral-700 group">
+                    className="hover:bg-seller-50/30 transition-colors text-sm text-neutral-700 group">
                     <td className="p-4 align-middle font-medium text-neutral-400 text-xs">
                       <div className="flex items-center gap-2">
                         {isFirstVariation && hasMultipleVariations && (
                           <button
                             onClick={() => toggleProduct(variation.productId)}
-                            className="text-neutral-500 hover:text-teal-600 transition-colors">
+                            className="text-neutral-500 hover:text-seller-600 transition-colors">
                             <svg
                               width="14"
                               height="14"
@@ -654,7 +654,7 @@ export default function SellerProductList() {
                     </td>
                     <td className="p-4 align-middle text-right">
                       {variation.discPrice > 0 ? (
-                        <span className="text-green-600 font-medium text-xs bg-green-50 px-1.5 py-0.5 rounded">
+                        <span className="text-seller-600 font-medium text-xs bg-seller-50 px-1.5 py-0.5 rounded">
                             ₹{variation.discPrice.toFixed(2)}
                         </span>
                       ) : (
@@ -673,7 +673,7 @@ export default function SellerProductList() {
                           disabled={!isEnabled}
                           className={`p-2 rounded-md transition-colors ${
                               isEnabled
-                              ? "text-teal-600 bg-teal-50 hover:bg-teal-100"
+                              ? "text-seller-600 bg-seller-50 hover:bg-seller-100"
                               : "text-neutral-400 bg-neutral-50 cursor-not-allowed"
                           }`}
                           title={isEnabled ? "Edit Product" : "Account Disabled"}>
@@ -750,7 +750,7 @@ export default function SellerProductList() {
               className={`p-2 rounded-lg border transition-all ${
                 currentPage === 1
                   ? "border-neutral-200 text-neutral-300 cursor-not-allowed"
-                  : "border-neutral-300 text-neutral-600 hover:bg-white hover:border-teal-500 hover:text-teal-600 shadow-sm"
+                  : "border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm"
               }`}
               aria-label="Previous page">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -771,7 +771,7 @@ export default function SellerProductList() {
                     onClick={() => setCurrentPage(page)}
                     className={`min-w-[36px] h-[36px] flex items-center justify-center rounded-lg text-sm font-medium transition-all ${
                       currentPage === page
-                        ? "bg-teal-600 text-white shadow-md shadow-teal-200"
+                        ? "bg-seller-600 text-white shadow-md shadow-seller-200"
                         : "text-neutral-600 hover:bg-neutral-100"
                     }`}>
                     {page}
@@ -787,7 +787,7 @@ export default function SellerProductList() {
               className={`p-2 rounded-lg border transition-all ${
                 currentPage === displayTotalPages
                   ? "border-neutral-200 text-neutral-300 cursor-not-allowed"
-                  : "border-neutral-300 text-neutral-600 hover:bg-white hover:border-teal-500 hover:text-teal-600 shadow-sm"
+                  : "border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm"
               }`}
               aria-label="Next page">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

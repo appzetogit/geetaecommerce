@@ -473,6 +473,32 @@ const menuSections: MenuSection[] = [
       },
     ],
   },
+  {
+    title: "Customer Section",
+    items: [
+      {
+        label: "Abandoned Carts",
+        path: "/admin/customers/abandoned-carts",
+        icon: (
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            <line x1="12" y1="9" x2="15" y2="12"></line>
+            <line x1="15" y1="9" x2="12" y2="12"></line>
+          </svg>
+        ),
+      },
+    ],
+  },
 
   {
     title: "Delivery Section",
@@ -1085,6 +1111,26 @@ const menuSections: MenuSection[] = [
     title: "Setting",
     items: [
       {
+        label: "Brand Settings",
+        path: "/admin/settings/store",
+        icon: (
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round">
+            <path d="M3 3h18v18H3z"></path>
+            <path d="M3 9h18"></path>
+            <path d="M9 21V9"></path>
+          </svg>
+        ),
+        badge: "Hot",
+      },
+      {
         label: "Product Settings",
         path: "/admin/product-display-settings",
         icon: (
@@ -1306,7 +1352,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
     .filter((section) => section.items.length > 0);
 
   return (
-    <aside className="w-64 bg-gradient-to-br from-[#FF2D94] via-[#E91E63] to-[#D81B60] h-screen flex flex-col shadow-2xl relative overflow-hidden">
+    <aside className="w-64 bg-[#f187b5] h-screen flex flex-col shadow-2xl relative overflow-hidden">
       {/* Decorative background element for premium feel */}
       <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-black/10 rounded-full blur-3xl pointer-events-none"></div>

@@ -93,13 +93,13 @@ const SellerAttributeSetup = () => {
   return (
     <div className="p-6">
       <div className="flex items-center gap-2 mb-6">
-        <div className="bg-teal-100 p-2 rounded-full">
+        <div className="bg-[#f187b5]/10 p-2 rounded-full">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M14 2V8H20" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16 13H8" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M16 17H8" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M10 9H8" stroke="#0d9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#f187b5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 2V8H20" stroke="#f187b5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M16 13H8" stroke="#f187b5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M16 17H8" stroke="#f187b5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 9H8" stroke="#f187b5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
         </div>
         <h1 className="text-xl font-bold text-gray-800">Attribute Setup</h1>
@@ -118,7 +118,7 @@ const SellerAttributeSetup = () => {
                         placeholder="Enter Attribute Name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full px-4 py-2 bg-white border border-gray-300 rounded focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                        className="w-full px-4 py-2 bg-white border border-gray-300 rounded focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                     />
                 </div>
                 <div className="flex justify-end gap-3 mt-6">
@@ -132,7 +132,7 @@ const SellerAttributeSetup = () => {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="px-6 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors"
+                        className="px-6 py-2 bg-[#f187b5] text-white rounded hover:bg-[#e076a5] transition-colors"
                     >
                         {loading ? "Submitting..." : (editId ? "Update" : "Submit")}
                     </button>
@@ -154,13 +154,13 @@ const SellerAttributeSetup = () => {
                         placeholder="Search by Attribute Name"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-teal-500 focus:outline-none"
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                     />
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                 </div>
-                <button className="px-6 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 transition-colors font-medium">
+                <button className="px-6 py-2 bg-[#f187b5] text-white rounded hover:bg-[#e076a5] transition-colors font-medium">
                     Search
                 </button>
             </div>
@@ -184,7 +184,7 @@ const SellerAttributeSetup = () => {
                                         <div className="flex items-center justify-center gap-2">
                                             <button
                                                 onClick={() => handleEdit(attr)}
-                                                className="w-8 h-8 flex items-center justify-center rounded border border-teal-200 text-teal-600 hover:bg-teal-50 transition-colors"
+                                                className="w-8 h-8 flex items-center justify-center rounded border border-[#f187b5]/20 text-[#f187b5] hover:bg-[#f187b5]/10 transition-colors"
                                                 title="Edit"
                                             >
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

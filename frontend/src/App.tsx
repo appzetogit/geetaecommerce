@@ -191,9 +191,13 @@ const AdminGSTSalesReport = lazy(() => import("./modules/admin/pages/AdminGSTSal
 const AdminPaymentReport = lazy(() => import("./modules/admin/pages/AdminPaymentReport"));
 const AdminOnlineOrderReport = lazy(() => import("./modules/admin/pages/AdminOnlineOrderReport"));
 const AdminPOSInvoiceReport = lazy(() => import("./modules/admin/pages/AdminPOSInvoiceReport"));
+const AdminAbandonedCarts = lazy(() => import("./modules/admin/pages/AdminAbandonedCarts"));
 
 import { useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
+import { AppProvider } from "./context/AppContext";
+
+const AdminStoreSettings = lazy(() => import("./modules/admin/pages/AdminStoreSettings"));
 
 function NotificationHandler() {
   const { user, token: authToken } = useAuth();
@@ -257,8 +261,9 @@ function App() {
     <ErrorBoundary>
       <LoadingProvider>
         <AxiosLoadingInterceptor>
-          <IconLoader />
-          <AuthProvider>
+          <AppProvider>
+            <IconLoader />
+            <AuthProvider>
             <NotificationHandler />
             <ThemeProvider>
               <LocationProvider>
@@ -458,6 +463,7 @@ function App() {
                             <Route path="notification" element={<AdminNotification />} />
                             <Route path="orders" element={<AdminOrders />} />
                             <Route path="customers" element={<AdminManageCustomer />} />
+                             <Route path="customers/abandoned-carts" element={<AdminAbandonedCarts />} />
                             <Route path="collect-cash" element={<AdminCashCollection />} />
                             <Route path="payment-list" element={<AdminPaymentList />} />
                             <Route path="sms-gateway" element={<AdminSmsGateway />} />
@@ -486,6 +492,7 @@ function App() {
                             <Route path="barcode-settings" element={<AdminBarcodeSettings />} />
                             <Route path="delivery-settings" element={<AdminDeliverySettings />} />
                             <Route path="sales-summary" element={<AdminSalesSummary />} />
+                            <Route path="settings/store" element={<AdminStoreSettings />} />
 
                             {/* Report Routes */}
                             <Route path="reports/sales/summary" element={<AdminReportSalesSummary />} />
@@ -575,6 +582,7 @@ function App() {
 
             </ThemeProvider>
           </AuthProvider>
+          </AppProvider>
         </AxiosLoadingInterceptor>
       </LoadingProvider>
     </ErrorBoundary>

@@ -195,7 +195,7 @@ const SellerPOSReport = () => {
     if (loading && !reportData) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <FiLoader className="w-10 h-10 text-orange-600 animate-spin mb-4" />
+                <FiLoader className="w-10 h-10 text-[#f187b5] animate-spin mb-4" />
                 <p className="text-gray-500 font-medium">Loading POS analytics...</p>
             </div>
         );
@@ -219,7 +219,7 @@ const SellerPOSReport = () => {
                     </button>
                     <button
                       onClick={() => fetchData(dateRange.start || undefined, dateRange.end || undefined)}
-                      className="px-4 py-2 bg-orange-50 text-orange-600 rounded-xl font-semibold hover:bg-orange-100 transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] rounded-xl font-semibold hover:bg-[#f187b5]/20 transition-colors flex items-center gap-2"
                     >
                         <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -246,7 +246,7 @@ const SellerPOSReport = () => {
                                     <button
                                         key={period}
                                         onClick={() => applyDateFilter(period)}
-                                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === period ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
+                                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === period ? 'border-[#f187b5] bg-[#f187b5]/10 text-[#f187b5]' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedPeriod === period ? 'bg-white' : 'bg-gray-100'}`}>
@@ -260,7 +260,7 @@ const SellerPOSReport = () => {
 
                                 <button
                                     onClick={() => applyDateFilter("Custom Range")}
-                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === "Custom Range" ? 'border-orange-500 bg-orange-50 text-orange-700' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
+                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === "Custom Range" ? 'border-[#f187b5] bg-[#f187b5]/10 text-[#f187b5]' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedPeriod === "Custom Range" ? 'bg-white' : 'bg-gray-100'}`}>
@@ -268,13 +268,13 @@ const SellerPOSReport = () => {
                                         </div>
                                         <span className="font-medium">Custom Range</span>
                                     </div>
-                                    {selectedPeriod === "Custom Range" && <div className="w-2 h-2 rounded-full bg-orange-500"></div>}
+                                    {selectedPeriod === "Custom Range" && <div className="w-2 h-2 rounded-full bg-[#f187b5]"></div>}
                                 </button>
                             </div>
 
                             {selectedPeriod === "Custom Range" && (
                                 <div className="mt-4 pt-4 border-t border-gray-100 animate-in slide-in-from-top-2">
-                                     <h4 className="text-sm font-bold text-orange-600 mb-3 bg-orange-50 px-3 py-1 rounded-md inline-block">Select Date Range</h4>
+                                     <h4 className="text-sm font-bold text-[#f187b5] mb-3 bg-[#f187b5]/10 px-3 py-1 rounded-md inline-block">Select Date Range</h4>
                                      <div className="flex gap-3 mb-4">
                                          <div className="flex-1">
                                              <label className="text-xs font-semibold text-gray-500 mb-1 block">Start Date</label>
@@ -282,7 +282,7 @@ const SellerPOSReport = () => {
                                                 type="date"
                                                 value={customStart}
                                                 onChange={(e) => setCustomStart(e.target.value)}
-                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none bg-gray-50 focus:bg-white"
+                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] outline-none bg-gray-50 focus:bg-white"
                                              />
                                          </div>
                                          <div className="flex-1">
@@ -291,7 +291,7 @@ const SellerPOSReport = () => {
                                                 type="date"
                                                 value={customEnd}
                                                 onChange={(e) => setCustomEnd(e.target.value)}
-                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none bg-gray-50 focus:bg-white"
+                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] outline-none bg-gray-50 focus:bg-white"
                                              />
                                          </div>
                                      </div>
@@ -304,7 +304,7 @@ const SellerPOSReport = () => {
                                          </button>
                                          <button
                                             onClick={handleApplyCustomFilter}
-                                            className="flex-1 py-2.5 bg-[#0d9488] text-white font-semibold rounded-xl hover:bg-[#012a42] transition-colors shadow-sm"
+                                            className="flex-1 py-2.5 bg-[#f187b5] text-white font-semibold rounded-xl hover:bg-[#e076a5] transition-colors shadow-sm"
                                          >
                                             Apply Filter
                                          </button>
@@ -329,7 +329,7 @@ const SellerPOSReport = () => {
                     title="Cash Sales"
                     value={`₹${(reportData?.summary?.cashSales || 0).toLocaleString()}`}
                     icon={<FiDollarSign className="w-6 h-6" />}
-                    color="bg-green-500"
+                    color="bg-[#f187b5]"
                     desc="Physical cash collected"
                 />
                 <ReportCard
@@ -354,17 +354,17 @@ const SellerPOSReport = () => {
                 <div className="flex border-b border-gray-100 bg-gray-50/30">
                     <button
                         onClick={() => setActiveTab("orders")}
-                        className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === "orders" ? "text-orange-600" : "text-gray-500 hover:text-gray-700"}`}
+                        className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === "orders" ? "text-[#f187b5]" : "text-gray-500 hover:text-gray-700"}`}
                     >
                         POS Orders
-                        {activeTab === "orders" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-600"></div>}
+                        {activeTab === "orders" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#f187b5]"></div>}
                     </button>
                     <button
                         onClick={() => setActiveTab("ledger")}
-                        className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === "ledger" ? "text-orange-600" : "text-gray-500 hover:text-gray-700"}`}
+                        className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === "ledger" ? "text-[#f187b5]" : "text-gray-500 hover:text-gray-700"}`}
                     >
                         Stock Ledger
-                        {activeTab === "ledger" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-600"></div>}
+                        {activeTab === "ledger" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#f187b5]"></div>}
                     </button>
                 </div>
 
@@ -381,7 +381,7 @@ const SellerPOSReport = () => {
                                <button
                                  key={opt.id}
                                  onClick={() => setFilter(opt.id)}
-                                 className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter === opt.id ? 'bg-orange-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                 className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter === opt.id ? 'bg-[#f187b5] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                                >
                                    {opt.label}
                                </button>
@@ -418,12 +418,12 @@ const SellerPOSReport = () => {
                                                 </td>
                                                 <td className="px-6 py-4 font-bold text-gray-900">₹{(order.total || 0).toLocaleString()}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentMethod === 'Cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentMethod === 'Cash' ? 'bg-[#f187b5]/10 text-[#f187b5]' : 'bg-blue-100 text-blue-700'}`}>
                                                         {order.paymentMethod}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700'}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-[#f187b5]/10 text-[#f187b5]' : 'bg-red-100 text-red-700'}`}>
                                                         {order.paymentStatus}
                                                     </span>
                                                 </td>
@@ -486,7 +486,7 @@ const SellerPOSReport = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${entry.type === 'IN' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${entry.type === 'IN' ? 'bg-[#f187b5]/10 text-[#f187b5]' : 'bg-red-100 text-red-700'}`}>
                                                         {entry.type}
                                                     </span>
                                                 </td>
@@ -495,7 +495,7 @@ const SellerPOSReport = () => {
                                                     <div className="flex items-center gap-2 text-xs">
                                                         <span className="text-gray-400">{entry.previousStock}</span>
                                                         <span className="text-gray-300">→</span>
-                                                        <span className="font-bold text-teal-600">{entry.newStock}</span>
+                                                        <span className="font-bold text-[#f187b5]">{entry.newStock}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -551,7 +551,7 @@ const SellerPOSReport = () => {
                                         setSelectedActionOrder(null);
                                     }}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <div className="w-10 h-10 rounded-full bg-[#f187b5]/10 text-[#f187b5] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
                                     </div>
                                     <div>
@@ -568,7 +568,7 @@ const SellerPOSReport = () => {
                                         setSelectedActionOrder(null);
                                     }}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <div className="w-10 h-10 rounded-full bg-[#f187b5]/10 text-[#f187b5] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                     </div>
                                     <div>
@@ -647,7 +647,7 @@ const SellerPOSReport = () => {
                                         <select
                                             value={editingLedgerEntry.type}
                                             onChange={(e) => setEditingLedgerEntry({...editingLedgerEntry, type: e.target.value})}
-                                            className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-medium text-sm"
+                                            className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] font-medium text-sm"
                                         >
                                             <option value="IN">IN (Add Stock)</option>
                                             <option value="OUT">OUT (Remove Stock)</option>
@@ -659,7 +659,7 @@ const SellerPOSReport = () => {
                                             type="number"
                                             value={editingLedgerEntry.quantity}
                                             onChange={(e) => setEditingLedgerEntry({...editingLedgerEntry, quantity: e.target.value})}
-                                            className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-medium text-sm"
+                                            className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] font-medium text-sm"
                                         />
                                     </div>
                                 </div>
@@ -669,18 +669,18 @@ const SellerPOSReport = () => {
                                         type="text"
                                         value={editingLedgerEntry.source}
                                         onChange={(e) => setEditingLedgerEntry({...editingLedgerEntry, source: e.target.value})}
-                                        className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-medium text-sm"
+                                        className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] font-medium text-sm"
                                         placeholder="Reason for change..."
                                     />
                                 </div>
 
-                                <div className="flex items-start gap-2 bg-orange-50 p-3 rounded-xl border border-orange-100">
+                                <div className="flex items-start gap-2 bg-[#f187b5]/10 p-3 rounded-xl border border-[#f187b5]/20">
                                     <input
                                         type="checkbox"
                                         id="updateStockCheck"
                                         checked={editingLedgerEntry.updateStock}
                                         onChange={(e) => setEditingLedgerEntry({...editingLedgerEntry, updateStock: e.target.checked})}
-                                        className="mt-1 w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500"
+                                        className="mt-1 w-4 h-4 text-[#f187b5] rounded border-gray-300 focus:ring-[#f187b5]"
                                     />
                                     <label htmlFor="updateStockCheck" className="text-xs text-orange-800">
                                         <span className="font-bold block mb-0.5">Update Actual Product Stock?</span>
@@ -698,7 +698,7 @@ const SellerPOSReport = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-2.5 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 transition-colors shadow-sm"
+                                    className="flex-1 py-2.5 bg-[#f187b5] text-white font-semibold rounded-xl hover:bg-[#e076a5] transition-colors shadow-sm"
                                 >
                                     Update Entry
                                 </button>

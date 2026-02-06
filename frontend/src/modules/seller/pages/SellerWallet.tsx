@@ -212,15 +212,15 @@ export default function SellerWallet() {
         <div>
           <h1 className="text-2xl font-bold text-neutral-800">My Wallet</h1>
           <div className="text-sm text-neutral-600">
-            <span className="text-teal-600 hover:text-teal-700 cursor-pointer" onClick={() => navigate('/seller')}>Home</span>
+            <span className="text-seller-600 hover:text-seller-700 cursor-pointer" onClick={() => navigate('/seller')}>Home</span>
             <span className="mx-2">/</span>
             <span className="text-neutral-800">Wallet</span>
           </div>
         </div>
-        {loading && <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-teal-600"></div>}
+        {loading && <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-seller-600"></div>}
         <button
           onClick={() => setShowWithdrawModal(true)}
-          className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all flex items-center gap-2"
+          className="bg-seller-600 hover:bg-seller-700 text-white px-6 py-2.5 rounded-lg font-semibold shadow-sm transition-all flex items-center gap-2"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -233,28 +233,28 @@ export default function SellerWallet() {
 
       {/* Summary Cards (Admin Inspired Gradients) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-lg shadow-lg p-6 text-white transition-transform hover:scale-[1.02]">
+        <div className="bg-gradient-to-br from-seller-600 to-seller-700 rounded-lg shadow-lg p-6 text-white transition-transform hover:scale-[1.02]">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-teal-100">Available Balance</h3>
+            <h3 className="text-sm font-medium text-seller-100">Available Balance</h3>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="5" width="20" height="14" rx="2" />
               <line x1="2" y1="10" x2="22" y2="10" />
             </svg>
           </div>
           <p className="text-3xl font-bold">₹{stats.availableBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
-          <p className="text-xs text-teal-100 mt-1">Ready to withdraw</p>
+          <p className="text-xs text-seller-100 mt-1">Ready to withdraw</p>
         </div>
 
-        <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-lg shadow-lg p-6 text-white transition-transform hover:scale-[1.02]">
+        <div className="bg-gradient-to-br from-seller-600 to-seller-700 rounded-lg shadow-lg p-6 text-white transition-transform hover:scale-[1.02]">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-green-100">Total Earnings</h3>
+            <h3 className="text-sm font-medium text-seller-100">Total Earnings</h3>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 6l-9.5 9.5-5-5L1 18" />
               <path d="M17 6h6v6" />
             </svg>
           </div>
           <p className="text-3xl font-bold">₹{stats.totalEarnings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
-          <p className="text-xs text-green-100 mt-1">Life-time gross earnings</p>
+          <p className="text-xs text-seller-100 mt-1">Life-time gross earnings</p>
         </div>
 
         <div className="bg-gradient-to-br from-yellow-600 to-yellow-700 rounded-lg shadow-lg p-6 text-white transition-transform hover:scale-[1.02]">
@@ -298,7 +298,7 @@ export default function SellerWallet() {
                   setStatusFilter('All');
                 }}
                 className={`flex items-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
-                  ? 'border-teal-600 text-teal-600'
+                  ? 'border-seller-600 text-seller-600'
                   : 'border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
                   }`}
               >
@@ -323,7 +323,7 @@ export default function SellerWallet() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search transactions..."
-                  className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                  className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-300 rounded-lg text-sm focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none"
                 />
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
                   <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -403,7 +403,7 @@ export default function SellerWallet() {
                     <th className="p-4 border-b border-neutral-200">Product</th>
                     <th className="p-4 border-b border-neutral-200 text-right">Sale Amt</th>
                     <th className="p-4 border-b border-neutral-200 text-right">Commission</th>
-                    <th className="p-4 border-b border-neutral-200 text-right text-teal-600">Net Earning</th>
+                    <th className="p-4 border-b border-neutral-200 text-right text-seller-600">Net Earning</th>
                     <th className="p-4 border-b border-neutral-200">Status</th>
                   </>
                 )}
@@ -423,11 +423,11 @@ export default function SellerWallet() {
                       <>
                         <td className="p-4 text-sm text-neutral-600 whitespace-nowrap">{new Date(item.createdAt).toLocaleString()}</td>
                         <td className="p-4 text-sm font-medium text-neutral-900">{item.description}</td>
-                        <td className={`p-4 text-sm font-bold text-right ${item.type === 'Credit' ? 'text-green-600' : 'text-red-600'}`}>
+                        <td className={`p-4 text-sm font-bold text-right ${item.type === 'Credit' ? 'text-seller-600' : 'text-red-600'}`}>
                           {item.type === 'Credit' ? '+' : '-'} ₹{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${item.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${item.status === 'Completed' ? 'bg-seller-100 text-seller-700' :
                             item.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
                             }`}>
                             {item.status}
@@ -443,7 +443,7 @@ export default function SellerWallet() {
                         <td className="p-4 text-sm font-bold text-right text-neutral-900">₹{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                         <td className="p-4 text-[10px] text-neutral-400 font-mono">{item.accountDetails}</td>
                         <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${item.status === 'Completed' || item.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${item.status === 'Completed' || item.status === 'Approved' ? 'bg-seller-100 text-seller-700' :
                             item.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
                             }`}>
                             {item.status}
@@ -458,9 +458,9 @@ export default function SellerWallet() {
                         <td className="p-4 text-sm text-neutral-600">{item.source}</td>
                         <td className="p-4 text-sm text-right text-neutral-600">₹{item.amount.toFixed(2)}</td>
                         <td className="p-4 text-sm text-right text-red-500">-₹{item.commission.toFixed(2)}</td>
-                        <td className="p-4 text-sm font-bold text-right text-teal-600">₹{item.netEarning.toFixed(2)}</td>
+                        <td className="p-4 text-sm font-bold text-right text-seller-600">₹{item.netEarning.toFixed(2)}</td>
                         <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${item.status === 'Settled' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${item.status === 'Settled' ? 'bg-seller-100 text-seller-700' : 'bg-yellow-100 text-yellow-700'
                             }`}>
                             {item.status}
                           </span>
@@ -503,10 +503,10 @@ export default function SellerWallet() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[85vh] overflow-hidden animate-in zoom-in duration-200 border border-neutral-100">
             {/* Header - Compact */}
-            <div className="bg-teal-600 px-5 py-3 flex justify-between items-center text-white shrink-0">
+            <div className="bg-seller-600 px-5 py-3 flex justify-between items-center text-white shrink-0">
               <div>
                 <h3 className="text-base font-bold">Withdraw Money</h3>
-                <p className="text-[9px] text-teal-100 uppercase tracking-widest font-bold">Payout Request</p>
+                <p className="text-[9px] text-seller-100 uppercase tracking-widest font-bold">Payout Request</p>
               </div>
               <button onClick={() => setShowWithdrawModal(false)} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -516,12 +516,12 @@ export default function SellerWallet() {
             {/* Scrollable Form Content - Compact Spacing */}
             <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar bg-neutral-50/30">
               {/* Balance Card - More Compact */}
-              <div className="p-3.5 bg-white rounded-xl border border-teal-100 flex items-center justify-between shadow-sm">
+              <div className="p-3.5 bg-white rounded-xl border border-seller-100 flex items-center justify-between shadow-sm">
                 <div>
                   <p className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider mb-0.5">Available Balance</p>
-                  <p className="text-xl font-black text-teal-600">₹{stats.availableBalance.toLocaleString('en-IN')}</p>
+                  <p className="text-xl font-black text-seller-600">₹{stats.availableBalance.toLocaleString('en-IN')}</p>
                 </div>
-                <div className="h-10 w-10 bg-teal-50 rounded-lg flex items-center justify-center border border-teal-100">
+                <div className="h-10 w-10 bg-seller-50 rounded-lg flex items-center justify-center border border-seller-100">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.5"><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></svg>
                 </div>
               </div>
@@ -536,7 +536,7 @@ export default function SellerWallet() {
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full pl-8 pr-4 py-3 bg-white border border-neutral-200 rounded-xl focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 outline-none font-bold text-base transition-all shadow-sm"
+                    className="w-full pl-8 pr-4 py-3 bg-white border border-neutral-200 rounded-xl focus:ring-4 focus:ring-seller-500/10 focus:border-seller-500 outline-none font-bold text-base transition-all shadow-sm"
                   />
                 </div>
               </div>
@@ -547,15 +547,15 @@ export default function SellerWallet() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setWithdrawMethod('Bank Transfer')}
-                    className={`flex items-center justify-center gap-2 p-3 border-2 rounded-xl transition-all ${withdrawMethod === 'Bank Transfer' ? 'border-teal-600 bg-teal-50 shadow-inner' : 'border-neutral-100 bg-white shadow-sm'}`}>
+                    className={`flex items-center justify-center gap-2 p-3 border-2 rounded-xl transition-all ${withdrawMethod === 'Bank Transfer' ? 'border-seller-600 bg-seller-50 shadow-inner' : 'border-neutral-100 bg-white shadow-sm'}`}>
                     <span className="text-lg">🏦</span>
-                    <span className={`text-[11px] font-bold ${withdrawMethod === 'Bank Transfer' ? 'text-teal-700' : 'text-neutral-500'}`}>Bank</span>
+                    <span className={`text-[11px] font-bold ${withdrawMethod === 'Bank Transfer' ? 'text-seller-700' : 'text-neutral-500'}`}>Bank</span>
                   </button>
                   <button
                     onClick={() => setWithdrawMethod('UPI')}
-                    className={`flex items-center justify-center gap-2 p-3 border-2 rounded-xl transition-all ${withdrawMethod === 'UPI' ? 'border-teal-600 bg-teal-50 shadow-inner' : 'border-neutral-100 bg-white shadow-sm'}`}>
+                    className={`flex items-center justify-center gap-2 p-3 border-2 rounded-xl transition-all ${withdrawMethod === 'UPI' ? 'border-seller-600 bg-seller-50 shadow-inner' : 'border-neutral-100 bg-white shadow-sm'}`}>
                     <span className="text-lg">📱</span>
-                    <span className={`text-[11px] font-bold ${withdrawMethod === 'UPI' ? 'text-teal-700' : 'text-neutral-500'}`}>UPI</span>
+                    <span className={`text-[11px] font-bold ${withdrawMethod === 'UPI' ? 'text-seller-700' : 'text-neutral-500'}`}>UPI</span>
                   </button>
                 </div>
               </div>
@@ -574,7 +574,7 @@ export default function SellerWallet() {
                           value={bankDetails.accountHolderName}
                           onChange={(e) => setBankDetails({ ...bankDetails, accountHolderName: e.target.value })}
                           placeholder="John Doe"
-                          className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-semibold shadow-sm"
+                          className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none text-xs font-semibold shadow-sm"
                         />
                       </div>
                       <div className="space-y-1">
@@ -584,7 +584,7 @@ export default function SellerWallet() {
                           value={bankDetails.accountNumber}
                           onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
                           placeholder="000011112222"
-                          className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-semibold shadow-sm"
+                          className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none text-xs font-semibold shadow-sm"
                         />
                       </div>
                     </div>
@@ -596,7 +596,7 @@ export default function SellerWallet() {
                           value={bankDetails.bankName}
                           onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
                           placeholder="HDFC Bank"
-                          className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-semibold shadow-sm"
+                          className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none text-xs font-semibold shadow-sm"
                         />
                       </div>
                       <div className="space-y-1">
@@ -606,7 +606,7 @@ export default function SellerWallet() {
                           value={bankDetails.ifscCode}
                           onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value })}
                           placeholder="HDFC0000"
-                          className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-bold text-teal-800 uppercase shadow-sm"
+                          className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none text-xs font-bold text-seller-800 uppercase shadow-sm"
                         />
                       </div>
                     </div>
@@ -620,7 +620,7 @@ export default function SellerWallet() {
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
                         placeholder="yourname@upi"
-                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-sm font-bold text-teal-900 shadow-sm"
+                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none text-sm font-bold text-seller-900 shadow-sm"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" strokeWidth="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" /></svg>
@@ -636,7 +636,7 @@ export default function SellerWallet() {
               <button
                 onClick={handleWithdrawSubmit}
                 disabled={isSubmitting}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3.5 rounded-xl font-bold uppercase tracking-widest shadow-lg shadow-teal-600/20 transition-all hover:shadow-teal-600/30 active:scale-[0.98] disabled:opacity-50 disabled:transform-none flex items-center justify-center gap-2"
+                className="w-full bg-seller-600 hover:bg-seller-700 text-white py-3.5 rounded-xl font-bold uppercase tracking-widest shadow-lg shadow-seller-600/20 transition-all hover:shadow-seller-600/30 active:scale-[0.98] disabled:opacity-50 disabled:transform-none flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>

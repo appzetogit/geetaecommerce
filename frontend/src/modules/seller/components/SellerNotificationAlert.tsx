@@ -38,7 +38,7 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
 
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-300">
         {/* Header */}
-        <div className={`px-6 py-4 flex items-center justify-between ${notification.type === 'NEW_ORDER' ? 'bg-teal-600' : 'bg-blue-600'} text-white`}>
+        <div className={`px-6 py-4 flex items-center justify-between ${notification.type === 'NEW_ORDER' ? 'bg-seller-600' : 'bg-blue-600'} text-white`}>
           <div className="flex items-center gap-3">
             <div className="bg-white bg-opacity-20 p-2 rounded-full">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -81,7 +81,7 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
               step="0.1"
               value={volume}
               onChange={(e) => setVolume(parseFloat(e.target.value))}
-              className="flex-1 accent-teal-600"
+              className="flex-1 accent-seller-600"
             />
           </div>
 
@@ -128,7 +128,7 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
 
               <div className="flex justify-between items-center pt-4 mt-2 border-t-2 border-neutral-100">
                 <span className="text-lg font-bold text-neutral-800">Total (Your Items)</span>
-                <span className="text-2xl font-black text-teal-600">₹{notification.totalAmount.toFixed(2)}</span>
+                <span className="text-2xl font-black text-seller-600">₹{notification.totalAmount.toFixed(2)}</span>
               </div>
             </div>
           </section>
@@ -138,7 +138,7 @@ const SellerNotificationAlert: React.FC<SellerNotificationAlertProps> = ({ notif
         <div className="p-6 bg-neutral-50 border-t border-neutral-200">
           <button
             onClick={onClose}
-            className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform active:scale-95 ${notification.type === 'NEW_ORDER' ? 'bg-teal-600 hover:bg-teal-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+            className={`w-full py-4 rounded-xl font-bold text-white shadow-lg transition-transform active:scale-95 ${notification.type === 'NEW_ORDER' ? 'bg-seller-600 hover:bg-seller-700' : 'bg-blue-600 hover:bg-blue-700'}`}
           >
             Acknowledge & Dismiss
           </button>

@@ -10,6 +10,7 @@ import { Category } from '../../../types/domain';
 import { getHeaderCategoriesPublic } from '../../../services/api/headerCategoryService';
 import { getIconByName } from '../../../utils/iconLibrary';
 import { useThemeContext } from '../../../context/ThemeContext';
+import { useAppContext } from '../../../context/AppContext';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -437,6 +438,8 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
     </div>
   );
 
+  const { config } = useAppContext();
+
   return (
     <div
       ref={heroRef}
@@ -448,7 +451,11 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
         <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-3 md:pt-4 pb-2">
           <div className="flex items-center justify-between gap-3">
             <div className="flex-shrink-0">
-              <img src="/assets/geetastoreslogo.png" alt="Geeta Stores" className="h-10 md:h-12 w-auto object-contain" />
+              <img
+                src={config?.appLogo || "/assets/geetastoreslogo.png"}
+                alt={config?.appName || "Geeta Stores"}
+                className="h-10 md:h-12 w-auto object-contain"
+              />
             </div>
             {locationDisplayText && (
               <div className="flex items-center gap-1 text-neutral-700 text-xs md:text-sm">
