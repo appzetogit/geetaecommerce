@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authenticate, requireUserType } from "../middleware/auth";
+import { uploadMultipleDocuments } from "../middleware/upload";
 
 // Dashboard Controllers
 import * as dashboardController from "../modules/admin/controllers/adminDashboardController";
@@ -11,9 +12,11 @@ import * as productController from "../modules/admin/controllers/adminProductCon
 import * as orderController from "../modules/admin/controllers/adminOrderController";
 import * as deletePOSOrderController from "../modules/admin/controllers/deletePOSOrderController";
 import * as updateStockLedgerController from "../modules/admin/controllers/updateStockLedgerController";
+import * as inventoryController from "../modules/admin/controllers/adminInventoryController";
 
 // Customer Controllers
 import * as customerController from "../modules/admin/controllers/adminCustomerController";
+import * as abandonedCartController from "../modules/admin/controllers/adminAbandonedCartController";
 
 // Delivery Controllers
 import * as deliveryController from "../modules/admin/controllers/adminDeliveryController";
@@ -155,6 +158,20 @@ router.delete("/products/:id", productController.deleteProduct);
 router.post("/products/bulk-import", productController.bulkImportProducts);
 router.put("/products/bulk-update", productController.bulkUpdateProducts);
 
+// ==================== Inventory Routes ====================
+router.get("/inventory/stock-summary", inventoryController.getStockSummary);
+router.get("/inventory/stock-balance", inventoryController.getStockBalanceSummary);
+router.get("/inventory/low-stock", inventoryController.getLowStockSummary);
+router.get("/inventory/out-of-stock", inventoryController.getOutOfStockSummary);
+router.get("/inventory/loss-summary", inventoryController.getLossSummary);
+router.get("/inventory/gst-sales", inventoryController.getGSTSalesReport);
+router.get("/inventory/payment-report", inventoryController.getPaymentReport);
+router.get("/inventory/sales-summary-report", inventoryController.getSalesSummaryReport);
+router.get("/inventory/return-exchange-report", inventoryController.getReturnExchangeReport);
+router.get("/inventory/stock-sales-summary", inventoryController.getStockSalesSummary);
+router.get("/inventory/due-summary", inventoryController.getDueSummaryReport);
+router.post("/inventory/loss", inventoryController.createLossRecord);
+
 // ==================== POS Routes ====================
 router.post("/orders/pos", orderController.createPOSOrder);
 router.post("/orders/pos/online", orderController.initiatePOSOnlineOrder);
@@ -166,6 +183,8 @@ router.post("/pos/exchange", orderController.processPOSExchange);
 router.delete("/orders/pos/:id", deletePOSOrderController.deletePOSOrder);
 
 // ==================== Order Routes ====================
+router.get("/orders/pos-report", orderController.getPOSOrders);
+router.get("/orders/online", orderController.getOnlineOrders);
 router.get("/orders", orderController.getAllOrders);
 router.get("/orders/status/:status", orderController.getOrdersByStatus);
 router.get("/orders/:id", orderController.getOrderById);
@@ -193,6 +212,7 @@ router.patch("/returns/:id/process", orderController.processReturnRequest);
 
 // ==================== Customer Routes ====================
 router.post("/customers", customerController.createCustomer);
+router.get("/customers/abandoned-carts", abandonedCartController.getAbandonedCarts);
 router.get("/customers", customerController.getAllCustomers);
 router.get("/customers/:id", customerController.getCustomerById);
 router.patch("/customers/:id/status", customerController.updateCustomerStatus);
@@ -269,6 +289,8 @@ router.patch(
 
 // ==================== Wallet Routes ====================
 router.get("/wallet/transactions", walletController.getWalletTransactions);
+router.get("/wallet/seller-commissions", walletController.getSellerCommissions);
+router.post("/wallet/manual-fund-transfer", walletController.createAdminWalletTransaction);
 router.post("/wallet/transfer", walletController.processFundTransfer);
 router.get("/wallet/seller/:sellerId", walletController.getSellerTransactions);
 router.post("/wallet/withdrawal", walletController.processWithdrawal);
@@ -321,6 +343,15 @@ router.delete("/policies/:id", policyController.deletePolicy);
 
 // ==================== Seller Routes ====================
 router.get("/sellers", sellerController.getAllSellers);
+router.post(
+  "/sellers",
+  uploadMultipleDocuments.fields([
+    { name: "profile", maxCount: 1 },
+    { name: "idProof", maxCount: 1 },
+    { name: "addressProof", maxCount: 1 },
+  ]),
+  sellerController.createSeller
+);
 router.patch("/sellers/:id/toggle-status", sellerController.toggleSellerEnabled);
 
 // ==================== Shop Management ====================

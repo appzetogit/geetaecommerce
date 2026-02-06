@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getAllOrders, updateOrderStatus, Order } from "../../../services/api/admin/adminOrderService";
+import { getPOSOrders, updateOrderStatus, Order } from "../../../services/api/admin/adminOrderService";
 import { useAuth } from "../../../context/AuthContext";
 import { toast } from "react-hot-toast";
 
@@ -12,7 +12,6 @@ type DateFilterType = 'today' | 'last7days' | 'last30days' | 'alltime' | 'custom
 const AdminPOSInvoiceReport = () => {
   const { isAuthenticated, token } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [filteredData, setFilteredData] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilterType, setDateFilterType] = useState<DateFilterType>('alltime');
@@ -21,26 +20,68 @@ const AdminPOSInvoiceReport = () => {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState("All Methods");
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [editMode, setEditMode] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    pages: 1,
+    limit: 20
+  });
 
   useEffect(() => {
     if (isAuthenticated && token) {
       fetchOrders();
     }
-  }, [token, isAuthenticated]);
+  }, [token, isAuthenticated, pagination.page, dateFilterType, customDateRange, paymentMethodFilter, debouncedSearchTerm]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await getAllOrders({ limit: 1000 });
+
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit,
+        paymentMethod: paymentMethodFilter !== "All Methods" ? paymentMethodFilter : undefined,
+        search: debouncedSearchTerm || undefined,
+      };
+
+      // Date Filters
+      const now = new Date();
+      if (dateFilterType === 'today') {
+        params.dateFrom = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+        params.dateTo = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+      } else if (dateFilterType === 'last7days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'last30days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'custom' && customDateRange.start && customDateRange.end) {
+        params.dateFrom = new Date(customDateRange.start).toISOString();
+        params.dateTo = new Date(new Date(customDateRange.end).setHours(23, 59, 59, 999)).toISOString();
+      }
+
+      const response = await getPOSOrders(params);
       if (response.success) {
-        // Filter ONLY POS orders
-        const posOrders = response.data.filter((order: any) => {
-          const isAdminNotesPOS = order.adminNotes?.toLowerCase().includes('pos');
-          const isAddressPOS = order.deliveryAddress?.address === 'POS Order';
-          return isAdminNotesPOS || isAddressPOS;
-        });
-        setOrders(posOrders);
-        setFilteredData(posOrders);
+        setOrders(response.data);
+        if (response.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            total: response.pagination!.total,
+            pages: response.pagination!.pages
+          }));
+        }
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -50,49 +91,6 @@ const AdminPOSInvoiceReport = () => {
     }
   };
 
-  useEffect(() => {
-    let filtered = [...orders];
-
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-
-    if (dateFilterType === 'today') {
-      filtered = filtered.filter(item => item.orderDate.split('T')[0] === today);
-    } else if (dateFilterType === 'last7days') {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(now.getDate() - 7);
-      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-      filtered = filtered.filter(item => item.orderDate.split('T')[0] >= sevenDaysAgoStr && item.orderDate.split('T')[0] <= today);
-    } else if (dateFilterType === 'last30days') {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(now.getDate() - 30);
-      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
-      filtered = filtered.filter(item => item.orderDate.split('T')[0] >= thirtyDaysAgoStr && item.orderDate.split('T')[0] <= today);
-    } else if (dateFilterType === 'custom') {
-      if (customDateRange.start && customDateRange.end) {
-        filtered = filtered.filter(item =>
-          item.orderDate.split('T')[0] >= customDateRange.start &&
-          item.orderDate.split('T')[0] <= customDateRange.end
-        );
-      }
-    }
-
-    if (paymentMethodFilter !== "All Methods") {
-      filtered = filtered.filter(item => item.paymentMethod === paymentMethodFilter);
-    }
-
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.paymentMethod.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.customerPhone && item.customerPhone.includes(searchTerm))
-      );
-    }
-
-    setFilteredData(filtered);
-  }, [searchTerm, orders, dateFilterType, customDateRange, paymentMethodFilter]);
-
   const handleDateFilterChange = (type: DateFilterType) => {
     setDateFilterType(type);
     if (type === 'custom') setShowCustomDatePicker(true);
@@ -101,10 +99,7 @@ const AdminPOSInvoiceReport = () => {
 
   const handleCellEdit = async (id: string, field: keyof Order, value: any) => {
     // Local Update
-    setFilteredData(prev => prev.map(item =>
-      item._id === id ? { ...item, [field]: value } : item
-    ));
-    setOrders(prev => prev.map(item =>
+    setOrders(prev => (prev as Order[]).map((item: Order) =>
       item._id === id ? { ...item, [field]: value } : item
     ));
 
@@ -120,7 +115,7 @@ const AdminPOSInvoiceReport = () => {
   };
 
   const downloadExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+    const worksheet = XLSX.utils.json_to_sheet(orders.map(item => ({
       "Invoice No": item.orderNumber,
       "Date": new Date(item.orderDate).toLocaleDateString(),
       "Customer": item.customerName,
@@ -141,7 +136,7 @@ const AdminPOSInvoiceReport = () => {
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
 
-    const tableData = filteredData.map(item => [
+    const tableData = orders.map(item => [
       item.orderNumber,
       new Date(item.orderDate).toLocaleDateString(),
       item.customerName,
@@ -164,7 +159,7 @@ const AdminPOSInvoiceReport = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(new Set(filteredData.map(item => item._id)));
+      setSelectedRows(new Set(orders.map(item => item._id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -296,7 +291,7 @@ const AdminPOSInvoiceReport = () => {
                   <th className="px-6 py-4 text-left">
                     <input
                       type="checkbox"
-                      checked={selectedRows.size === filteredData.length && filteredData.length > 0}
+                      checked={selectedRows.size === orders.length && orders.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer transition-all"
                     />
@@ -318,10 +313,10 @@ const AdminPOSInvoiceReport = () => {
                        <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em]">Syncing POS Records...</p>
                      </td>
                    </tr>
-                ) : filteredData.length === 0 ? (
+                ) : orders.length === 0 ? (
                   <tr><td colSpan={8} className="px-6 py-24 text-center text-gray-400 font-black italic tracking-widest uppercase text-[10px]">No POS invoices found</td></tr>
                 ) : (
-                  filteredData.map((item) => (
+                  orders.map((item: any) => (
                     <tr key={item._id} className="hover:bg-indigo-50/30 transition-colors group">
                       <td className="px-6 py-4">
                         <input
@@ -404,6 +399,50 @@ const AdminPOSInvoiceReport = () => {
             </table>
           </div>
         </div>
+
+        {/* Pagination */}
+        {pagination.pages > 1 && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="text-xs font-black text-gray-400 uppercase tracking-widest">
+              Showing <span className="text-indigo-600">{orders.length}</span> of <span className="text-indigo-600">{pagination.total}</span> Invoices
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={pagination.page === 1}
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                className="p-2 border border-gray-100 rounded-xl hover:bg-gray-50 disabled:opacity-30 transition-all font-black text-indigo-600">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+
+              <div className="flex items-center gap-1">
+                {[...Array(pagination.pages)].map((_, i) => {
+                  const p = i + 1;
+                  if (pagination.pages > 7) {
+                    if (p !== 1 && p !== pagination.pages && Math.abs(p - pagination.page) > 1) {
+                      if (p === 2 || p === pagination.pages - 1) return <span key={p} className="px-1 text-gray-300">...</span>;
+                      return null;
+                    }
+                  }
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPagination(prev => ({ ...prev, page: p }))}
+                      className={`w-9 h-9 flex items-center justify-center rounded-xl text-xs font-black transition-all ${pagination.page === p ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'hover:bg-indigo-50 text-gray-500'}`}>
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                disabled={pagination.page === pagination.pages}
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                className="p-2 border border-gray-100 rounded-xl hover:bg-gray-50 disabled:opacity-30 transition-all font-black text-indigo-600">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

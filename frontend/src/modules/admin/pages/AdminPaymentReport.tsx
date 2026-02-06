@@ -1,153 +1,90 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { getPaymentReport, PaymentData } from "../../../services/api/admin/adminInventoryService";
+import { toast } from "react-hot-toast";
 
-interface PaymentData {
-  _id: string;
-  paymentId: string;
-  orderNumber: string;
-  date: string;
-  customerName: string;
-  amount: number;
-  paymentMethod: string;
-  status: "Paid" | "Pending" | "Failed" | "Refunded";
-  type: "POS" | "Online";
-}
-
-type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
+type DateFilterType = 'today' | 'last7days' | 'last30days' | 'alltime' | 'custom';
 
 const AdminPaymentReport = () => {
   const [data, setData] = useState<PaymentData[]>([]);
-  const [filteredData, setFilteredData] = useState<PaymentData[]>([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [dateFilterType, setDateFilterType] = useState<DateFilterType>('alltime');
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
-  // Dummy data for demonstration
-  useEffect(() => {
-    const dummyData: PaymentData[] = [
-      {
-        _id: "1",
-        paymentId: "PAYID-678912345",
-        orderNumber: "ORD20260204001",
-        date: "2026-02-04",
-        customerName: "Rajesh Kumar",
-        amount: 2500,
-        paymentMethod: "Razorpay (UPI)",
-        status: "Paid",
-        type: "Online"
-      },
-      {
-        _id: "2",
-        paymentId: "TXN-987654321",
-        orderNumber: "ORD20260204005",
-        date: "2026-02-04",
-        customerName: "Priya Sharma",
-        amount: 1200,
-        paymentMethod: "Cash",
-        status: "Paid",
-        type: "POS"
-      },
-      {
-        _id: "3",
-        paymentId: "PAYID-678912347",
-        orderNumber: "ORD20260204010",
-        date: "2026-02-03",
-        customerName: "Amit Singh",
-        amount: 3500,
-        paymentMethod: "Card",
-        status: "Paid",
-        type: "POS"
-      },
-      {
-        _id: "4",
-        paymentId: "PAYID-678912348",
-        orderNumber: "ORD20260204012",
-        date: "2026-02-03",
-        customerName: "Sonia Verma",
-        amount: 800,
-        paymentMethod: "Razorpay (Card)",
-        status: "Failed",
-        type: "Online"
-      },
-      {
-        _id: "5",
-        paymentId: "PAYID-678912349",
-        orderNumber: "ORD20260204015",
-        date: "2026-02-02",
-        customerName: "Vikram Adit",
-        amount: 5000,
-        paymentMethod: "Net Banking",
-        status: "Pending",
-        type: "Online"
-      },
-      {
-        _id: "6",
-        paymentId: "TXN-112233445",
-        orderNumber: "ORD20260204020",
-        date: "2026-02-01",
-        customerName: "Sneha Reddy",
-        amount: 1500,
-        paymentMethod: "Cash",
-        status: "Paid",
-        type: "POS"
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    pages: 1,
+    limit: 20
+  });
+
+  // Fetch data
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: debouncedSearchTerm || undefined,
+      };
+
+      const now = new Date();
+      if (dateFilterType === 'today') {
+        params.dateFrom = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+        params.dateTo = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+      } else if (dateFilterType === 'last7days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'last30days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'custom' && customDateRange.start && customDateRange.end) {
+        params.dateFrom = new Date(customDateRange.start).toISOString();
+        params.dateTo = new Date(new Date(customDateRange.end).setHours(23, 59, 59, 999)).toISOString();
       }
-    ];
-    setData(dummyData);
-    setFilteredData(dummyData);
-  }, []);
 
-  // Filter data based on search and date criteria
-  useEffect(() => {
-    let filtered = [...data];
-
-    // Date filter
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-
-    if (dateFilterType === 'today') {
-      filtered = filtered.filter(item => item.date === today);
-    } else if (dateFilterType === 'last7days') {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(now.getDate() - 7);
-      const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
-      filtered = filtered.filter(item => item.date >= sevenDaysAgoStr && item.date <= today);
-    } else if (dateFilterType === 'last30days') {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(now.getDate() - 30);
-      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
-      filtered = filtered.filter(item => item.date >= thirtyDaysAgoStr && item.date <= today);
-    } else if (dateFilterType === 'custom') {
-      if (customDateRange.start && customDateRange.end) {
-        filtered = filtered.filter(item =>
-          item.date >= customDateRange.start &&
-          item.date <= customDateRange.end
-        );
+      const response = await getPaymentReport(params);
+      if (response.success) {
+        setData(response.data);
+        if (response.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            total: response.pagination!.total,
+            pages: response.pagination!.pages
+          }));
+        }
       }
+    } catch (error) {
+      console.error("Error fetching payment reports:", error);
+      toast.error("Failed to fetch payment report data");
+    } finally {
+      setLoading(false);
     }
+  }, [pagination.page, pagination.limit, debouncedSearchTerm, dateFilterType, customDateRange]);
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.paymentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.paymentMethod.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-    setFilteredData(filtered);
-  }, [searchTerm, data, dateFilterType, customDateRange]);
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handleCellEdit = (id: string, field: keyof PaymentData, value: any) => {
-    setFilteredData(prev => prev.map(item =>
-      item._id === id ? { ...item, [field]: value } : item
-    ));
     setData(prev => prev.map(item =>
       item._id === id ? { ...item, [field]: value } : item
     ));
@@ -155,7 +92,7 @@ const AdminPaymentReport = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(new Set(filteredData.map(item => item._id)));
+      setSelectedRows(new Set(data.map(item => item._id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -173,15 +110,12 @@ const AdminPaymentReport = () => {
 
   const handleDateFilterChange = (type: DateFilterType) => {
     setDateFilterType(type);
-    if (type === 'custom') {
-      setShowCustomDatePicker(true);
-    } else {
-      setShowCustomDatePicker(false);
-    }
+    setPagination(prev => ({ ...prev, page: 1 }));
+    setShowCustomDatePicker(type === 'custom');
   };
 
   const downloadExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+    const worksheet = XLSX.utils.json_to_sheet(data.map(item => ({
       "Date": item.date,
       "Transaction ID": item.paymentId,
       "Order Number": item.orderNumber,
@@ -199,13 +133,12 @@ const AdminPaymentReport = () => {
 
   const downloadPDF = () => {
     const doc = new jsPDF('landscape');
-
     doc.setFontSize(18);
     doc.text('Payment Transaction Report', 14, 15);
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
 
-    const tableData = filteredData.map(item => [
+    const tableData = data.map(item => [
       item.date,
       item.paymentId,
       item.orderNumber,
@@ -221,20 +154,19 @@ const AdminPaymentReport = () => {
       body: tableData,
       startY: 28,
       styles: { fontSize: 8 },
-      headStyles: { fillColor: [79, 70, 229] } // Indigo theme
+      headStyles: { fillColor: [79, 70, 229] }
     });
 
     doc.save(`Payment_Report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  const totalPayments = filteredData.length;
-  const totalAmount = filteredData.reduce((sum, item) => sum + (item.status === 'Paid' ? item.amount : 0), 0);
-  const totalOnline = filteredData.filter(item => item.type === 'Online' && item.status === 'Paid').reduce((sum, item) => sum + item.amount, 0);
-  const totalPOS = filteredData.filter(item => item.type === 'POS' && item.status === 'Paid').reduce((sum, item) => sum + item.amount, 0);
+  const totalTransactions = pagination.total;
+  const totalAmount = data.reduce((sum, item) => sum + (item.status === 'Paid' ? item.amount : 0), 0);
+  const totalOnline = data.filter(item => item.type === 'Online' && item.status === 'Paid').reduce((sum, item) => sum + item.amount, 0);
+  const totalPOS = data.filter(item => item.type === 'POS' && item.status === 'Paid').reduce((sum, item) => sum + item.amount, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header Section */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -273,12 +205,11 @@ const AdminPaymentReport = () => {
             </div>
           </div>
 
-          {/* Date Filter Tabs */}
           <div className="mt-4 flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-lg">
-            {['today', 'last7days', 'last30days', 'alltime', 'custom'].map((type) => (
+            {(['today', 'last7days', 'last30days', 'alltime'] as DateFilterType[]).map((type) => (
               <button
                 key={type}
-                onClick={() => handleDateFilterChange(type as DateFilterType)}
+                onClick={() => handleDateFilterChange(type)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all ${
                   dateFilterType === type
                     ? 'bg-indigo-600 text-white shadow-sm'
@@ -287,9 +218,17 @@ const AdminPaymentReport = () => {
                 {type === 'last7days' ? 'Last 7 Days' : type === 'last30days' ? 'Last 30 Days' : type}
               </button>
             ))}
+            <button
+              onClick={() => handleDateFilterChange('custom')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                dateFilterType === 'custom'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-indigo-600 hover:bg-indigo-50'
+              }`}>
+              Custom
+            </button>
           </div>
 
-          {/* Custom Date Range Picker */}
           {showCustomDatePicker && (
             <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200 animate-in fade-in slide-in-from-top-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -299,7 +238,7 @@ const AdminPaymentReport = () => {
                     type="date"
                     value={customDateRange.start}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all shadow-sm"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-200 outline-none transition-all shadow-sm"
                   />
                 </div>
                 <div>
@@ -308,14 +247,13 @@ const AdminPaymentReport = () => {
                     type="date"
                     value={customDateRange.end}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all shadow-sm"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-200 outline-none transition-all shadow-sm"
                   />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Search Filter */}
           <div className="mt-4">
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
@@ -335,7 +273,6 @@ const AdminPaymentReport = () => {
         </div>
       </div>
 
-      {/* Summary Stats Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all group">
@@ -347,12 +284,12 @@ const AdminPaymentReport = () => {
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-black text-gray-900">{totalPayments}</p>
+            <p className="text-3xl font-black text-gray-900">{totalTransactions}</p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all group">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Revenue</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Page Rev</p>
               <div className="p-2 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors">
                 <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -387,7 +324,6 @@ const AdminPaymentReport = () => {
           </div>
         </div>
 
-        {/* Table Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm leading-normal">
@@ -397,7 +333,7 @@ const AdminPaymentReport = () => {
                     <th className="px-5 py-4 text-left">
                       <input
                         type="checkbox"
-                        checked={selectedRows.size === filteredData.length && filteredData.length > 0}
+                        checked={selectedRows.size === data.length && data.length > 0}
                         onChange={(e) => handleSelectAll(e.target.checked)}
                         className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
                       />
@@ -414,19 +350,20 @@ const AdminPaymentReport = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredData.length === 0 ? (
+                {loading ? (
                   <tr>
-                    <td colSpan={editMode ? 9 : 8} className="px-6 py-12 text-center text-gray-400">
-                      <div className="flex flex-col items-center">
-                        <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                        </svg>
-                        <p className="text-sm">No payment transactions found</p>
-                      </div>
+                    <td colSpan={editMode ? 9 : 8} className="px-6 py-12 text-center text-gray-500 text-sm italic">
+                      Fetching report data...
+                    </td>
+                  </tr>
+                ) : data.length === 0 ? (
+                  <tr>
+                    <td colSpan={editMode ? 9 : 8} className="px-6 py-12 text-center text-gray-400 font-medium">
+                      No payment transactions found
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((item) => (
+                  data.map((item) => (
                     <tr key={item._id} className="hover:bg-gray-50 transition-colors">
                       {editMode && (
                         <td className="px-5 py-4">
@@ -438,51 +375,25 @@ const AdminPaymentReport = () => {
                           />
                         </td>
                       )}
+                      <td className="px-5 py-4 whitespace-nowrap text-gray-900 font-medium">{item.date}</td>
                       <td className="px-5 py-4 whitespace-nowrap">
-                        {editMode ? (
-                          <input type="date" value={item.date} onChange={(e) => handleCellEdit(item._id, 'date', e.target.value)} className="w-full px-2 py-1 border rounded" />
-                        ) : (
-                          <span className="text-gray-900 font-medium">{item.date}</span>
-                        )}
+                        <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">{item.paymentId}</span>
                       </td>
-                      <td className="px-5 py-4">
-                        {editMode ? (
-                          <input type="text" value={item.paymentId} onChange={(e) => handleCellEdit(item._id, 'paymentId', e.target.value)} className="w-full px-2 py-1 border rounded" />
-                        ) : (
-                          <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">{item.paymentId}</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer">{item.orderNumber}</span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs mr-3">
-                            {item.customerName.split(' ').map(n => n[0]).join('')}
-                          </div>
-                          <span className="text-gray-900 font-medium">{item.customerName}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="text-sm font-bold text-gray-900">₹{item.amount.toLocaleString()}</span>
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="text-sm text-gray-600">{item.paymentMethod}</span>
-                      </td>
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4 whitespace-nowrap font-semibold text-indigo-600">{item.orderNumber}</td>
+                      <td className="px-5 py-4 whitespace-nowrap text-gray-900 font-medium">{item.customerName}</td>
+                      <td className="px-5 py-4 whitespace-nowrap font-bold text-gray-900">₹{item.amount.toLocaleString()}</td>
+                      <td className="px-5 py-4 whitespace-nowrap text-gray-600">{item.paymentMethod}</td>
+                      <td className="px-5 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                           item.status === 'Paid' ? 'bg-green-100 text-green-700' :
                           item.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                          item.status === 'Failed' ? 'bg-red-100 text-red-700' :
-                          'bg-gray-100 text-gray-700'
+                          item.status === 'Failed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
                         }`}>
                           {item.status}
                         </span>
                       </td>
-                      <td className="px-5 py-4">
-                        <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${
-                          item.type === 'POS' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-purple-100 text-purple-700 border border-purple-200'
-                        }`}>
+                      <td className="px-5 py-4 whitespace-nowrap uppercase tracking-widest text-[10px] font-black">
+                        <span className={`px-2 py-1 rounded ${item.type === 'POS' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
                           {item.type}
                         </span>
                       </td>
@@ -492,6 +403,28 @@ const AdminPaymentReport = () => {
               </tbody>
             </table>
           </div>
+
+          {pagination.pages > 1 && (
+            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="text-sm text-gray-500">
+                Showing page <span className="font-semibold">{pagination.page}</span> of <span className="font-semibold">{pagination.pages}</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                  disabled={pagination.page === 1}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.pages, prev.page + 1) }))}
+                  disabled={pagination.page === pagination.pages}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

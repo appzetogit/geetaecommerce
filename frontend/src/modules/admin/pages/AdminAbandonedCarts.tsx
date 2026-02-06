@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Search,
@@ -16,53 +16,11 @@ import {
     PhoneCall,
     X,
     Clock,
-    ShoppingCart
+    ShoppingCart,
+    Loader2
 } from 'lucide-react';
-
-// Mock data for abandoned carts
-const MOCK_ABANDONED_CARTS = [
-    {
-        id: '1',
-        userName: "Rahul Sharma",
-        phone: "9876543210",
-        email: "rahul@test.com",
-        address: "123, Pink City, Jaipur, Rajasthan",
-        items: [
-            { id: 'p1', name: "Amul Gold Milk", qty: 2, price: 50, image: "https://www.amul.com/files/products/milk-gold.jpg" },
-            { id: 'p2', name: "Bread (Large)", qty: 1, price: 40, image: "https://m.media-amazon.com/images/I/71Xm0-cW4mL._SL1500_.jpg" }
-        ],
-        total: 140,
-        lastUpdated: "2026-02-05T14:30:00Z",
-        status: "Active"
-    },
-    {
-        id: '2',
-        userName: "Priya Singh",
-        phone: "7012345678",
-        email: "priya@gmail.com",
-        address: "FL-402, Green Valley Apartments, Goregaon, Mumbai",
-        items: [
-            { id: 'p3', name: "Basmati Rice (5kg)", qty: 1, price: 650, image: "https://m.media-amazon.com/images/I/81sh211K9NL._SL1500_.jpg" }
-        ],
-        total: 650,
-        lastUpdated: "2026-02-06T10:15:00Z",
-        status: "Active"
-    },
-    {
-        id: '3',
-        userName: "Amit Verma",
-        phone: "9988776655",
-        email: "amit.v@outlook.com",
-        address: "G-56, Sector 63, Noida, UP",
-        items: [
-            { id: 'p4', name: "Cooking Oil (1L)", qty: 3, price: 180, image: "https://m.media-amazon.com/images/I/71f6Z2YV1FL._SL1500_.jpg" },
-            { id: 'p5', name: "Salt (1kg)", qty: 2, price: 25, image: "https://m.media-amazon.com/images/I/71u-mH0rNlL._SL1500_.jpg" }
-        ],
-        total: 590,
-        lastUpdated: "2026-02-04T18:45:00Z",
-        status: "Active"
-    }
-];
+import { getAbandonedCarts } from '../../../services/api/admin/adminCustomerService';
+import toast from 'react-hot-toast';
 
 export default function AdminAbandonedCarts() {
     const navigate = useNavigate();
@@ -70,21 +28,51 @@ export default function AdminAbandonedCarts() {
     const [dateFilter, setDateFilter] = useState('');
     const [minCartValue, setMinCartValue] = useState('');
     const [selectedCart, setSelectedCart] = useState<any>(null);
+    const [carts, setCarts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        total: 0,
+        pages: 1
+    });
 
-    const abandonedCartsData = useMemo(() => {
-        const saved = JSON.parse(localStorage.getItem('abandoned_carts') || '[]');
-        return [...saved, ...MOCK_ABANDONED_CARTS];
-    }, []);
+    const fetchCarts = useCallback(async () => {
+        try {
+            setLoading(true);
+            const response = await getAbandonedCarts({
+                page: pagination.page,
+                limit: 20,
+                search: searchTerm || undefined,
+                startDate: dateFilter || undefined,
+                minPrice: minCartValue ? parseFloat(minCartValue) : undefined
+            });
 
-    const filteredCarts = useMemo(() => {
-        return abandonedCartsData.filter(cart => {
-            const matchesSearch = cart.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                 cart.phone.includes(searchTerm);
-            const matchesDate = !dateFilter || cart.lastUpdated.includes(dateFilter);
-            const matchesValue = !minCartValue || cart.total >= parseInt(minCartValue);
-            return matchesSearch && matchesDate && matchesValue;
-        });
-    }, [searchTerm, dateFilter, minCartValue, abandonedCartsData]);
+            if (response.success) {
+                setCarts(response.data || []);
+                if (response.pagination) {
+                    setPagination(prev => ({
+                        ...prev,
+                        total: response.pagination!.total,
+                        pages: response.pagination!.pages
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching abandoned carts:", error);
+            toast.error("Failed to fetch abandoned carts");
+        } finally {
+            setLoading(false);
+        }
+    }, [pagination.page, searchTerm, dateFilter, minCartValue]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchCarts();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [fetchCarts]);
+
+    const filteredCarts = carts;
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -172,19 +160,28 @@ export default function AdminAbandonedCarts() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-100">
-                            {filteredCarts.length > 0 ? filteredCarts.map((cart) => (
-                                <tr key={cart.id} className="hover:bg-neutral-50 transition-colors">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Loader2 className="h-10 w-10 text-[#f187b5] animate-spin" />
+                                            <p className="text-neutral-500">Loading abandoned carts...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : filteredCarts.length > 0 ? filteredCarts.map((cart) => (
+                                <tr key={cart._id} className="hover:bg-neutral-50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="h-10 w-10 flex-shrink-0 rounded-full bg-pink-100 flex items-center justify-center text-[#f187b5]">
                                                 <User className="h-5 w-5" />
                                             </div>
-                                            <div className="font-semibold text-neutral-900">{cart.userName}</div>
+                                            <div className="font-semibold text-neutral-900">{cart.customer?.name || "Guest User"}</div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="text-sm text-neutral-700">{cart.phone}</div>
-                                        <div className="text-xs text-neutral-400">{cart.email}</div>
+                                        <div className="text-sm text-neutral-700">{cart.customer?.phone}</div>
+                                        <div className="text-xs text-neutral-400">{cart.customer?.email}</div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-1 text-sm font-medium text-neutral-700">
@@ -193,7 +190,7 @@ export default function AdminAbandonedCarts() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 font-bold text-neutral-900">₹{cart.total}</td>
-                                    <td className="px-6 py-4 text-sm text-neutral-500">{formatDate(cart.lastUpdated)}</td>
+                                    <td className="px-6 py-4 text-sm text-neutral-500">{formatDate(cart.updatedAt)}</td>
                                     <td className="px-6 py-4 text-right">
                                         <button
                                             onClick={() => setSelectedCart(cart)}
@@ -221,16 +218,21 @@ export default function AdminAbandonedCarts() {
 
             {/* List View (Mobile) */}
             <div className="md:hidden px-4 space-y-4">
-                {filteredCarts.length > 0 ? filteredCarts.map((cart) => (
-                    <div key={cart.id} className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-sm">
+                {loading ? (
+                    <div className="py-12 text-center bg-white rounded-2xl border border-neutral-200">
+                        <Loader2 className="mx-auto h-12 w-12 text-[#f187b5] animate-spin mb-3" />
+                        <p className="text-neutral-500 font-medium">Loading abandoned carts...</p>
+                    </div>
+                ) : filteredCarts.length > 0 ? filteredCarts.map((cart) => (
+                    <div key={cart._id} className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-sm">
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="h-12 w-12 rounded-full bg-pink-100 flex items-center justify-center text-[#f187b5]">
                                     <User className="h-6 w-6" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-neutral-900">{cart.userName}</h3>
-                                    <p className="text-sm text-neutral-500">{formatDate(cart.lastUpdated)}</p>
+                                    <h3 className="font-bold text-neutral-900">{cart.customer?.name || "Guest User"}</h3>
+                                    <p className="text-sm text-neutral-500">{formatDate(cart.updatedAt)}</p>
                                 </div>
                             </div>
                             <div className="bg-pink-50 text-[#f187b5] font-bold px-3 py-1 rounded-lg">
@@ -241,7 +243,7 @@ export default function AdminAbandonedCarts() {
                         <div className="grid grid-cols-2 gap-3 mb-4">
                             <div className="flex items-center gap-2 text-sm text-neutral-600">
                                 <Phone className="h-4 w-4 text-neutral-400" />
-                                {cart.phone}
+                                {cart.customer?.phone}
                             </div>
                             <div className="flex items-center gap-2 text-sm text-neutral-600">
                                 <ShoppingBag className="h-4 w-4 text-neutral-400" />
@@ -256,14 +258,16 @@ export default function AdminAbandonedCarts() {
                             >
                                 Details
                             </button>
-                            <a
-                                href={`https://wa.me/${cart.phone}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="p-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all flex items-center justify-center"
-                            >
-                                <MessageCircle className="h-5 w-5" />
-                            </a>
+                            {cart.customer?.phone && (
+                                <a
+                                    href={`https://wa.me/${cart.customer.phone}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all flex items-center justify-center"
+                                >
+                                    <MessageCircle className="h-5 w-5" />
+                                </a>
+                            )}
                         </div>
                     </div>
                 )) : (
@@ -301,77 +305,75 @@ export default function AdminAbandonedCarts() {
                             {/* Tabs removed as requested */}
                         </div>
 
-                        {/* Scrollable Content */}
-                        <div className="flex-1 overflow-y-auto px-6 pb-8 space-y-8">
-                            {/* User Info Section */}
-                            <div className="space-y-6">
-                                <div className="text-center bg-neutral-100 inline-block px-4 py-1 rounded-lg text-sm font-medium text-neutral-600 mx-auto">
-                                    {new Date(selectedCart.lastUpdated).toLocaleDateString()}
-                                </div>
+                         {/* Scrollable Content */}
+                         <div className="flex-1 overflow-y-auto px-6 pb-8 space-y-8">
+                             {/* User Info Section */}
+                             <div className="space-y-6">
+                                 <div className="text-center bg-neutral-100 inline-block px-4 py-1 rounded-lg text-sm font-medium text-neutral-600 mx-auto">
+                                     {new Date(selectedCart.updatedAt).toLocaleDateString()}
+                                 </div>
 
-                                <div className="space-y-4">
-                                    <div className="flex items-start gap-4">
-                                        <div className="h-12 w-12 rounded bg-black flex items-center justify-center text-white">
-                                            <User className="h-6 w-6" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <h4 className="text-lg font-bold text-neutral-900">{selectedCart.phone}</h4>
-                                            </div>
-                                            <p className="text-sm text-neutral-500 italic mb-4">
-                                                Subscribed on {new Date(selectedCart.lastUpdated).toLocaleDateString('en-IN', { weekday: 'long' })}, {new Date(selectedCart.lastUpdated).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
+                                 <div className="space-y-4">
+                                     <div className="flex items-start gap-4">
+                                         <div className="h-12 w-12 rounded bg-black flex items-center justify-center text-white">
+                                             <User className="h-6 w-6" />
+                                         </div>
+                                         <div className="flex-1">
+                                             <div className="flex items-center justify-between mb-1">
+                                                 <h4 className="text-lg font-bold text-neutral-900">{selectedCart.customer?.phone || "N/A"}</h4>
+                                             </div>
+                                             <p className="text-sm text-neutral-500 italic mb-4">
+                                                 Updated on {new Date(selectedCart.updatedAt).toLocaleDateString('en-IN', { weekday: 'long' })}, {new Date(selectedCart.updatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                             </p>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
 
-                                            {/* Action buttons removed as requested */}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                             {/* Cart Items Details - (Enhanced) */}
+                             <div className="border-t border-neutral-100 pt-6">
+                                 <h5 className="text-sm font-bold text-neutral-400 uppercase tracking-wider mb-4">Cart Items</h5>
+                                 <div className="space-y-4">
+                                     {selectedCart.items.map((item: any) => (
+                                         <div key={item._id} className="flex gap-4">
+                                             <div className="h-16 w-16 bg-white border border-neutral-200 rounded-xl overflow-hidden flex-shrink-0">
+                                                 <img src={item.product?.mainImage} alt={item.product?.productName} className="h-full w-full object-contain p-1" />
+                                             </div>
+                                             <div className="flex-1">
+                                                 <div className="font-bold text-neutral-900">{item.product?.productName}</div>
+                                                 <div className="text-sm text-neutral-500">Qty: {item.quantity} × ₹{item.product?.price}</div>
+                                             </div>
+                                             <div className="font-bold text-neutral-900">₹{item.quantity * (item.product?.price || 0)}</div>
+                                         </div>
+                                     ))}
+                                     <div className="pt-4 mt-4 border-t border-dashed border-neutral-200">
+                                         <div className="flex justify-between items-center text-lg">
+                                             <span className="font-bold text-neutral-900">Total Cart Value</span>
+                                             <span className="font-black text-[#f187b5]">₹{selectedCart.total}</span>
+                                         </div>
+                                     </div>
+                                 </div>
+                             </div>
 
-                            {/* Cart Items Details - (Enhanced) */}
-                            <div className="border-t border-neutral-100 pt-6">
-                                <h5 className="text-sm font-bold text-neutral-400 uppercase tracking-wider mb-4">Cart Items</h5>
-                                <div className="space-y-4">
-                                    {selectedCart.items.map((item: any) => (
-                                        <div key={item.id} className="flex gap-4">
-                                            <div className="h-16 w-16 bg-white border border-neutral-200 rounded-xl overflow-hidden flex-shrink-0">
-                                                <img src={item.image} alt={item.name} className="h-full w-full object-contain p-1" />
-                                            </div>
-                                            <div className="flex-1">
-                                                <div className="font-bold text-neutral-900">{item.name}</div>
-                                                <div className="text-sm text-neutral-500">Qty: {item.qty} × ₹{item.price}</div>
-                                            </div>
-                                            <div className="font-bold text-neutral-900">₹{item.qty * item.price}</div>
-                                        </div>
-                                    ))}
-                                    <div className="pt-4 mt-4 border-t border-dashed border-neutral-200">
-                                        <div className="flex justify-between items-center text-lg">
-                                            <span className="font-bold text-neutral-900">Total Cart Value</span>
-                                            <span className="font-black text-[#f187b5]">₹{selectedCart.total}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* User Profile Detail Section */}
-                            <div className="space-y-4 bg-[#F8F9FB] p-6 rounded-[2rem] border border-neutral-100">
-                                <h5 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">User Information</h5>
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3">
-                                        <User className="h-4 w-4 text-neutral-400" />
-                                        <span className="text-sm font-medium text-neutral-700">{selectedCart.userName}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <Mail className="h-4 w-4 text-neutral-400" />
-                                        <span className="text-sm font-medium text-neutral-700">{selectedCart.email}</span>
-                                    </div>
-                                    <div className="flex items-start gap-3">
-                                        <MapPin className="h-4 w-4 text-neutral-400 mt-0.5" />
-                                        <span className="text-sm font-medium text-neutral-700 leading-relaxed">{selectedCart.address}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                             {/* User Profile Detail Section */}
+                             <div className="space-y-4 bg-[#F8F9FB] p-6 rounded-[2rem] border border-neutral-100">
+                                 <h5 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">User Information</h5>
+                                 <div className="space-y-3">
+                                     <div className="flex items-center gap-3">
+                                         <User className="h-4 w-4 text-neutral-400" />
+                                         <span className="text-sm font-medium text-neutral-700">{selectedCart.customer?.name || "Guest User"}</span>
+                                     </div>
+                                     <div className="flex items-center gap-3">
+                                         <Mail className="h-4 w-4 text-neutral-400" />
+                                         <span className="text-sm font-medium text-neutral-700">{selectedCart.customer?.email || "N/A"}</span>
+                                     </div>
+                                     <div className="flex items-start gap-3">
+                                         <MapPin className="h-4 w-4 text-neutral-400 mt-0.5" />
+                                         <span className="text-sm font-medium text-neutral-700 leading-relaxed">{selectedCart.customer?.address || "No address provided"}</span>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
 
                         {/* Sticky Bottom Actions */}
                         <div className="p-6 bg-white border-t border-neutral-100">

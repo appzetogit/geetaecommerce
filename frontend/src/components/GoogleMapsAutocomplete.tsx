@@ -1,21 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+// @ts-ignore
+import { useJsApiLoader } from '@react-google-maps/api';
 
-// Extend the Window interface to include gm_authFailure
-declare global {
-  interface Window {
-    gm_authFailure?: () => void;
-  }
-}
+// ... (declare global interface Window if needed, though usually handled by types)
 
 interface GoogleMapsAutocompleteProps {
-  value: string;
-  onChange: (address: string, lat: number, lng: number, placeName: string, components?: { city?: string; state?: string }) => void;
-  placeholder?: string;
-  className?: string;
-  disabled?: boolean;
-  required?: boolean;
+    // ... props
+    value: string;
+    onChange: (address: string, lat: number, lng: number, placeName: string, components?: { city?: string; state?: string }) => void;
+    placeholder?: string;
+    className?: string;
+    disabled?: boolean;
+    required?: boolean;
+    types?: string[];
 }
-
 // Clean address by removing Plus Codes and unwanted identifiers
 const cleanAddress = (address: string): string => {
   if (!address) return address;
@@ -36,6 +34,8 @@ const cleanAddress = (address: string): string => {
   return cleaned;
 };
 
+const libraries = ['places'];
+
 export default function GoogleMapsAutocomplete({
   value,
   onChange,
@@ -43,11 +43,20 @@ export default function GoogleMapsAutocomplete({
   className = '',
   disabled = false,
   required = false,
+  types = ['establishment', 'geocode'],
 }: GoogleMapsAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const autocompleteRef = useRef<any>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Use the same loader to avoid conflicts
+  const { isLoaded: apiLoaded, loadError } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries: libraries as any,
+  });
+
+  const [isLoaded, setIsLoaded] = useState(false); // Internal loaded state combining apiLoaded + fallback
   const [error, setError] = useState<string>('');
   const [inputValue, setInputValue] = useState(value);
 
@@ -62,6 +71,23 @@ export default function GoogleMapsAutocomplete({
   useEffect(() => {
     setInputValue(value);
   }, [value]);
+
+  // Sync isLoaded with apiLoaded
+  useEffect(() => {
+    if (apiLoaded) {
+      setIsLoaded(true);
+      initializeAutocomplete();
+    }
+  }, [apiLoaded]);
+
+  // Handle load error by switching to fallback
+  useEffect(() => {
+    if (loadError) {
+      console.warn('Google Maps JS API failed to load:', loadError);
+      setUseFallback(true);
+      setIsLoaded(true);
+    }
+  }, [loadError]);
 
   // Handle global auth failure from Google Maps (standard callback)
   useEffect(() => {
@@ -130,18 +156,21 @@ export default function GoogleMapsAutocomplete({
     onChange(address, lat, lng, placeName, { city, state });
   };
 
+
   // Initialize autocomplete using the legacy Autocomplete API
   const initializeAutocomplete = useCallback(() => {
     if (!inputRef.current || !window.google?.maps?.places || useFallback) return;
 
     // Clean up any existing autocomplete
     if (autocompleteRef.current) {
-      try {
-        window.google?.maps?.event?.clearInstanceListeners?.(autocompleteRef.current);
-      } catch {
-        // Ignore cleanup errors
-      }
-      autocompleteRef.current = null;
+        try {
+            if (window.google?.maps?.event?.clearInstanceListeners) {
+                window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+            }
+        } catch (e) {
+            // ignore
+        }
+        autocompleteRef.current = null;
     }
 
     try {
@@ -153,7 +182,7 @@ export default function GoogleMapsAutocomplete({
       }
 
       const autocomplete = new places.Autocomplete(inputRef.current, {
-        types: ['establishment', 'geocode'],
+        types: types,
         componentRestrictions: { country: 'in' },
         fields: ['address_components', 'formatted_address', 'geometry', 'name', 'place_id'],
       });
@@ -161,13 +190,10 @@ export default function GoogleMapsAutocomplete({
       autocompleteRef.current = autocomplete;
 
       autocomplete.addListener('place_changed', () => {
+         // ... (existing place_changed logic)
         const place = autocomplete.getPlace();
 
         if (!place.geometry || !place.geometry.location) {
-          // If no details, might be user pressed enter on text.
-          // Check if we should fallback to search logic?
-          // For now, keep as is or trigger error.
-          // setError('No location details found for this place');
           return;
         }
 
@@ -200,55 +226,10 @@ export default function GoogleMapsAutocomplete({
       console.warn('Google Autocomplete init failed, using fallback', err);
       setUseFallback(true);
     }
-  }, [onChange, inputValue, useFallback]);
+  }, [onChange, inputValue, useFallback, types]);
 
-  // Load Google Maps API script with async loading
-  useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  // Removed manual script loading useEffect
 
-    if (!apiKey) {
-      console.warn('No Google Maps API Key found, using fallback.');
-      setUseFallback(true);
-      setIsLoaded(true);
-      return;
-    }
-
-    // Check if API is already loaded
-    if (window.google && window.google.maps && window.google.maps.places) {
-      setIsLoaded(true);
-      initializeAutocomplete();
-      return;
-    }
-
-    // Check if script is already loading
-    if (document.querySelector(`script[src*="maps.googleapis.com"]`)) {
-      const checkInterval = setInterval(() => {
-        if (window.google && window.google.maps && window.google.maps.places) {
-          clearInterval(checkInterval);
-          setIsLoaded(true);
-          initializeAutocomplete();
-        }
-      }, 100);
-      return () => clearInterval(checkInterval);
-    }
-
-    // Load the script
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      setIsLoaded(true);
-      initializeAutocomplete();
-    };
-    script.onerror = () => {
-      console.warn('Google Maps Script failed to load, switching to fallback.');
-      setUseFallback(true);
-      setIsLoaded(true);
-    };
-    document.head.appendChild(script);
-
-  }, [initializeAutocomplete]);
 
   return (
     <div className="w-full relative">
@@ -290,6 +271,3 @@ export default function GoogleMapsAutocomplete({
     </div>
   );
 }
-
-
-

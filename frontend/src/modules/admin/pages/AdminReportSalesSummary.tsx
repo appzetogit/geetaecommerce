@@ -1,169 +1,93 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-interface ReportSalesSummaryData {
-  _id: string;
-  date: string;
-  time: string;
-  invoiceNo: string;
-  customerName: string;
-  paymentMode: string;
-  status: string;
-  total: number;
-  noOfItems: number;
-  totalMRP: number;
-  totalSP: number;
-  additionalBillAmt: number;
-  returnAmt: number;
-  purchaseValue: number;
-  totalDiscount: number;
-  totalDiscountPercent: number;
-  profit: number;
-  profitWithoutTax: number;
-  cgst: number;
-  sgst: number;
-  mode: string;
-}
+import { getSalesSummaryReport, SalesSummaryReportData } from "../../../services/api/admin/adminInventoryService";
+import { toast } from "react-hot-toast";
 
 type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
 
 const AdminReportSalesSummary = () => {
-  const [data, setData] = useState<ReportSalesSummaryData[]>([]);
-  const [filteredData, setFilteredData] = useState<ReportSalesSummaryData[]>([]);
+  const [data, setData] = useState<SalesSummaryReportData[]>([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [dateFilterType, setDateFilterType] = useState<DateFilterType>('alltime');
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
-  // Dummy data for demonstration
-  useEffect(() => {
-    const dummyData: ReportSalesSummaryData[] = [
-      {
-        _id: "1",
-        date: "2026-02-03",
-        time: "11:35 AM",
-        invoiceNo: "25918",
-        customerName: "Walk-in Customer",
-        paymentMode: "Cash",
-        status: "COMPLETE",
-        total: 340,
-        noOfItems: 4,
-        totalMRP: 440,
-        totalSP: 340,
-        additionalBillAmt: 0,
-        returnAmt: 0,
-        purchaseValue: 190,
-        totalDiscount: 50,
-        totalDiscountPercent: 17.321,
-        profit: 200,
-        profitWithoutTax: 200,
-        cgst: 0,
-        sgst: 0,
-        mode: "Retail"
-      },
-      {
-        _id: "2",
-        date: "2026-02-03",
-        time: "10:04 AM",
-        invoiceNo: "25917",
-        customerName: "Walk-in Customer",
-        paymentMode: "Cash",
-        status: "COMPLETE",
-        total: 260,
-        noOfItems: 1,
-        totalMRP: 325,
-        totalSP: 260,
-        additionalBillAmt: 0,
-        returnAmt: 0,
-        purchaseValue: 175,
-        totalDiscount: 65,
-        totalDiscountPercent: 16.071,
-        profit: 105,
-        profitWithoutTax: 105,
-        cgst: 0,
-        sgst: 0,
-        mode: "Retail"
-      }
-    ];
-    setData(dummyData);
-    setFilteredData(dummyData);
-  }, []);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    pages: 1,
+    limit: 20
+  });
 
-  // Filter data based on search and date
-  useEffect(() => {
-    let filtered = [...data];
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: debouncedSearchTerm || undefined,
+      };
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Date filter
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    switch (dateFilterType) {
-      case 'today':
-        filtered = filtered.filter(item => {
-          const itemDate = new Date(item.date);
-          itemDate.setHours(0, 0, 0, 0);
-          return itemDate.getTime() === today.getTime();
-        });
-        break;
-      case 'tomorrow':
-        const tomorrow = new Date(today);
+      const now = new Date();
+      if (dateFilterType === 'today') {
+        params.dateFrom = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+        params.dateTo = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+      } else if (dateFilterType === 'tomorrow') {
+        const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        filtered = filtered.filter(item => {
-          const itemDate = new Date(item.date);
-          itemDate.setHours(0, 0, 0, 0);
-          return itemDate.getTime() === tomorrow.getTime();
-        });
-        break;
-      case 'last7days':
-        const last7Days = new Date(today);
-        last7Days.setDate(last7Days.getDate() - 7);
-        filtered = filtered.filter(item => {
-          const itemDate = new Date(item.date);
-          return itemDate >= last7Days && itemDate <= today;
-        });
-        break;
-      case 'last30days':
-        const last30Days = new Date(today);
-        last30Days.setDate(last30Days.getDate() - 30);
-        filtered = filtered.filter(item => {
-          const itemDate = new Date(item.date);
-          return itemDate >= last30Days && itemDate <= today;
-        });
-        break;
-      case 'custom':
-        if (customDateRange.start && customDateRange.end) {
-          filtered = filtered.filter(item => {
-            const itemDate = new Date(item.date);
-            return itemDate >= new Date(customDateRange.start) && itemDate <= new Date(customDateRange.end);
-          });
+        params.dateFrom = new Date(tomorrow.setHours(0, 0, 0, 0)).toISOString();
+        params.dateTo = new Date(tomorrow.setHours(23, 59, 59, 999)).toISOString();
+      } else if (dateFilterType === 'last7days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'last30days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'custom' && customDateRange.start && customDateRange.end) {
+        params.dateFrom = new Date(customDateRange.start).toISOString();
+        params.dateTo = new Date(new Date(customDateRange.end).setHours(23, 59, 59, 999)).toISOString();
+      }
+
+      const response = await getSalesSummaryReport(params);
+      if (response.success) {
+        setData(response.data);
+        if (response.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            total: response.pagination!.total,
+            pages: response.pagination!.pages
+          }));
         }
-        break;
-      case 'alltime':
-      default:
-        // No date filtering
-        break;
+      }
+    } catch (error) {
+      console.error("Error fetching sales summary:", error);
+      toast.error("Failed to fetch sales summary data");
+    } finally {
+      setLoading(false);
     }
+  }, [pagination.page, pagination.limit, debouncedSearchTerm, dateFilterType, customDateRange]);
 
-    setFilteredData(filtered);
-  }, [searchTerm, dateFilterType, customDateRange, data]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const handleCellEdit = (id: string, field: keyof ReportSalesSummaryData, value: any) => {
-    setFilteredData(prev => prev.map(item =>
-      item._id === id ? { ...item, [field]: value } : item
-    ));
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const handleCellEdit = (id: string, field: keyof SalesSummaryReportData, value: any) => {
     setData(prev => prev.map(item =>
       item._id === id ? { ...item, [field]: value } : item
     ));
@@ -171,7 +95,7 @@ const AdminReportSalesSummary = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(new Set(filteredData.map(item => item._id)));
+      setSelectedRows(new Set(data.map(item => item._id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -189,15 +113,12 @@ const AdminReportSalesSummary = () => {
 
   const handleDateFilterChange = (type: DateFilterType) => {
     setDateFilterType(type);
-    if (type === 'custom') {
-      setShowCustomDatePicker(true);
-    } else {
-      setShowCustomDatePicker(false);
-    }
+    setPagination(prev => ({ ...prev, page: 1 }));
+    setShowCustomDatePicker(type === 'custom');
   };
 
   const downloadExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+    const worksheet = XLSX.utils.json_to_sheet(data.map(item => ({
       Date: item.date,
       Time: item.time,
       "Invoice No": item.invoiceNo,
@@ -208,15 +129,9 @@ const AdminReportSalesSummary = () => {
       "No of Items": item.noOfItems,
       "Total MRP": item.totalMRP,
       "Total SP": item.totalSP,
-      "Additional Bill Amt": item.additionalBillAmt,
-      "Return Amt": item.returnAmt,
-      "Purchase Value": item.purchaseValue,
       "Total Discount": item.totalDiscount,
       "Total Discount %": item.totalDiscountPercent,
       Profit: item.profit,
-      "Profit without Tax": item.profitWithoutTax,
-      CGST: item.cgst,
-      SGST: item.sgst,
       Mode: item.mode
     })));
 
@@ -227,41 +142,46 @@ const AdminReportSalesSummary = () => {
 
   const downloadPDF = () => {
     const doc = new jsPDF('landscape');
-
     doc.setFontSize(18);
     doc.text('Sales Summary Report', 14, 15);
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
 
-    const tableData = filteredData.map(item => [
+    const tableData = data.map(item => [
       item.date,
       item.time,
       item.invoiceNo,
       item.customerName,
       item.paymentMode,
       item.status,
-      item.total.toString(),
+      `₹${item.total}`,
       item.noOfItems.toString(),
-      item.totalMRP.toString(),
-      item.totalSP.toString(),
-      item.totalDiscount.toString(),
-      item.profit.toString()
+      `₹${item.totalMRP}`,
+      `₹${item.totalSP}`,
+      `₹${item.totalDiscount.toFixed(2)}`,
+      `${item.totalDiscountPercent.toFixed(2)}%`,
+      `₹${item.profit.toFixed(2)}`,
+      item.mode
     ]);
 
     autoTable(doc, {
-      head: [['Date', 'Time', 'Invoice', 'Customer', 'Payment', 'Status', 'Total', 'Items', 'MRP', 'SP', 'Discount', 'Profit']],
+      head: [['Date', 'Time', 'Invoice', 'Customer', 'Payment', 'Status', 'Total', 'Items', 'MRP', 'SP', 'Discount', 'Disc %', 'Profit', 'Mode']],
       body: tableData,
       startY: 28,
-      styles: { fontSize: 8 },
+      styles: { fontSize: 7 },
       headStyles: { fillColor: [255, 45, 148] }
     });
 
     doc.save(`Sales_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  const totalSales = data.reduce((sum, item) => sum + item.total, 0);
+  const totalProfit = data.reduce((sum, item) => sum + item.profit, 0);
+  const totalDiscount = data.reduce((sum, item) => sum + item.totalDiscount, 0);
+  const totalOrders = pagination.total;
+
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
@@ -299,53 +219,19 @@ const AdminReportSalesSummary = () => {
           </div>
         </div>
 
-        {/* Date Filter Tabs */}
         <div className="mt-4 flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-lg">
-          <button
-            onClick={() => handleDateFilterChange('today')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              dateFilterType === 'today'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}>
-            Today
-          </button>
-          <button
-            onClick={() => handleDateFilterChange('tomorrow')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              dateFilterType === 'tomorrow'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}>
-            Tomorrow
-          </button>
-          <button
-            onClick={() => handleDateFilterChange('last7days')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              dateFilterType === 'last7days'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}>
-            Last 7 Days
-          </button>
-          <button
-            onClick={() => handleDateFilterChange('last30days')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              dateFilterType === 'last30days'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}>
-            Last 30 Days
-          </button>
-          <button
-            onClick={() => handleDateFilterChange('alltime')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              dateFilterType === 'alltime'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}>
-            All Time
-          </button>
+          {(['today', 'tomorrow', 'last7days', 'last30days', 'alltime'] as DateFilterType[]).map((type) => (
+            <button
+              key={type}
+              onClick={() => handleDateFilterChange(type)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
+                dateFilterType === type
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+              }`}>
+              {type === 'last7days' ? 'Last 7 Days' : type === 'last30days' ? 'Last 30 Days' : type === 'alltime' ? 'All Time' : type}
+            </button>
+          ))}
           <button
             onClick={() => handleDateFilterChange('custom')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -355,16 +241,10 @@ const AdminReportSalesSummary = () => {
             }`}>
             Custom
           </button>
-          <button className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-all">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-          </button>
         </div>
 
-        {/* Custom Date Range Picker */}
         {showCustomDatePicker && (
-          <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200">
+          <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Start Date</label>
@@ -388,7 +268,6 @@ const AdminReportSalesSummary = () => {
           </div>
         )}
 
-        {/* Search Filter */}
         <div className="mt-4">
           <label className="block text-xs font-semibold text-gray-600 mb-1.5">Search</label>
           <input
@@ -401,7 +280,6 @@ const AdminReportSalesSummary = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -411,7 +289,7 @@ const AdminReportSalesSummary = () => {
                   <th className="px-4 py-3">
                     <input
                       type="checkbox"
-                      checked={selectedRows.size === filteredData.length && filteredData.length > 0}
+                      checked={selectedRows.size === data.length && data.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
                     />
@@ -434,14 +312,20 @@ const AdminReportSalesSummary = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredData.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td colSpan={editMode ? 15 : 14} className="px-6 py-12 text-center text-gray-400 italic">
+                  <td colSpan={editMode ? 15 : 14} className="px-6 py-12 text-center text-gray-500 italic">
+                    Fetching sales data...
+                  </td>
+                </tr>
+              ) : data.length === 0 ? (
+                <tr>
+                   <td colSpan={editMode ? 15 : 14} className="px-6 py-12 text-center text-gray-400 font-medium italic">
                     No sales data found
                   </td>
                 </tr>
               ) : (
-                filteredData.map((item) => (
+                data.map((item) => (
                   <tr key={item._id} className="hover:bg-gray-50 transition-colors">
                     {editMode && (
                       <td className="px-4 py-3">
@@ -489,147 +373,32 @@ const AdminReportSalesSummary = () => {
                         <span className="text-sm font-semibold text-gray-900">{item.invoiceNo}</span>
                       )}
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.customerName}</td>
                     <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="text"
-                          value={item.customerName}
-                          onChange={(e) => handleCellEdit(item._id, 'customerName', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-700">{item.customerName}</span>
-                      )}
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                        item.paymentMode?.toLowerCase().includes('cash') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {item.paymentMode}
+                      </span>
                     </td>
                     <td className="px-4 py-3">
-                      {editMode ? (
-                        <select
-                          value={item.paymentMode}
-                          onChange={(e) => handleCellEdit(item._id, 'paymentMode', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none">
-                          <option value="Cash">Cash</option>
-                          <option value="Card">Card</option>
-                          <option value="UPI">UPI</option>
-                        </select>
-                      ) : (
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-                          item.paymentMode === 'Cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                      <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-teal-100 text-teal-700 capitalize">
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-bold text-gray-900 text-sm">₹{item.total}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.noOfItems}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.totalMRP}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.totalSP}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.totalDiscount.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.totalDiscountPercent.toFixed(2)}%</td>
+                    <td className="px-4 py-3 font-bold text-green-600 text-sm">₹{item.profit.toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                       <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${
+                          item.mode === 'POS' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-purple-100 text-purple-700 border border-purple-200'
                         }`}>
-                          {item.paymentMode}
+                          {item.mode}
                         </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editMode ? (
-                        <select
-                          value={item.status}
-                          onChange={(e) => handleCellEdit(item._id, 'status', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none">
-                          <option value="COMPLETE">COMPLETE</option>
-                          <option value="PENDING">PENDING</option>
-                          <option value="CANCELLED">CANCELLED</option>
-                        </select>
-                      ) : (
-                        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-teal-100 text-teal-700">
-                          {item.status}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={item.total}
-                          onChange={(e) => handleCellEdit(item._id, 'total', parseFloat(e.target.value))}
-                          className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-bold"
-                        />
-                      ) : (
-                        <span className="text-sm font-bold text-gray-900">₹{item.total}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={item.noOfItems}
-                          onChange={(e) => handleCellEdit(item._id, 'noOfItems', parseInt(e.target.value))}
-                          className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-700">{item.noOfItems}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={item.totalMRP}
-                          onChange={(e) => handleCellEdit(item._id, 'totalMRP', parseFloat(e.target.value))}
-                          className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-700">₹{item.totalMRP}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={item.totalSP}
-                          onChange={(e) => handleCellEdit(item._id, 'totalSP', parseFloat(e.target.value))}
-                          className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-700">₹{item.totalSP}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={item.totalDiscount}
-                          onChange={(e) => handleCellEdit(item._id, 'totalDiscount', parseFloat(e.target.value))}
-                          className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-700">₹{item.totalDiscount}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={item.totalDiscountPercent}
-                          onChange={(e) => handleCellEdit(item._id, 'totalDiscountPercent', parseFloat(e.target.value))}
-                          className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-700">{item.totalDiscountPercent.toFixed(2)}%</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={item.profit}
-                          onChange={(e) => handleCellEdit(item._id, 'profit', parseFloat(e.target.value))}
-                          className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-bold text-green-600"
-                        />
-                      ) : (
-                        <span className="text-sm font-bold text-green-600">₹{item.profit}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="text"
-                          value={item.mode}
-                          onChange={(e) => handleCellEdit(item._id, 'mode', e.target.value)}
-                          className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-700">{item.mode}</span>
-                      )}
                     </td>
                   </tr>
                 ))
@@ -637,35 +406,56 @@ const AdminReportSalesSummary = () => {
             </tbody>
           </table>
         </div>
+
+        {pagination.pages > 1 && (
+          <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div className="text-sm text-gray-500">
+              Showing page <span className="font-semibold">{pagination.page}</span> of <span className="font-semibold">{pagination.pages}</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                disabled={pagination.page === 1}
+                className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                Previous
+              </button>
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.pages, prev.page + 1) }))}
+                disabled={pagination.page === pagination.pages}
+                className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Sales</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Sales (Page)</p>
           <p className="text-2xl font-black text-gray-800 mt-2">
-            ₹{filteredData.reduce((sum, item) => sum + item.total, 0).toLocaleString()}
+            ₹{totalSales.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Profit</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Profit (Page)</p>
           <p className="text-2xl font-black text-green-600 mt-2">
-            ₹{filteredData.reduce((sum, item) => sum + item.profit, 0).toLocaleString()}
+            ₹{totalProfit.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Discount</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Discount (Page)</p>
           <p className="text-2xl font-black text-orange-600 mt-2">
-            ₹{filteredData.reduce((sum, item) => sum + item.totalDiscount, 0).toLocaleString()}
+            ₹{totalDiscount.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Orders</p>
           <p className="text-2xl font-black text-purple-600 mt-2">
-            {filteredData.length}
+            {totalOrders}
           </p>
         </div>
       </div>

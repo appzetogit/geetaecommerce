@@ -157,6 +157,30 @@ export const getAllOrders = async (
 };
 
 /**
+ * Get online orders (excluding POS)
+ */
+export const getOnlineOrders = async (
+  params?: GetOrdersParams
+): Promise<ApiResponse<Order[]>> => {
+  const response = await api.get<ApiResponse<Order[]>>("/admin/orders/online", {
+    params,
+  });
+  return response.data;
+};
+
+/**
+ * Get POS orders for reports
+ */
+export const getPOSOrders = async (
+  params?: GetOrdersParams
+): Promise<ApiResponse<Order[]>> => {
+  const response = await api.get<ApiResponse<Order[]>>("/admin/orders/pos-report", {
+    params,
+  });
+  return response.data;
+};
+
+/**
  * Get orders by status
  */
 export const getOrdersByStatus = async (

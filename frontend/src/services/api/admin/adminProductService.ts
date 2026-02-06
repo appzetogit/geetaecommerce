@@ -126,6 +126,7 @@ export interface Product {
   deliveryTime?: string;
   variationType?: string;
   variations?: Array<{
+    _id: string;
     name?: string;
     value?: string;
     price?: number;
