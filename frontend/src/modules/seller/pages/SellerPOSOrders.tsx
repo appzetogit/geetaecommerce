@@ -233,7 +233,20 @@ const SellerPOSOrders = () => {
              sku: item.sku || '',
              compareAtPrice: item.unitPrice * 1.2, // Mock if missing
              purchasePrice: 0,
-             wholesalePrice: 0
+             wholesalePrice: 0,
+             category: 'uncategorized',
+             seller: '',
+             galleryImages: [],
+             publish: true,
+             popular: false,
+             dealOfDay: false,
+             status: 'Active',
+             isReturnable: true,
+             tags: [],
+             requiresApproval: false,
+             totalAllowedQuantity: 0,
+             galleryImageUrls: [],
+             variations: []
           }));
 
           const newBill: Bill = {

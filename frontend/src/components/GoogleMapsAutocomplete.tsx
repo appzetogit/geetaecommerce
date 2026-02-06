@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 // @ts-ignore
 import { useJsApiLoader } from '@react-google-maps/api';
 
-// ... (declare global interface Window if needed, though usually handled by types)
+declare global {
+  interface Window {
+    gm_authFailure: () => void;
+  }
+}
 
 interface GoogleMapsAutocompleteProps {
     // ... props
