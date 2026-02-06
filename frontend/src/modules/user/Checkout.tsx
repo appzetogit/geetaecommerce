@@ -366,22 +366,26 @@ export default function Checkout() {
     try {
         const orderData = {
             items: cart.items.map(item => {
+                if (!item.product) return null;
+
+                const product = item.product;
                 const activeRule = getActiveFreeGiftRule();
                 const isFreeGiftItem = item.isFreeGift;
 
                 // Get the most reliable ID
-                // @ts-ignore
-                const productId = item.product.id || item.product._id;
+                const productId = (product as any).id || (product as any)._id;
+                const qty = item.quantity ?? 0;
+                const price = isFreeGiftItem ? 0 : (item as any).price ?? 0;
 
                 return {
                     product: { id: productId },
-                    quantity: item.quantity,
+                    quantity: qty,
                     variant: item.variant, // Assuming backend handles this structure
                     isFreeGift: isFreeGiftItem || false,
-                    price: isFreeGiftItem ? 0 : undefined, // Explicitly send 0 if free gift
+                    price: price,
                     freeGiftReason: isFreeGiftItem && activeRule ? `Cart value ≥ ₹${activeRule.minCartValue}` : undefined
                 };
-            }),
+            }).filter((item): item is NonNullable<typeof item> => item !== null),
             address: addressWithLocation,
             fees: {
                 platformFee: handlingCharge,
@@ -483,15 +487,22 @@ export default function Checkout() {
     const order: Order = {
       id: orderId,
       items: cart.items.map(item => {
+          if (!item.product) return null;
+
+          const product = item.product;
           const activeRule = getActiveFreeGiftRule();
           const isFreeGiftItem = item.isFreeGift;
-              return {
-                  ...item,
-                  isFreeGift: isFreeGiftItem || false,
-                  price: isFreeGiftItem ? 0 : (item as any).price || getApplicableUnitPrice(item.product, item.variant, item.quantity),
-                  freeGiftReason: isFreeGiftItem && activeRule ? `Cart value ≥ ₹${activeRule.minCartValue}` : undefined
-              };
-      }),
+          const qty = item.quantity ?? 0;
+          const price = isFreeGiftItem ? 0 : (item as any).price || getApplicableUnitPrice(product, item.variant, qty);
+
+          return {
+              ...item,
+              quantity: qty,
+              isFreeGift: isFreeGiftItem || false,
+              price: price,
+              freeGiftReason: isFreeGiftItem && activeRule ? `Cart value ≥ ₹${activeRule.minCartValue}` : undefined
+          };
+      }).filter((item): item is NonNullable<typeof item> => item !== null),
       totalItems: cart.itemCount,
       subtotal: discountedTotal,
       fees: {

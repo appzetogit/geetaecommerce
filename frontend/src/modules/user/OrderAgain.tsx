@@ -52,20 +52,21 @@ export default function OrderAgain() {
     order.items
       .filter((item: any) => item?.product) // Filter out items with null/undefined products
       .forEach((item: any) => {
+        const qty = item.quantity ?? 0;
         // Check if product is already in cart
         const existingCartItem = cart.items.find(cartItem => cartItem?.product && cartItem.product.id === item.product.id);
 
         if (existingCartItem) {
           // If already in cart, add the order quantity to existing quantity
-          updateQuantity(item.product.id, existingCartItem.quantity + item.quantity);
+          updateQuantity(item.product.id, existingCartItem.quantity + qty);
         } else {
           // If not in cart, add it first (adds 1)
           addToCart(item.product);
           // Then update to the correct quantity if needed
-          if (item.quantity > 1) {
+          if (qty > 1) {
             // Use setTimeout to ensure the item is added first
             setTimeout(() => {
-              updateQuantity(item.product.id, item.quantity);
+              updateQuantity(item.product.id, qty);
             }, 10);
           }
         }
@@ -147,31 +148,33 @@ export default function OrderAgain() {
                       {/* Product Images Preview - Compact */}
                       <div className="flex items-center gap-1">
                         {previewItems
-                          .filter(item => item?.product) // Filter out items with null/undefined products
-                          .map((item, idx) => (
-                            <div
-                              // @ts-ignore
-                              key={item.product.id}
-                              className="w-6 h-6 bg-neutral-100 rounded flex items-center justify-center flex-shrink-0 overflow-hidden"
-                              style={{ marginLeft: idx > 0 ? '-4px' : '0' }}
-                            >
-                              {/* @ts-ignore */}
-                              {item.product.imageUrl ? (
-                                <img
-                                  // @ts-ignore
-                                  src={item.product.imageUrl}
-                                  // @ts-ignore
-                                  alt={item.product.name}
-                                  className="w-full h-full object-contain"
-                                />
-                              ) : (
-                                <span className="text-[8px] text-neutral-400">
-                                  {/* @ts-ignore */}
-                                  {(item.product.name || item.product.productName || '?').charAt(0).toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-                          ))}
+                          .map((item: any, idx) => {
+                            if (!item?.product) return null;
+
+                            const product = item.product;
+                            const productName = (product as any).name || (product as any).productName || '?';
+                            const imageUrl = (product as any).imageUrl;
+
+                            return (
+                              <div
+                                key={(product as any).id || (product as any)._id}
+                                className="w-6 h-6 bg-neutral-100 rounded flex items-center justify-center flex-shrink-0 overflow-hidden"
+                                style={{ marginLeft: idx > 0 ? '-4px' : '0' }}
+                              >
+                                {imageUrl ? (
+                                  <img
+                                    src={imageUrl}
+                                    alt={productName}
+                                    className="w-full h-full object-contain"
+                                  />
+                                ) : (
+                                  <span className="text-[8px] text-neutral-400">
+                                    {productName.charAt(0).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          }).filter(Boolean)}
                         {order.items.length > 3 && (
                           <div className="w-6 h-6 bg-neutral-200 rounded flex items-center justify-center text-[8px] font-medium text-neutral-600">
                             +{order.items.length - 3}
