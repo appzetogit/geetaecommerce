@@ -11,6 +11,7 @@ export interface DashboardStats {
     cancelledOrders: number;
     soldOutProducts: number;
     lowStockProducts: number;
+    totalRevenue: number;
     yearlyOrderData: { date: string; value: number }[];
     dailyOrderData: { date: string; value: number }[];
 }

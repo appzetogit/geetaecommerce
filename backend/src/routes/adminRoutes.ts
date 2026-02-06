@@ -272,6 +272,8 @@ router.get("/wallet/transactions", walletController.getWalletTransactions);
 router.post("/wallet/transfer", walletController.processFundTransfer);
 router.get("/wallet/seller/:sellerId", walletController.getSellerTransactions);
 router.post("/wallet/withdrawal", walletController.processWithdrawal);
+router.get("/wallet/withdrawals", walletController.getWithdrawalRequests);
+router.put("/wallet/withdrawals/:id", walletController.updateWithdrawalStatus);
 
 // ==================== Financial Dashboard Routes ====================
 router.get("/financial/dashboard", walletController.getFinancialDashboard);

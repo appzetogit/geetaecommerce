@@ -1,61 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   getWalletTransactions,
+  getWithdrawalRequests,
+  updateWithdrawalStatus,
+  getFinancialDashboard,
   type WalletTransaction,
 } from "../../../services/api/admin/adminWalletService";
 import { getAllSellers } from "../../../services/api/sellerService";
 import { useAuth } from "../../../context/AuthContext";
+import toast from "react-hot-toast";
 
 type TabType = "transaction" | "withdraw" | "balance" | "earning";
 
-interface Transaction {
-  id: number;
-  type: "Credit" | "Debit";
-  amount: number;
-  description: string;
-  date: string;
-  status: "Completed" | "Pending" | "Failed";
-  reference: string;
-}
-
-interface WithdrawRequest {
-  id: number;
-  userId: string;
-  userName: string;
-  amount: number;
-  requestDate: string;
-  status: "Pending" | "Approved" | "Rejected";
-  paymentMethod: string;
-  accountDetails: string;
-  remark?: string;
-}
-
-interface Balance {
-  userId: string;
-  userName: string;
-  currentBalance: number;
-  pendingBalance: number;
+interface AdminStats {
   totalEarnings: number;
-  totalWithdrawn: number;
-}
-
-interface Earning {
-  id: number;
-  userId: string;
-  userName: string;
-  source: string;
-  amount: number;
-  date: string;
-  status: "Paid" | "Pending";
-}
-
-interface AdminEarning {
-  id: number;
-  source: string;
-  amount: number;
-  date: string;
-  status: "Paid" | "Pending";
-  description: string;
+  paidEarnings: number;
+  pendingEarnings: number;
+  thisMonthEarnings: number;
 }
 
 export default function AdminWallet() {
@@ -67,880 +28,354 @@ export default function AdminWallet() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [totalEntries, setTotalEntries] = useState(0);
 
   // Backend data states
-  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [withdrawRequests, setWithdrawRequests] = useState<any[]>([]);
   const [sellerBalances, setSellerBalances] = useState<any[]>([]);
   const [adminEarnings, setAdminEarnings] = useState<any[]>([]);
-  const [sellers, setSellers] = useState<any[]>([]);
+  const [stats, setStats] = useState<AdminStats>({
+    totalEarnings: 0,
+    paidEarnings: 0,
+    pendingEarnings: 0,
+    thisMonthEarnings: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
-  // Fetch sellers for dropdowns
-  useEffect(() => {
-    if (!isAuthenticated || !token) return;
+  // Fetch Dashboard Stats
+  const fetchStats = useCallback(async () => {
+    try {
+      const response = await getFinancialDashboard();
+      if (response.success) {
+        setStats({
+          totalEarnings: response.data.commissions.total || 0,
+          paidEarnings: response.data.commissions.paid || 0,
+          pendingEarnings: response.data.commissions.pending || 0,
+          thisMonthEarnings: response.data.commissions.sellerEarnings || 0,
+        });
 
-    const fetchSellers = async () => {
-      try {
-        const response = await getAllSellers({ status: "Approved" });
-        if (response.success) {
-          setSellers(response.data);
+        if (response.data.recentTransactions) {
+           setAdminEarnings(response.data.recentTransactions.map((t: any) => ({
+             _id: t._id,
+             source: t.type === 'Commission' ? 'Order Commission' : 'Withdrawal',
+             description: t.description || 'N/A',
+             amount: t.commissionAmount || t.amount || 0,
+             date: new Date(t.createdAt).toLocaleDateString(),
+             status: t.status
+           })));
         }
-      } catch (err) {
-        console.error("Error fetching sellers:", err);
       }
-    };
-
-    fetchSellers();
-  }, [isAuthenticated, token]);
+    } catch (err) {
+      console.error("Error fetching stats:", err);
+    }
+  }, []);
 
   // Fetch data based on active tab
-  useEffect(() => {
+  const fetchTabData = useCallback(async () => {
     if (!isAuthenticated || !token) return;
 
-    const fetchTabData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-        if (activeTab === "transaction") {
-          const response = await getWalletTransactions({
-            page: currentPage,
-            limit: entriesPerPage,
-          });
-          if (response.success) {
-            setTransactions(response.data);
-          }
-        } else if (activeTab === "withdraw") {
-          // For withdrawal requests, we might need a separate API
-          // For now, we'll show empty data
-          setWithdrawRequests([]);
-        } else if (activeTab === "balance") {
-          // Fetch seller balances - this might need a separate API
-          setSellerBalances([]);
-        } else if (activeTab === "earning") {
-          // Admin earnings might need a separate API
-          setAdminEarnings([]);
+      const params = {
+        page: currentPage,
+        limit: entriesPerPage,
+        status: statusFilter === 'All' ? undefined : statusFilter,
+        search: searchQuery || undefined,
+        startDate: fromDate || undefined,
+        endDate: toDate || undefined,
+      };
+
+      if (activeTab === "transaction") {
+        const response = await getWalletTransactions(params);
+        if (response.success) {
+          setTransactions(response.data);
+          setTotalEntries(response.pagination?.total || 0);
+        }
+      } else if (activeTab === "withdraw") {
+        const response = await getWithdrawalRequests(params);
+        if (response.success) {
+          setWithdrawRequests(response.data);
+          setTotalEntries(response.pagination?.total || 0);
+        }
+      } else if (activeTab === "balance") {
+        const response = await getAllSellers({ status: "Approved" });
+        if (response.success) {
+          setSellerBalances(response.data.map((s: any) => ({
+             userId: s._id,
+             userName: s.storeName,
+             currentBalance: s.balance,
+             pendingBalance: 0,
+             totalEarnings: s.totalEarnings || 0,
+             totalWithdrawn: s.totalWithdrawn || 0,
+          })));
+          setTotalEntries(response.data.length);
+        }
+      } else if (activeTab === "earning") {
+         await fetchStats();
+      }
+    } catch (err: any) {
+      console.error(`Error fetching ${activeTab} data:`, err);
+      setError(`Failed to load ${activeTab} data.`);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeTab, currentPage, entriesPerPage, statusFilter, searchQuery, fromDate, toDate, isAuthenticated, token, fetchStats]);
+
+  useEffect(() => {
+    fetchStats();
+    fetchTabData();
+  }, [fetchStats, fetchTabData]);
+
+  const handleApproveWithdraw = async (id: string) => {
+    if (window.confirm("Approve this withdrawal?")) {
+      try {
+        setProcessing(true);
+        const response = await updateWithdrawalStatus(id, { status: "Approved" });
+        if (response.success) {
+          toast.success("Withdrawal approved!");
+          fetchTabData();
+          fetchStats();
         }
       } catch (err: any) {
-        console.error(`Error fetching ${activeTab} data:`, err);
-        setError(`Failed to load ${activeTab} data. Please try again.`);
+        toast.error(err.response?.data?.message || "Failed to approve");
       } finally {
-        setLoading(false);
+        setProcessing(false);
       }
-    };
-
-    fetchTabData();
-  }, [activeTab, currentPage, entriesPerPage, isAuthenticated, token]);
-
-  // Calculate admin earnings summary from API data
-  const adminEarningsSummary = {
-    totalEarnings: adminEarnings.reduce(
-      (sum, earning) => sum + earning.amount,
-      0
-    ),
-    paidEarnings: adminEarnings
-      .filter((e) => e.status === "Paid")
-      .reduce((sum, earning) => sum + earning.amount, 0),
-    pendingEarnings: adminEarnings
-      .filter((e) => e.status === "Pending")
-      .reduce((sum, earning) => sum + earning.amount, 0),
-    thisMonthEarnings: adminEarnings
-      .filter((e) => {
-        const earningDate = new Date(e.date.split("/").reverse().join("-"));
-        const now = new Date();
-        return (
-          earningDate.getMonth() === now.getMonth() &&
-          earningDate.getFullYear() === now.getFullYear()
-        );
-      })
-      .reduce((sum, earning) => sum + earning.amount, 0),
+    }
   };
 
-
-  // Filter data based on active tab (using only API data)
-  const getFilteredData = () => {
-    let data: any[] = [];
-
-    switch (activeTab) {
-      case "transaction":
-        data = transactions;
-        break;
-      case "withdraw":
-        data = withdrawRequests;
-        break;
-      case "balance":
-        data = sellerBalances;
-        break;
-      case "earning":
-        data = adminEarnings;
-        break;
-    }
-
-    // Apply filters
-    let filtered = data.filter((item) => {
-      const matchesSearch = Object.values(item).some((value) =>
-        String(value).toLowerCase().includes(searchQuery.toLowerCase())
-      );
-
-      let matchesStatus = true;
-      if (statusFilter !== "All" && item.status) {
-        matchesStatus = item.status === statusFilter;
+  const handleRejectWithdraw = async (id: string) => {
+    const remarks = prompt("Enter rejection remark:");
+    if (remarks !== null) {
+      try {
+        setProcessing(true);
+        const response = await updateWithdrawalStatus(id, { status: "Rejected", remarks });
+        if (response.success) {
+          toast.success("Withdrawal rejected!");
+          fetchTabData();
+          fetchStats();
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || "Failed to reject");
+      } finally {
+        setProcessing(false);
       }
-
-      return matchesSearch && matchesStatus;
-    });
-
-    return filtered;
-  };
-
-  const filteredData = getFilteredData();
-  const totalPages = Math.ceil(filteredData.length / entriesPerPage);
-  const startIndex = (currentPage - 1) * entriesPerPage;
-  const endIndex = startIndex + entriesPerPage;
-  const displayedData = filteredData.slice(startIndex, endIndex);
-
-  const handleApproveWithdraw = (id: number) => {
-    if (
-      window.confirm(
-        "Are you sure you want to approve this withdrawal request?"
-      )
-    ) {
-      alert(`Withdrawal request #${id} approved successfully!`);
     }
   };
 
-  const handleRejectWithdraw = (id: number) => {
-    const remark = prompt("Enter rejection remark:");
-    if (remark) {
-      alert(`Withdrawal request #${id} rejected. Remark: ${remark}`);
+  const handleCompleteWithdraw = async (id: string) => {
+    if (window.confirm("Mark as Completed?")) {
+      try {
+        setProcessing(true);
+        const response = await updateWithdrawalStatus(id, { status: "Completed" });
+        if (response.success) {
+          toast.success("Withdrawal completed!");
+          fetchTabData();
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || "Failed to complete");
+      } finally {
+        setProcessing(false);
+      }
     }
   };
-
-  const tabs = [
-    { id: "transaction" as TabType, label: "Transaction", icon: "💳" },
-    { id: "withdraw" as TabType, label: "Withdraw Request", icon: "💰" },
-    { id: "balance" as TabType, label: "Balance", icon: "💵" },
-    { id: "earning" as TabType, label: "Earning", icon: "📈" },
-  ];
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
-        <h1 className="text-2xl font-semibold text-neutral-800">
-          Wallet Management
-        </h1>
-        <div className="text-sm text-neutral-600">
-          <span className="text-[#E91E63] hover:text-[#D81B60] cursor-pointer">
-            Home
-          </span>
-          <span className="mx-2">/</span>
-          <span className="text-neutral-800">Wallet</span>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-neutral-800">Wallet Management</h1>
+        <div className="text-sm">
+          <span className="text-[#E91E63]">Admin</span> / <span>Wallet</span>
         </div>
       </div>
 
-      {/* Admin Earnings Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-gradient-to-br from-[#E91E63] to-[#D81B60] rounded-lg shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-pink-100">
-              Total Earnings
-            </h3>
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23"></line>
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-            </svg>
-          </div>
-          <p className="text-3xl font-bold">
-            ₹
-            {adminEarningsSummary.totalEarnings.toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-            })}
-          </p>
-          <p className="text-xs text-pink-100 mt-1">All time earnings</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[#E91E63] p-6 rounded-xl text-white shadow-lg">
+          <h3 className="text-pink-100 text-sm font-medium">Total Earnings</h3>
+          <p className="text-3xl font-bold mt-1">₹{stats.totalEarnings.toLocaleString()}</p>
         </div>
-
-        <div className="bg-gradient-to-br from-[#E91E63] to-[#D81B60] rounded-lg shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-pink-100">
-              Paid Earnings
-            </h3>
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-              <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-          </div>
-          <p className="text-3xl font-bold">
-            ₹
-            {adminEarningsSummary.paidEarnings.toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-            })}
-          </p>
-          <p className="text-xs text-pink-100 mt-1">Successfully received</p>
+        <div className="bg-[#E91E63] p-6 rounded-xl text-white shadow-lg">
+          <h3 className="text-pink-100 text-sm font-medium">Paid Earnings</h3>
+          <p className="text-3xl font-bold mt-1">₹{stats.paidEarnings.toLocaleString()}</p>
         </div>
-
-        <div className="bg-gradient-to-br from-yellow-600 to-yellow-700 rounded-lg shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-yellow-100">
-              Pending Earnings
-            </h3>
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-          </div>
-          <p className="text-3xl font-bold">
-            ₹
-            {adminEarningsSummary.pendingEarnings.toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-            })}
-          </p>
-          <p className="text-xs text-yellow-100 mt-1">Awaiting settlement</p>
+        <div className="bg-yellow-600 p-6 rounded-xl text-white shadow-lg">
+          <h3 className="text-yellow-100 text-sm font-medium">Pending Earnings</h3>
+          <p className="text-3xl font-bold mt-1">₹{stats.pendingEarnings.toLocaleString()}</p>
         </div>
-
-        <div className="bg-gradient-to-br from-[#E91E63] to-[#D81B60] rounded-lg shadow-lg p-6 text-white">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-medium text-pink-100">This Month</h3>
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-          </div>
-          <p className="text-3xl font-bold">
-            ₹
-            {adminEarningsSummary.thisMonthEarnings.toLocaleString("en-IN", {
-              minimumFractionDigits: 2,
-            })}
-          </p>
-          <p className="text-xs text-pink-100 mt-1">Current month earnings</p>
+        <div className="bg-[#E91E63] p-6 rounded-xl text-white shadow-lg">
+          <h3 className="text-pink-100 text-sm font-medium">Seller Payouts</h3>
+          <p className="text-3xl font-bold mt-1">₹{stats.thisMonthEarnings.toLocaleString()}</p>
         </div>
       </div>
 
-      {/* Admin Earnings Details Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-        <div className="bg-[#E91E63] px-4 sm:px-6 py-3">
-          <h2 className="text-white text-lg font-semibold">
-            Admin Earnings Details
-          </h2>
+      <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+        <div className="flex border-b border-neutral-200">
+          {[
+            { id: "transaction", label: "Transactions" },
+            { id: "withdraw", label: "Withdrawals" },
+            { id: "balance", label: "Seller Balances" },
+            { id: "earning", label: "Admin History" }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id as TabType); setCurrentPage(1); }}
+              className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.id ? "border-[#E91E63] text-[#E91E63]" : "border-transparent text-neutral-500 hover:text-neutral-700"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        <div className="p-4 sm:p-6">
+
+        <div className="p-6">
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <input
+              type="text"
+              placeholder="Search..."
+              className="px-4 py-2 border rounded-lg flex-1"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            <select
+              className="px-4 py-2 border rounded-lg"
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+            >
+              <option value="All">All Status</option>
+              {activeTab === 'withdraw' && (
+                <>
+                  <option value="Pending">Pending</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Rejected">Rejected</option>
+                  <option value="Completed">Completed</option>
+                </>
+              )}
+            </select>
+          </div>
+
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-neutral-200">
-              <thead className="bg-neutral-50">
-                <tr>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Source
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Description
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Amount
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-neutral-200">
-                {adminEarnings.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
-                      No earnings found
-                    </td>
-                  </tr>
-                ) : (
-                  adminEarnings.map((earning) => (
-                    <tr key={earning.id} className="hover:bg-neutral-50">
-                      <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
-                        {earning.id}
+            {loading ? (
+              <div className="py-20 text-center text-neutral-500">Loading...</div>
+            ) : (
+              <table className="min-w-full divide-y divide-neutral-200">
+                <thead className="bg-neutral-50">
+                  {activeTab === 'transaction' && (
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Seller</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Status</th>
+                    </tr>
+                  )}
+                  {activeTab === 'withdraw' && (
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Seller</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Amount</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Action</th>
+                    </tr>
+                  )}
+                  {activeTab === 'balance' && (
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Seller Store</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Current Balance</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Total Earnings</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Total Withdrawn</th>
+                    </tr>
+                  )}
+                  {activeTab === 'earning' && (
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Source</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Description</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase">Admin Amount</th>
+                    </tr>
+                  )}
+                </thead>
+                <tbody className="bg-white divide-y divide-neutral-200">
+                  {activeTab === 'transaction' && transactions.map(tr => (
+                    <tr key={tr._id} className="hover:bg-neutral-50 transition-colors">
+                      <td className="px-6 py-4 text-sm">{new Date(tr.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-sm font-medium">{tr.sellerId?.storeName || 'System'}</td>
+                      <td className={`px-6 py-4 text-sm font-bold ${tr.type === 'Credit' ? 'text-green-600' : 'text-red-600'}`}>
+                        {tr.type === 'Credit' ? '+' : '-'} ₹{tr.amount}
                       </td>
-                      <td className="px-4 sm:px-6 py-3 text-sm font-medium text-neutral-900">
-                        {earning.source}
-                      </td>
-                      <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                        {earning.description}
-                      </td>
-                      <td className="px-4 sm:px-6 py-3 text-sm font-medium text-[#E91E63]">
-                        ₹
-                        {earning.amount.toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                        })}
-                      </td>
-                      <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                        {earning.date}
-                      </td>
-                      <td className="px-4 sm:px-6 py-3">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${earning.status === "Paid"
-                            ? "bg-[#E91E63]/10 text-[#E91E63]"
-                            : "bg-yellow-100 text-yellow-800"
-                            }`}>
-                          {earning.status}
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${tr.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                          {tr.status}
                         </span>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                  {activeTab === 'withdraw' && withdrawRequests.map(req => (
+                    <tr key={req._id} className="hover:bg-neutral-50 transition-colors">
+                      <td className="px-6 py-4 text-sm">{new Date(req.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-sm font-medium">{req.sellerId?.storeName}</td>
+                      <td className="px-6 py-4 text-sm font-bold">₹{req.amount}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${req.status === 'Completed' || req.status === 'Approved' ? 'bg-green-100 text-green-700' : req.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                          {req.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {req.status === 'Pending' && (
+                          <div className="flex gap-2">
+                            <button onClick={() => handleApproveWithdraw(req._id)} disabled={processing} className="text-teal-600 font-bold hover:underline">Approve</button>
+                            <button onClick={() => handleRejectWithdraw(req._id)} disabled={processing} className="text-red-600 font-bold hover:underline">Reject</button>
+                          </div>
+                        )}
+                        {req.status === 'Approved' && (
+                          <button onClick={() => handleCompleteWithdraw(req._id)} disabled={processing} className="text-blue-600 font-bold hover:underline">Mark Paid</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {activeTab === 'balance' && sellerBalances.map(bal => (
+                    <tr key={bal.userId} className="hover:bg-neutral-50 transition-colors">
+                      <td className="px-6 py-4 text-sm font-medium">{bal.userName}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-teal-600">₹{bal.currentBalance.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm">₹{bal.totalEarnings.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm">₹{bal.totalWithdrawn.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  {activeTab === 'earning' && adminEarnings.map(ea => (
+                    <tr key={ea._id} className="hover:bg-neutral-50 transition-colors">
+                      <td className="px-6 py-4 text-sm">{ea.date}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-teal-600">{ea.source}</td>
+                      <td className="px-6 py-4 text-sm text-neutral-500">{ea.description}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-green-600">₹{ea.amount.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  {((activeTab === 'transaction' && transactions.length === 0) ||
+                    (activeTab === 'withdraw' && withdrawRequests.length === 0) ||
+                    (activeTab === 'balance' && sellerBalances.length === 0) ||
+                    (activeTab === 'earning' && adminEarnings.length === 0)) && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-10 text-center text-neutral-500 uppercase text-xs tracking-widest font-bold">No Data Found</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-        <div className="border-b border-neutral-200">
-          <nav className="flex -mb-px overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setCurrentPage(1);
-                  setSearchQuery("");
-                  setStatusFilter("All");
-                }}
-                className={`flex items-center gap-2 px-4 sm:px-6 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
-                  ? "border-[#E91E63] text-[#E91E63]"
-                  : "border-transparent text-neutral-500 hover:text-neutral-700 hover:border-neutral-300"
-                  }`}>
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {/* Filters */}
-        <div className="p-4 sm:p-6 border-b border-neutral-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Search
-              </label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
-              />
-            </div>
-
-            {/* Date Range */}
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">
-                Date Range
-              </label>
+          {!loading && totalEntries > entriesPerPage && (
+            <div className="mt-6 flex justify-between items-center text-sm text-neutral-500">
+              <p>Showing records</p>
               <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
-                />
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]"
-                />
-              </div>
-            </div>
-
-            {/* Status Filter */}
-            {(activeTab === "transaction" ||
-              activeTab === "withdraw" ||
-              activeTab === "earning") && (
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
-                    Status Filter
-                  </label>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#E91E63] focus:border-[#E91E63]">
-                    <option value="All">All Status</option>
-                    {activeTab === "transaction" && (
-                      <>
-                        <option value="Completed">Completed</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Failed">Failed</option>
-                      </>
-                    )}
-                    {activeTab === "withdraw" && (
-                      <>
-                        <option value="Pending">Pending</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected</option>
-                      </>
-                    )}
-                    {activeTab === "earning" && (
-                      <>
-                        <option value="Paid">Paid</option>
-                        <option value="Pending">Pending</option>
-                      </>
-                    )}
-                  </select>
-                </div>
-              )}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-4 sm:p-6">
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-              {error}
-            </div>
-          )}
-
-          {/* Transaction Tab */}
-          {activeTab === "transaction" && (
-            <div>
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E91E63] mr-2"></div>
-                  <span className="text-neutral-600">
-                    Loading transactions...
-                  </span>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-neutral-200">
-                    <thead className="bg-neutral-50">
-                      <tr>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          ID
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Amount
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Description
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-neutral-200">
-                      {displayedData.length === 0 ? (
-                        <tr>
-                          <td
-                            colSpan={6}
-                            className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
-                            No transactions found
-                          </td>
-                        </tr>
-                      ) : (
-                        displayedData.map((transaction: WalletTransaction) => (
-                          <tr
-                            key={transaction.id}
-                            className="hover:bg-neutral-50">
-                            <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
-                              {transaction.id.slice(-6)}
-                            </td>
-                            <td className="px-4 sm:px-6 py-3">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${transaction.transactionType === "credit"
-                                  ? "bg-[#E91E63]/10 text-[#E91E63]"
-                                  : transaction.transactionType === "debit"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                                  }`}>
-                                {transaction.transactionType
-                                  .charAt(0)
-                                  .toUpperCase() +
-                                  transaction.transactionType.slice(1)}
-                              </span>
-                            </td>
-                            <td className="px-4 sm:px-6 py-3 text-sm font-medium text-neutral-900">
-                              ₹{transaction.amount.toFixed(2)}
-                            </td>
-                            <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                              {transaction.description}
-                            </td>
-                            <td className="px-4 sm:px-6 py-3">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${transaction.status === "Completed" ||
-                                  transaction.status === "Paid"
-                                  ? "bg-[#E91E63]/10 text-[#E91E63]"
-                                  : transaction.status === "Pending"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                                  }`}>
-                                {transaction.status}
-                              </span>
-                            </td>
-                            <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                              {new Date(transaction.date).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Withdraw Request Tab */}
-          {activeTab === "withdraw" && (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Payment Method
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Account Details
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Request Date
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-neutral-200">
-                  {displayedData.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
-                        No withdrawal requests found
-                      </td>
-                    </tr>
-                  ) : (
-                    displayedData.map((request: WithdrawRequest) => (
-                      <tr key={request.id} className="hover:bg-neutral-50">
-                        <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
-                          {request.id}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3">
-                          <div>
-                            <div className="text-sm font-medium text-neutral-900">
-                              {request.userName}
-                            </div>
-                            <div className="text-xs text-neutral-500">
-                              {request.userId}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 text-sm font-medium text-neutral-900">
-                          ₹{request.amount.toFixed(2)}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                          {request.paymentMethod}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                          {request.accountDetails}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                          {request.requestDate}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${request.status === "Approved"
-                              ? "bg-[#E91E63]/10 text-[#E91E63]"
-                              : request.status === "Pending"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                              }`}>
-                            {request.status}
-                          </span>
-                        </td>
-                        <td className="px-4 sm:px-6 py-3">
-                          {request.status === "Pending" && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() =>
-                                  handleApproveWithdraw(request.id)
-                                }
-                                className="text-[#E91E63] hover:text-[#D81B60] text-xs font-medium">
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleRejectWithdraw(request.id)}
-                                className="text-red-600 hover:text-red-800 text-xs font-medium">
-                                Reject
-                              </button>
-                            </div>
-                          )}
-                          {request.remark && (
-                            <span className="text-xs text-neutral-500">
-                              {request.remark}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Balance Tab */}
-          {activeTab === "balance" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {displayedData.length === 0 ? (
-                <div className="col-span-full text-center py-8 text-sm text-neutral-500">
-                  No balance records found
-                </div>
-              ) : (
-                displayedData.map((balance: Balance) => (
-                  <div
-                    key={balance.userId}
-                    className="bg-gradient-to-br from-[#E91E63]/5 to-[#E91E63]/10 rounded-lg p-6 border border-[#E91E63]/20">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h3 className="text-lg font-semibold text-neutral-900">
-                          {balance.userName}
-                        </h3>
-                        <p className="text-xs text-neutral-500">
-                          {balance.userId}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-neutral-600">
-                          Current Balance
-                        </p>
-                        <p className="text-2xl font-bold text-[#E91E63]">
-                          ₹{balance.currentBalance.toFixed(2)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="space-y-2 pt-4 border-t border-[#E91E63]/20">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-neutral-600">
-                          Pending Balance:
-                        </span>
-                        <span className="font-medium text-neutral-900">
-                          ₹{balance.pendingBalance.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-neutral-600">
-                          Total Earnings:
-                        </span>
-                        <span className="font-medium text-[#E91E63]">
-                          ₹{balance.totalEarnings.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-neutral-600">
-                          Total Withdrawn:
-                        </span>
-                        <span className="font-medium text-neutral-900">
-                          ₹{balance.totalWithdrawn.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          {/* Earning Tab */}
-          {activeTab === "earning" && (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      ID
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Source
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-neutral-200">
-                  {displayedData.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
-                        No earnings found
-                      </td>
-                    </tr>
-                  ) : (
-                    displayedData.map((earning: Earning) => (
-                      <tr key={earning.id} className="hover:bg-neutral-50">
-                        <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900">
-                          {earning.id}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3">
-                          <div>
-                            <div className="text-sm font-medium text-neutral-900">
-                              {earning.userName}
-                            </div>
-                            <div className="text-xs text-neutral-500">
-                              {earning.userId}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                          {earning.source}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 text-sm font-medium text-green-700">
-                          ₹{earning.amount.toFixed(2)}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3 text-sm text-neutral-600">
-                          {earning.date}
-                        </td>
-                        <td className="px-4 sm:px-6 py-3">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${earning.status === "Paid"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-yellow-100 text-yellow-800"
-                              }`}>
-                            {earning.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {filteredData.length > 0 && (
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 border-t border-neutral-200 pt-4">
-              <div className="text-sm text-neutral-700">
-                Showing {startIndex + 1} to{" "}
-                {Math.min(endIndex, filteredData.length)} of{" "}
-                {filteredData.length} entries
-              </div>
-              <div className="flex items-center gap-2">
-                <select
-                  value={entriesPerPage}
-                  onChange={(e) => {
-                    setEntriesPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="px-3 py-1.5 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.max(1, prev - 1))
-                    }
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 border border-neutral-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50">
-                    Previous
-                  </button>
-                  <button
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                    }
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 border border-neutral-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-neutral-50">
-                    Next
-                  </button>
-                </div>
+                <button onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1} className="px-3 py-1 border rounded disabled:opacity-50">Prev</button>
+                <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage * entriesPerPage >= totalEntries} className="px-3 py-1 border rounded disabled:opacity-50">Next</button>
               </div>
             </div>
           )}
         </div>
-      </div>
-
-      {/* Footer */}
-      <div className="text-center text-sm text-neutral-500 py-4">
-        Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-teal-600 hover:text-teal-700">
-          Geeta Stores - 10 Minute App
-        </a>
       </div>
     </div>
   );

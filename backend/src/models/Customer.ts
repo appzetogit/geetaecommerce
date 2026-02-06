@@ -59,6 +59,7 @@ const CustomerSchema = new Schema<ICustomer>(
         message: 'Please enter a valid email address',
       },
     },
+
     phone: {
       type: String,
       required: [true, 'Phone number is required'],

@@ -58,7 +58,7 @@ export const updateProfile = asyncHandler(
     const userId = req.user?.userId;
     const { name, email, dateOfBirth, notificationPreferences, accountPrivacy } = req.body;
 
-
+   
     if (!userId || (req as any).user?.userType !== "Customer") {
       return res.status(401).json({
         success: false,

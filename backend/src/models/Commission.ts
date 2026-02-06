@@ -45,6 +45,7 @@ const CommissionSchema = new Schema<ICommission>(
       required: [true, "Order amount is required"],
       min: [0, "Order amount cannot be negative"],
     },
+    
     commissionRate: {
       type: Number,
       required: [true, "Commission rate is required"],

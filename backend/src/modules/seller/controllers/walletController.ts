@@ -58,31 +58,41 @@ export const getWalletStats = asyncHandler(async (req: Request, res: Response) =
  */
 export const getTransactions = asyncHandler(async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
-    const { page = 1, limit = 10, type, status, searchQuery, fromDate, toDate } = req.query;
+    const { page = 1, limit = 10, type, status, searchQuery, search, fromDate, toDate } = req.query;
 
-    const query: any = { sellerId };
+    const query: any = { sellerId: new mongoose.Types.ObjectId(sellerId) };
 
-    if (type) query.type = type;
-    if (status) query.status = status;
-    if (searchQuery) {
+    if (type && type !== 'All') query.type = type;
+    if (status && status !== 'All') query.status = status;
+
+    // Support both searchQuery and search param
+    const term = (searchQuery || search) as string;
+    if (term) {
         query.$or = [
-            { description: { $regex: searchQuery, $options: 'i' } },
-            { reference: { $regex: searchQuery, $options: 'i' } }
+            { description: { $regex: term, $options: 'i' } },
+            { reference: { $regex: term, $options: 'i' } }
         ];
     }
 
     if (fromDate || toDate) {
         query.createdAt = {};
         if (fromDate) query.createdAt.$gte = new Date(fromDate as string);
-        if (toDate) query.createdAt.$lte = new Date(toDate as string);
+        if (toDate) {
+            const end = new Date(toDate as string);
+            end.setHours(23, 59, 59, 999);
+            query.createdAt.$lte = end;
+        }
     }
 
-    const transactions = await WalletTransaction.find(query)
-        .sort({ createdAt: -1 })
-        .skip((Number(page) - 1) * Number(limit))
-        .limit(Number(limit));
+    const skip = (Number(page) - 1) * Number(limit);
 
-    const total = await WalletTransaction.countDocuments(query);
+    const [transactions, total] = await Promise.all([
+        WalletTransaction.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit)),
+        WalletTransaction.countDocuments(query)
+    ]);
 
     return res.status(200).json({
         success: true,
@@ -103,17 +113,34 @@ export const getTransactions = asyncHandler(async (req: Request, res: Response) 
  */
 export const getWithdrawalRequests = asyncHandler(async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 10, status, search, fromDate, toDate } = req.query;
 
-    const query: any = { sellerId };
+    const query: any = { sellerId: new mongoose.Types.ObjectId(sellerId) };
     if (status && status !== 'All') query.status = status;
 
-    const requests = await WithdrawRequest.find(query)
-        .sort({ createdAt: -1 })
-        .skip((Number(page) - 1) * Number(limit))
-        .limit(Number(limit));
+    if (search) {
+        query.remarks = { $regex: search, $options: 'i' };
+    }
 
-    const total = await WithdrawRequest.countDocuments(query);
+    if (fromDate || toDate) {
+        query.createdAt = {};
+        if (fromDate) query.createdAt.$gte = new Date(fromDate as string);
+        if (toDate) {
+            const end = new Date(toDate as string);
+            end.setHours(23, 59, 59, 999);
+            query.createdAt.$lte = end;
+        }
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [requests, total] = await Promise.all([
+        WithdrawRequest.find(query)
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(Number(limit)),
+        WithdrawRequest.countDocuments(query)
+    ]);
 
     return res.status(200).json({
         success: true,
@@ -134,14 +161,10 @@ export const getWithdrawalRequests = asyncHandler(async (req: Request, res: Resp
  */
 export const createWithdrawalRequest = asyncHandler(async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
-    const { amount, paymentMethod, accountDetails } = req.body;
+    const { amount, paymentMethod = 'Bank Transfer', accountDetails, remarks } = req.body;
 
     if (!amount || amount <= 0) {
         return res.status(400).json({ success: false, message: 'Invalid withdrawal amount' });
-    }
-
-    if (!accountDetails) {
-        return res.status(400).json({ success: false, message: 'Account details are required' });
     }
 
     const seller = await Seller.findById(sellerId);
@@ -153,22 +176,24 @@ export const createWithdrawalRequest = asyncHandler(async (req: Request, res: Re
         return res.status(400).json({ success: false, message: 'Insufficient balance' });
     }
 
-    // Start transaction session if needed, but for now simple update
-    // Create the request
+    // Final account details string
+    const details = accountDetails || `Bank: ${seller.bankName}, A/C: ${seller.accountNumber}, IFSC: ${seller.ifsc}`;
+
     const withdrawRequest = await WithdrawRequest.create({
         sellerId,
         amount,
         paymentMethod,
-        accountDetails,
+        accountDetails: details,
+        remarks,
         status: 'Pending'
     });
 
-    // Deduct from balance immediately to "hold" it (or handle on approval)
-    // Usually it's better to deduct on approval, but here we'll follow common practice of deducting and showing as pending
+    // Deduct from balance
     seller.balance -= amount;
     await seller.save();
 
-    // Log as a debit transaction
+    // Log as a debit transaction with "Pending" status
+    // The Admin approval will move this to "Completed"
     await WalletTransaction.create({
         sellerId,
         amount,

@@ -16,7 +16,7 @@ if (
   !process.env.CLOUDINARY_API_KEY ||
   !process.env.CLOUDINARY_API_SECRET
 ) {
-  console.warn("⚠️  Cloudinary credentials not found in environment variables");
+  console.warn("Cloudinary credentials not found in environment variables");
 }
 
 export default cloudinary;

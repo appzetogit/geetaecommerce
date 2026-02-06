@@ -291,9 +291,12 @@ export default function SellerSalesReport() {
                                         reports.map((report, index) => (
                                             <tr key={index} className="hover:bg-neutral-50">
                                                 <td className="p-4 border border-neutral-200 text-sm">
-                                                    <span className="text-blue-600 hover:text-blue-700 font-medium">
+                                                    <Link
+                                                        to={`/seller/orders/${report.dbOrderId}`}
+                                                        className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
+                                                    >
                                                         {report.orderId}
-                                                    </span>
+                                                    </Link>
                                                 </td>
                                                 <td className="p-4 border border-neutral-200 text-sm text-neutral-900">{report.orderItemId}</td>
                                                 <td className="p-4 border border-neutral-200 text-sm text-neutral-900">{report.product}</td>

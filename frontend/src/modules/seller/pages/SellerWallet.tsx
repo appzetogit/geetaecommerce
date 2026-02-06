@@ -40,14 +40,6 @@ interface Earning {
 export default function SellerWallet() {
   const navigate = useNavigate();
 
-  // EARLY RETURN TO HIDE PAGE CONTENT
-  return (
-    <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-neutral-500 text-lg font-medium">Wallet feature is currently disabled.</p>
-    </div>
-  );
-
-  // The rest of the logic is preserved below and can be restored by removing the return above
   const [activeTab, setActiveTab] = useState<TabType>('transaction');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
