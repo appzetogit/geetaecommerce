@@ -1003,13 +1003,13 @@ export default function SellerAddProduct() {
                     {/* Main Image */}
                     <div className="flex flex-col items-center">
                         <span className="text-sm font-semibold text-neutral-700 mb-2">Main Image</span>
-                        <label className="w-40 h-40 border-2 border-blue-500 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 transition-colors relative overflow-hidden bg-white">
+                        <label className="w-40 h-40 border-2 border-seller-500 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-seller-50 transition-colors relative overflow-hidden bg-white">
                             {mainImagePreview ? (
                                 <img src={mainImagePreview} className="w-full h-full object-contain" alt="Main" />
                             ) : (
                                 <>
-                                    <svg className="w-10 h-10 text-blue-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                    <span className="text-xs text-blue-600 font-bold">Upload Main</span>
+                                    <svg className="w-10 h-10 text-seller-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <span className="text-xs text-seller-600 font-bold">Upload Main</span>
                                 </>
                             )}
                             <input type="file" accept="image/*" onChange={handleMainImageChange} className="hidden" />
@@ -1033,7 +1033,7 @@ export default function SellerAddProduct() {
                                 </div>
                             ))}
                              {galleryImagePreviews.length < 6 && (
-                                <label className="w-24 h-24 border-2 border-gray-300 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors text-gray-400 hover:text-blue-600">
+                                <label className="w-24 h-24 border-2 border-gray-300 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors text-gray-400 hover:text-seller-600">
                                     <span className="text-3xl font-light mb-1">+</span>
                                     <span className="text-[10px] font-medium uppercase">Add</span>
                                     <input type="file" accept="image/*" multiple onChange={handleGalleryImagesChange} className="hidden" />
@@ -1054,7 +1054,7 @@ export default function SellerAddProduct() {
                  name="productName"
                  value={formData.productName}
                  onChange={handleChange}
-                 className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                 className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
                />
             </div>
 
@@ -1070,7 +1070,7 @@ export default function SellerAddProduct() {
                            type="number"
                            value={variationForm.discPrice}
                            onChange={(e) => setVariationForm({ ...variationForm, discPrice: e.target.value })}
-                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
                         />
                     </div>
                  </div>
@@ -1084,7 +1084,7 @@ export default function SellerAddProduct() {
                            type="number"
                            value={variationForm.price}
                            onChange={(e) => setVariationForm({ ...variationForm, price: e.target.value })} // Setup Main Price
-                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
                         />
                     </div>
                  </div>
@@ -1103,7 +1103,7 @@ export default function SellerAddProduct() {
                          name="purchasePrice"
                          value={(formData as any).purchasePrice}
                          onChange={handleChange}
-                         className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                         className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
                        />
                    </div>
                 </div>
@@ -1113,7 +1113,7 @@ export default function SellerAddProduct() {
           {/* Product Section Details */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
             {/* Header Removed for Mobile Look */}
-            {/* <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
+            {/* <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
                <h2 className="text-lg font-semibold tracking-wide">Product Details</h2>
              </div> */}
             <div className="p-6 space-y-6 rounded-b-xl">
@@ -1331,7 +1331,7 @@ export default function SellerAddProduct() {
           {/* SEO Content Section */}
           {/* SEO Content Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">SEO Configuration</h2>
             </div>
             <div className="p-6 space-y-6">
@@ -1402,7 +1402,7 @@ export default function SellerAddProduct() {
 
           {/* Add Variation Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Product Variations</h2>
             </div>
             <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
@@ -1522,7 +1522,7 @@ export default function SellerAddProduct() {
                     <button
                       type="button"
                       onClick={addVariation}
-                      className="px-6 py-2 bg-seller-600 hover:bg-seller-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                      className="px-6 py-2 bg-seller-500 hover:bg-seller-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
                     >
                       Add Variation +
                     </button>
@@ -1587,7 +1587,7 @@ export default function SellerAddProduct() {
 
           {/* Add Other Details Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Additional Details</h2>
             </div>
             <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
@@ -1788,7 +1788,7 @@ export default function SellerAddProduct() {
 
           {/* Print Barcodes Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Print Barcodes</h2>
             </div>
             <div className="p-6 border-x border-b border-neutral-200 rounded-b-xl">
@@ -1883,7 +1883,7 @@ export default function SellerAddProduct() {
                             <button
                                 type="button"
                                 onClick={applySearchedImage}
-                                className="px-4 py-2 bg-seller-600 hover:bg-seller-700 text-white rounded-lg text-sm font-medium transition-colors"
+                                className="px-4 py-2 bg-seller-500 hover:bg-seller-600 text-white rounded-lg text-sm font-medium transition-colors"
                             >
                                 Use this Image
                             </button>
@@ -1898,7 +1898,7 @@ export default function SellerAddProduct() {
           {/* Shop by Store Section */}
           {shouldShowField('shop_by_store_only') && (
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-seller-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Store Visibility</h2>
             </div>
             <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
@@ -1951,7 +1951,7 @@ export default function SellerAddProduct() {
               className={`px-8 py-3 rounded-lg font-medium text-lg transition-colors shadow-sm ${
                 uploading || !isEnabled
                   ? "bg-neutral-400 cursor-not-allowed text-white"
-                  : "bg-seller-600 hover:bg-seller-700 text-white"
+                  : "bg-seller-500 hover:bg-seller-600 text-white"
               }`}>
               {uploading ? "Uploading Images..." : id ? "Update Product" : "Add Product"}
             </button>
@@ -1962,11 +1962,11 @@ export default function SellerAddProduct() {
       {isScanning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
-            <div className="p-4 bg-seller-600 text-white flex justify-between items-center">
+            <div className="p-4 bg-seller-500 text-white flex justify-between items-center">
               <h3 className="font-semibold">Scan Barcode</h3>
               <button
                 onClick={stopScanning}
-                className="p-1 hover:bg-seller-700 rounded-full transition-colors"
+                className="p-1 hover:bg-seller-600 rounded-full transition-colors"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>

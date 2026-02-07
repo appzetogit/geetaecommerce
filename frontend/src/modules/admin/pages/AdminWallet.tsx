@@ -190,16 +190,16 @@ export default function AdminWallet() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-neutral-800">Wallet Management</h1>
         <div className="text-sm">
-          <span className="text-[#E91E63]">Admin</span> / <span>Wallet</span>
+          <span className="text-[#f187b5]">Admin</span> / <span>Wallet</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#E91E63] p-6 rounded-xl text-white shadow-lg">
+        <div className="bg-[#f187b5] p-6 rounded-xl text-white shadow-lg">
           <h3 className="text-pink-100 text-sm font-medium">Total Earnings</h3>
           <p className="text-3xl font-bold mt-1">₹{stats.totalEarnings.toLocaleString()}</p>
         </div>
-        <div className="bg-[#E91E63] p-6 rounded-xl text-white shadow-lg">
+        <div className="bg-[#f187b5] p-6 rounded-xl text-white shadow-lg">
           <h3 className="text-pink-100 text-sm font-medium">Paid Earnings</h3>
           <p className="text-3xl font-bold mt-1">₹{stats.paidEarnings.toLocaleString()}</p>
         </div>
@@ -207,7 +207,7 @@ export default function AdminWallet() {
           <h3 className="text-yellow-100 text-sm font-medium">Pending Earnings</h3>
           <p className="text-3xl font-bold mt-1">₹{stats.pendingEarnings.toLocaleString()}</p>
         </div>
-        <div className="bg-[#E91E63] p-6 rounded-xl text-white shadow-lg">
+        <div className="bg-[#f187b5] p-6 rounded-xl text-white shadow-lg">
           <h3 className="text-pink-100 text-sm font-medium">Seller Payouts</h3>
           <p className="text-3xl font-bold mt-1">₹{stats.thisMonthEarnings.toLocaleString()}</p>
         </div>
@@ -225,7 +225,7 @@ export default function AdminWallet() {
               key={tab.id}
               onClick={() => { setActiveTab(tab.id as TabType); setCurrentPage(1); }}
               className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.id ? "border-[#E91E63] text-[#E91E63]" : "border-transparent text-neutral-500 hover:text-neutral-700"
+                activeTab === tab.id ? "border-[#f187b5] text-[#f187b5]" : "border-transparent text-neutral-500 hover:text-neutral-700"
               }`}
             >
               {tab.label}

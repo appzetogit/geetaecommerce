@@ -111,7 +111,7 @@ export default function AdminAddSeller() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Seller Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#e91e63' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
             <h2 className="text-lg font-bold text-white">Seller Info</h2>
           </div>
           <div className="p-6">
@@ -181,7 +181,7 @@ export default function AdminAddSeller() {
 
         {/* Store Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#e91e63' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
             <h2 className="text-lg font-bold text-white">Store Info</h2>
           </div>
           <div className="p-6">
@@ -282,7 +282,7 @@ export default function AdminAddSeller() {
 
         {/* Store Location Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#e91e63' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
             <h2 className="text-lg font-bold text-white">Store Location Info</h2>
           </div>
           <div className="p-6">
@@ -377,7 +377,7 @@ export default function AdminAddSeller() {
 
         {/* Payment Details */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#e91e63' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
             <h2 className="text-lg font-bold text-white">Payment Details</h2>
           </div>
           <div className="p-6">
@@ -457,7 +457,7 @@ export default function AdminAddSeller() {
 
         {/* Document Section */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#e91e63' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
             <h2 className="text-lg font-bold text-white">Document Section</h2>
           </div>
           <div className="p-6">
@@ -503,7 +503,7 @@ export default function AdminAddSeller() {
 
         {/* Other Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#e91e63' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
             <h2 className="text-lg font-bold text-white">Other Info</h2>
           </div>
           <div className="p-6">
@@ -563,9 +563,9 @@ export default function AdminAddSeller() {
           <button
             type="submit"
             className="px-8 py-3 text-white font-bold rounded transition-colors"
-            style={{ background: '#e91e63' }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#c2185b'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#e91e63'}
+            style={{ background: '#f187b5' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#e076a5'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#f187b5'}
           >
             Add Seller
           </button>

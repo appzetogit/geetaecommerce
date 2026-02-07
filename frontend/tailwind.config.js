@@ -30,6 +30,18 @@ export default {
           dark: '#FFB020',
         },
         cream: '#FFF7E0',
+        seller: {
+          50: '#fdf2f8',
+          100: '#fce7f3',
+          200: '#fbcfe8',
+          300: '#f9a8d4',
+          400: '#f472b6',
+          500: '#f187b5', // Primary requested pink
+          600: '#e076a5', // Secondary/Hover pink
+          700: '#be185d',
+          800: '#9d174d',
+          900: '#831843',
+        },
       },
     },
   },

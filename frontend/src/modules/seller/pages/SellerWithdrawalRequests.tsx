@@ -169,7 +169,7 @@ export default function SellerWithdrawalRequests() {
           <h2 className="text-lg font-bold text-white">View Withdrawal Request List</h2>
           <button
             onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-white text-[#f187b5] hover:bg-neutral-50 text-sm font-bold rounded transition-colors flex items-center gap-2"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -190,13 +190,13 @@ export default function SellerWithdrawalRequests() {
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none"
+                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
                 />
                 <input
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none"
+                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
                 />
               </div>
             </div>
@@ -236,7 +236,7 @@ export default function SellerWithdrawalRequests() {
             <div className="flex items-end">
               <button
                 onClick={handleExport}
-                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
+                className="px-4 py-2 bg-[#f187b5] hover:bg-[#e076a5] text-white text-sm font-medium rounded transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -279,7 +279,7 @@ export default function SellerWithdrawalRequests() {
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-sm text-neutral-500">
                     <div className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-teal-600"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#f187b5]"></div>
                       <span>Loading requests...</span>
                     </div>
                   </td>
@@ -297,18 +297,12 @@ export default function SellerWithdrawalRequests() {
                     <td className="p-4 text-sm font-bold text-neutral-900">₹{withdrawal.amount.toFixed(2)}</td>
                     <td className="p-4 text-sm text-neutral-900">{withdrawal.paymentMethod}</td>
                     <td className="p-4">
-<<<<<<< HEAD
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        withdrawal.status === 'Approved'
-                          ? 'bg-[#f187b5]/10 text-[#f187b5]'
-=======
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
                         withdrawal.status === 'Approved' || withdrawal.status === 'Completed'
-                          ? 'bg-green-100 text-green-700'
->>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
+                          ? 'bg-[#f187b5]/10 text-[#f187b5]'
                           : withdrawal.status === 'Pending'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-red-100 text-red-700'
+                          ? 'bg-yellow-50 text-yellow-700'
+                          : 'bg-red-50 text-red-600'
                       }`}>
                         {withdrawal.status}
                       </span>
@@ -351,13 +345,8 @@ export default function SellerWithdrawalRequests() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in duration-200">
             {/* Modal Header */}
-<<<<<<< HEAD
             <div className="bg-[#f187b5] px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
-              <h3 className="text-lg font-bold">Add Fund Request</h3>
-=======
-            <div className="bg-teal-600 px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
               <h3 className="text-lg font-bold">New Withdrawal Request</h3>
->>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
               <button
                 onClick={() => setShowModal(false)}
                 className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
@@ -400,29 +389,16 @@ export default function SellerWithdrawalRequests() {
 
               {/* Method Selection */}
               <div className="space-y-2">
-<<<<<<< HEAD
-                <label className="text-sm font-bold text-neutral-700">Bank Account</label>
-                <select
-                  value={formBankAccount}
-                  onChange={(e) => setFormBankAccount(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-base"
-                >
-                  <option value="HDFC Bank - ****1234">HDFC Bank - ****1234</option>
-                  <option value="SBI - ****5678">SBI - ****5678</option>
-                  <option value="ICICI Bank - ****9012">ICICI Bank - ****9012</option>
-                  <option value="Axis Bank - ****3456">Axis Bank - ****3456</option>
-                </select>
-=======
                 <label className="text-sm font-bold text-neutral-700">Select Method</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setFormMethod('Bank Transfer')}
-                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-xl transition-all ${formMethod === 'Bank Transfer' ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-neutral-100 bg-white text-neutral-500'}`}>
+                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-xl transition-all ${formMethod === 'Bank Transfer' ? 'border-[#f187b5] bg-[#f187b5]/5 text-[#f187b5]' : 'border-neutral-100 bg-white text-neutral-500'}`}>
                     <span className="text-xs font-bold">Bank Transfer</span>
                   </button>
                   <button
                     onClick={() => setFormMethod('UPI')}
-                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-xl transition-all ${formMethod === 'UPI' ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-neutral-100 bg-white text-neutral-500'}`}>
+                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-xl transition-all ${formMethod === 'UPI' ? 'border-[#f187b5] bg-[#f187b5]/5 text-[#f187b5]' : 'border-neutral-100 bg-white text-neutral-500'}`}>
                     <span className="text-xs font-bold">UPI</span>
                   </button>
                 </div>
@@ -440,7 +416,7 @@ export default function SellerWithdrawalRequests() {
                           value={bankDetails.accountHolderName}
                           onChange={(e) => setBankDetails({ ...bankDetails, accountHolderName: e.target.value })}
                           placeholder="John Doe"
-                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-semibold shadow-sm"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-xs font-semibold shadow-sm"
                         />
                       </div>
                       <div className="space-y-1">
@@ -450,7 +426,7 @@ export default function SellerWithdrawalRequests() {
                           value={bankDetails.accountNumber}
                           onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
                           placeholder="000011112222"
-                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-semibold shadow-sm"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-xs font-semibold shadow-sm"
                         />
                       </div>
                     </div>
@@ -462,7 +438,7 @@ export default function SellerWithdrawalRequests() {
                           value={bankDetails.bankName}
                           onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
                           placeholder="HDFC Bank"
-                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-semibold shadow-sm"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-xs font-semibold shadow-sm"
                         />
                       </div>
                       <div className="space-y-1">
@@ -472,7 +448,7 @@ export default function SellerWithdrawalRequests() {
                           value={bankDetails.ifscCode}
                           onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value })}
                           placeholder="HDFC0000"
-                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-xs font-bold text-teal-800 uppercase shadow-sm"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-xs font-bold text-[#f187b5] uppercase shadow-sm"
                         />
                       </div>
                     </div>
@@ -486,12 +462,11 @@ export default function SellerWithdrawalRequests() {
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
                         placeholder="yourname@upi"
-                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none text-sm font-bold text-teal-900 shadow-sm"
+                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-sm font-bold text-neutral-900 shadow-sm"
                       />
                     </div>
                   </div>
                 )}
->>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
               </div>
             </div>
 
@@ -506,12 +481,8 @@ export default function SellerWithdrawalRequests() {
               </button>
               <button
                 onClick={handleSubmitRequest}
-<<<<<<< HEAD
-                className="flex-1 px-4 py-3 bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold rounded-lg transition-colors"
-=======
-                className="flex-1 px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
                 disabled={isSubmitting}
->>>>>>> 77045548b51511eac398b1d48d688b678f9a19e2
               >
                 {isSubmitting && <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                 {isSubmitting ? 'Submitting...' : 'Submit Request'}

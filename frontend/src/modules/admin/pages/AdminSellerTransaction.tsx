@@ -141,7 +141,7 @@ export default function AdminSellerTransaction() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-        <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#e91e63' }}>
+        <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#f187b5' }}>
           <h2 className="text-lg font-bold text-white">View Seller List</h2>
           <button
             onClick={handleAddFundTransfer}
@@ -247,7 +247,7 @@ export default function AdminSellerTransaction() {
               <button
                 onClick={handleExport}
                 className="px-4 py-2 text-white rounded hover:opacity-90 transition-opacity text-sm font-medium flex items-center gap-2"
-                style={{ background: '#e91e63' }}
+                style={{ background: '#f187b5' }}
               >
                 <svg
                   width="16"
@@ -427,7 +427,7 @@ export default function AdminSellerTransaction() {
       {showAddFundModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#e91e63' }}>
+            <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#f187b5' }}>
               <h3 className="text-lg font-bold text-white">Add Fund Transfer</h3>
               <button
                 onClick={handleCloseFundModal}
@@ -512,7 +512,7 @@ export default function AdminSellerTransaction() {
                 <button
                   type="submit"
                   className="px-4 py-2 text-white font-semibold rounded transition-opacity hover:opacity-90"
-                  style={{ background: '#e91e63' }}
+                  style={{ background: '#f187b5' }}
                 >
                   Add Fund Transfer
                 </button>
