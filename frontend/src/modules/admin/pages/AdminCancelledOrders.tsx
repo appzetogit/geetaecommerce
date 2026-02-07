@@ -116,7 +116,7 @@ export default function AdminCancelledOrders() {
   };
 
   const filteredAndSortedOrders = useMemo(() => {
-    let filtered = [...orders];
+    const filtered = [...orders];
 
     if (sortField) {
       filtered.sort((a, b) => {

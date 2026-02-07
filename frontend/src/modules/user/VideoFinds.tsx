@@ -378,12 +378,10 @@ export default function VideoFinds() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDesktop, setIsDesktop] = useState(window.matchMedia("(min-width: 768px)").matches);
   const [videoList, setVideoList] = useState<VideoFind[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchVideos = async () => {
       try {
-        setLoading(true);
         const response = await getVideoFinds();
         if (response.success && response.data) {
            setVideoList(response.data);
@@ -391,7 +389,6 @@ export default function VideoFinds() {
       } catch (error) {
         console.error("Failed to fetch videos", error);
       } finally {
-        setLoading(false);
       }
     };
 

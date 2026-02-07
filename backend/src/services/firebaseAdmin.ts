@@ -27,6 +27,15 @@ try {
       credential: admin.credential.cert(serviceAccount),
     });
     console.log('✅ Firebase Admin Initialized successfully');
+
+    // Async health check
+    admin.app().options.credential?.getAccessToken()
+      .then(() => console.log('✅ Firebase Auth Check: Credentials are valid.'))
+      .catch((err: any) => {
+        console.error('❌ Firebase Auth Check failed: Invalid Credentials or System Time.');
+        console.error('   Error:', err.message);
+      });
+
   }
 } catch (error) {
   console.error('Firebase Admin Initialization Error:', error);

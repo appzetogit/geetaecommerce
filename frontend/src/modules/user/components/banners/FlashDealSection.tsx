@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getTheme } from '../../../../utils/themes';
 import { useThemeContext } from '../../../../context/ThemeContext';
 import { bannerService } from '../../../../services/bannerService';
-import { getProductById, getProducts } from '../../../../services/api/customerProductService';
+import { getProductById } from '../../../../services/api/customerProductService';
 import { calculateProductPrice } from '../../../../utils/priceUtils';
 
 interface TimeLeft {

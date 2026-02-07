@@ -132,7 +132,7 @@ export default function ProductCard({
       : (product.variations?.[0]?.tieredPrices || []);
 
   // Calculate dynamic unit price based on cart quantity
-  let currentUnitPrice = getApplicableUnitPrice(product, undefined, Math.max(1, inCartQty));
+  const currentUnitPrice = getApplicableUnitPrice(product, undefined, Math.max(1, inCartQty));
 
   const handleCardClick = () => {
     navigate(`/product/${((product as any).id || product._id) as string}`);

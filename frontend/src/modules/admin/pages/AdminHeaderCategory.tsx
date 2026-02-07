@@ -125,7 +125,7 @@ export default function AdminHeaderCategory() {
   };
 
   const filteredCategories = useMemo(() => {
-    let baseList = [...headerCategories];
+    const baseList = [...headerCategories];
 
     // Sort logic
     if (sortColumn) {

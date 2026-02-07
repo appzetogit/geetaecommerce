@@ -4,12 +4,9 @@ import ProductCard from "./components/ProductCard";
 import { getProductById } from "../../services/api/customerProductService";
 import { bannerService } from "../../services/bannerService";
 import { useThemeContext } from "../../context/ThemeContext";
-import { getTheme } from "../../utils/themes";
 
 export default function DealOfTheDayPage() {
   const navigate = useNavigate();
-  const { activeCategory } = useThemeContext();
-  const theme = getTheme(activeCategory || "all");
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

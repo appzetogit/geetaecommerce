@@ -18,7 +18,7 @@ export default function FeaturedDeal() {
       try {
         const config = await bannerService.getDealsConfig();
 
-        let products: Product[] = [];
+        const products: Product[] = [];
 
         // Check for multiple IDs first
         if (config.featuredDealProductIds && config.featuredDealProductIds.length > 0) {

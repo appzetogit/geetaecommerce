@@ -105,16 +105,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
         phone: (user as any)?.phone || '9876543210',
         email: user?.email || 'guest@example.com',
         address: (user as any)?.address || 'Address not provided',
-        items: items.map(i => ({
-          id: i.product.id || i.product._id,
-          name: i.product.name || (i.product as any).productName,
-          qty: i.quantity,
-          price: i.product.discPrice || i.product.price,
-          image: i.product.imageUrl || (i.product as any).mainImage
-        })),
-        total: items.filter(item => item?.product && !item.isFreeGift).reduce((sum, item) => {
-          const unitPrice = getApplicableUnitPrice(item.product, item.variant, item.quantity || 0);
-          return sum + unitPrice * (item.quantity || 0);
+        items: items.map(i => {
+           const prod = i.product;
+           if (!prod) return null; // Should be filtered out but TS needs this
+           return {
+             id: prod.id || prod._id,
+             name: prod.name || (prod as any).productName,
+             qty: i.quantity,
+             price: (prod as any).discPrice || prod.price, // Safer cast
+             image: prod.imageUrl || (prod as any).mainImage
+           };
+        }).filter(Boolean),
+        total: items.filter(item => {
+           const prod = item?.product;
+           return prod && !item.isFreeGift;
+        }).reduce((sum, item) => {
+           const prod = item.product;
+           const unitPrice = getApplicableUnitPrice(prod, item.variant, item.quantity || 0);
+           return sum + unitPrice * (item.quantity || 0);
         }, 0),
         lastUpdated: new Date().toISOString()
       };
@@ -156,7 +164,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Filter out gifts that shouldn't be there
     const itemsAfterRemoval = newItems.filter(item => {
         if (item.isFreeGift) {
-            const productId = item.product.id || item.product._id || '';
+            const prod = item.product;
+            const productId = prod?.id || prod?._id || '';
             // Keep if it's in our valid set
             return validGiftIds.has(productId);
         }
@@ -175,7 +184,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
             const giftProduct = rule.giftProduct;
 
             // Check if already present
-            const exists = newItems.some(i => i.isFreeGift && (i.product.id === giftProductId || i.product._id === giftProductId));
+            const exists = newItems.some(i => {
+                const prod = i?.product;
+                if (!prod || !i.isFreeGift) return false;
+                const prodId = prod.id || prod._id;
+                return prodId === giftProductId;
+            });
 
             if (!exists && giftProduct) {
                 const giftItem: ExtendedCartItem = {
@@ -201,15 +215,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (hasChanges) {
         setItems(newItems);
     }
-  }, [items.map(i => `${i.product.id}-${i.quantity}-${i.isFreeGift}`).join(','), freeGiftRules]);
+  }, [items.map(i => {
+      const p = i?.product;
+      const pid = p?.id || p?._id || '';
+      return `${pid}-${i.quantity}-${i.isFreeGift}`;
+  }).join(','), freeGiftRules]);
 
   const cart: Cart = useMemo(() => {
     // Filter out any items with null products before computing totals
     const validItems = items.filter(item => item?.product);
     const total = validItems.reduce((sum, item) => {
       if (item.isFreeGift) return sum;
-      const unitPrice = getApplicableUnitPrice(item.product, item.variant, item.quantity || 0);
-      return sum + unitPrice * (item.quantity || 0);
+      const prod = item.product;
+      const variant = item.variant;
+      const qty = item.quantity || 0;
+      const unitPrice = getApplicableUnitPrice(prod, variant, qty);
+      return sum + unitPrice * qty;
     }, 0);
     const itemCount = validItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
     return { items: validItems, total, itemCount };
@@ -257,9 +278,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // Find existing item - match by product ID and variant (if variant exists)
       const existingItem = validItems.find((item) => {
-        const itemProductId = item.product.id || item.product._id;
-        const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-        const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
+        const prod = item.product;
+        if (!prod) return false;
+        const itemProductId = prod.id || prod._id;
+        const itemVariantId = (prod as any).variantId || (prod as any).selectedVariant?._id;
+        const itemVariantTitle = (prod as any).variantTitle || (prod as any).pack;
 
         // If both have variants, match by variant ID or title
         if (variantId || variantTitle) {
@@ -272,11 +295,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (existingItem) {
         return validItems.map((item) => {
-          const itemProductId = item.product.id || item.product._id;
           const match = existingItem === item; // Simple ref check since we found it above
+          const q = item.quantity || 0;
 
           return match
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: q + 1 }
             : item;
         });
       }
@@ -323,10 +346,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     pendingOperationsRef.current.add(productId);
 
     // Find item matching either id or _id
-    const itemToRemove = items.find(item => item?.product && (item.product.id === productId || item.product._id === productId));
+    const itemToRemove = items.find(item => {
+        const prod = item?.product;
+        if (!prod) return false;
+        const prodId = prod.id || prod._id;
+        return prodId === productId;
+    });
 
     const previousItems = [...items];
-    setItems((prevItems) => prevItems.filter((item) => item?.product && item.product.id !== productId && item.product._id !== productId));
+    setItems((prevItems) => prevItems.filter((item) => {
+        const prod = item?.product;
+        if (!prod) return false; // Filter out bad data
+        const prodId = prod.id || prod._id;
+        return prodId !== productId;
+    }));
 
     // API SYNC DISABLED FOR FRONTEND ONLY MODE
     pendingOperationsRef.current.delete(productId);
@@ -369,40 +402,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // Find item matching product ID and variant (if variant info provided)
     const itemToUpdate = items.find(item => {
-      if (!item?.product) return false;
-      const itemProductId = item.product.id || item.product._id;
+      const prod = item?.product;
+      if (!prod) return false;
+      const itemProductId = prod.id || prod._id;
       if (itemProductId !== productId) return false;
 
       // If variant info provided, match by variant
       if (variantId || variantTitle) {
-        const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-        const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
+        const itemVariantId = (prod as any).variantId || (prod as any).selectedVariant?._id;
+        const itemVariantTitle = (prod as any).variantTitle || (prod as any).pack;
         return itemVariantId === variantId || itemVariantTitle === variantTitle;
       }
 
       // If no variant info, match items without variants
-      const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-      const itemVariantTitle = (item.product as any).variantTitle;
+      const itemVariantId = (prod as any).variantId || (prod as any).selectedVariant?._id;
+      const itemVariantTitle = (prod as any).variantTitle;
       return !itemVariantId && !itemVariantTitle;
     });
 
     const previousItems = [...items];
     setItems((prevItems) =>
-      prevItems.filter(item => item?.product).map((item) => {
-        const itemProductId = item.product.id || item.product._id;
+      prevItems
+        .filter(item => !!item?.product)
+        .map((item) => {
+          const prod = item.product!;
+        const itemProductId = prod.id || prod._id;
         if (itemProductId !== productId) return item;
 
         // If variant info provided, match by variant
         if (variantId || variantTitle) {
-          const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-          const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
+          const itemVariantId = (prod as any).variantId || (prod as any).selectedVariant?._id;
+          const itemVariantTitle = (prod as any).variantTitle || (prod as any).pack;
           if (itemVariantId === variantId || itemVariantTitle === variantTitle) {
             return { ...item, quantity };
           }
         } else {
           // If no variant info, match items without variants
-          const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-          const itemVariantTitle = (item.product as any).variantTitle;
+          const itemVariantId = (prod as any).variantId || (prod as any).selectedVariant?._id;
+          const itemVariantTitle = (prod as any).variantTitle;
           if (!itemVariantId && !itemVariantTitle) {
             return { ...item, quantity };
           }

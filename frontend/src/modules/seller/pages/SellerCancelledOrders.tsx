@@ -13,7 +13,6 @@ export default function SellerCancelledOrders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [dateRange, setDateRange] = useState('');
-  const [status, setStatus] = useState('Cancelled');
   const [entriesPerPage, setEntriesPerPage] = useState('10');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);

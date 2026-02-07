@@ -17,7 +17,6 @@ import { useLocation } from "../../hooks/useLocation";
 import { useLoading } from "../../context/LoadingContext";
 import PageLoader from "../../components/PageLoader";
 import { useThemeContext } from "../../context/ThemeContext";
-import { getTheme } from "../../utils/themes";
 
 export default function Home() {
   const navigate = useNavigate();

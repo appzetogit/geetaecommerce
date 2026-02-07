@@ -27,7 +27,7 @@ export default function AdminWallet() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const entriesPerPage = 10;
   const [totalEntries, setTotalEntries] = useState(0);
 
   // Backend data states
@@ -42,7 +42,6 @@ export default function AdminWallet() {
     thisMonthEarnings: 0,
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
   // Fetch Dashboard Stats
@@ -79,7 +78,6 @@ export default function AdminWallet() {
 
     try {
       setLoading(true);
-      setError(null);
 
       const params = {
         page: currentPage,
@@ -120,7 +118,7 @@ export default function AdminWallet() {
       }
     } catch (err: any) {
       console.error(`Error fetching ${activeTab} data:`, err);
-      setError(`Failed to load ${activeTab} data.`);
+      toast.error(`Failed to load ${activeTab} data.`);
     } finally {
       setLoading(false);
     }

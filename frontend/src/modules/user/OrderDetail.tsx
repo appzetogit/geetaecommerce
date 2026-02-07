@@ -475,13 +475,10 @@ export default function OrderDetail() {
   const [deliveryInstructions, setDeliveryInstructions] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
-  const [selectedTip, setSelectedTip] = useState<number | "other" | null>(null);
-  const [customTip, setCustomTip] = useState("");
 
   // Return/Replace states
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [showReplaceModal, setShowReplaceModal] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState("");
   const [selectedOrderItemId, setSelectedOrderItemId] = useState("");
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [returnReason, setReturnReason] = useState("Damaged");
@@ -496,7 +493,6 @@ export default function OrderDetail() {
     deliveryLocation,
     eta,
     distance,
-    status: trackingStatus,
     isConnected,
     lastUpdate,
     error: trackingError,

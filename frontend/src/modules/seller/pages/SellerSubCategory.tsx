@@ -48,7 +48,7 @@ export default function SellerSubCategory() {
     }, [currentPage, rowsPerPage, sortColumn, sortDirection]);
 
     // Client-side sorting (if API doesn't handle it)
-    let sortedSubcategories = [...subcategories];
+    const sortedSubcategories = [...subcategories];
     if (sortColumn && !sortColumn.includes('.')) {
         sortedSubcategories.sort((a, b) => {
             let aVal: any = a[sortColumn as keyof typeof a];

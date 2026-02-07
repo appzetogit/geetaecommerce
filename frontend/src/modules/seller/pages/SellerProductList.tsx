@@ -198,7 +198,7 @@ export default function SellerProductList() {
   });
 
   // Filter variations
-  let filteredVariations = allVariations.filter((variation) => {
+  const filteredVariations = allVariations.filter((variation) => {
     const matchesSearch =
       variation.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       variation.sellerName.toLowerCase().includes(searchTerm.toLowerCase()) ||

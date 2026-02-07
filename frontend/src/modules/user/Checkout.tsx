@@ -202,6 +202,7 @@ export default function Checkout() {
     total: displayItems.reduce((sum: number, item: any) => {
       if (item.isFreeGift) return sum;
       const p = item.product;
+      if (!p) return sum;
       const v = item.variant;
       const q = item.quantity || 0;
       const unitPrice = getApplicableUnitPrice(p, v, q);
@@ -379,9 +380,8 @@ export default function Checkout() {
     try {
         const orderData = {
             items: cart.items.map((item: any) => {
-                if (!item?.product) return null;
-
-                const product = item.product;
+                const product = item?.product;
+                if (!product) return null;
                 const activeRule = getActiveFreeGiftRule();
                 const isFreeGiftItem = item.isFreeGift;
 
@@ -501,10 +501,8 @@ export default function Checkout() {
     const order: Order = {
       id: orderId,
       items: cart.items.map((item: any) => {
-          if (!item?.product) return null;
-
-          const product = item.product;
-          const productId = product.id || product._id;
+          const product = item?.product;
+          if (!product) return null;
           const activeRule = getActiveFreeGiftRule();
           const isFreeGiftItem = item.isFreeGift;
           const qty = item.quantity ?? 0;
@@ -528,6 +526,7 @@ export default function Checkout() {
       totalAmount: grandTotal,
       address: addressWithLocation,
       status: 'Placed',
+      paymentMethod: method,
       createdAt: new Date().toISOString(),
       tipAmount: finalTipAmount,
       gstin: gstin || undefined,
@@ -890,21 +889,23 @@ export default function Checkout() {
 
           {/* Cart Items */}
           <div className="space-y-2.5">
-            {displayItems.filter(item => item.product).map((item, index) => {
+            {displayItems.filter(item => item?.product).map((item, index) => {
               const isFreeGift = item.isFreeGift;
+              const prod = item.product;
+              if (!prod) return null;
               return (
-              <div key={`${item.product?.id || 'product'}-${item.variant || ''}-${index}`} className="flex gap-2">
+              <div key={`${prod?.id || 'product'}-${item.variant || ''}-${index}`} className="flex gap-2">
                 {/* Product Image */}
                 <div className="w-12 h-12 bg-neutral-100 rounded-lg flex-shrink-0 overflow-hidden relative">
-                  {item.product?.imageUrl ? (
+                  {prod?.imageUrl ? (
                     <img
-                      src={item.product?.imageUrl}
-                      alt={item.product?.name}
+                      src={prod.imageUrl}
+                      alt={prod.name}
                       className="w-full h-full object-contain"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-neutral-400">
-                      {(item.product?.name || '').charAt(0)}
+                      {(prod?.name || '').charAt(0)}
                     </div>
                   )}
                   {isFreeGift && (
@@ -917,16 +918,16 @@ export default function Checkout() {
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xs font-semibold text-neutral-900 mb-0.5 line-clamp-2">
-                    {item.product?.name}
+                    {prod?.name}
                     {isFreeGift && <span className="ml-1 text-green-600 font-bold">(Free Gift)</span>}
                   </h3>
-                  <p className="text-[10px] text-neutral-600 mb-0.5">{item.quantity} × {item.product?.pack}</p>
+                  <p className="text-[10px] text-neutral-600 mb-0.5">{item.quantity} × {prod?.pack}</p>
 
                   {!isFreeGift && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleMoveToWishlist(item.product);
+                      if (prod) handleMoveToWishlist(prod);
                     }}
                     className="text-[10px] text-green-600 font-medium mb-1.5 hover:text-green-700 transition-colors"
                   >
@@ -947,10 +948,10 @@ export default function Checkout() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          const prod = item.product;
+                          if (!prod) return;
                           const vId = (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
                           const vTitle = (prod as any).variantTitle || (prod as any).pack;
-                          const pId = prod?.id || prod?._id || '';
+                          const pId = prod.id || prod._id || '';
                           updateQuantity(pId as string, (item.quantity || 1) - 1, vId, vTitle);
                         }}
                         className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors text-xs"
@@ -965,10 +966,10 @@ export default function Checkout() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                           const prod = item.product;
+                          if (!prod) return;
                            const vId = (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
                            const vTitle = (prod as any).variantTitle || (prod as any).pack;
-                           const pId = prod?.id || prod?._id || '';
+                           const pId = prod.id || prod._id || '';
                            updateQuantity(pId as string, (item.quantity || 1) + 1, vId, vTitle);
                         }}
                         className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors text-xs"
@@ -984,10 +985,10 @@ export default function Checkout() {
                       ) : (
                           <div className="flex flex-col items-end">
                             <span className="text-xs font-bold text-neutral-900">
-                                ₹{(getApplicableUnitPrice(item.product, item.variant, item.quantity) * (item.quantity || 0)).toFixed(0)}
+                                ₹{(getApplicableUnitPrice(prod, item.variant, item.quantity) * (item.quantity || 0)).toFixed(0)}
                             </span>
                              {/* Show tier info if active */}
-                             {getApplicableUnitPrice(item.product, item.variant, item.quantity) < calculateProductPrice(item.product, item.variant).displayPrice && (
+                             {getApplicableUnitPrice(prod, item.variant, item.quantity) < calculateProductPrice(prod, item.variant).displayPrice && (
                                 <span className="text-[9px] text-green-600 font-medium">
                                     Bulk Applied
                                 </span>

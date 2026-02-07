@@ -40,11 +40,10 @@ interface LanguageDropdownProps {
   language: string;
   setLanguage: (lang: string) => void;
   isSticky: boolean;
-  activeTab: string;
   themeKey: string; // Added themeKey prop
 }
 
-const LanguageDropdown = ({ language, setLanguage, isSticky, activeTab, themeKey }: LanguageDropdownProps) => {
+const LanguageDropdown = ({ language, setLanguage, isSticky, themeKey }: LanguageDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const theme = getTheme(themeKey || 'all'); // Use themeKey here
@@ -384,7 +383,6 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
             language={language}
             setLanguage={setLanguage}
             isSticky={isSticky}
-            activeTab={activeTab || 'all'}
             themeKey={currentThemeKey}
           />
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 md:w-4 md:h-4">
