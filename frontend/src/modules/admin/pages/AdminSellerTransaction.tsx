@@ -204,13 +204,8 @@ export default function AdminSellerTransaction() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-<<<<<<< HEAD
-        <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#f187b5' }}>
-          <h2 className="text-lg font-bold text-white">View Seller List</h2>
-=======
         <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#e91e63' }}>
           <h2 className="text-lg font-bold text-white">Seller Transactions</h2>
->>>>>>> 3cd8aacfaf10acfb71a1aba9bd7a1273955b2db1
           <button
             onClick={handleAddFundTransfer}
             className="px-4 py-2 bg-white text-neutral-800 font-semibold rounded hover:bg-neutral-100 transition-colors flex items-center gap-2"
@@ -483,12 +478,6 @@ export default function AdminSellerTransaction() {
 
       {/* Add Fund Transfer Modal */}
       {showAddFundModal && (
-<<<<<<< HEAD
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#f187b5' }}>
-              <h3 className="text-lg font-bold text-white">Add Fund Transfer</h3>
-=======
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-neutral-200 transition-all scale-100">
             <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#e91e63' }}>
@@ -500,7 +489,6 @@ export default function AdminSellerTransaction() {
                  </svg>
                  Add Fund Transfer
               </h3>
->>>>>>> 3cd8aacfaf10acfb71a1aba9bd7a1273955b2db1
               <button
                 onClick={handleCloseFundModal}
                 className="text-white hover:text-neutral-200 transition-colors"
@@ -591,14 +579,9 @@ export default function AdminSellerTransaction() {
                 </button>
                 <button
                   type="submit"
-<<<<<<< HEAD
-                  className="px-4 py-2 text-white font-semibold rounded transition-opacity hover:opacity-90"
-                  style={{ background: '#f187b5' }}
-=======
                   disabled={submitting}
                   className="px-6 py-2 text-white text-sm font-bold rounded-lg transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center gap-2"
                   style={{ background: '#e91e63' }}
->>>>>>> 3cd8aacfaf10acfb71a1aba9bd7a1273955b2db1
                 >
                   {submitting ? (
                      <>
