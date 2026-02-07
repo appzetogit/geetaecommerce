@@ -706,18 +706,11 @@ export default function AdminAddSeller() {
         <div className="flex justify-end">
           <button
             type="submit"
-<<<<<<< HEAD
-            className="px-8 py-3 text-white font-bold rounded transition-colors"
-            style={{ background: '#f187b5' }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#e076a5'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#f187b5'}
-=======
             disabled={loading}
             className={`px-8 py-3 text-white font-bold rounded transition-colors ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             style={{ background: '#e91e63' }}
             onMouseEnter={(e) => !loading && (e.currentTarget.style.background = '#c2185b')}
             onMouseLeave={(e) => !loading && (e.currentTarget.style.background = '#e91e63')}
->>>>>>> 3cd8aacfaf10acfb71a1aba9bd7a1273955b2db1
           >
             {loading ? 'Adding Seller...' : 'Add Seller'}
           </button>

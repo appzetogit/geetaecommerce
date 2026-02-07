@@ -1444,7 +1444,7 @@ const AdminPOSOrders = () => {
                                                  </div>
                                                  <div className="text-right flex-shrink-0">
                                                      <span className="block text-sm font-bold text-[#f187b5]">₹{orderType === 'Wholesale' && product.wholesalePrice ? product.wholesalePrice : product.price}</span>
-                                                     {product.compareAtPrice > (orderType === 'Wholesale' && product.wholesalePrice ? product.wholesalePrice : product.price) && (
+                                                     {(product.compareAtPrice || 0) > (orderType === 'Wholesale' && product.wholesalePrice ? product.wholesalePrice : product.price) && (
                                                          <span className="block text-[10px] text-gray-400 line-through">₹{product.compareAtPrice}</span>
                                                      )}
                                                  </div>
