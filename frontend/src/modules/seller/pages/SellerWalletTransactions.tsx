@@ -235,14 +235,14 @@ export default function SellerWalletTransactions() {
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
                         transaction.type === 'Credit'
-                          ? 'bg-[#f187b5]/10 text-[#f187b5]'
-                          : 'bg-red-50 text-red-600'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
                       }`}>
                         {transaction.type}
                       </span>
                     </td>
                     <td className={`p-4 text-sm font-bold ${
-                      transaction.type === 'Credit' ? 'text-[#f187b5]' : 'text-red-600'
+                      transaction.type === 'Credit' ? 'text-green-600' : 'text-red-600'
                     }`}>
                       {transaction.type === 'Credit' ? '+' : '-'} ₹{transaction.amount.toFixed(2)}
                     </td>

@@ -89,7 +89,7 @@ export const getNotifications = async (
 ): Promise<ApiResponse<Notification[]>> => {
   const response = await api.get<ApiResponse<Notification[]>>(
     "/admin/notifications",
-    { params }
+    { params, skipAuthRedirect: true } as any
   );
   return response.data;
 };

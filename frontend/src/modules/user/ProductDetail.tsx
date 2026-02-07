@@ -145,13 +145,14 @@ export default function ProductDetail() {
   const inCartQtyForCalc = Math.max(1, product
     ? (cart.items.find(item => {
         if (!item?.product) return false;
-         const itemProductId = item.product.id || item.product._id;
+         const product = item.product;
+         const itemProductId = product.id || product._id;
          const productId = product.id || product._id;
          if (itemProductId !== productId) return false;
          // Match variant
          if (selectedVariant) {
-            const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-            const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
+            const itemVariantId = (product as any).variantId || (product as any).selectedVariant?._id;
+            const itemVariantTitle = (product as any).variantTitle || (product as any).pack;
             const currentVariantTitle = selectedVariant.title || selectedVariant.value || product.pack;
             return itemVariantId === selectedVariant._id || itemVariantTitle === currentVariantTitle;
          }
@@ -213,21 +214,22 @@ export default function ProductDetail() {
     ? cart.items.find(
         (item) => {
           if (!item?.product) return false;
-          const itemProductId = item.product.id || item.product._id;
+          const productCartItem = item.product;
+          const itemProductId = productCartItem.id || productCartItem._id;
           const productId = product.id || product._id;
 
           if (itemProductId !== productId) return false;
 
           // If variant exists, match by variant
           if (selectedVariant) {
-            const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-            const itemVariantTitle = (item.product as any).variantTitle || (item.product as any).pack;
+            const itemVariantId = (productCartItem as any).variantId || (productCartItem as any).selectedVariant?._id;
+            const itemVariantTitle = (productCartItem as any).variantTitle || (productCartItem as any).pack;
             return itemVariantId === selectedVariant._id || itemVariantTitle === variantTitle;
           }
 
           // If no variant, check that item also has no variant
-          const itemVariantId = (item.product as any).variantId || (item.product as any).selectedVariant?._id;
-          const itemVariantTitle = (item.product as any).variantTitle;
+          const itemVariantId = (productCartItem as any).variantId || (productCartItem as any).selectedVariant?._id;
+          const itemVariantTitle = (productCartItem as any).variantTitle;
           return !itemVariantId && !itemVariantTitle;
         }
       )

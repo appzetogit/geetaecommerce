@@ -113,3 +113,23 @@ export const createCustomer = async (
   const response = await api.post<ApiResponse<Customer>>("/admin/customers", data);
   return response.data;
 };
+
+/**
+ * Get abandoned carts
+ */
+export const getAbandonedCarts = async (
+  params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+    minPrice?: number;
+  }
+): Promise<ApiResponse<any[]>> => {
+  const response = await api.get<ApiResponse<any[]>>(
+    "/admin/customers/abandoned-carts",
+    { params }
+  );
+  return response.data;
+};

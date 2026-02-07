@@ -812,3 +812,177 @@ export const getDeliveryChargesReport = asyncHandler(
     });
   }
 );
+
+/**
+ * Get all seller commissions (order-level transactions)
+ */
+export const getSellerCommissions = asyncHandler(
+  async (req: Request, res: Response) => {
+    const {
+      page = 1,
+      limit = 10,
+      sellerId,
+      status,
+      search,
+      startDate,
+      endDate
+    } = req.query;
+
+    const query: any = {};
+    if (sellerId && sellerId !== "All Seller" && sellerId !== "undefined") {
+        query.seller = new mongoose.Types.ObjectId(sellerId as string);
+    }
+    if (status && status !== "All") {
+        query.status = status;
+    }
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate && startDate !== "undefined") {
+         const start = new Date(startDate as string);
+         if (!isNaN(start.getTime())) {
+            query.createdAt.$gte = start;
+         }
+      }
+      if (endDate && endDate !== "undefined") {
+        const end = new Date(endDate as string);
+        if (!isNaN(end.getTime())) {
+            end.setHours(23, 59, 59, 999);
+            query.createdAt.$lte = end;
+        }
+      }
+      if (Object.keys(query.createdAt).length === 0) {
+          delete query.createdAt;
+      }
+    }
+
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+    // If search is provided, we might need to find matching orders or products
+    if (search) {
+      const searchRegex = { $regex: search as string, $options: "i" };
+
+      // Find orders matching search
+      const orders = await Order.find({
+        $or: [
+          { orderNumber: searchRegex }
+        ]
+      }).select("_id");
+
+      // Find order items matching search (product name or variation)
+      const orderItems = await OrderItem.find({
+        $or: [
+          { productName: searchRegex },
+          { variation: searchRegex }
+        ]
+      }).select("_id");
+
+      query.$or = [
+        { order: { $in: orders.map(o => o._id) } },
+        { orderItem: { $in: orderItems.map(oi => oi._id) } }
+      ];
+    }
+
+    const [commissions, total] = await Promise.all([
+      Commission.find(query)
+        .populate("seller", "storeName sellerName")
+        .populate("order", "orderNumber")
+        .populate("orderItem", "productName variation _id")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit as string)),
+      Commission.countDocuments(query),
+    ]);
+
+    const formattedCommissions = commissions.map((c: any) => ({
+      id: c._id,
+      sellerName: c.seller?.storeName || c.seller?.sellerName || "N/A",
+      orderId: c.order?.orderNumber || "N/A",
+      orderItemId: c.orderItem?._id || "N/A",
+      productName: c.orderItem?.productName || "Product Deleted",
+      variation: c.orderItem?.variation || "N/A",
+      flag: c.status,
+      amount: c.commissionAmount,
+      remark: `Commission for Order ${c.order?.orderNumber || "N/A"}`,
+      date: c.createdAt,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Seller commissions fetched successfully",
+      data: formattedCommissions,
+      pagination: {
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        total,
+        pages: Math.ceil(total / parseInt(limit as string)),
+      },
+    });
+  }
+);
+
+/**
+ * Handle manual fund transfer from Admin to Seller
+ */
+export const createAdminWalletTransaction = asyncHandler(
+    async (req: Request, res: Response) => {
+        const { sellerId, amount, type, description } = req.body;
+
+        if (!sellerId || !amount || !type) {
+            return res.status(400).json({
+                success: false,
+                message: "Seller ID, amount, and type are required",
+            });
+        }
+
+        const seller = await Seller.findById(sellerId);
+        if (!seller) {
+            return res.status(404).json({
+                success: false,
+                message: "Seller not found",
+            });
+        }
+
+        const numericAmount = parseFloat(amount);
+        if (numericAmount <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Amount must be greater than 0",
+            });
+        }
+
+        // Generate a reference
+        const reference = `MANUAL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+        // Create transaction record
+        const transaction = await WalletTransaction.create({
+            sellerId,
+            amount: numericAmount,
+            type,
+            description: description || `Manual ${type} by Admin`,
+            reference,
+            status: "Completed",
+        });
+
+        // Update seller balance
+        if (type === "Credit") {
+            seller.balance += numericAmount;
+        } else {
+            if (seller.balance < numericAmount) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Insufficient seller balance for debit",
+                });
+            }
+            seller.balance -= numericAmount;
+        }
+        await seller.save();
+
+        return res.status(201).json({
+            success: true,
+            message: `Fund ${type.toLowerCase()}ed successfully`,
+            data: transaction,
+        });
+    }
+);
+

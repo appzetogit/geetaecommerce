@@ -1,112 +1,90 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-interface GSTSalesData {
-  _id: string;
-  productName: string;
-  hsnCode: string;
-  stock: number;
-  price: number;
-  taxPercentage: number;
-  taxAmount: number;
-}
+import { getGSTSalesReport, GSTSalesData } from "../../../services/api/admin/adminInventoryService";
+import { toast } from "react-hot-toast";
 
 type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
 
 const AdminGSTSalesReport = () => {
   const [data, setData] = useState<GSTSalesData[]>([]);
-  const [filteredData, setFilteredData] = useState<GSTSalesData[]>([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [dateFilterType, setDateFilterType] = useState<DateFilterType>('alltime');
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
-  // Dummy data for demonstration
-  useEffect(() => {
-    const dummyData: GSTSalesData[] = [
-      {
-        _id: "1",
-        productName: "umbrella chatri 120",
-        hsnCode: "6601",
-        stock: 28,
-        price: 120,
-        taxPercentage: 18,
-        taxAmount: 21.6
-      },
-      {
-        _id: "2",
-        productName: "bass kubdi 70",
-        hsnCode: "9503",
-        stock: 64,
-        price: 70,
-        taxPercentage: 12,
-        taxAmount: 8.4
-      },
-      {
-        _id: "3",
-        productName: "Doms Neon Rubber Tipped Graphite Pencil 10N",
-        hsnCode: "9609",
-        stock: 44,
-        price: 150,
-        taxPercentage: 12,
-        taxAmount: 18
-      },
-      {
-        _id: "4",
-        productName: "purple8 glue gun 220",
-        hsnCode: "8205",
-        stock: 10,
-        price: 220,
-        taxPercentage: 18,
-        taxAmount: 39.6
-      },
-      {
-        _id: "5",
-        productName: "L'OREAL PARIS HYALURON SHAMPOO",
-        hsnCode: "3305",
-        stock: 15,
-        price: 450,
-        taxPercentage: 18,
-        taxAmount: 81
-      },
-      {
-        _id: "6",
-        productName: "acrylic colore dibbi",
-        hsnCode: "3213",
-        stock: 25,
-        price: 85,
-        taxPercentage: 12,
-        taxAmount: 10.2
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    pages: 1,
+    limit: 20
+  });
+
+  // Fetch data
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: debouncedSearchTerm || undefined,
+      };
+
+      const now = new Date();
+      if (dateFilterType === 'today') {
+        params.dateFrom = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+        params.dateTo = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+      } else if (dateFilterType === 'last7days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'last30days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'custom' && customDateRange.start && customDateRange.end) {
+        params.dateFrom = new Date(customDateRange.start).toISOString();
+        params.dateTo = new Date(new Date(customDateRange.end).setHours(23, 59, 59, 999)).toISOString();
       }
-    ];
-    setData(dummyData);
-    setFilteredData(dummyData);
-  }, []);
 
-  // Filter data based on search
-  useEffect(() => {
-    let filtered = [...data];
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.hsnCode.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      const response = await getGSTSalesReport(params);
+      if (response.success) {
+        setData(response.data);
+        if (response.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            total: response.pagination!.total,
+            pages: response.pagination!.pages
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching GST reports:", error);
+      toast.error("Failed to fetch GST sales data");
+    } finally {
+      setLoading(false);
     }
+  }, [pagination.page, pagination.limit, debouncedSearchTerm, dateFilterType, customDateRange]);
 
-    setFilteredData(filtered);
-  }, [searchTerm, data]);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handleCellEdit = (id: string, field: keyof GSTSalesData, value: any) => {
-    setFilteredData(prev => prev.map(item =>
-      item._id === id ? { ...item, [field]: value } : item
-    ));
     setData(prev => prev.map(item =>
       item._id === id ? { ...item, [field]: value } : item
     ));
@@ -114,7 +92,7 @@ const AdminGSTSalesReport = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(new Set(filteredData.map(item => item._id)));
+      setSelectedRows(new Set(data.map(item => item._id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -132,15 +110,12 @@ const AdminGSTSalesReport = () => {
 
   const handleDateFilterChange = (type: DateFilterType) => {
     setDateFilterType(type);
-    if (type === 'custom') {
-      setShowCustomDatePicker(true);
-    } else {
-      setShowCustomDatePicker(false);
-    }
+    setPagination(prev => ({ ...prev, page: 1 }));
+    setShowCustomDatePicker(type === 'custom');
   };
 
   const downloadExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+    const worksheet = XLSX.utils.json_to_sheet(data.map(item => ({
       "Product Name": item.productName,
       "HSN Code": item.hsnCode,
       "Stock": item.stock,
@@ -156,13 +131,12 @@ const AdminGSTSalesReport = () => {
 
   const downloadPDF = () => {
     const doc = new jsPDF('landscape');
-
     doc.setFontSize(18);
     doc.text('GST Sales Report', 14, 15);
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
 
-    const tableData = filteredData.map(item => [
+    const tableData = data.map(item => [
       item.productName,
       item.hsnCode,
       item.stock.toString(),
@@ -182,8 +156,8 @@ const AdminGSTSalesReport = () => {
     doc.save(`GST_Sales_Report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  const totalTaxAmount = filteredData.reduce((sum, item) => sum + item.taxAmount, 0);
-  const totalPrice = filteredData.reduce((sum, item) => sum + (item.price * item.stock), 0);
+  const totalTaxAmount = data.reduce((sum, item) => sum + item.taxAmount, 0);
+  const totalPrice = data.reduce((sum, item) => sum + (item.price * item.stock), 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -228,51 +202,18 @@ const AdminGSTSalesReport = () => {
 
           {/* Date Filter Tabs */}
           <div className="mt-4 flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-lg">
-            <button
-              onClick={() => handleDateFilterChange('today')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'today'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}>
-              Today
-            </button>
-            <button
-              onClick={() => handleDateFilterChange('tomorrow')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'tomorrow'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}>
-              Tomorrow
-            </button>
-            <button
-              onClick={() => handleDateFilterChange('last7days')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'last7days'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}>
-              Last 7 Days
-            </button>
-            <button
-              onClick={() => handleDateFilterChange('last30days')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'last30days'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}>
-              Last 30 Days
-            </button>
-            <button
-              onClick={() => handleDateFilterChange('alltime')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'alltime'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}>
-              All Time
-            </button>
+            {(['today', 'tomorrow', 'last7days', 'last30days', 'alltime'] as DateFilterType[]).map(type => (
+              <button
+                key={type}
+                onClick={() => handleDateFilterChange(type)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  dateFilterType === type
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                }`}>
+                {type.charAt(0).toUpperCase() + type.slice(1).replace(/(\d)/, ' $1')}
+              </button>
+            ))}
             <button
               onClick={() => handleDateFilterChange('custom')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -281,11 +222,6 @@ const AdminGSTSalesReport = () => {
                   : 'text-teal-600 hover:bg-teal-50'
               }`}>
               Custom
-            </button>
-            <button className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-all">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
             </button>
           </div>
 
@@ -299,7 +235,7 @@ const AdminGSTSalesReport = () => {
                     type="date"
                     value={customDateRange.start}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-200 outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -308,7 +244,7 @@ const AdminGSTSalesReport = () => {
                     type="date"
                     value={customDateRange.end}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-200 outline-none transition-all"
                   />
                 </div>
               </div>
@@ -340,7 +276,7 @@ const AdminGSTSalesReport = () => {
                     <th className="px-3 py-3 text-left sticky left-0 bg-green-50 z-10">
                       <input
                         type="checkbox"
-                        checked={selectedRows.size === filteredData.length && filteredData.length > 0}
+                        checked={selectedRows.size === data.length && data.length > 0}
                         onChange={(e) => handleSelectAll(e.target.checked)}
                         className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
                       />
@@ -355,14 +291,20 @@ const AdminGSTSalesReport = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredData.length === 0 ? (
+                {loading ? (
                   <tr>
-                    <td colSpan={editMode ? 8 : 7} className="px-6 py-12 text-center text-gray-400 text-sm">
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 text-sm italic">
+                      Fetching report data...
+                    </td>
+                  </tr>
+                ) : data.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-sm">
                       No GST sales data found
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((item) => (
+                  data.map((item) => (
                     <tr key={item._id} className="hover:bg-green-50/30 transition-colors">
                       {editMode && (
                         <td className="px-3 py-3 sticky left-0 bg-white">
@@ -395,7 +337,7 @@ const AdminGSTSalesReport = () => {
                             className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
                           />
                         ) : (
-                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">{item.hsnCode}</span>
+                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">{item.hsnCode || "N/A"}</span>
                         )}
                       </td>
                       <td className="px-3 py-3">
@@ -452,6 +394,28 @@ const AdminGSTSalesReport = () => {
               </tbody>
             </table>
           </div>
+
+          {pagination.pages > 1 && (
+            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="text-sm text-gray-500">
+                Showing page <span className="font-semibold">{pagination.page}</span> of <span className="font-semibold">{pagination.pages}</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                  disabled={pagination.page === 1}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.pages, prev.page + 1) }))}
+                  disabled={pagination.page === pagination.pages}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Summary Stats */}
@@ -459,19 +423,19 @@ const AdminGSTSalesReport = () => {
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Products</p>
             <p className="text-3xl font-black text-blue-600 mt-2">
-              {filteredData.length}
+              {pagination.total}
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Sales Value</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Inventory Value</p>
             <p className="text-3xl font-black text-purple-600 mt-2">
               ₹{totalPrice.toLocaleString()}
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Tax Amount</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Tax Implication</p>
             <p className="text-3xl font-black text-green-600 mt-2">
               ₹{totalTaxAmount.toFixed(2)}
             </p>

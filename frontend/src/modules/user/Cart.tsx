@@ -124,28 +124,32 @@ export default function Cart() {
       {/* Cart Items */}
       <div className="px-4 md:px-6 lg:px-8 space-y-4 md:space-y-6 mb-4 md:mb-6">
         {cart.items.map((item) => {
-          const { displayPrice, mrp, hasDiscount } = calculateProductPrice(item.product, item.variant);
-          const applicableUnitPrice = getApplicableUnitPrice(item.product, item.variant, item.quantity || 1);
+          if (!item.product) return null;
+
+          const product = item.product;
+          const qty = item.quantity ?? 0;
+          const { displayPrice, mrp, hasDiscount } = calculateProductPrice(product, item.variant);
+          const applicableUnitPrice = getApplicableUnitPrice(product, item.variant, qty || 1);
           const isTieredApplied = applicableUnitPrice < displayPrice;
           const isFreeGift = item.isFreeGift;
 
           return (
             <div
-              key={item.product.id}
+              key={product.id}
               className="bg-white rounded-lg border border-neutral-200 p-4 md:p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex gap-4 md:gap-6">
                 {/* Product Image */}
                 <div className="w-20 h-20 md:w-24 md:h-24 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  {item.product.imageUrl ? (
+                  {product.imageUrl ? (
                     <img
-                      src={item.product.imageUrl}
-                      alt={item.product.name}
+                      src={product.imageUrl}
+                      alt={product.name}
                       className="w-full h-full object-cover rounded-lg"
                     />
                   ) : (
                     <span className="text-2xl text-neutral-400">
-                      {item.product.name.charAt(0).toUpperCase()}
+                      {product.name.charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
@@ -153,9 +157,9 @@ export default function Cart() {
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-neutral-900 mb-1 md:mb-2 line-clamp-2 md:text-lg">
-                    {item.product.name}
+                    {product.name}
                   </h3>
-                  <p className="text-xs md:text-sm text-neutral-500 mb-2">{item.product.pack}</p>
+                  <p className="text-xs md:text-sm text-neutral-500 mb-2">{product.pack}</p>
                   <div className="flex items-center gap-2 mb-3 md:mb-4">
                     <span className="text-base md:text-lg font-bold text-neutral-900">
                       ₹{applicableUnitPrice.toLocaleString('en-IN')}
@@ -184,25 +188,25 @@ export default function Cart() {
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.variant, item.product.pack)}
+                      onClick={() => updateQuantity(product.id, qty - 1, item.variant, product.pack)}
                       className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-green-600 hover:text-green-600 md:text-lg"
                     >
                       −
                     </Button>
                     <span className="text-base md:text-lg font-semibold text-neutral-900 min-w-[2rem] md:min-w-[2.5rem] text-center">
-                      {item.quantity}
+                      {qty}
                     </span>
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.variant, item.product.pack)}
+                      onClick={() => updateQuantity(product.id, qty + 1, item.variant, product.pack)}
                       className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-green-600 hover:text-green-600 md:text-lg"
                     >
                       +
                     </Button>
                     <div className="ml-auto text-right">
                       <div className="text-sm md:text-base font-bold text-neutral-900">
-                        ₹{(applicableUnitPrice * item.quantity).toFixed(0)}
+                        ₹{(applicableUnitPrice * qty).toFixed(0)}
                       </div>
                     </div>
                   </div>
@@ -212,7 +216,7 @@ export default function Cart() {
                 {/* Remove Button */}
                 {!isFreeGift && (
                 <button
-                  onClick={() => removeFromCart(item.product.id)}
+                  onClick={() => removeFromCart(product.id)}
                   className="text-neutral-400 hover:text-red-600 transition-colors self-start"
                   aria-label="Remove item"
                 >
@@ -227,7 +231,7 @@ export default function Cart() {
               </div>
             </div>
           );
-        })}
+        }).filter(Boolean)}
       </div>
 
       {/* Order Summary */}

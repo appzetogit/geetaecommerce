@@ -460,22 +460,30 @@ export default function CheckoutAddress() {
         <div className="bg-white rounded-lg border border-neutral-200 p-2.5">
           {/* Cart Items */}
           <div className="space-y-2 mb-3">
-            {cart.items.map((item) => {
-              const { displayPrice } = calculateProductPrice(item.product);
+            {cart.items.map((item: any) => {
+              if (!item?.product) return null;
+
+              const product = item.product;
+              const { displayPrice } = calculateProductPrice(product);
+              const qty = item.quantity ?? 0;
+              const prodId = product.id || product._id;
+              const prodName = product.name || product.productName;
+              const prodPack = product.pack;
+
               return (
-                <div key={item.product.id} className="flex items-center justify-between text-xs">
+                <div key={prodId} className="flex items-center justify-between text-xs">
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-neutral-900 truncate">{item.product.name}</div>
+                    <div className="font-medium text-neutral-900 truncate">{prodName}</div>
                     <div className="text-[10px] text-neutral-500">
-                      {item.product.pack} × {item.quantity}
+                      {prodPack} × {qty}
                     </div>
                   </div>
                   <div className="font-semibold text-neutral-900 ml-2 flex-shrink-0">
-                    ₹{(displayPrice * item.quantity).toFixed(0)}
+                    ₹{(displayPrice * qty).toFixed(0)}
                   </div>
                 </div>
               );
-            })}
+            }).filter(Boolean)}
           </div>
 
           <div className="border-t border-neutral-200 pt-2.5 space-y-1.5">

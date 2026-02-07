@@ -82,6 +82,147 @@ export const getAllOrders = asyncHandler(
 );
 
 /**
+ * Get online orders only (excluding POS) with filters for reports
+ */
+export const getOnlineOrders = asyncHandler(
+  async (req: Request, res: Response) => {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      paymentStatus,
+      paymentMethod,
+      dateFrom,
+      dateTo,
+      search,
+    } = req.query;
+
+    const query: any = {
+      $and: [
+        { adminNotes: { $not: { $regex: "pos", $options: "i" } } },
+        { "deliveryAddress.address": { $ne: "POS Order" } }
+      ]
+    };
+
+    if (status && status !== "All Status") query.status = status;
+    if (paymentStatus) query.paymentStatus = paymentStatus;
+    if (paymentMethod) query.paymentMethod = paymentMethod;
+
+    if (dateFrom || dateTo) {
+      query.orderDate = {};
+      if (dateFrom) query.orderDate.$gte = new Date(dateFrom as string);
+      if (dateTo) query.orderDate.$lte = new Date(dateTo as string);
+    }
+
+    if (search) {
+      const searchRegex = { $regex: search as string, $options: "i" };
+      query.$or = [
+        { orderNumber: searchRegex },
+        { customerName: searchRegex },
+        { customerEmail: searchRegex },
+        { customerPhone: searchRegex },
+        { paymentMethod: searchRegex },
+        { paymentStatus: searchRegex }
+      ];
+    }
+
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate("customer", "name email phone")
+        .sort({ orderDate: -1 })
+        .skip(skip)
+        .limit(parseInt(limit as string)),
+      Order.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Online orders fetched successfully",
+      data: orders,
+      pagination: {
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        total,
+        pages: Math.ceil(total / parseInt(limit as string)),
+      },
+    });
+  }
+);
+
+/**
+ * Get POS orders only with filters for reports
+ */
+export const getPOSOrders = asyncHandler(
+  async (req: Request, res: Response) => {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      paymentMethod,
+      dateFrom,
+      dateTo,
+      search,
+    } = req.query;
+
+    const query: any = {
+      $or: [
+        { adminNotes: { $regex: "pos", $options: "i" } },
+        { "deliveryAddress.address": "POS Order" }
+      ]
+    };
+
+    if (status) query.status = status;
+    if (paymentMethod && paymentMethod !== "All Methods") query.paymentMethod = paymentMethod;
+
+    if (dateFrom || dateTo) {
+      query.orderDate = {};
+      if (dateFrom) query.orderDate.$gte = new Date(dateFrom as string);
+      if (dateTo) query.orderDate.$lte = new Date(dateTo as string);
+    }
+
+    if (search) {
+      const searchRegex = { $regex: search as string, $options: "i" };
+      query.$and = [
+        {
+          $or: [
+            { orderNumber: searchRegex },
+            { customerName: searchRegex },
+            { customerEmail: searchRegex },
+            { customerPhone: searchRegex },
+            { paymentMethod: searchRegex }
+          ]
+        }
+      ];
+    }
+
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate("customer", "name email phone")
+        .sort({ orderDate: -1 })
+        .skip(skip)
+        .limit(parseInt(limit as string)),
+      Order.countDocuments(query),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "POS orders fetched successfully",
+      data: orders,
+      pagination: {
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        total,
+        pages: Math.ceil(total / parseInt(limit as string)),
+      },
+    });
+  }
+);
+
+/**
  * Get order by ID
  */
 export const getOrderById = asyncHandler(

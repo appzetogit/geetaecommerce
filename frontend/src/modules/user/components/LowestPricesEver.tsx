@@ -322,11 +322,13 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
   // Memoize cart items lookup for performance
   const cartItemsMap = useMemo(() => {
     const map = new Map();
-    cart.items.forEach(item => {
+    cart.items.forEach((item: any) => {
       if (item?.product) {
         // Use composite key of ID + Pack to distinguish variants
-        const pack = (item.product as any).pack || (item.product as any).variantTitle || '';
-        map.set(`${item.product.id}-${pack}`, item.quantity);
+        const prod = item.product;
+        const pack = prod.pack || prod.variantTitle || '';
+        const prodId = prod.id || prod._id;
+        map.set(`${prodId}-${pack}`, item.quantity);
       }
     });
     return map;
@@ -417,10 +419,15 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
     }
 
     return filtered
-      .filter((product) => {
-        if (!product.mrp) return false;
-        const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
-        return discount > 0;
+      .filter((product: any) => {
+        if (!product) return false;
+        const mrpValue = product.mrp ?? 0;
+        const priceValue = product.price ?? 0;
+
+        if (mrpValue <= 0 || priceValue <= 0) return false;
+
+        const discountPercentage = Math.round(((mrpValue - priceValue) / mrpValue) * 100);
+        return discountPercentage > 0;
       })
       .slice(0, 10); // Show top 10 discounted products
   };

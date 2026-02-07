@@ -52,20 +52,31 @@ export default function OrderAgain() {
     order.items
       .filter((item: any) => item?.product) // Filter out items with null/undefined products
       .forEach((item: any) => {
+        const qty = item.quantity ?? 0;
+        const prod = item.product;
+        // Use optional chaining carefully - extract ID immediately
+        const productId = prod?.id || prod?._id;
+
+        if (!productId) return;
+
         // Check if product is already in cart
-        const existingCartItem = cart.items.find(cartItem => cartItem?.product && cartItem.product.id === item.product.id);
+        const existingCartItem = cart.items.find(cartItem => {
+          const cartProd = cartItem?.product;
+          const cartProdId = (cartProd as any)?.id || (cartProd as any)?._id;
+          return cartProdId === productId;
+        });
 
         if (existingCartItem) {
           // If already in cart, add the order quantity to existing quantity
-          updateQuantity(item.product.id, existingCartItem.quantity + item.quantity);
+          updateQuantity(productId, existingCartItem.quantity + qty);
         } else {
           // If not in cart, add it first (adds 1)
-          addToCart(item.product);
+          addToCart(prod);
           // Then update to the correct quantity if needed
-          if (item.quantity > 1) {
+          if (qty > 1) {
             // Use setTimeout to ensure the item is added first
             setTimeout(() => {
-              updateQuantity(item.product.id, item.quantity);
+              updateQuantity(productId, qty);
             }, 10);
           }
         }
@@ -147,26 +158,35 @@ export default function OrderAgain() {
                       {/* Product Images Preview - Compact */}
                       <div className="flex items-center gap-1">
                         {previewItems
-                          .filter(item => item?.product) // Filter out items with null/undefined products
-                          .map((item, idx) => (
-                            <div
-                              key={item.product.id}
-                              className="w-6 h-6 bg-neutral-100 rounded flex items-center justify-center flex-shrink-0 overflow-hidden"
-                              style={{ marginLeft: idx > 0 ? '-4px' : '0' }}
-                            >
-                              {item.product.imageUrl ? (
-                                <img
-                                  src={item.product.imageUrl}
-                                  alt={item.product.name}
-                                  className="w-full h-full object-contain"
-                                />
-                              ) : (
-                                <span className="text-[8px] text-neutral-400">
-                                  {(item.product.name || item.product.productName || '?').charAt(0).toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-                          ))}
+                          .map((item: any, idx) => {
+                            if (!item?.product) return null;
+
+                            const product = item.product;
+                            const prodId = product.id || product._id;
+                            const productName = product.name || product.productName || '?';
+                            const imageUrl = product.imageUrl;
+                            const firstChar = productName.charAt(0).toUpperCase();
+
+                            return (
+                              <div
+                                key={prodId}
+                                className="w-6 h-6 bg-neutral-100 rounded flex items-center justify-center flex-shrink-0 overflow-hidden"
+                                style={{ marginLeft: idx > 0 ? '-4px' : '0' }}
+                              >
+                                {imageUrl ? (
+                                  <img
+                                    src={imageUrl}
+                                    alt={productName}
+                                    className="w-full h-full object-contain"
+                                  />
+                                ) : (
+                                  <span className="text-[8px] text-neutral-400">
+                                    {firstChar}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          }).filter(Boolean)}
                         {order.items.length > 3 && (
                           <div className="w-6 h-6 bg-neutral-200 rounded flex items-center justify-center text-[8px] font-medium text-neutral-600">
                             +{order.items.length - 3}
@@ -213,31 +233,42 @@ export default function OrderAgain() {
             const { displayPrice, mrp, discount, hasDiscount } = calculateProductPrice(product);
 
             // Get quantity in cart
-            const cartItem = cart.items.find(item => item?.product && item.product.id === product.id);
+            const prodId = (product as any).id || (product as any)._id;
+            const cartItem = cart.items.find(item => {
+              const cartProd = item?.product;
+              if (!cartProd) return false;
+              const cartProdId = (cartProd as any).id || (cartProd as any)._id;
+              return cartProdId === prodId;
+            });
             const inCartQty = cartItem?.quantity || 0;
+
+            const name = (product as any).name || (product as any).productName;
+            const imageUrl = (product as any).imageUrl;
+            const pack = (product as any).pack;
+            const firstChar = name?.charAt(0).toUpperCase();
 
             return (
               <div
-                key={product.id}
+                key={prodId}
                 className="flex-shrink-0 w-[140px]"
                 style={{ scrollSnapAlign: 'start' }}
               >
                 <div className="bg-white rounded-lg overflow-hidden flex flex-col relative h-full" style={{ boxShadow: '0 1px 1px rgba(0, 0, 0, 0.03)' }}>
                   {/* Product Image Area */}
                   <div
-                    onClick={() => navigate(`/product/${product.id}`)}
+                    onClick={() => navigate(`/product/${prodId}`)}
                     className="relative block cursor-pointer"
                   >
                     <div className="w-full h-28 bg-neutral-100 flex items-center justify-center overflow-hidden relative">
-                      {product.imageUrl ? (
+                      {imageUrl ? (
                         <img
-                          src={product.imageUrl}
-                          alt={product.name}
+                          src={imageUrl}
+                          alt={name}
                           className="w-full h-full object-contain"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400 text-4xl">
-                          {(product.name || product.productName || '?').charAt(0).toUpperCase()}
+                          {firstChar}
                         </div>
                       )}
 

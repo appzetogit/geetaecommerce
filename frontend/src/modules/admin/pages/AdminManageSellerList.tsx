@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getAllSellers, updateSellerStatus, deleteSeller, Seller as SellerType, updateSeller, updateSellerEnabled } from '../../../services/api/sellerService';
-import SellerServiceMap from '../components/SellerServiceMap';
+
+import GoogleLocationPickerMap from '../components/GoogleLocationPickerMap';
+import GoogleMapsAutocomplete from '../../../components/GoogleMapsAutocomplete';
 
 interface Seller {
     _id: string;
@@ -157,13 +159,20 @@ export default function AdminManageSellerList() {
         </span>
     );
 
+    // Safe string conversion for search
+    const safeString = (str: any) => (str ? String(str).toLowerCase() : '');
+    const term = searchTerm.toLowerCase().trim();
+
     // Filter sellers
     let filteredSellers = sellers.filter(seller =>
-        seller.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seller.storeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seller.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        seller.phone.includes(searchTerm) ||
-        seller.mobile.includes(searchTerm)
+        safeString(seller.name).includes(term) ||
+        safeString(seller.storeName).includes(term) ||
+        safeString(seller.email).includes(term) ||
+        safeString(seller.phone).includes(term) ||
+        safeString(seller.mobile).includes(term) ||
+        safeString(seller.id).includes(term) ||
+        safeString(seller._id).includes(term) ||
+        safeString(seller.city).includes(term)
     );
 
     // Sort sellers
@@ -174,16 +183,16 @@ export default function AdminManageSellerList() {
 
             switch (sortColumn) {
                 case 'id':
-                    aValue = a._id;
-                    bValue = b._id;
+                    aValue = a.id || 0;
+                    bValue = b.id || 0;
                     break;
                 case 'name':
-                    aValue = a.name;
-                    bValue = b.name;
+                    aValue = (a.name || '').toLowerCase();
+                    bValue = (b.name || '').toLowerCase();
                     break;
                 case 'storeName':
-                    aValue = a.storeName;
-                    bValue = b.storeName;
+                    aValue = (a.storeName || '').toLowerCase();
+                    bValue = (b.storeName || '').toLowerCase();
                     break;
                 case 'balance':
                     aValue = a.balance;
@@ -194,8 +203,8 @@ export default function AdminManageSellerList() {
                     bValue = b.commission;
                     break;
                 case 'status':
-                    aValue = a.status;
-                    bValue = b.status;
+                    aValue = (a.status || '').toLowerCase();
+                    bValue = (b.status || '').toLowerCase();
                     break;
                 default:
                     return 0;
@@ -207,9 +216,17 @@ export default function AdminManageSellerList() {
         });
     }
 
-    const totalPages = Math.ceil(filteredSellers.length / rowsPerPage);
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    const endIndex = startIndex + rowsPerPage;
+    const totalPages = Math.max(1, Math.ceil(filteredSellers.length / rowsPerPage));
+    // Ensure currentPage is valid
+    if (currentPage > totalPages) {
+       // Ideally we'd set state here but this is render logic.
+       // We can just clamp the calculation index.
+       // However, better to rely on useEffect or user interaction to correct it.
+       // But for display slice, we must be careful.
+    }
+    const safeCurrentPage = Math.min(currentPage, totalPages);
+    const startIndex = (safeCurrentPage - 1) * rowsPerPage;
+    const endIndex = Math.min(startIndex + rowsPerPage, filteredSellers.length);
     const displayedSellers = filteredSellers.slice(startIndex, endIndex);
 
     const handleExport = () => {
@@ -247,22 +264,32 @@ export default function AdminManageSellerList() {
         }
     };
 
-    const handleUpdateRadius = async () => {
+    const handleUpdateLocation = async () => {
         if (!editingSeller) return;
 
         try {
             setIsUpdatingRadius(true);
-            const response = await updateSeller(editingSeller._id, { serviceRadiusKm: newRadius });
+            const updateData = {
+                serviceRadiusKm: newRadius,
+                city: editingSeller.city,
+                serviceableArea: editingSeller.serviceableArea,
+                address: editingSeller.address,
+                searchLocation: editingSeller.searchLocation, // Ensure this exists in interface/state
+                latitude: editingSeller.latitude,
+                longitude: editingSeller.longitude,
+            };
+
+            const response = await updateSeller(editingSeller._id, updateData);
             if (response.success) {
                 setEditingSeller({ ...editingSeller, serviceRadiusKm: newRadius });
                 // Also update the seller in the main list
-                setSellers(sellers.map(s => s._id === editingSeller._id ? { ...s, serviceRadiusKm: newRadius } : s));
-                setSuccessMessage('Service radius updated successfully');
+                setSellers(sellers.map(s => s._id === editingSeller._id ? { ...s, ...updateData } : s));
+                setSuccessMessage('Location & Service radius updated successfully');
                 setTimeout(() => setSuccessMessage(''), 3000);
             }
         } catch (error) {
-            console.error('Error updating radius:', error);
-            setError('Failed to update service radius');
+            console.error('Error updating location:', error);
+            setError('Failed to update location details');
             setTimeout(() => setError(''), 3000);
         } finally {
             setIsUpdatingRadius(false);
@@ -666,18 +693,18 @@ export default function AdminManageSellerList() {
                     )}
 
                     {/* Pagination Footer */}
-                    {!loading && (
+                    {!loading && filteredSellers.length > 0 && (
                         <div className="px-4 sm:px-6 py-3 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
                             <div className="text-xs sm:text-sm text-neutral-700">
                                 Showing {startIndex + 1} to {Math.min(endIndex, filteredSellers.length)} of {filteredSellers.length} entries
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
                                 <button
                                     onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                                     disabled={currentPage === 1}
-                                    className={`p-2 border border-[#f187b5] rounded ${currentPage === 1
-                                            ? 'text-neutral-400 cursor-not-allowed bg-neutral-50'
-                                            : 'text-[#f187b5] hover:bg-[#f187b5]/20'
+                                    className={`p-2 border border-[#f187b5] rounded mr-1 ${currentPage === 1
+                                            ? 'text-neutral-400 cursor-not-allowed bg-neutral-50 border-neutral-200'
+                                            : 'text-[#f187b5] hover:bg-[#f187b5]/10'
                                         }`}
                                     aria-label="Previous page"
                                 >
@@ -697,17 +724,81 @@ export default function AdminManageSellerList() {
                                         />
                                     </svg>
                                 </button>
-                                <button
-                                    className="px-3 py-1.5 border border-[#f187b5] bg-[#f187b5] text-white rounded font-medium text-sm"
-                                >
-                                    {currentPage}
-                                </button>
+
+                                {/* Page Numbers */}
+                                {(() => {
+                                    const pages = [];
+                                    const maxVisiblePages = 5;
+                                    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+                                    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+                                    if (endPage - startPage + 1 < maxVisiblePages) {
+                                        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                                    }
+
+                                    if (startPage > 1) {
+                                        pages.push(
+                                            <button
+                                                key="1"
+                                                onClick={() => setCurrentPage(1)}
+                                                className={`min-w-[32px] px-3 py-1.5 border rounded font-medium text-sm transition-colors ${
+                                                    currentPage === 1
+                                                        ? 'bg-[#f187b5] text-white border-[#f187b5]'
+                                                        : 'text-[#f187b5] border-[#f187b5] hover:bg-[#f187b5]/10'
+                                                }`}
+                                            >
+                                                1
+                                            </button>
+                                        );
+                                        if (startPage > 2) {
+                                            pages.push(<span key="start-ellipsis" className="px-1 text-neutral-400">...</span>);
+                                        }
+                                    }
+
+                                    for (let i = startPage; i <= endPage; i++) {
+                                        pages.push(
+                                            <button
+                                                key={i}
+                                                onClick={() => setCurrentPage(i)}
+                                                className={`min-w-[32px] px-3 py-1.5 border rounded font-medium text-sm transition-colors ${
+                                                    currentPage === i
+                                                        ? 'bg-[#f187b5] text-white border-[#f187b5]'
+                                                        : 'text-[#f187b5] border-[#f187b5] hover:bg-[#f187b5]/10'
+                                                }`}
+                                            >
+                                                {i}
+                                            </button>
+                                        );
+                                    }
+
+                                    if (endPage < totalPages) {
+                                        if (endPage < totalPages - 1) {
+                                            pages.push(<span key="end-ellipsis" className="px-1 text-neutral-400">...</span>);
+                                        }
+                                        pages.push(
+                                            <button
+                                                key={totalPages}
+                                                onClick={() => setCurrentPage(totalPages)}
+                                                className={`min-w-[32px] px-3 py-1.5 border rounded font-medium text-sm transition-colors ${
+                                                    currentPage === totalPages
+                                                        ? 'bg-[#f187b5] text-white border-[#f187b5]'
+                                                        : 'text-[#f187b5] border-[#f187b5] hover:bg-[#f187b5]/10'
+                                                }`}
+                                            >
+                                                {totalPages}
+                                            </button>
+                                        );
+                                    }
+
+                                    return pages;
+                                })()}
+
                                 <button
                                     onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                                     disabled={currentPage === totalPages}
-                                    className={`p-2 border border-[#f187b5] rounded ${currentPage === totalPages
-                                            ? 'text-neutral-400 cursor-not-allowed bg-neutral-50'
-                                            : 'text-[#f187b5] hover:bg-[#f187b5]/20'
+                                    className={`p-2 border border-[#f187b5] rounded ml-1 ${currentPage === totalPages
+                                            ? 'text-neutral-400 cursor-not-allowed bg-neutral-50 border-neutral-200'
+                                            : 'text-[#f187b5] hover:bg-[#f187b5]/10'
                                         }`}
                                     aria-label="Next page"
                                 >
@@ -905,16 +996,46 @@ export default function AdminManageSellerList() {
                                             <label className="text-xs text-neutral-500">Address</label>
                                             <p className="text-sm font-medium text-neutral-900">{editingSeller.address || 'N/A'}</p>
                                         </div>
-                                        <div>
-                                            <label className="text-xs text-neutral-500">City</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.city || 'N/A'}</p>
+                                        <div className="md:col-span-2">
+                                            <label className="text-xs text-neutral-500 mb-1 block">City</label>
+                                            <div className="relative">
+                                                <GoogleMapsAutocomplete
+                                                    value={editingSeller.city || ''}
+                                                    onChange={(address, lat, lng, placeName) => {
+                                                        setEditingSeller(prev => prev ? ({
+                                                            ...prev,
+                                                            city: placeName || address,
+                                                            latitude: lat ? lat.toFixed(6) : prev.latitude,
+                                                            longitude: lng ? lng.toFixed(6) : prev.longitude
+                                                        }) : null);
+                                                    }}
+                                                    placeholder="Search City"
+                                                    types={['(cities)']}
+                                                />
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className="text-xs text-neutral-500">Serviceable Area</label>
-                                            <p className="text-sm font-medium text-neutral-900">{editingSeller.serviceableArea || 'N/A'}</p>
+                                        <div className="md:col-span-2">
+                                            <label className="text-xs text-neutral-500 mb-1 block">Serviceable Area</label>
+                                             <div className="relative">
+                                                <GoogleMapsAutocomplete
+                                                    value={editingSeller.serviceableArea || ''}
+                                                    onChange={(address, lat, lng, placeName) => {
+                                                        setEditingSeller(prev => prev ? ({
+                                                            ...prev,
+                                                            serviceableArea: placeName || address,
+                                                            // Also update coords if no city selected before or to refine
+                                                            latitude: lat ? lat.toFixed(6) : prev.latitude,
+                                                            longitude: lng ? lng.toFixed(6) : prev.longitude
+                                                        }) : null);
+                                                    }}
+                                                    placeholder="Search Serviceable Area"
+                                                    types={['(regions)']}
+                                                />
+                                            </div>
                                         </div>
+                                        {/* Hidden fields for debugging or manual override if needed */}
                                         {editingSeller.searchLocation && (
-                                            <div className="md:col-span-2">
+                                            <div className="md:col-span-2 hidden">
                                                 <label className="text-xs text-neutral-500">Location</label>
                                                 <p className="text-sm font-medium text-neutral-900">{editingSeller.searchLocation}</p>
                                             </div>
@@ -962,25 +1083,31 @@ export default function AdminManageSellerList() {
                                                                         className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-[#E91E63] focus:border-[#E91E63]"
                                                                     />
                                                                     <button
-                                                                        onClick={handleUpdateRadius}
-                                                                        disabled={isUpdatingRadius || newRadius === editingSeller.serviceRadiusKm}
+                                                                        onClick={handleUpdateLocation}
+                                                                        disabled={isUpdatingRadius}
                                                                         className="px-4 py-2 bg-[#E91E63] text-white rounded text-sm font-medium hover:bg-[#D81B60] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                                                                     >
-                                                                        {isUpdatingRadius ? 'Updating...' : 'Update Radius'}
+                                                                        {isUpdatingRadius ? 'Updating...' : 'Update Location'}
                                                                     </button>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                         <div className="h-[300px] w-full">
-                                                            <SellerServiceMap
+                                                            <GoogleLocationPickerMap
                                                                 latitude={lat}
                                                                 longitude={lng}
                                                                 radiusKm={newRadius || 10}
-                                                                storeName={editingSeller.storeName}
+                                                                onLocationSelect={(newLat, newLng) => {
+                                                                    setEditingSeller(prev => prev ? ({
+                                                                        ...prev,
+                                                                        latitude: newLat.toFixed(6),
+                                                                        longitude: newLng.toFixed(6)
+                                                                    }) : null);
+                                                                }}
                                                             />
                                                         </div>
                                                         <p className="text-xs text-neutral-500 italic">
-                                                            * Adjust the radius above to see the service area change dynamically.
+                                                            * Drag the marker or search City/Area to update location. Adjust radius to set service coverage. Click "Update Location" to save.
                                                         </p>
                                                     </div>
                                                 );

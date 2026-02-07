@@ -1,155 +1,93 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-interface ReturnExchangeData {
-  _id: string;
-  date: string;
-  saleReturnNo: string;
-  invoiceNo: string;
-  customerName: string;
-  paymentMode: string;
-  noOfItems: number;
-  totalMRP: number;
-  totalSP: number;
-  totalDiscount: number;
-  returnAmt: number;
-  saleAmt: number;
-  billAmt: number;
-  paidBy: string;
-}
+import { getReturnExchangeReport, ReturnExchangeData } from "../../../services/api/admin/adminInventoryService";
+import { toast } from "react-hot-toast";
 
 type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
 
 const AdminReturnExchangeSummary = () => {
   const [data, setData] = useState<ReturnExchangeData[]>([]);
-  const [filteredData, setFilteredData] = useState<ReturnExchangeData[]>([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [dateFilterType, setDateFilterType] = useState<DateFilterType>('alltime');
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
-  // Dummy data for demonstration
-  useEffect(() => {
-    const dummyData: ReturnExchangeData[] = [
-      {
-        _id: "1",
-        date: "2026-02-03",
-        saleReturnNo: "SR001",
-        invoiceNo: "25918",
-        customerName: "Walk-in Customer",
-        paymentMode: "Cash",
-        noOfItems: 2,
-        totalMRP: 500,
-        totalSP: 400,
-        totalDiscount: 100,
-        returnAmt: 200,
-        saleAmt: 200,
-        billAmt: 0,
-        paidBy: "Cash"
-      },
-      {
-        _id: "2",
-        date: "2026-02-02",
-        saleReturnNo: "SR002",
-        invoiceNo: "25917",
-        customerName: "John Doe",
-        paymentMode: "Card",
-        noOfItems: 1,
-        totalMRP: 300,
-        totalSP: 250,
-        totalDiscount: 50,
-        returnAmt: 250,
-        saleAmt: 0,
-        billAmt: 250,
-        paidBy: "Card"
-      }
-    ];
-    setData(dummyData);
-    setFilteredData(dummyData);
-  }, []);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    pages: 1,
+    limit: 20
+  });
 
-  // Filter data based on search and date
-  useEffect(() => {
-    let filtered = [...data];
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: debouncedSearchTerm || undefined,
+      };
 
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.saleReturnNo.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Date filter
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    switch (dateFilterType) {
-      case 'today':
-        filtered = filtered.filter(item => {
-          const itemDate = new Date(item.date);
-          itemDate.setHours(0, 0, 0, 0);
-          return itemDate.getTime() === today.getTime();
-        });
-        break;
-      case 'tomorrow':
-        const tomorrow = new Date(today);
+      const now = new Date();
+      if (dateFilterType === 'today') {
+        params.dateFrom = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+        params.dateTo = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+      } else if (dateFilterType === 'tomorrow') {
+        const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        filtered = filtered.filter(item => {
-          const itemDate = new Date(item.date);
-          itemDate.setHours(0, 0, 0, 0);
-          return itemDate.getTime() === tomorrow.getTime();
-        });
-        break;
-      case 'last7days':
-        const last7Days = new Date(today);
-        last7Days.setDate(last7Days.getDate() - 7);
-        filtered = filtered.filter(item => {
-          const itemDate = new Date(item.date);
-          itemDate.setHours(0, 0, 0, 0); // Normalize itemDate to start of day
-          return itemDate >= last7Days && itemDate <= today;
-        });
-        break;
-      case 'last30days':
-        const last30Days = new Date(today);
-        last30Days.setDate(last30Days.getDate() - 30);
-        filtered = filtered.filter(item => {
-          const itemDate = new Date(item.date);
-          itemDate.setHours(0, 0, 0, 0); // Normalize itemDate to start of day
-          return itemDate >= last30Days && itemDate <= today;
-        });
-        break;
-      case 'custom':
-        if (customDateRange.start && customDateRange.end) {
-          filtered = filtered.filter(item => {
-            const itemDate = new Date(item.date);
-            itemDate.setHours(0, 0, 0, 0); // Normalize itemDate to start of day
-            const startDate = new Date(customDateRange.start);
-            startDate.setHours(0, 0, 0, 0);
-            const endDate = new Date(customDateRange.end);
-            endDate.setHours(23, 59, 59, 999); // Set to end of day for inclusive range
-            return itemDate >= startDate && itemDate <= endDate;
-          });
-        }
-        break;
-      case 'alltime':
-      default:
-        // No date filtering
-        break;
-    }
+        params.dateFrom = new Date(tomorrow.setHours(0, 0, 0, 0)).toISOString();
+        params.dateTo = new Date(tomorrow.setHours(23, 59, 59, 999)).toISOString();
+      } else if (dateFilterType === 'last7days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'last30days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'custom' && customDateRange.start && customDateRange.end) {
+        params.dateFrom = new Date(customDateRange.start).toISOString();
+        params.dateTo = new Date(new Date(customDateRange.end).setHours(23, 59, 59, 999)).toISOString();
+      }
 
-    setFilteredData(filtered);
-  }, [searchTerm, dateFilterType, customDateRange, data]);
+      const response = await getReturnExchangeReport(params);
+      if (response.success) {
+        setData(response.data);
+        if (response.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            total: response.pagination!.total,
+            pages: response.pagination!.pages
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching return exchange summary:", error);
+      toast.error("Failed to fetch return exchange data");
+    } finally {
+      setLoading(false);
+    }
+  }, [pagination.page, pagination.limit, debouncedSearchTerm, dateFilterType, customDateRange]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   const handleCellEdit = (id: string, field: keyof ReturnExchangeData, value: any) => {
-    setFilteredData(prev => prev.map(item =>
-      item._id === id ? { ...item, [field]: value } : item
-    ));
     setData(prev => prev.map(item =>
       item._id === id ? { ...item, [field]: value } : item
     ));
@@ -157,7 +95,7 @@ const AdminReturnExchangeSummary = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(new Set(filteredData.map(item => item._id)));
+      setSelectedRows(new Set(data.map(item => item._id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -175,16 +113,12 @@ const AdminReturnExchangeSummary = () => {
 
   const handleDateFilterChange = (type: DateFilterType) => {
     setDateFilterType(type);
-    if (type === 'custom') {
-      setShowCustomDatePicker(true);
-    } else {
-      setShowCustomDatePicker(false);
-      setCustomDateRange({ start: "", end: "" }); // Clear custom range when switching off custom
-    }
+    setPagination(prev => ({ ...prev, page: 1 }));
+    setShowCustomDatePicker(type === 'custom');
   };
 
   const downloadExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+    const worksheet = XLSX.utils.json_to_sheet(data.map(item => ({
       Date: item.date,
       "Sale Return No": item.saleReturnNo,
       "Invoice No": item.invoiceNo,
@@ -207,13 +141,12 @@ const AdminReturnExchangeSummary = () => {
 
   const downloadPDF = () => {
     const doc = new jsPDF('landscape');
-
     doc.setFontSize(18);
     doc.text('Return & Exchange Summary Report', 14, 15);
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
 
-    const tableData = filteredData.map(item => [
+    const tableData = data.map(item => [
       item.date,
       item.saleReturnNo,
       item.invoiceNo,
@@ -236,9 +169,14 @@ const AdminReturnExchangeSummary = () => {
     doc.save(`Return_Exchange_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
+  // Stats calculation (Client-side matching displayed page data for now, or total from metadata if available effectively)
+  // For simplicity and consistency with current table view stats:
+  const totalReturnAmt = data.reduce((sum, item) => sum + item.returnAmt, 0);
+  const totalSaleAmt = data.reduce((sum, item) => sum + item.saleAmt, 0);
+  const totalItems = data.reduce((sum, item) => sum + item.noOfItems, 0);
+
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
@@ -276,53 +214,19 @@ const AdminReturnExchangeSummary = () => {
           </div>
         </div>
 
-        {/* Date Filter Tabs */}
         <div className="mt-4 flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-lg">
-          <button
-            onClick={() => handleDateFilterChange('today')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              dateFilterType === 'today'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}>
-            Today
-          </button>
-          <button
-            onClick={() => handleDateFilterChange('tomorrow')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              dateFilterType === 'tomorrow'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}>
-            Tomorrow
-          </button>
-          <button
-            onClick={() => handleDateFilterChange('last7days')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              dateFilterType === 'last7days'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}>
-            Last 7 Days
-          </button>
-          <button
-            onClick={() => handleDateFilterChange('last30days')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              dateFilterType === 'last30days'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}>
-            Last 30 Days
-          </button>
-          <button
-            onClick={() => handleDateFilterChange('alltime')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              dateFilterType === 'alltime'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-            }`}>
-            All Time
-          </button>
+          {(['today', 'tomorrow', 'last7days', 'last30days', 'alltime'] as DateFilterType[]).map((type) => (
+            <button
+              key={type}
+              onClick={() => handleDateFilterChange(type)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
+                dateFilterType === type
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+              }`}>
+              {type === 'last7days' ? 'Last 7 Days' : type === 'last30days' ? 'Last 30 Days' : type === 'alltime' ? 'All Time' : type}
+            </button>
+          ))}
           <button
             onClick={() => handleDateFilterChange('custom')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -332,16 +236,10 @@ const AdminReturnExchangeSummary = () => {
             }`}>
             Custom
           </button>
-          <button className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-all">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-          </button>
         </div>
 
-        {/* Custom Date Range Picker */}
         {showCustomDatePicker && (
-          <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200">
+          <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Start Date</label>
@@ -365,7 +263,6 @@ const AdminReturnExchangeSummary = () => {
           </div>
         )}
 
-        {/* Search Filter */}
         <div className="mt-4">
           <label className="block text-xs font-semibold text-gray-600 mb-1.5">Search</label>
           <input
@@ -378,7 +275,6 @@ const AdminReturnExchangeSummary = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -388,7 +284,7 @@ const AdminReturnExchangeSummary = () => {
                   <th className="px-4 py-3">
                     <input
                       type="checkbox"
-                      checked={selectedRows.size === filteredData.length && filteredData.length > 0}
+                      checked={selectedRows.size === data.length && data.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
                       className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
                     />
@@ -410,14 +306,20 @@ const AdminReturnExchangeSummary = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {filteredData.length === 0 ? (
+              {loading ? (
+                <tr>
+                   <td colSpan={editMode ? 15 : 14} className="px-6 py-12 text-center text-gray-500 italic">
+                    Fetching return data...
+                  </td>
+                </tr>
+              ) : data.length === 0 ? (
                 <tr>
                   <td colSpan={editMode ? 15 : 14} className="px-6 py-12 text-center text-gray-400 italic">
                     No return/exchange data found
                   </td>
                 </tr>
               ) : (
-                filteredData.map((item) => (
+                data.map((item) => (
                   <tr key={item._id} className="hover:bg-gray-50 transition-colors">
                     {editMode && (
                       <td className="px-4 py-3">
@@ -450,7 +352,9 @@ const AdminReturnExchangeSummary = () => {
                           className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold"
                         />
                       ) : (
-                        <span className="text-sm font-semibold text-gray-900">{item.saleReturnNo}</span>
+                        <span className="text-sm font-semibold text-gray-900" title={item.saleReturnNo}>
+                          {item.saleReturnNo.substring(0, 8)}...
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -489,7 +393,7 @@ const AdminReturnExchangeSummary = () => {
                         </select>
                       ) : (
                         <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
-                          item.paymentMode === 'Cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                          (item.paymentMode || '').toLowerCase().includes('cash') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                         }`}>
                           {item.paymentMode}
                         </span>
@@ -597,6 +501,28 @@ const AdminReturnExchangeSummary = () => {
             </tbody>
           </table>
         </div>
+
+        {pagination.pages > 1 && (
+          <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div className="text-sm text-gray-500">
+              Showing page <span className="font-semibold">{pagination.page}</span> of <span className="font-semibold">{pagination.pages}</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                disabled={pagination.page === 1}
+                className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                Previous
+              </button>
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.pages, prev.page + 1) }))}
+                disabled={pagination.page === pagination.pages}
+                className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Summary Stats */}
@@ -604,28 +530,28 @@ const AdminReturnExchangeSummary = () => {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Returns</p>
           <p className="text-2xl font-black text-gray-800 mt-2">
-            {filteredData.length}
+            {pagination.total}
           </p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Return Amount</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Return Amount (Page)</p>
           <p className="text-2xl font-black text-red-600 mt-2">
-            ₹{filteredData.reduce((sum, item) => sum + item.returnAmt, 0).toLocaleString()}
+            ₹{totalReturnAmt.toLocaleString()}
           </p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Sale Amount</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Sale Amount (Page)</p>
           <p className="text-2xl font-black text-green-600 mt-2">
-            ₹{filteredData.reduce((sum, item) => sum + item.saleAmt, 0).toLocaleString()}
+            ₹{totalSaleAmt.toLocaleString()}
           </p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Items</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Items (Page)</p>
           <p className="text-2xl font-black text-purple-600 mt-2">
-            {filteredData.reduce((sum, item) => sum + item.noOfItems, 0)}
+            {totalItems}
           </p>
         </div>
       </div>

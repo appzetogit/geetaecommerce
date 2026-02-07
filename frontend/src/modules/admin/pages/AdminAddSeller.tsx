@@ -1,5 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { createSeller } from "../../../services/api/admin/adminSellerService";
+import { getCategories, Category } from "../../../services/api/admin/adminProductService";
+import { toast } from "react-hot-toast";
+import GoogleLocationPickerMap from "../components/GoogleLocationPickerMap";
+import GoogleMapsAutocomplete from "../../../components/GoogleMapsAutocomplete";
 
 interface FormData {
   // Seller Info
@@ -43,6 +48,8 @@ interface FormData {
 
 export default function AdminAddSeller() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState<FormData>({
     sellerName: "",
     email: "",
@@ -57,8 +64,8 @@ export default function AdminAddSeller() {
     city: "",
     serviceableArea: "",
     searchLocation: "",
-    latitude: "28.6139",
-    longitude: "77.2090",
+    latitude: "",
+    longitude: "",
     accountName: "",
     bankName: "",
     branch: "",
@@ -72,8 +79,33 @@ export default function AdminAddSeller() {
     commission: ""
   });
 
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await getCategories({ status: 'Active' });
+      if (res && res.data) {
+        setCategories(res.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch categories", error);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    // Mobile Validation (Numbers only, max 10)
+    if (name === "mobile") {
+      const numericValue = value.replace(/\D/g, "");
+      if (numericValue.length <= 10) {
+        setFormData(prev => ({ ...prev, [name]: numericValue }));
+      }
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -88,16 +120,112 @@ export default function AdminAddSeller() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  const handleLocationSelect = async (lat: number, lng: number) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: lat.toFixed(6),
+      longitude: lng.toFixed(6)
+    }));
+
+    // Reverse Geocoding to get address (Using Nominatim for now as fallback,
+    // but ideally should use Google Geocoding if key allows)
+    try {
+        setLoadingLocation(true);
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await response.json();
+        if (data && data.display_name) {
+             setFormData(prev => ({
+                ...prev,
+                searchLocation: data.display_name
+             }));
+        }
+    } catch (error) {
+        console.error("Failed to fetch address", error);
+    } finally {
+        setLoadingLocation(false);
+    }
+  };
+
+  const handleAutocompleteChange = (address: string, lat: number, lng: number, placeName: string, components?: { city?: string; state?: string }) => {
+      setFormData(prev => ({
+          ...prev,
+          searchLocation: address,
+          latitude: lat ? lat.toFixed(6) : prev.latitude,
+          longitude: lng ? lng.toFixed(6) : prev.longitude,
+          // Optional: Auto-select city if it matches our list
+          // city: components?.city || prev.city
+      }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.sellerName || !formData.email || !formData.mobile || !formData.storeName) {
-      alert("Please fill all required fields!");
+    if (!formData.sellerName || !formData.email || !formData.mobile || !formData.storeName || !formData.selectCategory) {
+      toast.error("Please fill all required fields!");
       return;
     }
 
-    console.log("Form Data:", formData);
-    alert("Seller added successfully! (Frontend only - no backend integration)");
+    if (formData.mobile.length !== 10) {
+      toast.error("Mobile number must be exactly 10 digits");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    if (!formData.profile) {
+      toast.error("Profile image is required!");
+      return;
+    }
+
+    // Validate Lat/Long
+    const lat = parseFloat(formData.latitude);
+    const lng = parseFloat(formData.longitude);
+
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+        toast.error("Invalid Latitude. Must be between -90 and 90.");
+        return;
+    }
+    if (isNaN(lng) || lng < -180 || lng > 180) {
+        toast.error("Invalid Longitude. Must be between -180 and 180.");
+        return;
+    }
+
+    setLoading(true);
+    try {
+      const data = new FormData();
+
+      // Append all text fields
+      Object.keys(formData).forEach(key => {
+        const value = formData[key as keyof FormData];
+        if (value !== null && typeof value !== 'object') {
+          data.append(key, value as string);
+        }
+      });
+
+      // Append files
+      if (formData.profile) data.append("profile", formData.profile);
+      if (formData.idProof) data.append("idProof", formData.idProof);
+      if (formData.addressProof) data.append("addressProof", formData.addressProof);
+
+      const res = await createSeller(data);
+
+      if (res.success) {
+        toast.success("Seller added successfully!");
+        navigate("/admin/manage-seller-list");
+      } else {
+        toast.error(res.message || "Failed to add seller");
+      }
+    } catch (error: any) {
+      console.error("Error creating seller:", error);
+      toast.error(error.response?.data?.message || "Something went wrong!");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -171,8 +299,10 @@ export default function AdminAddSeller() {
                   value={formData.mobile}
                   onChange={handleInputChange}
                   required
+                  maxLength={10}
+                  pattern="[0-9]{10}"
                   className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded outline-none text-sm"
-                  placeholder="Enter Mobile"
+                  placeholder="10 digit mobile"
                 />
               </div>
             </div>
@@ -209,13 +339,13 @@ export default function AdminAddSeller() {
                   name="selectCategory"
                   value={formData.selectCategory}
                   onChange={handleInputChange}
+                  required
                   className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded outline-none text-sm"
                 >
                   <option value="">Select Categories</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Fashion">Fashion</option>
-                  <option value="Grocery">Grocery</option>
-                  <option value="Home">Home & Kitchen</option>
+                  {categories.map(cat => (
+                    <option key={cat._id} value={cat.name}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
 
@@ -291,51 +421,54 @@ export default function AdminAddSeller() {
                 <label className="block text-sm font-bold text-neutral-800 mb-2">
                   City <span className="text-red-500">*</span>
                 </label>
-                <select
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded outline-none text-sm"
-                >
-                  <option value="">Select City</option>
-                  <option value="Delhi">Delhi</option>
-                  <option value="Mumbai">Mumbai</option>
-                  <option value="Bangalore">Bangalore</option>
-                  <option value="Kolkata">Kolkata</option>
-                </select>
+                <div className="relative">
+                  <GoogleMapsAutocomplete
+                    value={formData.city}
+                    onChange={(address, lat, lng, placeName) => {
+                       setFormData(prev => ({
+                         ...prev,
+                         city: placeName || address,
+                         latitude: lat ? lat.toFixed(6) : prev.latitude,
+                         longitude: lng ? lng.toFixed(6) : prev.longitude
+                       }));
+                    }}
+                    placeholder="Search City"
+                    types={['(cities)']}
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-neutral-800 mb-2">
                   Serviceable Area <span className="text-red-500">*</span>
                 </label>
-                <select
-                  name="serviceableArea"
-                  value={formData.serviceableArea}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded outline-none text-sm"
-                >
-                  <option value="">Select Serviceable Area</option>
-                  <option value="North Delhi">North Delhi</option>
-                  <option value="South Delhi">South Delhi</option>
-                  <option value="East Delhi">East Delhi</option>
-                  <option value="West Delhi">West Delhi</option>
-                </select>
+                <div className="relative">
+                  <GoogleMapsAutocomplete
+                    value={formData.serviceableArea}
+                    onChange={(address, lat, lng, placeName) => {
+                       setFormData(prev => ({
+                         ...prev,
+                         serviceableArea: placeName || address,
+                         latitude: lat ? lat.toFixed(6) : prev.latitude,
+                         longitude: lng ? lng.toFixed(6) : prev.longitude
+                       }));
+                    }}
+                    placeholder="Search Area"
+                    types={['(regions)']}
+                  />
+                </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-bold text-neutral-800 mb-2">
                   Search Location
                 </label>
-                <input
-                  type="text"
-                  name="searchLocation"
-                  value={formData.searchLocation}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded outline-none text-sm"
-                  placeholder="Search Location"
+                <GoogleMapsAutocomplete
+                    value={formData.searchLocation}
+                    onChange={handleAutocompleteChange}
+                    placeholder="Search for a location"
                 />
               </div>
 
@@ -369,9 +502,19 @@ export default function AdminAddSeller() {
             </div>
 
             {/* Map Placeholder */}
-            <div className="h-[300px] bg-neutral-100 rounded border border-neutral-300 flex items-center justify-center">
-              <p className="text-neutral-500 text-sm">Map will be displayed here (Google Maps integration)</p>
+            <div className="h-[400px] w-full bg-neutral-100 rounded border border-neutral-300 overflow-hidden relative">
+               {loadingLocation && (
+                  <div className="absolute inset-0 bg-white/50 z-[1000] flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+               )}
+                <GoogleLocationPickerMap
+                    latitude={parseFloat(formData.latitude)}
+                    longitude={parseFloat(formData.longitude)}
+                    onLocationSelect={handleLocationSelect}
+                />
             </div>
+            <p className="text-xs text-neutral-500 mt-2">Click and drag the pin to adjust location.</p>
           </div>
         </div>
 
@@ -471,6 +614,7 @@ export default function AdminAddSeller() {
                   onChange={(e) => handleFileChange(e, 'profile')}
                   className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded outline-none text-sm"
                   accept="image/*"
+                  required
                 />
               </div>
 
@@ -562,12 +706,20 @@ export default function AdminAddSeller() {
         <div className="flex justify-end">
           <button
             type="submit"
+<<<<<<< HEAD
             className="px-8 py-3 text-white font-bold rounded transition-colors"
             style={{ background: '#f187b5' }}
             onMouseEnter={(e) => e.currentTarget.style.background = '#e076a5'}
             onMouseLeave={(e) => e.currentTarget.style.background = '#f187b5'}
+=======
+            disabled={loading}
+            className={`px-8 py-3 text-white font-bold rounded transition-colors ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            style={{ background: '#e91e63' }}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = '#c2185b')}
+            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = '#e91e63')}
+>>>>>>> 3cd8aacfaf10acfb71a1aba9bd7a1273955b2db1
           >
-            Add Seller
+            {loading ? 'Adding Seller...' : 'Add Seller'}
           </button>
         </div>
       </form>

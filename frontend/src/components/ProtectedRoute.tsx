@@ -18,7 +18,12 @@ export default function ProtectedRoute({
   const location = useLocation();
 
   // Detect which module we're in based on the current path
-  const currentModule = detectModuleFromPath(location.pathname);
+  let currentModule = detectModuleFromPath(location.pathname);
+
+  // Double check module detection for admin routes
+  if (currentModule === 'user' && (location.pathname.startsWith('/admin') || location.pathname.includes('/admin/'))) {
+    currentModule = 'admin';
+  }
 
   // Check if user is authenticated for THIS specific module
   const moduleToken = getModuleAuthToken(currentModule);

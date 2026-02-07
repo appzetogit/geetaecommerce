@@ -2,164 +2,108 @@ import React, { useState, useEffect } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-interface OutOfStockData {
-  _id: string;
-  name: string;
-  variantName: string;
-  uom: string;
-  purchaseValue: number;
-  mrp: number;
-  sellingPrice: number;
-  quantity: number;
-  supplier: string;
-  category: string;
-}
+import { getOutOfStockSummary, OutOfStockData } from "../../../services/api/admin/adminInventoryService";
+import { getCategories } from "../../../services/api/admin/adminProductService";
+import { toast } from "react-hot-toast";
 
 type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
 
 const AdminOutOfStockSummary = () => {
   const [data, setData] = useState<OutOfStockData[]>([]);
-  const [filteredData, setFilteredData] = useState<OutOfStockData[]>([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [dateFilterType, setDateFilterType] = useState<DateFilterType>('alltime');
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    pages: 1,
+    limit: 20
+  });
 
-  // Dummy data for demonstration - Only OUT OF STOCK items (quantity = 0)
+  // Fetch data with full dynamic parameters
   useEffect(() => {
-    const dummyData: OutOfStockData[] = [
-      {
-        _id: "1",
-        name: "L'OREAL PARIS HYALURON SHAMPOO",
-        variantName: "-",
-        uom: "Piece",
-        purchaseValue: 165,
-        mrp: 210,
-        sellingPrice: 185,
-        quantity: 0,
-        supplier: "-",
-        category: "Cosmetic & beauty, perfume,"
-      },
-      {
-        _id: "2",
-        name: "Acrylic Colors (RIBBI)",
-        variantName: "-",
-        uom: "Piece",
-        purchaseValue: 0,
-        mrp: 25,
-        sellingPrice: 25,
-        quantity: 0,
-        supplier: "-",
-        category: "Stationary"
-      },
-      {
-        _id: "3",
-        name: "Pampers L SIZE UPBEL",
-        variantName: "-",
-        uom: "Piece",
-        purchaseValue: 0,
-        mrp: 99,
-        sellingPrice: 90,
-        quantity: 0,
-        supplier: "-",
-        category: "BABY CARE"
-      },
-      {
-        _id: "4",
-        name: "SHUBH ANNAPRASHAN RICE 220",
-        variantName: "-",
-        uom: "Piece",
-        purchaseValue: 0,
-        mrp: 220,
-        sellingPrice: 190,
-        quantity: 0,
-        supplier: "0",
-        category: "Birthday, Welcome, All Decoration"
-      },
-      {
-        _id: "5",
-        name: "Jumar 220",
-        variantName: "-",
-        uom: "Piece",
-        purchaseValue: 0,
-        mrp: 220,
-        sellingPrice: 180,
-        quantity: 0,
-        supplier: "0",
-        category: "Home Decoration"
-      },
-      {
-        _id: "6",
-        name: "BOX FILE 90",
-        variantName: "-",
-        uom: "Piece",
-        purchaseValue: 0,
-        mrp: 90,
-        sellingPrice: 80,
-        quantity: 0,
-        supplier: "0",
-        category: "Stationary"
-      },
-      {
-        _id: "7",
-        name: "Rock Well",
-        variantName: "-",
-        uom: "Piece",
-        purchaseValue: 0,
-        mrp: 980,
-        sellingPrice: 750,
-        quantity: 0,
-        supplier: "-4",
-        category: "Home Decoration"
-      },
-      {
-        _id: "8",
-        name: "Teddy Bear 780",
-        variantName: "-",
-        uom: "Piece",
-        purchaseValue: 0,
-        mrp: 780,
-        sellingPrice: 730,
-        quantity: 0,
-        supplier: "0",
-        category: "Teddy Bear"
+    fetchData();
+  }, [pagination.page, dateFilterType, customDateRange, categoryFilter, debouncedSearchTerm]);
+
+  // Fetch categories for filter
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await getCategories();
+        if (response.success) {
+          setCategories(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching categories:", error);
       }
-    ];
-    setData(dummyData);
-    setFilteredData(dummyData);
+    };
+    fetchCategories();
   }, []);
 
-  // Filter data based on search and category
+  // Handle search with debounce
   useEffect(() => {
-    let filtered = [...data];
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.variantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.supplier.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit,
+        category: categoryFilter || undefined,
+        search: debouncedSearchTerm || undefined,
+      };
+
+      // Handle Date Filters
+      const now = new Date();
+      if (dateFilterType === 'today') {
+        params.dateFrom = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+        params.dateTo = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+      } else if (dateFilterType === 'last7days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'last30days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'custom' && customDateRange.start && customDateRange.end) {
+        params.dateFrom = new Date(customDateRange.start).toISOString();
+        params.dateTo = new Date(new Date(customDateRange.end).setHours(23, 59, 59, 999)).toISOString();
+      }
+
+      const response = await getOutOfStockSummary(params);
+      if (response.success) {
+        setData(response.data);
+        if (response.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            total: response.pagination!.total,
+            pages: response.pagination!.pages
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching out of stock summary:", error);
+      toast.error("Failed to load inventory data");
+    } finally {
+      setLoading(false);
     }
-
-    // Category filter
-    if (categoryFilter) {
-      filtered = filtered.filter(item => item.category === categoryFilter);
-    }
-
-    setFilteredData(filtered);
-  }, [searchTerm, categoryFilter, data]);
+  };
 
   const handleCellEdit = (id: string, field: keyof OutOfStockData, value: any) => {
-    setFilteredData(prev => prev.map(item =>
-      item._id === id ? { ...item, [field]: value } : item
-    ));
     setData(prev => prev.map(item =>
       item._id === id ? { ...item, [field]: value } : item
     ));
@@ -167,7 +111,7 @@ const AdminOutOfStockSummary = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(new Set(filteredData.map(item => item._id)));
+      setSelectedRows(new Set(data.map(item => item._id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -193,7 +137,7 @@ const AdminOutOfStockSummary = () => {
   };
 
   const downloadExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+    const worksheet = XLSX.utils.json_to_sheet(data.map(item => ({
       "Name": item.name,
       "Variant": item.variantName,
       "UOM": item.uom,
@@ -218,7 +162,7 @@ const AdminOutOfStockSummary = () => {
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
 
-    const tableData = filteredData.map(item => [
+    const tableData = data.map(item => [
       item.name,
       item.variantName,
       item.quantity.toString(),
@@ -237,7 +181,6 @@ const AdminOutOfStockSummary = () => {
     doc.save(`Out_Of_Stock_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  const uniqueCategories = Array.from(new Set(data.map(item => item.category)));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -383,15 +326,15 @@ const AdminOutOfStockSummary = () => {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">Category Filter</label>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all">
-                <option value="">All Categories</option>
-                {uniqueCategories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all">
+                  <option value="">All Categories</option>
+                  {categories.map(cat => (
+                    <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  ))}
+                </select>
             </div>
           </div>
         </div>
@@ -421,7 +364,7 @@ const AdminOutOfStockSummary = () => {
                     <th className="px-3 py-3 text-left sticky left-0 bg-red-50 z-10">
                       <input
                         type="checkbox"
-                        checked={selectedRows.size === filteredData.length && filteredData.length > 0}
+                        checked={selectedRows.size === data.length && data.length > 0}
                         onChange={(e) => handleSelectAll(e.target.checked)}
                         className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
                       />
@@ -439,14 +382,21 @@ const AdminOutOfStockSummary = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredData.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={10} className="px-6 py-24 text-center">
+                      <div className="w-10 h-10 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                      <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em]">Syncing Inventory...</p>
+                    </td>
+                  </tr>
+                ) : data.length === 0 ? (
                   <tr>
                     <td colSpan={editMode ? 11 : 10} className="px-6 py-12 text-center text-gray-400 text-sm">
                       No out of stock items found
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((item) => (
+                  data.map((item) => (
                     <tr key={item._id} className="hover:bg-red-50/30 transition-colors">
                       {editMode && (
                         <td className="px-3 py-3 sticky left-0 bg-white">
@@ -577,26 +527,70 @@ const AdminOutOfStockSummary = () => {
           </div>
         </div>
 
+        {/* Pagination Controls */}
+        {pagination.pages > 1 && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+            <div className="text-xs font-black text-gray-400 uppercase tracking-widest">
+              Showing <span className="text-red-600">{data.length}</span> of <span className="text-red-600">{pagination.total}</span> Records
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={pagination.page === 1}
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
+                className="p-2 border border-gray-100 rounded-xl hover:bg-gray-50 disabled:opacity-30 transition-all font-black text-red-600">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+
+              <div className="flex items-center gap-1">
+                {[...Array(pagination.pages)].map((_, i) => {
+                  const p = i + 1;
+                  if (pagination.pages > 7) {
+                    if (p !== 1 && p !== pagination.pages && Math.abs(p - pagination.page) > 1) {
+                      if (p === 2 || p === pagination.pages - 1) return <span key={p} className="px-1 text-gray-300">...</span>;
+                      return null;
+                    }
+                  }
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPagination(prev => ({ ...prev, page: p }))}
+                      className={`w-9 h-9 flex items-center justify-center rounded-xl text-xs font-black transition-all ${pagination.page === p ? 'bg-red-600 text-white shadow-lg shadow-red-200' : 'hover:bg-red-50 text-gray-500'}`}>
+                      {p}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                disabled={pagination.page === pagination.pages}
+                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
+                className="p-2 border border-gray-100 rounded-xl hover:bg-gray-50 disabled:opacity-30 transition-all font-black text-red-600">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Summary Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Out of Stock Items</p>
             <p className="text-3xl font-black text-red-600 mt-2">
-              {filteredData.length}
+              {pagination.total}
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Potential Lost Revenue</p>
             <p className="text-3xl font-black text-orange-600 mt-2">
-              ₹{filteredData.reduce((sum, item) => sum + (item.sellingPrice * 10), 0).toLocaleString()}
+              ₹{data.reduce((sum, item) => sum + (item.sellingPrice * 10), 0).toLocaleString()}
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Categories Affected</p>
             <p className="text-3xl font-black text-purple-600 mt-2">
-              {uniqueCategories.length}
+              {new Set(data.map(item => item.category)).size}
             </p>
           </div>
         </div>

@@ -34,7 +34,10 @@ const FiLoader = ({ className }: { className?: string }) => (
   </svg>
 );
 
+import { useNavigate } from "react-router-dom";
+
 const SellerPOSReport = () => {
+    const navigate = useNavigate();
     const { showToast } = useToast();
     const [loading, setLoading] = useState(true);
     const [reportData, setReportData] = useState<any>(null);

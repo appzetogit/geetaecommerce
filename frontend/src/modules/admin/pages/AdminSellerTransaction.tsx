@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { getSellerCommissions, addManualFundTransfer } from "../../../services/api/admin/adminWalletService";
+import { getSellers } from "../../../services/api/admin/adminSellerService";
+import toast from "react-hot-toast";
 
 interface Transaction {
-  id: number;
+  id: string;
   sellerName: string;
   orderId: string;
   orderItemId: string;
@@ -13,41 +16,104 @@ interface Transaction {
   date: string;
 }
 
+interface SellerOption {
+  _id: string;
+  storeName: string;
+  sellerName: string;
+}
+
 export default function AdminSellerTransaction() {
-  const [fromDate, setFromDate] = useState("12/09/2025");
-  const [toDate, setToDate] = useState("12/09/2025");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [filterBySeller, setFilterBySeller] = useState("All Seller");
-  const [filterByMethod, setFilterByMethod] = useState("All");
   const [perPage, setPerPage] = useState("10");
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddFundModal, setShowAddFundModal] = useState(false);
   const [sortColumn, setSortColumn] = useState<keyof Transaction | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalEntries, setTotalEntries] = useState(0);
 
-  // Mock data - you can add some sample data here
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [sellers, setSellers] = useState<SellerOption[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Fund Transfer Form State
   const [fundTransferData, setFundTransferData] = useState({
-    seller: "",
+    sellerId: "",
     amount: "",
     message: "",
     type: "Credit"
   });
 
+  const fetchSellers = useCallback(async () => {
+    try {
+      const response = await getSellers();
+      if (response.success) {
+        setSellers(response.data.map((s: any) => ({
+          _id: s._id,
+          storeName: s.storeName,
+          sellerName: s.sellerName
+        })));
+      }
+    } catch (error) {
+      console.error("Error fetching sellers:", error);
+    }
+  }, []);
+
+  const fetchTransactions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page: currentPage,
+        limit: perPage,
+        sellerId: filterBySeller === "All Seller" ? undefined : filterBySeller,
+        search: searchQuery || undefined,
+        startDate: fromDate || undefined,
+        endDate: toDate || undefined
+      };
+
+      const response = await getSellerCommissions(params);
+      if (response.success) {
+        setTransactions(response.data);
+        setTotalEntries(response.pagination?.total || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      toast.error("Failed to fetch transactions");
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, perPage, filterBySeller, searchQuery, fromDate, toDate]);
+
+  useEffect(() => {
+    fetchSellers();
+  }, [fetchSellers]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
   const handleClear = () => {
     setFromDate("");
     setToDate("");
-    console.log("Dates cleared");
+    setFilterBySeller("All Seller");
+    setSearchQuery("");
+    setCurrentPage(1);
   };
 
   const handleExport = () => {
+    if (transactions.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
     // Create CSV content
     const headers = ["ID", "Seller Name", "Order ID", "Order Item ID", "Product Name", "Variation", "Flag", "Amount", "Remark", "Date"];
     const csvContent = [
       headers.join(","),
       ...transactions.map(t =>
-        [t.id, t.sellerName, t.orderId, t.orderItemId, t.productName, t.variation, t.flag, t.amount, t.remark, t.date].join(",")
+        [t.id, t.sellerName, t.orderId, t.orderItemId, t.productName, t.variation, t.flag, t.amount, t.remark, new Date(t.date).toLocaleString()].join(",")
       )
     ].join("\n");
 
@@ -61,8 +127,6 @@ export default function AdminSellerTransaction() {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-
-    console.log("Exported transactions to CSV");
   };
 
   const handleAddFundTransfer = () => {
@@ -72,18 +136,39 @@ export default function AdminSellerTransaction() {
   const handleCloseFundModal = () => {
     setShowAddFundModal(false);
     setFundTransferData({
-      seller: "",
+      sellerId: "",
       amount: "",
       message: "",
       type: "Credit"
     });
   };
 
-  const handleFundTransferSubmit = (e: React.FormEvent) => {
+  const handleFundTransferSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Fund Transfer Data:", fundTransferData);
-    alert(`Fund Transfer ${fundTransferData.type}: ₹${fundTransferData.amount} to ${fundTransferData.seller}`);
-    handleCloseFundModal();
+    if (!fundTransferData.sellerId || !fundTransferData.amount) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await addManualFundTransfer({
+        sellerId: fundTransferData.sellerId,
+        amount: parseFloat(fundTransferData.amount),
+        type: fundTransferData.type,
+        description: fundTransferData.message
+      });
+
+      if (response.success) {
+        toast.success(response.message || "Fund transfer successful");
+        handleCloseFundModal();
+        fetchTransactions();
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to process fund transfer");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleSort = (column: keyof Transaction) => {
@@ -95,27 +180,7 @@ export default function AdminSellerTransaction() {
     }
   };
 
-  const filteredTransactions = transactions.filter(transaction => {
-    // Filter by seller
-    if (filterBySeller !== "All Seller" && transaction.sellerName !== filterBySeller) {
-      return false;
-    }
-
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
-        transaction.sellerName.toLowerCase().includes(query) ||
-        transaction.orderId.toLowerCase().includes(query) ||
-        transaction.productName.toLowerCase().includes(query) ||
-        transaction.remark.toLowerCase().includes(query)
-      );
-    }
-
-    return true;
-  });
-
-  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+  const sortedTransactions = [...transactions].sort((a, b) => {
     if (!sortColumn) return 0;
 
     const aValue = a[sortColumn];
@@ -135,14 +200,17 @@ export default function AdminSellerTransaction() {
     }
   });
 
-  const paginatedTransactions = sortedTransactions.slice(0, parseInt(perPage));
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
+<<<<<<< HEAD
         <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#f187b5' }}>
           <h2 className="text-lg font-bold text-white">View Seller List</h2>
+=======
+        <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#e91e63' }}>
+          <h2 className="text-lg font-bold text-white">Seller Transactions</h2>
+>>>>>>> 3cd8aacfaf10acfb71a1aba9bd7a1273955b2db1
           <button
             onClick={handleAddFundTransfer}
             className="px-4 py-2 bg-white text-neutral-800 font-semibold rounded hover:bg-neutral-100 transition-colors flex items-center gap-2"
@@ -165,67 +233,54 @@ export default function AdminSellerTransaction() {
 
         {/* Filters */}
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {/* From - To Date */}
-            <div className="lg:col-span-2 flex items-center gap-2">
-              <label className="text-sm font-semibold text-neutral-700 whitespace-nowrap">
-                From - To Date:
+            <div className="lg:col-span-1 flex flex-col gap-1">
+              <label className="text-sm font-semibold text-neutral-700">
+                From Date:
               </label>
-              <div className="flex items-center gap-2 flex-1">
-                <input
-                  type="text"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
-                  placeholder="12/09/2025"
-                />
-                <span className="text-neutral-500">-</span>
-                <input
-                  type="text"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
-                  placeholder="12/09/2025"
-                />
-                <button
-                  onClick={handleClear}
-                  className="px-4 py-2 bg-neutral-800 text-white rounded hover:bg-neutral-900 transition-colors text-sm font-medium"
-                >
-                  Clear
-                </button>
-              </div>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
+                className="w-full px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
+              />
+            </div>
+            <div className="lg:col-span-1 flex flex-col gap-1">
+              <label className="text-sm font-semibold text-neutral-700">
+                To Date:
+              </label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
+                className="w-full px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
+              />
             </div>
 
             {/* Filter by Seller */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-semibold text-neutral-700 whitespace-nowrap">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold text-neutral-700">
                 Filter by Seller:
               </label>
-              <select
-                value={filterBySeller}
-                onChange={(e) => setFilterBySeller(e.target.value)}
-                className="flex-1 px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
-              >
-                <option value="All Seller">All Seller</option>
-                <option value="Seller 1">Seller 1</option>
-                <option value="Seller 2">Seller 2</option>
-              </select>
-            </div>
-
-            {/* Filter by Method */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-semibold text-neutral-700 whitespace-nowrap">
-                Filter by Method:
-              </label>
-              <select
-                value={filterByMethod}
-                onChange={(e) => setFilterByMethod(e.target.value)}
-                className="flex-1 px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
-              >
-                <option value="All">All</option>
-                <option value="Cash">Cash</option>
-                <option value="Online">Online</option>
-              </select>
+              <div className="flex gap-2">
+                <select
+                  value={filterBySeller}
+                  onChange={(e) => { setFilterBySeller(e.target.value); setCurrentPage(1); }}
+                  className="flex-1 px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
+                >
+                  <option value="All Seller">All Seller</option>
+                  {sellers.map(s => (
+                    <option key={s._id} value={s._id}>{s.storeName} ({s.sellerName})</option>
+                  ))}
+                </select>
+                <button
+                   onClick={handleClear}
+                   className="px-3 py-2 bg-neutral-800 text-white rounded hover:bg-neutral-900 transition-colors text-sm font-medium"
+                >
+                   Clear
+                </button>
+              </div>
             </div>
           </div>
 
@@ -235,7 +290,7 @@ export default function AdminSellerTransaction() {
               <label className="text-sm font-semibold text-neutral-700">Per Page:</label>
               <select
                 value={perPage}
-                onChange={(e) => setPerPage(e.target.value)}
+                onChange={(e) => { setPerPage(e.target.value); setCurrentPage(1); }}
                 className="px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
               >
                 <option value="10">10</option>
@@ -271,9 +326,9 @@ export default function AdminSellerTransaction() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
-                placeholder="Search..."
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-2 border border-neutral-300 rounded outline-none text-sm w-64"
+                placeholder="Order ID, Product, Seller..."
               />
             </div>
           </div>
@@ -286,106 +341,94 @@ export default function AdminSellerTransaction() {
               <tr className="bg-neutral-50 border-y border-neutral-200">
                 <th
                   onClick={() => handleSort('id')}
-                  className="px-4 py-3 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                  ID
-                  <svg className="inline-block ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
+                  className="px-4 py-3 text-left text-[11px] font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 min-w-[100px]">
+                  ID {sortColumn === 'id' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th
                   onClick={() => handleSort('sellerName')}
-                  className="px-4 py-3 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                  SELLER NAME
-                  <svg className="inline-block ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
+                  className="px-4 py-3 text-left text-[11px] font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
+                  SELLER {sortColumn === 'sellerName' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th
                   onClick={() => handleSort('orderId')}
-                  className="px-4 py-3 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                  ORDER ID
-                  <svg className="inline-block ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
-                </th>
-                <th
-                  onClick={() => handleSort('orderItemId')}
-                  className="px-4 py-3 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                  ORDER ITEM ID
-                  <svg className="inline-block ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
+                  className="px-4 py-3 text-left text-[11px] font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
+                  ORDER# {sortColumn === 'orderId' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th
                   onClick={() => handleSort('productName')}
-                  className="px-4 py-3 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                  PRODUCT NAME
-                  <svg className="inline-block ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
+                  className="px-4 py-3 text-left text-[11px] font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 min-w-[150px]">
+                  PRODUCT {sortColumn === 'productName' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th
                   onClick={() => handleSort('variation')}
-                  className="px-4 py-3 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                  VARIATION
-                  <svg className="inline-block ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
+                  className="px-4 py-3 text-left text-[11px] font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
+                  VAR {sortColumn === 'variation' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th
                   onClick={() => handleSort('flag')}
-                  className="px-4 py-3 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                  FLAG
-                  <svg className="inline-block ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
+                  className="px-4 py-3 text-left text-[11px] font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
+                  STATUS {sortColumn === 'flag' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th
                   onClick={() => handleSort('amount')}
-                  className="px-4 py-3 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                  AMOUNT
-                  <svg className="inline-block ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
+                  className="px-4 py-3 text-left text-[11px] font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
+                  AMT {sortColumn === 'amount' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
                 <th
-                  onClick={() => handleSort('remark')}
-                  className="px-4 py-3 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
+                  className="px-4 py-3 text-left text-[11px] font-bold text-neutral-700 uppercase tracking-wider min-w-[200px]">
                   REMARK
-                  <svg className="inline-block ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
                 </th>
                 <th
                   onClick={() => handleSort('date')}
-                  className="px-4 py-3 text-left text-xs font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
-                  DATE
-                  <svg className="inline-block ml-1 w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                  </svg>
+                  className="px-4 py-3 text-left text-[11px] font-bold text-neutral-700 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 min-w-[120px]">
+                  DATE {sortColumn === 'date' && (sortDirection === 'asc' ? '↑' : '↓')}
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {paginatedTransactions.length === 0 ? (
+            <tbody className="divide-y divide-neutral-200 bg-white">
+              {loading ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-neutral-500 text-sm">
-                    No data available in table
+                   <td colSpan={10} className="px-4 py-10 text-center text-neutral-500">
+                      <div className="flex flex-col items-center gap-2">
+                         <div className="w-8 h-8 border-4 border-[#e91e63] border-t-transparent rounded-full animate-spin"></div>
+                         <span>Loading transactions...</span>
+                      </div>
+                   </td>
+                </tr>
+              ) : sortedTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="px-4 py-10 text-center text-neutral-500 text-sm italic">
+                    No transactions found matching your criteria
                   </td>
                 </tr>
               ) : (
-                paginatedTransactions.map((transaction) => (
-                  <tr key={transaction.id} className="border-b border-neutral-200 hover:bg-neutral-50">
-                    <td className="px-4 py-3 text-sm text-neutral-800">{transaction.id}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-800">{transaction.sellerName}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-800">{transaction.orderId}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-800">{transaction.orderItemId}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-800">{transaction.productName}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-800">{transaction.variation}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-800">{transaction.flag}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-800">₹{transaction.amount}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-800">{transaction.remark}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-800">{transaction.date}</td>
+                sortedTransactions.map((transaction) => (
+                  <tr key={transaction.id} className="hover:bg-neutral-50 transition-colors">
+                    <td className="px-4 py-3 text-xs font-mono text-neutral-500">#{transaction.id.slice(-6)}</td>
+                    <td className="px-4 py-3 text-xs font-semibold text-neutral-900">{transaction.sellerName}</td>
+                    <td className="px-4 py-3 text-xs font-bold text-[#e91e63]">{transaction.orderId}</td>
+                    <td className="px-4 py-3 text-xs text-neutral-800">
+                       <div className="truncate max-w-[150px]" title={transaction.productName}>
+                          {transaction.productName}
+                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-[10px] text-neutral-500">{transaction.variation}</td>
+                    <td className="px-4 py-3">
+                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          transaction.flag === 'Paid' ? 'bg-green-100 text-green-700' :
+                          transaction.flag === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
+                          transaction.flag === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                       }`}>
+                          {transaction.flag}
+                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs font-bold text-green-600">₹{transaction.amount.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-xs text-neutral-600 italic truncate max-w-[200px]" title={transaction.remark}>
+                       {transaction.remark}
+                    </td>
+                    <td className="px-4 py-3 text-[11px] text-neutral-500 whitespace-nowrap">
+                       {new Date(transaction.date).toLocaleDateString()} {new Date(transaction.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </td>
                   </tr>
                 ))
               )}
@@ -394,30 +437,45 @@ export default function AdminSellerTransaction() {
         </div>
 
         {/* Pagination */}
-        <div className="p-4 border-t border-neutral-200 flex items-center justify-between">
-          <div className="text-sm text-neutral-600">
-            Showing 1 to {paginatedTransactions.length} of {filteredTransactions.length} entries
+        <div className="p-4 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-xs font-medium text-neutral-500">
+            Showing {Math.min((currentPage - 1) * parseInt(perPage) + 1, totalEntries)} to {Math.min(currentPage * parseInt(perPage), totalEntries)} of {totalEntries} entries
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
-              disabled={paginatedTransactions.length === 0}
-              className={`px-3 py-1 border border-neutral-300 rounded text-sm ${
-                paginatedTransactions.length === 0
-                  ? 'text-neutral-400 cursor-not-allowed'
-                  : 'text-neutral-700 hover:bg-neutral-50'
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1 || loading}
+              className={`px-3 py-1 border border-neutral-200 rounded text-xs font-bold transition-all ${
+                currentPage === 1 ? 'text-neutral-300' : 'text-neutral-700 hover:bg-neutral-50 hover:border-[#e91e63]'
               }`}
             >
-              &lt;
+              PREVIOUS
             </button>
+            <div className="flex items-center gap-1 mx-2">
+               {Array.from({ length: Math.min(5, Math.ceil(totalEntries / parseInt(perPage))) }, (_, i) => {
+                  const pageNum = i + 1;
+                  return (
+                     <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-8 h-8 rounded text-xs font-bold transition-all ${
+                           currentPage === pageNum ? 'bg-[#e91e63] text-white shadow-md' : 'text-neutral-600 hover:bg-neutral-50'
+                        }`}
+                     >
+                        {pageNum}
+                     </button>
+                  );
+               })}
+               {Math.ceil(totalEntries / parseInt(perPage)) > 5 && <span className="text-neutral-400">...</span>}
+            </div>
             <button
-              disabled={paginatedTransactions.length === 0}
-              className={`px-3 py-1 border border-neutral-300 rounded text-sm ${
-                paginatedTransactions.length === 0
-                  ? 'text-neutral-400 cursor-not-allowed'
-                  : 'text-neutral-700 hover:bg-neutral-50'
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage >= Math.ceil(totalEntries / parseInt(perPage)) || loading}
+              className={`px-3 py-1 border border-neutral-200 rounded text-xs font-bold transition-all ${
+                currentPage >= Math.ceil(totalEntries / parseInt(perPage)) ? 'text-neutral-300' : 'text-neutral-700 hover:bg-neutral-50 hover:border-[#e91e63]'
               }`}
             >
-              &gt;
+              NEXT
             </button>
           </div>
         </div>
@@ -425,13 +483,28 @@ export default function AdminSellerTransaction() {
 
       {/* Add Fund Transfer Modal */}
       {showAddFundModal && (
+<<<<<<< HEAD
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#f187b5' }}>
               <h3 className="text-lg font-bold text-white">Add Fund Transfer</h3>
+=======
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-neutral-200 transition-all scale-100">
+            <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#e91e63' }}>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="16"></line>
+                    <line x1="8" y1="12" x2="16" y2="12"></line>
+                 </svg>
+                 Add Fund Transfer
+              </h3>
+>>>>>>> 3cd8aacfaf10acfb71a1aba9bd7a1273955b2db1
               <button
                 onClick={handleCloseFundModal}
-                className="text-white hover:text-neutral-200"
+                className="text-white hover:text-neutral-200 transition-colors"
+                disabled={submitting}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -442,79 +515,99 @@ export default function AdminSellerTransaction() {
 
             <form onSubmit={handleFundTransferSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-neutral-700 mb-2">
+                <label className="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1">
                   Select Seller <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={fundTransferData.seller}
-                  onChange={(e) => setFundTransferData({...fundTransferData, seller: e.target.value})}
+                  value={fundTransferData.sellerId}
+                  onChange={(e) => setFundTransferData({...fundTransferData, sellerId: e.target.value})}
                   required
-                  className="w-full px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
+                  disabled={submitting}
+                  className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm focus:border-[#e91e63] focus:ring-1 focus:ring-[#e91e63] transition-all"
                 >
                   <option value="">Select Seller</option>
-                  <option value="Seller 1">Seller 1</option>
-                  <option value="Seller 2">Seller 2</option>
-                  <option value="Seller 3">Seller 3</option>
+                  {sellers.map(s => (
+                    <option key={s._id} value={s._id}>{s.storeName} ({s.sellerName})</option>
+                  ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-neutral-700 mb-2">
-                  Amount <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={fundTransferData.amount}
-                  onChange={(e) => setFundTransferData({...fundTransferData, amount: e.target.value})}
-                  required
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
-                  placeholder="Enter amount"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1">
+                    Amount (₹) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={fundTransferData.amount}
+                    onChange={(e) => setFundTransferData({...fundTransferData, amount: e.target.value})}
+                    required
+                    disabled={submitting}
+                    min="0"
+                    step="0.01"
+                    className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm focus:border-[#e91e63] focus:ring-1 focus:ring-[#e91e63] transition-all font-mono"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1">
+                    Transfer Type <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={fundTransferData.type}
+                    onChange={(e) => setFundTransferData({...fundTransferData, type: e.target.value})}
+                    className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm focus:border-[#e91e63] focus:ring-1 focus:ring-[#e91e63] transition-all"
+                    disabled={submitting}
+                  >
+                    <option value="Credit">Credit (+)</option>
+                    <option value="Debit">Debit (-)</option>
+                  </select>
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-neutral-700 mb-2">
-                  Type <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={fundTransferData.type}
-                  onChange={(e) => setFundTransferData({...fundTransferData, type: e.target.value})}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
-                >
-                  <option value="Credit">Credit</option>
-                  <option value="Debit">Debit</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-neutral-700 mb-2">
-                  Message
+                <label className="block text-xs font-bold text-neutral-500 uppercase tracking-widest mb-1">
+                  Remark / Message
                 </label>
                 <textarea
                   value={fundTransferData.message}
                   onChange={(e) => setFundTransferData({...fundTransferData, message: e.target.value})}
                   rows={3}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded outline-none text-sm resize-none"
-                  placeholder="Enter message (optional)"
+                  disabled={submitting}
+                  className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm resize-none focus:border-[#e91e63] focus:ring-1 focus:ring-[#e91e63] transition-all"
+                  placeholder="Reason for manual adjustment..."
                 />
               </div>
 
-              <div className="flex gap-3 justify-end pt-4">
+              <div className="flex gap-3 justify-end pt-4 border-t border-neutral-100">
                 <button
                   type="button"
                   onClick={handleCloseFundModal}
-                  className="px-4 py-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-800 font-semibold rounded transition-colors"
+                  disabled={submitting}
+                  className="px-6 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-sm font-bold rounded-lg transition-colors"
                 >
-                  Cancel
+                  CANCEL
                 </button>
                 <button
                   type="submit"
+<<<<<<< HEAD
                   className="px-4 py-2 text-white font-semibold rounded transition-opacity hover:opacity-90"
                   style={{ background: '#f187b5' }}
+=======
+                  disabled={submitting}
+                  className="px-6 py-2 text-white text-sm font-bold rounded-lg transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center gap-2"
+                  style={{ background: '#e91e63' }}
+>>>>>>> 3cd8aacfaf10acfb71a1aba9bd7a1273955b2db1
                 >
-                  Add Fund Transfer
+                  {submitting ? (
+                     <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        PROCESSING...
+                     </>
+                  ) : (
+                     'CONFIRM TRANSFER'
+                  )}
                 </button>
               </div>
             </form>

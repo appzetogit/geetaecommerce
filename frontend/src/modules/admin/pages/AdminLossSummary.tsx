@@ -2,83 +2,132 @@ import React, { useState, useEffect } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-interface LossData {
-  _id: string;
-  date: string;
-  productName: string;
-  weight: string;
-  quantity: number;
-  reason: string;
-}
+import { getLossSummary, createLossRecord, LossData } from "../../../services/api/admin/adminInventoryService";
+import { getProducts, Product } from "../../../services/api/admin/adminProductService";
+import { toast } from "react-hot-toast";
 
 type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
 
 const AdminLossSummary = () => {
   const [data, setData] = useState<LossData[]>([]);
-  const [filteredData, setFilteredData] = useState<LossData[]>([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [dateFilterType, setDateFilterType] = useState<DateFilterType>('alltime');
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
   const [showAddLossModal, setShowAddLossModal] = useState(false);
 
+  // Pagination State
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total: 0,
+    pages: 1,
+    limit: 20
+  });
+
   // Add Loss Form State
-  const [newLoss, setNewLoss] = useState({
+  const [newLoss, setNewLoss] = useState<{
+    date: string;
+    productId: string;
+    productName: string;
+    weight: string;
+    quantity: number;
+    reason: string;
+    variationId?: string;
+  }>({
     date: new Date().toISOString().split('T')[0],
+    productId: "",
     productName: "",
     weight: "Piece",
     quantity: 0,
-    reason: "Missing"
+    reason: "Missing",
+    variationId: undefined
   });
 
-  // Dummy data for demonstration
-  useEffect(() => {
-    const dummyData: LossData[] = [
-      {
-        _id: "1",
-        date: "2026-02-03",
-        productName: "H6 smart watch 650",
-        weight: "Piece",
-        quantity: 1,
-        reason: "Missing"
-      },
-      {
-        _id: "2",
-        date: "2026-02-03",
-        productName: "BENKI lighter 780",
-        weight: "Piece",
-        quantity: 4,
-        reason: "Missing"
-      }
-    ];
-    setData(dummyData);
-    setFilteredData(dummyData);
-  }, []);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productSearch, setProductSearch] = useState("");
 
-  // Filter data based on search
+  // Fetch loss data
   useEffect(() => {
-    let filtered = [...data];
+    fetchData();
+  }, [pagination.page, dateFilterType, customDateRange, debouncedSearchTerm]);
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.date.includes(searchTerm)
-      );
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch products for the modal
+  useEffect(() => {
+    if (showAddLossModal) {
+      const fetchProductsForPicker = async () => {
+        try {
+          const res = await getProducts({ limit: 100, search: productSearch });
+          if (res.success) {
+            setProducts(res.data);
+          }
+        } catch (error) {
+          console.error("Error fetching products:", error);
+        }
+      };
+      const timer = setTimeout(fetchProductsForPicker, 300);
+      return () => clearTimeout(timer);
     }
+  }, [showAddLossModal, productSearch]);
 
-    setFilteredData(filtered);
-  }, [searchTerm, data]);
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit,
+        search: debouncedSearchTerm || undefined,
+      };
+
+      const now = new Date();
+      if (dateFilterType === 'today') {
+        params.dateFrom = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+        params.dateTo = new Date(now.setHours(23, 59, 59, 999)).toISOString();
+      } else if (dateFilterType === 'last7days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'last30days') {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        params.dateFrom = d.toISOString();
+      } else if (dateFilterType === 'custom' && customDateRange.start && customDateRange.end) {
+        params.dateFrom = new Date(customDateRange.start).toISOString();
+        params.dateTo = new Date(new Date(customDateRange.end).setHours(23, 59, 59, 999)).toISOString();
+      }
+
+      const response = await getLossSummary(params);
+      if (response.success) {
+        setData(response.data);
+        if (response.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            total: response.pagination!.total,
+            pages: response.pagination!.pages
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching loss summary:", error);
+      toast.error("Failed to fetch loss records");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCellEdit = (id: string, field: keyof LossData, value: any) => {
-    setFilteredData(prev => prev.map(item =>
-      item._id === id ? { ...item, [field]: value } : item
-    ));
     setData(prev => prev.map(item =>
       item._id === id ? { ...item, [field]: value } : item
     ));
@@ -86,7 +135,7 @@ const AdminLossSummary = () => {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedRows(new Set(filteredData.map(item => item._id)));
+      setSelectedRows(new Set(data.map(item => item._id)));
     } else {
       setSelectedRows(new Set());
     }
@@ -104,37 +153,44 @@ const AdminLossSummary = () => {
 
   const handleDateFilterChange = (type: DateFilterType) => {
     setDateFilterType(type);
-    if (type === 'custom') {
-      setShowCustomDatePicker(true);
-    } else {
-      setShowCustomDatePicker(false);
+    setPagination(prev => ({ ...prev, page: 1 }));
+    setShowCustomDatePicker(type === 'custom');
+  };
+
+  const handleAddLoss = async () => {
+    try {
+      if (!newLoss.productId || newLoss.quantity <= 0) {
+        toast.error("Please select a product and valid quantity");
+        return;
+      }
+
+      setLoading(true);
+      const res = await createLossRecord(newLoss);
+      if (res.success) {
+        toast.success("Loss record added successfully");
+        setShowAddLossModal(false);
+        fetchData();
+        // Reset form
+        setNewLoss({
+          date: new Date().toISOString().split('T')[0],
+          productId: "",
+          productName: "",
+          weight: "Piece",
+          quantity: 0,
+          reason: "Missing"
+        });
+      }
+    } catch (error) {
+      console.error("Error adding loss:", error);
+      toast.error("Failed to add loss record");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAddLoss = () => {
-    const newLossEntry: LossData = {
-      _id: Date.now().toString(),
-      ...newLoss
-    };
-
-    setData(prev => [newLossEntry, ...prev]);
-    setFilteredData(prev => [newLossEntry, ...prev]);
-
-    // Reset form
-    setNewLoss({
-      date: new Date().toISOString().split('T')[0],
-      productName: "",
-      weight: "Piece",
-      quantity: 0,
-      reason: "Missing"
-    });
-
-    setShowAddLossModal(false);
-  };
-
   const downloadExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
-      "Date": item.date,
+    const worksheet = XLSX.utils.json_to_sheet(data.map(item => ({
+      "Date": new Date(item.date).toLocaleDateString(),
       "Product Name": item.productName,
       "Weight/UOM": item.weight,
       "Quantity": item.quantity,
@@ -148,14 +204,13 @@ const AdminLossSummary = () => {
 
   const downloadPDF = () => {
     const doc = new jsPDF('landscape');
-
     doc.setFontSize(18);
     doc.text('Loss Summary Report', 14, 15);
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
 
-    const tableData = filteredData.map(item => [
-      item.date,
+    const tableData = data.map(item => [
+      new Date(item.date).toLocaleDateString(),
       item.productName,
       item.weight,
       item.quantity.toString(),
@@ -223,70 +278,28 @@ const AdminLossSummary = () => {
             </div>
           </div>
 
-          {/* Date Filter Tabs */}
           <div className="mt-4 flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-lg">
-            <button
-              onClick={() => handleDateFilterChange('today')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'today'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}>
-              Today
-            </button>
-            <button
-              onClick={() => handleDateFilterChange('tomorrow')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'tomorrow'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}>
-              Tomorrow
-            </button>
-            <button
-              onClick={() => handleDateFilterChange('last7days')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'last7days'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}>
-              Last 7 Days
-            </button>
-            <button
-              onClick={() => handleDateFilterChange('last30days')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'last30days'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}>
-              Last 30 Days
-            </button>
-            <button
-              onClick={() => handleDateFilterChange('alltime')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'alltime'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-              }`}>
-              All Time
-            </button>
+            {(['today', 'tomorrow', 'last7days', 'last30days', 'alltime'] as DateFilterType[]).map(type => (
+              <button
+                key={type}
+                onClick={() => handleDateFilterChange(type)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  dateFilterType === type
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                }`}>
+                {type.charAt(0).toUpperCase() + type.slice(1).replace(/(\d)/, ' $1')}
+              </button>
+            ))}
             <button
               onClick={() => handleDateFilterChange('custom')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'custom'
-                  ? 'bg-teal-600 text-white shadow-sm'
-                  : 'text-teal-600 hover:bg-teal-50'
+                dateFilterType === 'custom' ? 'bg-teal-600 text-white shadow-sm' : 'text-teal-600 hover:bg-teal-50'
               }`}>
               Custom
             </button>
-            <button className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-all">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-            </button>
           </div>
 
-          {/* Custom Date Range Picker */}
           {showCustomDatePicker && (
             <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -296,7 +309,7 @@ const AdminLossSummary = () => {
                     type="date"
                     value={customDateRange.start}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-200 outline-none"
                   />
                 </div>
                 <div>
@@ -305,254 +318,232 @@ const AdminLossSummary = () => {
                     type="date"
                     value={customDateRange.end}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-200 outline-none"
                   />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Search Filter */}
           <div className="mt-4">
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Search</label>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by product name, date, or reason..."
+              placeholder="Search by product name, reason, or SKU..."
               className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
             />
           </div>
         </div>
       </div>
 
-      {/* Table Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm text-left">
               <thead>
                 <tr className="bg-gradient-to-r from-red-50 to-orange-50 border-b-2 border-red-200">
-                  {editMode && (
-                    <th className="px-3 py-3 text-left sticky left-0 bg-red-50 z-10">
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.size === filteredData.length && filteredData.length > 0}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
-                      />
-                    </th>
-                  )}
-                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider sticky left-0 bg-red-50 z-10">Date</th>
-                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Product Name</th>
-                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Weight/UOM</th>
-                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-red-100">Quantity</th>
-                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Reason</th>
+                  {editMode && <th className="px-4 py-3"><input type="checkbox" onChange={(e) => handleSelectAll(e.target.checked)} /></th>}
+                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Date</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Product Name</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Weight/UOM</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase bg-red-100/50">Quantity</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Reason</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredData.length === 0 ? (
-                  <tr>
-                    <td colSpan={editMode ? 7 : 6} className="px-6 py-12 text-center text-gray-400 text-sm">
-                      No loss records found
-                    </td>
-                  </tr>
+                {loading ? (
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-500">Syncing Loss Records...</td></tr>
+                ) : data.length === 0 ? (
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400">No loss records found</td></tr>
                 ) : (
-                  filteredData.map((item) => (
+                  data.map((item) => (
                     <tr key={item._id} className="hover:bg-red-50/30 transition-colors">
-                      {editMode && (
-                        <td className="px-3 py-3 sticky left-0 bg-white">
-                          <input
-                            type="checkbox"
-                            checked={selectedRows.has(item._id)}
-                            onChange={() => handleSelectRow(item._id)}
-                            className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
-                          />
-                        </td>
-                      )}
-                      <td className="px-3 py-3 sticky left-0 bg-white">
-                        {editMode ? (
-                          <input
-                            type="date"
-                            value={item.date}
-                            onChange={(e) => handleCellEdit(item._id, 'date', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                          />
-                        ) : (
-                          <span className="text-sm text-gray-900">{item.date}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3">
-                        {editMode ? (
-                          <input
-                            type="text"
-                            value={item.productName}
-                            onChange={(e) => handleCellEdit(item._id, 'productName', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold"
-                          />
-                        ) : (
-                          <span className="text-sm font-semibold text-gray-900">{item.productName}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3">
-                        {editMode ? (
-                          <input
-                            type="text"
-                            value={item.weight}
-                            onChange={(e) => handleCellEdit(item._id, 'weight', e.target.value)}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                          />
-                        ) : (
-                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">{item.weight}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 bg-red-100">
-                        {editMode ? (
-                          <input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => handleCellEdit(item._id, 'quantity', parseInt(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-bold text-red-700"
-                          />
-                        ) : (
-                          <span className="text-sm font-bold text-red-700">{item.quantity}</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3">
-                        {editMode ? (
-                          <input
-                            type="text"
-                            value={item.reason}
-                            onChange={(e) => handleCellEdit(item._id, 'reason', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                          />
-                        ) : (
-                          <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-full font-medium">{item.reason}</span>
-                        )}
-                      </td>
+                      {editMode && <td className="px-4 py-3"><input type="checkbox" checked={selectedRows.has(item._id)} onChange={() => handleSelectRow(item._id)} /></td>}
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-600">{new Date(item.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 font-semibold text-gray-900">{item.productName}</td>
+                      <td className="px-4 py-3"><span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">{item.weight}</span></td>
+                      <td className="px-4 py-3 bg-red-100/30 text-red-700 font-bold">{item.quantity}</td>
+                      <td className="px-4 py-3"><span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">{item.reason}</span></td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
+
+          {pagination.pages > 1 && (
+            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+              <div className="text-sm text-gray-500">
+                Showing page <span className="font-semibold">{pagination.page}</span> of <span className="font-semibold">{pagination.pages}</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                  disabled={pagination.page === 1}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.pages, prev.page + 1) }))}
+                  disabled={pagination.page === pagination.pages}
+                  className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Summary Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Loss Records</p>
-            <p className="text-3xl font-black text-red-600 mt-2">
-              {filteredData.length}
-            </p>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <p className="text-xs font-bold text-gray-400 uppercase">Total Records</p>
+            <p className="text-3xl font-black text-red-600 mt-2">{pagination.total}</p>
           </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Items Lost</p>
-            <p className="text-3xl font-black text-orange-600 mt-2">
-              {filteredData.reduce((sum, item) => sum + item.quantity, 0)}
-            </p>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <p className="text-xs font-bold text-gray-400 uppercase">Total Items Lost</p>
+            <p className="text-3xl font-black text-orange-600 mt-2">{data.reduce((sum, item) => sum + item.quantity, 0)}</p>
           </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Unique Products</p>
-            <p className="text-3xl font-black text-purple-600 mt-2">
-              {new Set(filteredData.map(item => item.productName)).size}
-            </p>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <p className="text-xs font-bold text-gray-400 uppercase">Unique Products Affected</p>
+            <p className="text-3xl font-black text-purple-600 mt-2">{new Set(data.map(item => item.productName)).size}</p>
           </div>
         </div>
       </div>
 
-      {/* Add Loss Modal */}
       {showAddLossModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Add Loss Record</h2>
-              <button
-                onClick={() => setShowAddLossModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white flex items-center justify-between">
+              <h2 className="text-xl font-bold">Record Inventory Loss</h2>
+              <button onClick={() => setShowAddLossModal(false)} className="hover:rotate-90 transition-transform"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Date</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Select Product</label>
+                <div className="relative">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={productSearch}
+                      onChange={(e) => {
+                        setProductSearch(e.target.value);
+                        if (!e.target.value) {
+                          setNewLoss({ ...newLoss, productId: "", productName: "", weight: "Piece", variationId: undefined });
+                        }
+                      }}
+                      placeholder="Search product..."
+                      className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-200"
+                    />
+                    {newLoss.productId && (
+                      <button
+                        onClick={() => {
+                          setNewLoss({ ...newLoss, productId: "", productName: "", weight: "Piece", variationId: undefined });
+                          setProductSearch("");
+                          setProducts([]);
+                        }}
+                        className="absolute right-3 text-gray-400 hover:text-red-500"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                  {productSearch && !newLoss.productId && products.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg z-50 shadow-xl mt-1">
+                      {products.map(p => (
+                        <div
+                          key={p._id}
+                          onClick={() => {
+                            setNewLoss({
+                              ...newLoss,
+                              productId: p._id,
+                              productName: p.productName,
+                              weight: p.pack || "Piece"
+                            });
+                            setProductSearch(p.productName);
+                            setProducts([]);
+                          }}
+                          className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0 flex justify-between items-center">
+                          <span>{p.productName} <span className="text-xs text-gray-400">({p.sku})</span></span>
+                          <span className="text-xs font-bold text-blue-600">Stock: {p.stock}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {newLoss.productId && products.find(p => p._id === newLoss.productId)?.variations &&
+               products.find(p => p._id === newLoss.productId)!.variations!.length > 0 && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Select Variation</label>
+                  <select
+                    value={newLoss.variationId || ""}
+                    onChange={(e) => setNewLoss({ ...newLoss, variationId: e.target.value })}
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-200">
+                    <option value="">Choose a variation...</option>
+                    {products.find(p => p._id === newLoss.productId)!.variations!.map(v => (
+                      <option key={v._id} value={v._id}>
+                        {v.name} {v.value} (Stock: {v.stock})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Quantity</label>
+                  <input
+                    type="number"
+                    value={newLoss.quantity || ''}
+                    onChange={(e) => setNewLoss({ ...newLoss, quantity: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-200"
+                    min="1"
+                  />
+                  {newLoss.productId && (
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Max available: {
+                        newLoss.variationId
+                          ? products.find(p => p._id === newLoss.productId)?.variations?.find(v => v._id === newLoss.variationId)?.stock || 0
+                          : products.find(p => p._id === newLoss.productId)?.stock || 0
+                      }
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Reason</label>
+                  <select
+                    value={newLoss.reason}
+                    onChange={(e) => setNewLoss({ ...newLoss, reason: e.target.value })}
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-200">
+                    {["Missing", "Damaged", "Expired", "Theft", "Broken", "Other"].map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Loss Date</label>
                 <input
                   type="date"
                   value={newLoss.date}
                   onChange={(e) => setNewLoss({ ...newLoss, date: e.target.value })}
-                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                  className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-200"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Product Name</label>
-                <input
-                  type="text"
-                  value={newLoss.productName}
-                  onChange={(e) => setNewLoss({ ...newLoss, productName: e.target.value })}
-                  placeholder="Enter product name"
-                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Weight/UOM</label>
-                <select
-                  value={newLoss.weight}
-                  onChange={(e) => setNewLoss({ ...newLoss, weight: e.target.value })}
-                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all">
-                  <option value="Piece">Piece</option>
-                  <option value="kg">kg</option>
-                  <option value="ltr">ltr</option>
-                  <option value="gm">gm</option>
-                  <option value="ml">ml</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Quantity</label>
-                <input
-                  type="number"
-                  value={newLoss.quantity}
-                  onChange={(e) => setNewLoss({ ...newLoss, quantity: parseInt(e.target.value) })}
-                  placeholder="Enter quantity"
-                  min="0"
-                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Reason</label>
-                <select
-                  value={newLoss.reason}
-                  onChange={(e) => setNewLoss({ ...newLoss, reason: e.target.value })}
-                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all">
-                  <option value="Missing">Missing</option>
-                  <option value="Damaged">Damaged</option>
-                  <option value="Expired">Expired</option>
-                  <option value="Theft">Theft</option>
-                  <option value="Broken">Broken</option>
-                  <option value="Other">Other</option>
-                </select>
               </div>
             </div>
 
-            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex gap-3">
-              <button
-                onClick={() => setShowAddLossModal(false)}
-                className="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-300 active:scale-95 transition-all">
-                Cancel
-              </button>
+            <div className="p-6 bg-gray-50 flex gap-3">
+              <button onClick={() => setShowAddLossModal(false)} className="flex-1 py-2 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition-colors">Cancel</button>
               <button
                 onClick={handleAddLoss}
-                disabled={!newLoss.productName || newLoss.quantity <= 0}
-                className="flex-1 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                Add Loss
+                disabled={!newLoss.productId || newLoss.quantity <= 0 || loading}
+                className="flex-1 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+                {loading ? 'Processing...' : 'Add Loss Record'}
               </button>
             </div>
           </div>
