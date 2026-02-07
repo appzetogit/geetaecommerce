@@ -254,20 +254,10 @@ export default function AdminAbandonedCarts() {
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setSelectedCart(cart)}
-                                className="flex-1 py-2.5 bg-[#f187b5] text-white rounded-xl font-semibold text-sm transition-all hover:bg-[#e076a5] active:scale-[0.98]"
+                                className="w-full py-2.5 bg-[#f187b5] text-white rounded-xl font-semibold text-sm transition-all hover:bg-[#e076a5] active:scale-[0.98]"
                             >
                                 Details
                             </button>
-                            {cart.customer?.phone && (
-                                <a
-                                    href={`https://wa.me/${cart.customer.phone}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="p-2.5 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-all flex items-center justify-center"
-                                >
-                                    <MessageCircle className="h-5 w-5" />
-                                </a>
-                            )}
                         </div>
                     </div>
                 )) : (
@@ -296,7 +286,10 @@ export default function AdminAbandonedCarts() {
                                     <ArrowLeft className="h-6 w-6 text-neutral-900" />
                                 </button>
                                 <h3 className="text-xl font-bold text-neutral-900">Leads</h3>
-                                <button className="p-2.5 hover:bg-neutral-100 rounded-full transition-colors">
+                                <button
+                                    onClick={() => setSelectedCart(null)}
+                                    className="p-2.5 hover:bg-neutral-100 rounded-full transition-colors"
+                                >
                                     <X className="h-6 w-6 text-neutral-400" />
                                 </button>
                             </div>

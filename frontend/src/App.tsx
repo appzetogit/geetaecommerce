@@ -98,6 +98,8 @@ const SellerAccountSettings = lazy(() => import("./modules/seller/pages/SellerAc
 const SellerLogin = lazy(() => import("./modules/seller/pages/SellerLogin"));
 const SellerSignUp = lazy(() => import("./modules/seller/pages/SellerSignUp"));
 const SellerPOSOrders = lazy(() => import("./modules/seller/pages/SellerPOSOrders"));
+const SellerPOSCustomers = lazy(() => import("./modules/seller/pages/SellerPOSCustomers"));
+const SellerPOSCustomerDetail = lazy(() => import("./modules/seller/pages/SellerPOSCustomerDetail"));
 const SellerPOSReport = lazy(() => import("./modules/seller/pages/SellerPOSReport"));
 const SellerSalesSummary = lazy(() => import("./modules/seller/pages/SellerSalesSummary"));
 const SellerAttributeSetup = lazy(() => import("./modules/seller/pages/SellerAttributeSetup"));
@@ -416,6 +418,8 @@ function App() {
                               <Route path="sales-summary" element={<SellerSalesSummary />} />
                               <Route path="account-settings" element={<SellerAccountSettings />} />
                               <Route path="pos/orders" element={<SellerPOSOrders />} />
+                              <Route path="pos/customers" element={<SellerPOSCustomers />} />
+                              <Route path="pos/customers/:id" element={<SellerPOSCustomerDetail />} />
                               <Route path="pos/report" element={<SellerPOSReport />} />
                               <Route path="product-display-settings" element={<SellerProductDisplaySettings />} />
                               <Route path="barcode-settings" element={<SellerBarcodeSettings />} />

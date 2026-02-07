@@ -345,7 +345,7 @@ export default function SellerWithdrawalRequests() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in duration-200">
             {/* Modal Header */}
-            <div className="bg-teal-600 px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
+            <div className="bg-[#f187b5] px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
               <h3 className="text-lg font-bold">New Withdrawal Request</h3>
               <button
                 onClick={() => setShowModal(false)}
@@ -483,7 +483,7 @@ export default function SellerWithdrawalRequests() {
               </button>
               <button
                 onClick={handleSubmitRequest}
-                className="flex-1 px-4 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
                 disabled={isSubmitting}
               >
                 {isSubmitting && <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}

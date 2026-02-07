@@ -694,20 +694,32 @@ const AdminPOSOrders = () => {
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    setCart(prev => prev.map(item => {
-      if (item._id === id) {
-        const newQty = Math.max(1, item.qty + delta);
-        // Check Stock for non-quick-add items
-        if (!item._id.toString().startsWith('quick-') && delta > 0) {
-            if (newQty > (item.stock || 0)) {
-                showToast("Reached maximum available stock", "error");
-                return item;
-            }
+    setCart(prev => {
+      // If decreasing quantity
+      if (delta < 0) {
+        const item = prev.find(i => i._id === id);
+        // If item exists and new quantity would be 0 or less, remove it
+        if (item && item.qty + delta <= 0) {
+            return prev.filter(i => i._id !== id);
         }
-        return { ...item, qty: newQty };
       }
-      return item;
-    }));
+
+      return prev.map(item => {
+        if (item._id === id) {
+          const newQty = item.qty + delta;
+
+          // Check Stock for non-quick-add items
+          if (!item._id.toString().startsWith('quick-') && delta > 0) {
+              if (newQty > (item.stock || 0)) {
+                  showToast("Reached maximum available stock", "error");
+                  return item;
+              }
+          }
+          return { ...item, qty: newQty };
+        }
+        return item;
+      });
+    });
   };
 
   /*
@@ -1265,9 +1277,21 @@ const AdminPOSOrders = () => {
           const res = await updateOrderItems(editOrderId, items);
           if (res.success) {
               showToast("Order updated successfully", "success");
-              // Close the edit tab logic handled by navigate usually, but here we can just close current bill
+
+              // Set bill details for the success modal so user can print/share
+              setLastBillDetails({
+                  total: calculateTotal(),
+                  invoiceNum: res.data?.orderNumber || `UPD-${editOrderId}`,
+                  date: new Date().toLocaleDateString('en-IN'),
+                  time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+                  cart: [...cart],
+                  isPaid: res.data?.paymentStatus === 'Paid' || true // Updates usually imply paid or credit handled
+              });
+
+              setShowSuccessModal(true);
+
+              // Close the edit tab logic
               closeBill(`edit_${editOrderId}`, { stopPropagation: () => {} } as React.MouseEvent);
-              navigate('/admin/pos/report');
           } else {
               showToast(res.message || "Failed to update order", "error");
           }
@@ -1293,7 +1317,7 @@ const AdminPOSOrders = () => {
         <div className="flex gap-2">
             <button
               onClick={() => setShowAddCustomerModal(true)}
-              className="px-4 py-2 bg-[#f187b5] text-white rounded-lg text-sm font-bold hover:bg-[#e076a5] transition-colors flex items-center gap-2"
+              className="px-4 py-2 bg-[#f187b5] text-white rounded-lg text-sm font-bold hover:bg-[#e076a5] transition-colors flex items-center gap-2 border border-[#f187b5]"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -1314,181 +1338,149 @@ const AdminPOSOrders = () => {
       </div>
 
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <div className="max-w-6xl mx-auto pb-8">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col min-h-[85vh] relative transition-all duration-300">
 
-        {/* LEFT COLUMN - PRODUCTS (Hidden on Mobile) */}
-        <div className="hidden lg:flex lg:col-span-7 flex-col gap-4">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col overflow-hidden">
-
-            {/* Top Bar (Filters) - Hidden on Mobile */}
-            <div className="p-4 border-b border-gray-100 hidden md:flex flex-col gap-3 bg-white z-10">
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <select
-                      className="border border-gray-300 rounded px-3 py-2 text-sm w-full sm:w-1/3 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      value={selectedSeller}
-                      onChange={(e) => {
-                          setSelectedSeller(e.target.value);
-                          setCurrentPage(1); // Reset page on seller change
-                      }}
+          {/* Top Header Section */}
+          <div className="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center bg-white rounded-t-2xl gap-4">
+             <div className="flex items-center gap-4">
+                <h2 className="text-xl font-bold text-gray-800 tracking-tight">Billing & POS</h2>
+                <div className="hidden md:flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Profit Mode</span>
+                    <button
+                      onClick={() => setShowProfit(!showProfit)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${showProfit ? 'bg-[#f187b5]' : 'bg-gray-300'}`}
                     >
-                      <option value="">-- All Sellers --</option>
-                      {sellers.map(s => (
-                          <option key={s._id} value={s._id}>{s.sellerName} ({s.storeName})</option>
-                      ))}
-                    </select>
-
-                    <select
-                      className="border border-gray-300 rounded px-3 py-2 text-sm w-full sm:w-1/3 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      value={selectedCategory}
-                      onChange={(e) => {
-                          setSelectedCategory(e.target.value);
-                          setCurrentPage(1);
-                      }}
-                    >
-                      <option value="">-- All Categories --</option>
-                      {categories.map(c => (
-                          <option key={c._id} value={c._id}>{c.name}</option>
-                      ))}
-                    </select>
-
-                    <select
-                      className="border border-gray-300 rounded px-3 py-2 text-sm w-full sm:w-1/3 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      value={selectedBrand}
-                      onChange={(e) => {
-                          setSelectedBrand(e.target.value);
-                          setCurrentPage(1);
-                      }}
-                    >
-                      <option value="">-- All Brands --</option>
-                      {brands.map(b => (
-                          <option key={b._id} value={b._id}>{b.name}</option>
-                      ))}
-                    </select>
-                </div>
-
-                  <div className="hidden md:flex w-full gap-2">
-                   <div className="relative flex-1">
-                       <input
-                       type="text"
-                       placeholder="Search by name or barcode"
-                       className="border border-gray-300 rounded px-3 py-2 text-sm w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
-                       value={searchQuery}
-                       onChange={(e) => setSearchQuery(e.target.value)}
-                       onKeyDown={handleSearchKeyDown}
-                     />
-                     <div className="absolute right-0 top-0 h-full flex items-center pr-2">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                     </div>
-                   </div>
-                   <button
-                     onClick={() => setShowScanner(true)}
-                     className="bg-white border border-gray-300 text-gray-700 px-4 rounded flex items-center gap-2 hover:bg-gray-50 transition-colors"
-                   >
-                     <span>Scan</span>
-                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"/>
-                     </svg>
-                   </button>
-               </div>
-            </div>
-
-            {/* Products Grid */}
-            <div className="flex-1 overflow-y-auto p-4 bg-gray-50/30">
-               {loading ? (
-                   <div className="flex justify-center items-center h-40">
-                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                   </div>
-               ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {products.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(product => (
-                           <div
-                             key={product._id}
-                             onClick={() => addToCart(product)}
-                             className={`bg-white p-3 rounded-lg border border-gray-200 shadow-sm hover:shadow-md cursor-pointer transition-all flex flex-col items-center text-center group relative ${product.stock <= 0 ? 'opacity-60 grayscale' : ''}`}
-                           >
-                                <div className="w-16 h-16 bg-gray-100 rounded mb-2 flex items-center justify-center overflow-hidden">
-                                    {product.mainImage ? (
-                                        <img src={product.mainImage} alt={product.productName} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <span className="text-xs text-gray-400">IMG</span>
-                                    )}
-                                </div>
-                                <h3 className="text-sm font-medium text-gray-800 line-clamp-2">{product.productName}</h3>
-                                <div className="mt-2 text-[#f187b5] font-bold">
-                                    ₹{ (orderType === 'Wholesale' && product.wholesalePrice) ? product.wholesalePrice : product.price }
-                                    {orderType === 'Wholesale' && product.wholesalePrice && <span className="text-[10px] ml-1 text-gray-400 font-normal">(Wholesale)</span>}
-                                </div>
-                                <div className={`text-[10px] font-bold mt-1 px-2 py-0.5 rounded-full ${product.stock <= 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
-                                    Stock: {product.stock}
-                                </div>
-                                {product.stock <= 0 && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/5 rounded-lg pointer-events-none">
-                                        <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded">OUT OF STOCK</span>
-                                    </div>
-                                )}
-                           </div>
-                       ))}
-                       {products.length === 0 && (
-                           <div className="col-span-full py-10 text-center text-gray-400 text-sm">
-                               No products found
-                           </div>
-                       )}
-                    </div>
-                )}
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${showProfit ? 'translate-x-4.5' : 'translate-x-1'}`} />
+                    </button>
+                 </div>
              </div>
 
-             {/* Pagination */}
-             {products.length > itemsPerPage && (
-                <div className="p-4 border-t border-gray-100 flex justify-center items-center gap-3 bg-white rounded-b-lg">
-                    <button
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        disabled={currentPage === 1}
-                        className="w-10 h-10 flex items-center justify-center border border-[#f187b5] rounded text-[#f187b5] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#f187b5]/10 transition-colors"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                    </button>
-                    <button className="w-10 h-10 flex items-center justify-center bg-[#f187b5] text-white rounded font-bold shadow-sm">
-                        {currentPage}
-                    </button>
-                     <button
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(products.length / itemsPerPage)))}
-                        disabled={currentPage === Math.ceil(products.length / itemsPerPage)}
-                        className="w-10 h-10 flex items-center justify-center border border-[#f187b5] rounded text-[#f187b5] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#f187b5]/10 transition-colors"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                    </button>
-                </div>
-             )}
+             <div className="flex items-center gap-3 w-full md:w-auto">
+                 <button
+                    onClick={() => setShowQuickAdd(true)}
+                    className="flex-1 md:flex-none bg-[#f187b5] hover:bg-[#e076a5] text-white text-sm px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-[#f187b5]/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+                 >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                    Quick Add
+                 </button>
+             </div>
           </div>
-        </div>
 
-        {/* RIGHT COLUMN - CART */}
-        <div className="lg:col-span-5 flex flex-col gap-4">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col min-h-[calc(100vh-2rem)] sticky top-4">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-lg">
-              <h2 className="text-lg font-semibold text-gray-700">Billing</h2>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 bg-white px-2 py-1 rounded-md border border-gray-200 shadow-sm">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase">Profit Show</span>
-                  <button
-                    onClick={() => setShowProfit(!showProfit)}
-                    className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors focus:outline-none ${showProfit ? 'bg-[#f187b5]' : 'bg-gray-300'}`}
-                  >
-                    <span
-                      className={`inline-block h-2.5 w-2.5 transform rounded-full bg-white transition-transform ${showProfit ? 'translate-x-4.5' : 'translate-x-1'}`}
-                    />
-                  </button>
-                </div>
-                <button
-                  onClick={() => setShowQuickAdd(true)}
-                  className="bg-[#f187b5] hover:bg-[#e076a5] text-white text-xs px-3 py-1.5 rounded flex items-center gap-1 font-medium transition-colors"
-                >
-                  + Quick Add
-                </button>
-              </div>
-            </div>
+          {/* Search Bar Section */}
+          {/* Search Bar Section - Visible only on Desktop */}
+          <div className="hidden lg:block px-6 py-4 bg-gray-50/50 border-b border-gray-100 relative z-30">
+             <div className="relative max-w-4xl mx-auto">
+                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                     <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                     </svg>
+                 </div>
+                 <input
+                     type="text"
+                     className="block w-full pl-11 pr-12 py-4 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] text-base transition-shadow shadow-sm"
+                     placeholder="Search products by name, barcode, or SKU (SHIFT + S)"
+                     value={searchQuery}
+                     onChange={(e) => setSearchQuery(e.target.value)}
+                     onKeyDown={handleSearchKeyDown}
+                     autoFocus
+                 />
+                 <div className="absolute inset-y-0 right-0 pr-2 flex items-center gap-1">
+                     {searchQuery && (
+                         <button onClick={() => setSearchQuery('')} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
+                             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                         </button>
+                     )}
+                     <button
+                        onClick={() => setShowScanner(true)}
+                        className="p-2.5 text-gray-500 hover:text-[#f187b5] rounded-xl hover:bg-[#f187b5]/10 transition-colors group"
+                        title="Scan Barcode"
+                     >
+                        <svg className="w-6 h-6 transform group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"/></svg>
+                     </button>
+                 </div>
 
-            {/* Bill Tabs */}
+                 {/* Search Dropdown Results */}
+                 {searchQuery && (
+                     <div className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl shadow-2xl border border-gray-100 max-h-[60vh] overflow-y-auto z-50 animate-in fade-in slide-in-from-top-2 duration-200 p-2 scrollbar-thin scrollbar-thumb-gray-200">
+                        {loading ? (
+                             <div className="py-12 text-center text-gray-500">
+                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f187b5] mx-auto mb-3"></div>
+                                 <p className="text-sm font-medium">Searching inventory...</p>
+                             </div>
+                        ) : products.length > 0 ? (
+                             <div className="flex flex-col gap-1">
+                                 {products.map((product) => {
+                                     const cartItem = cart.find(c => c._id === product._id);
+                                     const qtyInCart = cartItem ? cartItem.qty : 0;
+                                     return (
+                                     <div
+                                         key={product._id}
+                                         onClick={(e) => {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              addToCart(product);
+                                              // setSearchQuery(''); // Kept open for multiple selection
+                                         }}
+                                         className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-all border border-transparent hover:border-[#f187b5]/30 group"
+                                     >
+                                         <div className="w-14 h-14 bg-white rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-200 shadow-sm group-hover:shadow transition-shadow relative">
+                                             {product.mainImage ? (
+                                                 <img src={product.mainImage} alt="" className="w-full h-full object-cover" />
+                                             ) : (
+                                                 <span className="text-[10px] text-gray-400 font-bold">IMG</span>
+                                             )}
+                                             {qtyInCart > 0 && (
+                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                                    <span className="text-white font-bold text-xs">x{qtyInCart}</span>
+                                                </div>
+                                             )}
+                                         </div>
+                                         <div className="flex-1 min-w-0">
+                                             <div className="flex justify-between items-start mb-1">
+                                                 <div className="flex items-center gap-2 pr-2">
+                                                     <h4 className="text-sm font-bold text-gray-800 truncate group-hover:text-[#f187b5] transition-colors">{product.productName}</h4>
+                                                     {qtyInCart > 0 && <span className="text-[10px] bg-[#f187b5] text-white px-1.5 py-0.5 rounded-full font-bold">In Cart</span>}
+                                                 </div>
+                                                 <div className="text-right flex-shrink-0">
+                                                     <span className="block text-sm font-bold text-[#f187b5]">₹{orderType === 'Wholesale' && product.wholesalePrice ? product.wholesalePrice : product.price}</span>
+                                                     {product.compareAtPrice > (orderType === 'Wholesale' && product.wholesalePrice ? product.wholesalePrice : product.price) && (
+                                                         <span className="block text-[10px] text-gray-400 line-through">₹{product.compareAtPrice}</span>
+                                                     )}
+                                                 </div>
+                                             </div>
+                                             <div className="flex justify-between items-center">
+                                                 <div className="flex items-center gap-3 text-xs text-gray-500">
+                                                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${product.stock > 0 ? 'bg-teal-50 text-teal-700 border border-teal-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                                                         {product.stock > 0 ? `Stock: ${product.stock}` : 'Out of Stock'}
+                                                     </span>
+                                                     {product.sku && <span className="hidden sm:inline bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">SKU: {product.sku}</span>}
+                                                     {orderType === 'Wholesale' && product.wholesalePrice && <span className="text-xs text-blue-600 font-medium">Wholesale</span>}
+                                                 </div>
+                                                 <button className="text-xs bg-[#f187b5] hover:bg-[#e076a5] text-white px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all font-bold shadow-sm transform translate-x-2 group-hover:translate-x-0">
+                                                     Add +
+                                                 </button>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 )})}
+                             </div>
+                        ) : (
+                             <div className="py-12 text-center">
+                                 <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                                     <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                 </div>
+                                 <p className="text-gray-600 font-medium">No products found</p>
+                                 <p className="text-xs text-gray-400 mt-1">Try searching with a different name</p>
+                             </div>
+                        )}
+                     </div>
+                 )}
+             </div>
+          </div>
+
+          {/* Bill Tabs */}
+
             <div className="flex items-center gap-2 px-2 pt-2 overflow-x-auto border-b border-gray-200 bg-gray-50">
               {bills.map(bill => (
                 <div
@@ -1497,7 +1489,7 @@ const AdminPOSOrders = () => {
                   className={`
                     flex items-center gap-2 px-3 py-2 rounded-t-lg cursor-pointer border-t border-l border-r transition-all min-w-[100px] justify-between select-none text-xs font-medium
                     ${activeBillId === bill.id
-                      ? 'bg-white border-b-transparent text-[#E91E63] relative -mb-[1px] z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]'
+                      ? 'bg-white border-b-transparent text-[#f187b5] relative -mb-[1px] z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.02)]'
                       : 'bg-gray-100 border-gray-200 text-gray-500 hover:bg-gray-200/50'}
                   `}
                 >
@@ -1514,7 +1506,7 @@ const AdminPOSOrders = () => {
 
               <button
                 onClick={() => createNewBill()}
-                className="flex items-center justify-center w-6 h-6 rounded-full bg-[#E91E63]/10 text-[#E91E63] hover:bg-[#E91E63]/20 transition-colors ml-1 flex-shrink-0"
+                className="flex items-center justify-center w-6 h-6 rounded-full bg-[#f187b5]/10 text-[#f187b5] hover:bg-[#f187b5]/20 transition-colors ml-1 flex-shrink-0"
                 title="New Bill"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
@@ -1555,7 +1547,7 @@ const AdminPOSOrders = () => {
                    <div className="bg-gray-100 p-1 rounded-lg flex relative">
                         {/* Sliding Background */}
                         <div
-                            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#1e293b] rounded-md transition-all duration-300 ease-in-out shadow-sm ${orderType === 'Wholesale' ? 'left-[calc(50%+2px)]' : 'left-1'}`}
+                            className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#f187b5] rounded-md transition-all duration-300 ease-in-out shadow-sm ${orderType === 'Wholesale' ? 'left-[calc(50%+2px)]' : 'left-1'}`}
                         ></div>
 
                         <button
@@ -1580,7 +1572,7 @@ const AdminPOSOrders = () => {
                       <input
                         type="text"
                         placeholder="Search Customer / Mobile..."
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#E91E63] bg-gray-50 focus:bg-white transition-colors"
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#f187b5] bg-gray-50 focus:bg-white transition-colors"
                         value={customerSearch}
                         onChange={(e) => {
                             setCustomerSearch(e.target.value);
@@ -1653,147 +1645,206 @@ const AdminPOSOrders = () => {
                   ) : (
                       cart.map((item, index) => {
                           const sp = getEffectivePrice(item);
-                          const mrp = item.compareAtPrice || sp; // Default to SP if no MRP
+                          const mrp = item.compareAtPrice || sp;
                           const purchasePrice = item.purchasePrice || 0;
                           const profit = sp - purchasePrice;
                           const profitPercent = purchasePrice > 0 ? ((profit / purchasePrice) * 100).toFixed(2) : '0.00';
 
                           return (
-                          <div key={index} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm hover:shadow-md transition-all mb-3 relative overflow-hidden group">
-                              {/* Top Row: Rank, Title, Total */}
-                              <div className="flex justify-between items-start mb-2">
-                                   <div className="flex items-start gap-2 max-w-[70%]">
-                                       <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">#{index + 1}</span>
-                                       <h4 className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">{item.productName}</h4>
-                                   </div>
-                                   <div className="text-right">
-                                       <div className="font-bold text-gray-900 text-base">₹{sp * item.qty}</div>
-                                       {mrp > sp && <div className="text-[10px] text-gray-400 line-through">₹{mrp * item.qty}</div>}
-                                   </div>
-                              </div>
+                          <React.Fragment key={index}>
+                              {/* --- MOBILE VIEW (Card Style) --- */}
+                              <div className="block md:hidden bg-white border border-gray-200 rounded-xl p-3 shadow-sm mb-3">
+                                  {/* Top Row: Rank, Title, Price */}
+                                  <div className="flex justify-between items-start mb-2">
+                                      <div className="flex items-start gap-2 max-w-[70%]">
+                                           <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">#{index + 1}</span>
+                                           <h4 className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">{item.productName}</h4>
+                                      </div>
+                                      <div className="font-bold text-gray-900 text-base">₹{sp * item.qty}</div>
+                                  </div>
 
-                              {/* Middle Row: Image & Details */}
-                              <div className="flex items-center gap-3 mb-3">
-                                   <div className="w-12 h-12 flex-shrink-0 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-center p-1 overflow-hidden">
-                                       {item.mainImage ? (
-                                           <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
-                                       ) : (
-                                           <span className="text-xs text-gray-300">Img</span>
-                                       )}
-                                   </div>
-                                   <div className="flex-1">
-                                       <div className="flex items-center gap-2 text-xs mb-1">
-                                           <span className="text-gray-500">MRP: <span className="line-through decoration-gray-400">₹{mrp}</span></span>
-                                           <span className="font-bold text-[#f187b5]">
-                                               {orderType === 'Wholesale' && (item.wholesalePrice || 0) > 0 ? 'WSP' : 'SP'}: ₹{sp}
-                                           </span>
-                                       </div>
-                                       {showProfit && (
-                                           purchasePrice > 0 ? (
-                                               <div className={`text-xs font-medium ${parseFloat(profitPercent) >= 0 ? 'text-[#f187b5]' : 'text-red-500'}`}>
-                                                   Profit: {profitPercent}%
-                                               </div>
+                                  {/* Middle Row: Image & Pricing Details */}
+                                  <div className="flex items-center gap-3 mb-3">
+                                      <div className="w-12 h-12 flex-shrink-0 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-1 overflow-hidden">
+                                           {item.mainImage ? (
+                                               <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
                                            ) : (
-                                              <div className="text-xs text-gray-400">Profit: -</div>
-                                           )
-                                       )}
-                                   </div>
+                                               <span className="text-xs text-gray-300">Img</span>
+                                           )}
+                                      </div>
+                                      <div className="flex flex-col text-xs">
+                                           <span className="text-gray-500 mb-0.5">MRP: <span className="line-through decoration-gray-400">₹{mrp}</span> <span className="font-bold text-[#f187b5] ml-1">SP: ₹{sp}</span></span>
+
+                                           {showProfit && (
+                                                <span className={`${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'} font-medium`}>
+                                                    Profit: {profitPercent}%
+                                                </span>
+                                           )}
+                                      </div>
+                                  </div>
+
+                                  {/* Bottom Row: Actions & Quantity */}
+                                  <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                          <button
+                                             onClick={() => removeFromCart(item._id)}
+                                             className="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
+                                          >
+                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                          </button>
+                                          <button
+                                             onClick={() => openEditModal(item)}
+                                             className="px-3 py-1.5 flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                                          >
+                                              <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                              Edit
+                                          </button>
+                                      </div>
+
+                                      {/* Quantity Control */}
+                                      <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+                                           <button
+                                             onClick={() => updateQuantity(item._id, -1)}
+                                             className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
+                                           >−</button>
+                                           <div className="w-8 flex items-center justify-center text-sm font-bold text-gray-800">
+                                               {item.qty}
+                                           </div>
+                                           <button
+                                             onClick={() => updateQuantity(item._id, 1)}
+                                             className="w-7 h-7 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
+                                           >+</button>
+                                      </div>
+                                  </div>
                               </div>
 
-                              {/* Bottom Row: Actions */}
-                              <div className="flex items-center justify-between gap-2">
-                                   <div className="flex items-center gap-2">
-                                       <button
-                                          onClick={() => removeFromCart(item._id)}
-                                          className="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
-                                          title="Remove"
-                                       >
-                                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                       </button>
-                                       <button
-                                          onClick={() => openEditModal(item)}
-                                          className="px-3 py-1.5 flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
-                                       >
-                                           <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                           Edit
-                                       </button>
+                              {/* --- DESKTOP VIEW (Row Style) --- */}
+                              <div className="hidden md:flex group items-center gap-4 p-4 border-b border-gray-50 hover:bg-gray-50/80 transition-all last:border-0 relative">
+                                   {/* Index & Image */}
+                                   <div className="flex items-center gap-3">
+                                       <span className="text-gray-300 text-xs font-bold w-5">{index + 1}</span>
+                                       <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center p-1 overflow-hidden shrink-0 shadow-sm">
+                                           {item.mainImage ? (
+                                               <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
+                                           ) : (
+                                               <span className="text-[10px] text-gray-300 font-bold">IMG</span>
+                                           )}
+                                       </div>
                                    </div>
 
-                                   {/* Quantity Control matches image: [-] [ Input ] [+] */}
-                                   <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
-                                        <button
-                                          onClick={() => updateQuantity(item._id, -1)}
-                                          className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold"
-                                        >−</button>
-                                        <div className="w-8 flex items-center justify-center text-sm font-bold text-gray-800">
-                                            {item.qty}
-                                        </div>
+                                   {/* Details */}
+                                   <div className="flex-1 min-w-0">
+                                       <div className="flex justify-between items-start">
+                                           <h4 className="text-sm font-semibold text-gray-800 truncate pr-4" title={item.productName}>{item.productName}</h4>
+                                           <div className="text-right shrink-0">
+                                               <div className="font-bold text-gray-900">₹{sp * item.qty}</div>
+                                               {mrp > sp && <div className="text-[10px] text-gray-400 line-through">₹{mrp * item.qty}</div>}
+                                           </div>
+                                       </div>
+                                       <div className="flex items-center justify-between mt-1">
+                                           <div className="flex items-center gap-2 text-xs">
+                                               <span className="bg-[#f187b5]/10 text-[#f187b5] px-1.5 py-0.5 rounded font-bold">
+                                                   ₹{sp}
+                                               </span>
+                                               {showProfit && (
+                                                   <span className={`px-1.5 py-0.5 rounded font-medium ${parseFloat(profitPercent) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                       {profitPercent}%
+                                                   </span>
+                                               )}
+                                               {orderType === 'Wholesale' && (item.wholesalePrice || 0) > 0 && (
+                                                   <span className="text-blue-500 font-medium text-[10px] border border-blue-100 px-1 rounded">Wholesale</span>
+                                               )}
+                                           </div>
 
-                                        <button
-                                          onClick={() => updateQuantity(item._id, 1)}
-                                          className="w-7 h-7 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold"
-                                        >+</button>
+                                           {/* Actions Row (visible on hover) */}
+                                           <div className="flex items-center gap-3 opacity-100 group-hover:opacity-100 transition-opacity">
+                                               {/* Qty Control */}
+                                               <div className="flex items-center bg-white border border-gray-200 rounded-lg h-7 shadow-sm">
+                                                    <button
+                                                      onClick={() => updateQuantity(item._id, -1)}
+                                                      className="w-7 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l-lg transition-colors"
+                                                    >−</button>
+                                                    <div className="min-w-[24px] px-1 h-full flex items-center justify-center text-xs font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
+                                                        {item.qty}
+                                                    </div>
+                                                    <button
+                                                      onClick={() => updateQuantity(item._id, 1)}
+                                                      className="w-7 h-full flex items-center justify-center text-[#f187b5] hover:bg-gray-50 rounded-r-lg transition-colors font-bold"
+                                                    >+</button>
+                                               </div>
+
+                                               <button
+                                                  onClick={() => openEditModal(item)}
+                                                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                  title="Edit Price/Qty"
+                                               >
+                                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                               </button>
+
+                                               <button
+                                                  onClick={() => removeFromCart(item._id)}
+                                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                  title="Remove Item"
+                                               >
+                                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                               </button>
+                                           </div>
+                                       </div>
                                    </div>
                               </div>
-                          </div>
+                          </React.Fragment>
                       )})
                   )}
               </div>
 
               {/* Footer Summary */}
-              <div className="bg-gray-50 p-4 border-t border-gray-200">
-                  <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm text-gray-600">
-                          <span>Subtotal</span>
-                          <span>₹{calculateTotal()}</span>
+              <div className="bg-gray-50/80 p-6 border-t border-gray-100 backdrop-blur-sm mt-auto rounded-b-2xl">
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
+                      <div className="space-y-1">
+                          <p className="text-gray-500 text-sm">Subtotal</p>
+                          <p className="text-2xl font-bold text-gray-800">₹{calculateTotal()}</p>
                       </div>
-                      <div className="flex justify-between text-lg font-bold text-gray-900 border-t border-gray-200 pt-2">
-                          <span>Total</span>
-                          <span>₹{calculateTotal()}</span>
+
+                      <div className="flex-1 grid grid-cols-2 gap-3 max-w-md">
+                           {!activeBillId.startsWith('edit_') && (
+                             <button
+                               onClick={handleGenerateBill}
+                               disabled={cart.length === 0}
+                               className="bg-white border-2 border-[#f187b5] text-[#f187b5] hover:bg-[#f187b5] hover:text-white font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
+                             >
+                                <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                <span className="hidden sm:inline">Generate Bill</span>
+                                <span className="sm:hidden">Bill</span>
+                             </button>
+                           )}
+
+                           <button
+                             onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
+                             disabled={loading}
+                             className={`col-span-${activeBillId.startsWith('edit_') ? '2' : '1'} ${activeBillId.startsWith('edit_') ? 'bg-[#f187b5] hover:bg-[#e076a5]' : 'bg-gray-900 hover:bg-black'} text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]`}
+                           >
+                              {loading ? (
+                                 <>
+                                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                                     <span>Processing...</span>
+                                 </>
+                              ) : (
+                                 <>
+                                     <span>{activeBillId.startsWith('edit_') ? 'Update Order' : 'Pay & Save'}</span>
+                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                 </>
+                              )}
+                           </button>
                       </div>
-                  </div>
-
-                  <div className="space-y-3">
-
-                      {!activeBillId.startsWith('edit_') && (
-                        <button
-                          onClick={handleGenerateBill}
-                          disabled={cart.length === 0}
-                          className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                           Generate Bill
-                        </button>
-                      )}
 
 
-
-                      <button
-                        onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
-                        disabled={loading}
-                        className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#E91E63] hover:bg-[#D81B60]' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                      >
-                         {loading ? (
-                            <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-                                <span>{activeBillId.startsWith('edit_') ? 'Updating...' : 'Processing...'}</span>
-                            </>
-                         ) : (
-                            <>
-                                <span>{activeBillId.startsWith('edit_') ? 'Update Order' : 'Access Payment'}</span>
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={activeBillId.startsWith('edit_') ? "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" : "M14 5l7 7m0 0l-7 7m7-7H3"}></path></svg>
-                            </>
-                         )}
-                      </button>
-                  </div>
-
-                  {/* Mobile Search and Scan Buttons - Only visible on mobile */}
-                  <div className="md:hidden flex gap-2 mt-4">
+                  {/* Mobile Search and Scan Buttons - Only visible on mobile/tablet */}
+                  <div className="lg:hidden flex gap-2 mt-4">
                     <button
                       onClick={() => setShowMobileSearch(true)}
                       className="flex-[2] bg-white border border-gray-200 text-gray-700 px-3 py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98]"
                     >
-                      <svg className="w-5 h-5 text-[#E91E63]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-[#f187b5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                       </svg>
                       <span className="font-semibold text-sm whitespace-nowrap">Search Items</span>
@@ -1803,14 +1854,14 @@ const AdminPOSOrders = () => {
                       className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98]"
                     >
                       <span className="font-semibold text-sm">Scan</span>
-                      <svg className="w-5 h-5 text-[#E91E63]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg className="w-5 h-5 text-[#f187b5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"/>
                       </svg>
                     </button>
                   </div>
               </div>
+              </div>
             </div>
-          </div>
         </div>
       </div>
 
@@ -1818,7 +1869,7 @@ const AdminPOSOrders = () => {
       {showQuickAdd && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div className="bg-[#E91E63] px-6 py-4 text-white flex justify-between items-center">
+                <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center">
                     <h3 className="font-semibold text-lg">Quick Add Item</h3>
                     <button onClick={() => setShowQuickAdd(false)} className="text-white/80 hover:text-white">✕</button>
                 </div>
@@ -1828,7 +1879,7 @@ const AdminPOSOrders = () => {
                         <input
                            type="text" required
                            value={quickForm.name} onChange={e => setQuickForm({...quickForm, name: e.target.value})}
-                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                            placeholder="Enter item name"
                            autoFocus
                         />
@@ -1839,7 +1890,7 @@ const AdminPOSOrders = () => {
                             <input
                                type="number" min="0" step="0.01"
                                value={quickForm.mrp} onChange={e => setQuickForm({...quickForm, mrp: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1857,7 +1908,7 @@ const AdminPOSOrders = () => {
                             <input
                                type="number" min="0" step="0.01"
                                value={quickForm.wholesalePrice} onChange={e => setQuickForm({...quickForm, wholesalePrice: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1866,7 +1917,7 @@ const AdminPOSOrders = () => {
                             <input
                                type="number" min="0" step="0.01"
                                value={quickForm.purchasePrice} onChange={e => setQuickForm({...quickForm, purchasePrice: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -1875,7 +1926,7 @@ const AdminPOSOrders = () => {
                             <input
                                type="number" required min="1"
                                value={quickForm.qty} onChange={e => setQuickForm({...quickForm, qty: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                             />
                         </div>
                     </div>
@@ -1883,7 +1934,7 @@ const AdminPOSOrders = () => {
                      {/* Add to Inventory Checkbox */}
                     <div className="flex items-center p-3 border border-gray-200 rounded-lg bg-gray-50/50">
                         <label className="flex items-center gap-3 cursor-pointer w-full">
-                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${quickForm.addToInventory ? 'bg-[#1e293b] border-[#1e293b]' : 'bg-white border-gray-300'}`}>
+                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${quickForm.addToInventory ? 'bg-[#f187b5] border-[#f187b5]' : 'bg-white border-gray-300'}`}>
                                 {quickForm.addToInventory && (
                                     <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                                 )}
@@ -1898,7 +1949,7 @@ const AdminPOSOrders = () => {
                         </label>
                     </div>
 
-                    <button type="submit" className="w-full bg-[#E91E63] hover:bg-[#D81B60] text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
+                    <button type="submit" className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
                         Add to Cart
                     </button>
                 </form>
@@ -1910,7 +1961,7 @@ const AdminPOSOrders = () => {
       {editingItem && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div className="bg-[#1e293b] px-6 py-4 text-white flex justify-between items-center">
+                <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center">
                     <h3 className="font-semibold text-lg">Edit Item</h3>
                     <button onClick={() => setEditingItem(null)} className="text-white/80 hover:text-white">✕</button>
                 </div>
@@ -1978,7 +2029,7 @@ const AdminPOSOrders = () => {
                         />
                         <label htmlFor="updateInventory" className="text-sm text-gray-700 font-medium cursor-pointer">Update product details in inventory</label>
                     </div>
-                    <button type="submit" className="w-full bg-[#1e293b] hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
+                    <button type="submit" className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
                         Update Item
                     </button>
                 </form>
@@ -2032,10 +2083,10 @@ const AdminPOSOrders = () => {
 
                          <button
                           onClick={() => handlePaymentSelection('Cash')}
-                          className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[#f187b5] hover:bg-pink-50 transition-all"
+                          className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[#E91E63] hover:bg-[#FCE4EC] transition-all"
                         >
-                            <span className="font-semibold text-gray-700 group-hover:text-[#e076a5]">Cash</span>
-                            <span className="text-gray-300 group-hover:text-[#f187b5]">→</span>
+                            <span className="font-semibold text-gray-700 group-hover:text-[#D81B60]">Cash</span>
+                            <span className="text-gray-300 group-hover:text-[#E91E63]">→</span>
                         </button>
                      </div>
                 </div>
@@ -2054,7 +2105,7 @@ const AdminPOSOrders = () => {
                    </div>
 
                    <div className="flex justify-center mb-4">
-                       <div className="bg-[#E91E63] rounded-full p-1.5">
+                        <div className="bg-[#E91E63] rounded-full p-1.5">
                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                        </div>
                    </div>
@@ -2133,7 +2184,7 @@ const AdminPOSOrders = () => {
                                     setShowSuccessModal(false);
                                     setShowPaymentModal(true);
                                 }}
-                                className="w-full bg-[#E91E63] text-white font-bold py-3 text-[10px] tracking-widest hover:bg-[#D81B60] uppercase rounded shadow-lg animate-pulse"
+                                className="w-full bg-[#f187b5] text-white font-bold py-3 text-[10px] tracking-widest hover:bg-[#e076a5] uppercase rounded shadow-lg animate-pulse"
                             >
                                 [ PROCEED TO PAY ]
                             </button>
@@ -2406,7 +2457,7 @@ const AdminPOSOrders = () => {
       {showMobileSearch && (
         <div className="fixed inset-0 bg-white z-50 flex flex-col md:hidden">
           {/* Header */}
-          <div className="bg-[#E91E63] px-4 py-3 flex items-center gap-3 shadow-md">
+          <div className="bg-[#f187b5] px-4 py-3 flex items-center gap-3 shadow-md">
             <button
               onClick={() => {
                 setShowMobileSearch(false);
@@ -2432,7 +2483,7 @@ const AdminPOSOrders = () => {
           <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
             {loading ? (
               <div className="flex justify-center items-center h-40">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#E91E63]"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f187b5]"></div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -2492,21 +2543,21 @@ const AdminPOSOrders = () => {
                           {/* Add Button */}
                           <div className="flex items-center">
                             {inCart ? (
-                              <div className="flex items-center gap-2 bg-[#E91E63]/10 rounded-lg px-2 py-1">
+                              <div className="flex items-center gap-2 bg-[#f187b5]/10 rounded-lg px-2 py-1">
                                 <button
                                   onClick={() => updateQuantity(product._id, -1)}
-                                  className="w-7 h-7 flex items-center justify-center bg-white text-[#E91E63] rounded hover:bg-[#E91E63] hover:text-white transition-colors border border-[#E91E63]"
+                                  className="w-7 h-7 flex items-center justify-center bg-white text-[#f187b5] rounded hover:bg-[#f187b5] hover:text-white transition-colors border border-[#f187b5]"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"></path>
                                   </svg>
                                 </button>
-                                <span className="font-bold text-[#E91E63] min-w-[20px] text-center">
+                                <span className="font-bold text-[#f187b5] min-w-[20px] text-center">
                                   {cartItem?.qty || 0}
                                 </span>
                                 <button
                                   onClick={() => updateQuantity(product._id, 1)}
-                                  className="w-7 h-7 flex items-center justify-center bg-[#E91E63] text-white rounded hover:bg-[#D81B60] transition-colors"
+                                  className="w-7 h-7 flex items-center justify-center bg-[#f187b5] text-white rounded hover:bg-[#e076a5] transition-colors"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
@@ -2519,7 +2570,7 @@ const AdminPOSOrders = () => {
                                   addToCart(product);
                                 }}
                                 disabled={product.stock <= 0}
-                                className="px-4 py-2 bg-[#E91E63] text-white rounded-lg hover:bg-[#D81B60] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                                className="px-4 py-2 bg-[#f187b5] text-white rounded-lg hover:bg-[#e076a5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                               >
                                 Add
                               </button>

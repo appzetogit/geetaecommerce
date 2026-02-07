@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCreditCustomers, CreditCustomer } from '../../../services/api/admin/creditService';
-import { createCustomer } from '../../../services/api/admin/adminCustomerService';
+import { getCreditCustomers, CreditCustomer } from '../../../services/api/seller/creditService';
+import { createCustomer } from '../../../services/api/seller/sellerCustomerService';
 import { useToast } from '../../../context/ToastContext';
 
-const AdminPOSCustomers = () => {
+const SellerPOSCustomers = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
     const [customers, setCustomers] = useState<CreditCustomer[]>([]);
@@ -87,7 +87,7 @@ const AdminPOSCustomers = () => {
             <div className="bg-white shadow-sm">
                 <div className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => navigate('/admin/pos/orders')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+                        <button onClick={() => navigate('/seller/pos/orders')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
                             </svg>
@@ -110,7 +110,7 @@ const AdminPOSCustomers = () => {
                         <input
                             type="text"
                             placeholder="Search by name or phone"
-                            className="w-full bg-gray-100 border-none rounded-lg px-4 py-3 pl-10 text-base focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                            className="w-full bg-gray-100 border-none rounded-lg px-4 py-3 pl-10 text-base focus:ring-2 focus:ring-[#f187b5]/20 outline-none transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -146,7 +146,7 @@ const AdminPOSCustomers = () => {
                         {customers.map(customer => (
                             <div
                                 key={customer._id || Math.random()}
-                                onClick={() => navigate(`/admin/pos/customers/${customer._id}`)}
+                                onClick={() => navigate(`/seller/pos/customers/${customer._id}`)}
                                 className="p-4 hover:bg-gray-50 active:bg-gray-100 cursor-pointer flex justify-between items-center transition-colors group"
                             >
                                 <div>
@@ -264,4 +264,4 @@ const AdminPOSCustomers = () => {
     );
 };
 
-export default AdminPOSCustomers;
+export default SellerPOSCustomers;

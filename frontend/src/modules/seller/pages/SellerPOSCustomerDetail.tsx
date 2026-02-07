@@ -8,7 +8,7 @@ import {
     initiateCreditPayment,
     verifyCreditPayment,
     CreditTransaction
-} from '../../../services/api/admin/creditService';
+} from '../../../services/api/seller/creditService';
 import { jsPDF } from "jspdf";
 
 // Extended type for UI
@@ -23,7 +23,7 @@ interface CustomerData {
     totalPaid: number;
 }
 
-const AdminPOSCustomerDetail = () => {
+const SellerPOSCustomerDetail = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -74,7 +74,7 @@ const AdminPOSCustomerDetail = () => {
         } catch (error) {
             console.error(error);
             showToast("Failed to load customer details", "error");
-            navigate('/admin/pos/customers');
+            navigate('/seller/pos/customers');
         } finally {
             setLoading(false);
         }
@@ -204,11 +204,6 @@ const AdminPOSCustomerDetail = () => {
 
         // Online Logic
         try {
-            // Initiate
-            // Note: We don't block UI with full screen loader here to allow modal interaction if needed,
-            // but for safety we should probably set a local loading state or global.
-            // Using global loading for now.
-
             const response = await initiateCreditPayment({
                 customerId: customerData!._id,
                 amount: val,
@@ -239,7 +234,7 @@ const AdminPOSCustomerDetail = () => {
                              name: customerData!.name,
                              contact: customerData!.phone,
                         },
-                        theme: { color: "#3399cc" }
+                        theme: { color: "#f187b5" }
                     };
                     const rzp1 = new (window as any).Razorpay(options);
                     rzp1.open();
@@ -256,8 +251,6 @@ const AdminPOSCustomerDetail = () => {
                         paymentSessionId: paymentSessionId,
                         redirectTarget: "_modal",
                      }).then((result: any) => {
-                          // Cashfree JS doesn't always return clear success in promise for modal.
-                          // Trigger verification check.
                           handleVerifyPayment(orderId, "CF_References_Checked_Backend", mode, val);
                      });
                 }
@@ -300,7 +293,7 @@ const AdminPOSCustomerDetail = () => {
         doc.setFontSize(14);
         doc.setFont("helvetica", "bold");
         doc.text(`Rs. ${customerData.creditBalance.toLocaleString()}`, 30, 85);
-        doc.setTextColor(241, 135, 181); // Pink instead of Green
+        doc.setTextColor(241, 135, 181);
         doc.text(`Rs. ${customerData.totalPaid.toLocaleString()}`, 90, 85);
         doc.setTextColor(220, 38, 38); // Red
         doc.text(`Rs. ${customerData.totalCredit.toLocaleString()}`, 150, 85);
@@ -350,7 +343,6 @@ const AdminPOSCustomerDetail = () => {
             }
             doc.setTextColor(0, 0, 0);
 
-            // Row line
             doc.setDrawColor(229, 231, 235);
             const rowHeight = Math.max(10, desc.length * 5 + 5);
             doc.line(20, y + rowHeight, 190, y + rowHeight);
@@ -358,7 +350,6 @@ const AdminPOSCustomerDetail = () => {
             y += rowHeight;
         });
 
-        // Footer
         const pageCount = doc.getNumberOfPages();
         for(let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
@@ -370,17 +361,17 @@ const AdminPOSCustomerDetail = () => {
         doc.save(`${customerData.name.replace(/\s+/g, '_')}_Statement.pdf`);
     };
 
-    if (loading) return <div className="p-10 text-center">Loading...</div>;
+    if (loading) return <div className="p-10 text-center text-[#f187b5] font-semibold animate-pulse">Loading Customer Data...</div>;
     if (!customerData) return <div className="p-10 text-center">Customer not found</div>;
 
     return (
-        <div className="flex flex-col min-h-[calc(100vh-80px)] md:min-h-[calc(100vh-100px)] bg-gray-50/50">
+        <div className="flex flex-col min-h-[calc(100vh-80px)] md:min-h-[calc(100vh-100px)]">
             <div className="flex-1 p-3 sm:p-4 md:p-6 overflow-x-hidden">
                 <div className="max-w-7xl mx-auto space-y-6 pb-24">
                     {/* Header with Back Button */}
                     <div className="flex items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                         <button
-                            onClick={() => navigate('/admin/pos/customers')}
+                            onClick={() => navigate('/seller/pos/customers')}
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                         >
                             <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
@@ -545,95 +536,157 @@ const AdminPOSCustomerDetail = () => {
             {/* Modals and other absolute components */}
             {showPaymentModal && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white w-full max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden slide-in-from-bottom-5">
+                    <div className="bg-white w-full max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
                         <div className="bg-gray-900 px-6 py-4 flex justify-between items-center">
                             <h3 className="text-white font-bold text-lg">Select Payment Method</h3>
                             <button onClick={() => setShowPaymentModal(false)} className="text-gray-400 hover:text-white transition-colors">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
-                        <div className="p-4 pt-8">
-                             {/* Amount Display/Input */}
-                             <div className="text-center mb-8">
-                                <p className="text-gray-500 text-sm font-medium mb-1">Total Amount</p>
-                                <div className="flex items-center justify-center relative">
-                                    <span className="text-4xl font-bold text-gray-900 mr-1">₹</span>
-                                    <input
-                                        type="number" required min="1"
-                                        className="w-32 text-center text-4xl font-bold text-gray-900 outline-none bg-transparent placeholder-gray-300 p-0 m-0"
-                                        placeholder="0"
-                                        value={amount} onChange={e => setAmount(e.target.value)}
-                                        autoFocus
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-3">
-                                {['Razorpay', 'Cashfree', 'Cash'].map((mode) => (
-                                    <button
-                                        key={mode}
-                                        onClick={() => handlePaymentSelection(mode)}
-                                        className="w-full bg-white border border-gray-200 rounded-xl px-6 py-4 flex justify-between items-center hover:border-gray-300 hover:shadow-sm active:bg-gray-50 transition-all group"
-                                    >
-                                        <span className="font-bold text-gray-700 text-base group-hover:text-gray-900">{mode}</span>
-                                        <span className="text-gray-300 group-hover:text-gray-400">
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
+                        <div className="p-4 grid grid-cols-2 gap-3">
+                            {['Cash', 'UPI', 'Card', 'Cheque'].map((mode) => (
+                                <button
+                                    key={mode}
+                                    onClick={() => { setPaymentMode(mode); setShowPaymentModal(false); resetForms(); }}
+                                    className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-100 hover:border-[#f187b5] hover:bg-pink-50 transition-all group"
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-white transition-colors">
+                                        {/* Icons based on mode */}
+                                        {mode === 'Cash' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                                        {mode === 'UPI' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>}
+                                        {mode === 'Card' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>}
+                                        {mode === 'Cheque' && <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>}
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-700">{mode}</span>
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Credit Modal */}
-            {showCreditModal && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden slide-in-from-bottom-5">
-                         <div className="bg-gradient-to-r from-[#f187b5] to-[#e076a5] p-6 text-white text-center">
-                            <h3 className="text-xl font-bold">Add Credit</h3>
-                            <p className="text-white/80 text-sm mt-1">Increase customer balance manualy</p>
-                        </div>
-                        <form onSubmit={handleSaveCredit} className="p-6 space-y-5">
+            {/* Accept Payment Form Modal */}
+            {paymentMode !== 'Cash' && paymentMode !== '' && !showPaymentModal && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden p-6 animate-in zoom-in duration-200">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-[#f187b5]">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Credit Amount</label>
+                                <h3 className="font-black text-gray-900">Accept {paymentMode}</h3>
+                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Enter payment details</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Amount to Pay</label>
                                 <div className="relative">
-                                    <span className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">₹</span>
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
                                     <input
-                                        type="number" required min="1"
-                                        className="w-full pl-8 text-4xl font-bold border-b border-gray-200 focus:border-[#f187b5] outline-none perm-marker-font text-gray-800 placeholder-gray-200 py-2 bg-transparent"
-                                        placeholder="0"
-                                        value={amount} onChange={e => setAmount(e.target.value)}
-                                        autoFocus
+                                        type="number"
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-8 pr-4 py-3 text-sm font-bold focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                                        placeholder="0.00"
                                     />
                                 </div>
                             </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Date</label>
+                                    <input
+                                        type="date"
+                                        value={date}
+                                        onChange={(e) => setDate(e.target.value)}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Reference</label>
+                                    <input
+                                        type="text"
+                                        value={note}
+                                        onChange={(e) => setNote(e.target.value)}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                                        placeholder="Note..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
 
+                        <div className="flex gap-3 mt-8">
+                            <button
+                                onClick={() => { setPaymentMode(''); resetForms(); }}
+                                className="flex-1 py-3 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSavePayment}
+                                className="flex-[2] bg-gradient-to-r from-[#f187b5] to-[#e076a5] text-white font-black text-xs py-3 rounded-xl shadow-lg hover:shadow-xl transition-all"
+                            >
+                                Confirm Payment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Add Credit Modal */}
+            {showCreditModal && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden p-6 animate-in zoom-in duration-200">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center text-[#f187b5]">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                            </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Reason / Note</label>
+                                <h3 className="font-black text-gray-900">Add Credit Balance</h3>
+                                <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Increase customer due</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Credit Amount</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
+                                    <input
+                                        type="number"
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-8 pr-4 py-3 text-sm font-bold focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Notes / Reason</label>
                                 <textarea
-                                    className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-[#f187b5]/10 resize-none"
-                                    rows={2} required
-                                    value={note} onChange={e => setNote(e.target.value)}
-                                    placeholder="Why are you adding this credit?"
+                                    value={note}
+                                    onChange={(e) => setNote(e.target.value)}
+                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#f187b5] focus:outline-none min-h-[80px]"
+                                    placeholder="Enter reason for manual credit..."
                                 />
                             </div>
+                        </div>
 
-                            <div>
-                                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Date</label>
-                                <input type="date" required className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-2 focus:ring-[#f187b5]/10" value={date} onChange={e => setDate(e.target.value)} />
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setShowCreditModal(false)} className="flex-1 py-3.5 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors">
-                                    Cancel
-                                </button>
-                                <button type="submit" className="flex-[2] bg-gray-900 text-white font-bold py-3.5 rounded-xl hover:bg-black shadow-lg hover:shadow-xl transition-all">
-                                    Add Credit
-                                </button>
-                            </div>
-                        </form>
+                        <div className="flex gap-3 mt-8">
+                            <button
+                                onClick={() => { setShowCreditModal(false); resetForms(); }}
+                                className="flex-1 py-3 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveCredit}
+                                className="flex-[2] bg-[#1a1a1a] text-white font-black text-xs py-3 rounded-xl shadow-lg hover:bg-black transition-all"
+                            >
+                                Add Credit
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
@@ -641,4 +694,4 @@ const AdminPOSCustomerDetail = () => {
     );
 };
 
-export default AdminPOSCustomerDetail;
+export default SellerPOSCustomerDetail;

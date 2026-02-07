@@ -867,7 +867,7 @@ export default function AdminDashboard() {
 
         {/* View Top Seller Table */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+          <div className="bg-[#f187b5] text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">
               View Top Seller
             </h2>
@@ -884,7 +884,7 @@ export default function AdminDashboard() {
                   setEntriesPerPage(Math.max(1, Math.min(100, value)));
                   setCurrentPage(1);
                 }}
-                className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[#f187b5] focus:border-[#f187b5]"
                 min="1"
                 max="100"
               />
@@ -971,7 +971,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <button
-                          className="bg-teal-600 hover:bg-teal-700 text-white p-2 rounded transition-colors"
+                          className="bg-[#f187b5] hover:bg-[#e076a5] text-white p-2 rounded transition-colors"
                           aria-label="View seller">
                           <svg
                             width="16"
@@ -1075,7 +1075,7 @@ export default function AdminDashboard() {
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
         Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-teal-600 hover:text-teal-700">
+        <a href="#" className="text-[#f187b5] hover:text-[#e076a5]">
           Geeta Stores - 10 Minute App
         </a>
       </div>
