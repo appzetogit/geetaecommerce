@@ -100,16 +100,16 @@ export default function SellerLogin() {
       {/* Login Card */}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header Section */}
-        <div className="px-6 py-6 text-center border-b border-seller-700" style={{ backgroundColor: 'rgb(21 178 74 / var(--tw-bg-opacity, 1))' }}>
+        <div className="px-6 py-4 text-center border-b border-[#f187b5]/20 bg-[#f187b5]">
           <div className="mb-4">
             <img
               src="/assets/geetastoreslogo.png"
               alt="Geeta Stores"
-              className="h-32 w-auto mx-auto object-contain"
+              className="h-28 w-auto mx-auto object-contain"
             />
           </div>
           <h1 className="text-2xl font-bold text-white mb-1">Seller Login</h1>
-          <p className="text-seller-50 text-sm">Access your seller dashboard</p>
+          <p className="text-white/80 text-sm">Access your seller dashboard</p>
         </div>
 
         {/* Login Form */}
@@ -146,12 +146,17 @@ export default function SellerLogin() {
               <button
                 onClick={handleMobileLogin}
                 disabled={mobileNumber.length !== 10 || loading}
-                className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors ${mobileNumber.length === 10 && !loading
-                  ? 'bg-seller-600 text-white hover:bg-seller-700 shadow-md'
+                className={`w-full py-3 rounded-xl font-bold text-sm transition-all shadow-lg active:scale-[0.98] ${mobileNumber.length === 10 && !loading
+                  ? 'bg-gradient-to-r from-[#f187b5] to-[#e076a5] text-white hover:shadow-xl'
                   : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                   }`}
               >
-                {loading ? 'Sending...' : 'Continue'}
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Sending...</span>
+                  </div>
+                ) : 'Continue'}
               </button>
             </div>
           ) : (
@@ -183,7 +188,7 @@ export default function SellerLogin() {
                 >
                   Change Number
                 </button>
-                <button
+                 <button
                   onClick={async () => {
                     setLoading(true);
                     setError('');
@@ -204,7 +209,7 @@ export default function SellerLogin() {
                     }
                   }}
                   disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-seller-600 text-white hover:bg-seller-700 transition-colors"
+                  className="flex-1 py-2.5 rounded-lg font-bold text-sm bg-gradient-to-r from-[#f187b5] to-[#e076a5] text-white hover:shadow-md transition-all active:scale-[0.98]"
                 >
                   {loading ? 'Sending...' : 'Resend OTP'}
                 </button>
@@ -222,7 +227,7 @@ export default function SellerLogin() {
               Don't have a seller account?{' '}
               <button
                 onClick={() => navigate('/seller/signup')}
-                className="text-seller-600 hover:text-seller-700 font-semibold"
+                className="text-[#f187b5] hover:text-[#e076a5] font-bold"
               >
                 Sign Up
               </button>

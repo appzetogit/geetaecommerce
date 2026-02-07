@@ -214,8 +214,7 @@ export default function SellerSignUp() {
       {/* Sign Up Card */}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header Section */}
-        {/* Header Section */}
-        <div className="px-6 py-1 text-center border-b border-seller-700" style={{ backgroundColor: 'rgb(21 178 74 / var(--tw-bg-opacity, 1))' }}>
+        <div className="px-6 py-1 text-center border-b border-[#f187b5]/20 bg-[#f187b5]">
           <div className="mb-1">
             <img
               src="/assets/geetastoreslogo.png"
@@ -224,7 +223,7 @@ export default function SellerSignUp() {
             />
           </div>
           <h1 className="text-xl md:text-2xl font-bold text-white mb-1">Seller Sign Up</h1>
-          <p className="text-seller-50 text-sm">Create your seller account</p>
+          <p className="text-white/80 text-sm">Create your seller account</p>
         </div>
 
         {/* Sign Up Form */}
@@ -489,12 +488,17 @@ export default function SellerSignUp() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors ${!loading
-                  ? 'bg-seller-600 text-white hover:bg-seller-700 shadow-md'
+                className={`w-full py-3 rounded-xl font-bold text-sm transition-all shadow-lg active:scale-[0.98] ${!loading
+                  ? 'bg-gradient-to-r from-[#f187b5] to-[#e076a5] text-white hover:shadow-xl'
                   : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                   }`}
               >
-                {loading ? 'Creating Account...' : 'Sign Up'}
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Creating Account...</span>
+                  </div>
+                ) : 'Sign Up'}
               </button>
 
               {/* Login Link */}
@@ -504,7 +508,7 @@ export default function SellerSignUp() {
                   <button
                     type="button"
                     onClick={() => navigate('/seller/login')}
-                    className="text-seller-600 hover:text-seller-700 font-semibold"
+                    className="text-[#f187b5] hover:text-[#e076a5] font-bold"
                   >
                     Login
                   </button>
