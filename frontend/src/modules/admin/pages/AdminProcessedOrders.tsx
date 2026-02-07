@@ -116,7 +116,7 @@ export default function AdminProcessedOrders() {
   };
 
   const filteredAndSortedOrders = useMemo(() => {
-    let filtered = [...orders];
+    const filtered = [...orders];
 
     if (sortField) {
       filtered.sort((a, b) => {

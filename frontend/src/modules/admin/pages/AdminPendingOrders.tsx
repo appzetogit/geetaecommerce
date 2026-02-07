@@ -162,7 +162,7 @@ export default function AdminPendingOrders() {
   };
 
   const filteredAndSortedOrders = useMemo(() => {
-    let filtered = [...orders];
+    const filtered = [...orders];
 
     // Sort
     if (sortField) {

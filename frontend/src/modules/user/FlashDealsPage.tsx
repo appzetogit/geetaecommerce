@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "./components/ProductCard";
-import { getProducts, getProductById } from "../../services/api/customerProductService";
+import { getProductById } from "../../services/api/customerProductService";
 import { bannerService } from "../../services/bannerService";
 import { useThemeContext } from "../../context/ThemeContext";
 import { getTheme } from "../../utils/themes";

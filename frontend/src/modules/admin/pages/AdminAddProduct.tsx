@@ -245,7 +245,7 @@ export default function AdminAddProduct() {
        // 2. Attributes
        // 3. Units
 
-       let dimensions: string[][] = [];
+       const dimensions: string[][] = [];
 
        if (enableColors && selectedColors.length > 0) {
            dimensions.push(selectedColors.map(c => c.name));
@@ -1186,7 +1186,7 @@ export default function AdminAddProduct() {
       }
 
       // Auto-add current variation if form is filled but list is empty
-      let finalVariations = [...variations];
+      const finalVariations = [...variations];
 
       const price = parseFloat(variationForm.price);
       const compareAtPrice = variationForm.compareAtPrice ? parseFloat(variationForm.compareAtPrice) : 0;

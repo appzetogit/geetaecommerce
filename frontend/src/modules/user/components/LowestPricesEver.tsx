@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProducts } from '../../../services/api/customerProductService';
 
-import { getTheme } from '../../../utils/themes';
 import { useCart } from '../../../context/CartContext';
 import { Product } from '../../../types/domain';
 import { useWishlist } from '../../../hooks/useWishlist';
@@ -421,10 +420,12 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
     return filtered
       .filter((product: any) => {
         if (!product) return false;
-        const mrpValue = product.mrp ?? 0;
-        const priceValue = product.price ?? 0;
+        const mrpValue = product.mrp;
+        const priceValue = product.price;
 
-        if (mrpValue <= 0 || priceValue <= 0) return false;
+        if (mrpValue === undefined || priceValue === undefined || mrpValue <= 0 || priceValue <= 0) {
+          return false;
+        }
 
         const discountPercentage = Math.round(((mrpValue - priceValue) / mrpValue) * 100);
         return discountPercentage > 0;

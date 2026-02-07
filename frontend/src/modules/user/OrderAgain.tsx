@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import HomeHero from './components/HomeHero';
@@ -52,8 +52,9 @@ export default function OrderAgain() {
     order.items
       .filter((item: any) => item?.product) // Filter out items with null/undefined products
       .forEach((item: any) => {
-        const qty = item.quantity ?? 0;
         const prod = item.product;
+        if (!prod) return;
+        const qty = item.quantity ?? 0;
         // Use optional chaining carefully - extract ID immediately
         const productId = prod?.id || prod?._id;
 
@@ -159,12 +160,11 @@ export default function OrderAgain() {
                       <div className="flex items-center gap-1">
                         {previewItems
                           .map((item: any, idx) => {
-                            if (!item?.product) return null;
-
-                            const product = item.product;
-                            const prodId = product.id || product._id;
-                            const productName = product.name || product.productName || '?';
-                            const imageUrl = product.imageUrl;
+                            const prod = item?.product;
+                            if (!prod) return null;
+                            const prodId = prod.id || prod._id || `unknown-${idx}`;
+                            const productName = prod.name || (prod as any).productName || '?';
+                            const imageUrl = prod.imageUrl;
                             const firstChar = productName.charAt(0).toUpperCase();
 
                             return (
@@ -244,7 +244,6 @@ export default function OrderAgain() {
 
             const name = (product as any).name || (product as any).productName;
             const imageUrl = (product as any).imageUrl;
-            const pack = (product as any).pack;
             const firstChar = name?.charAt(0).toUpperCase();
 
             return (

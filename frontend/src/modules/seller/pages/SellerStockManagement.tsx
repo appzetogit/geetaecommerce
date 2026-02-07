@@ -197,7 +197,7 @@ export default function SellerStockManagement() {
     };
 
     // Filter items
-    let filteredItems = stockItems.filter(item => {
+    const filteredItems = stockItems.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.seller.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = categoryFilter === 'All Category' || item.category === categoryFilter;
@@ -274,6 +274,19 @@ export default function SellerStockManagement() {
                                 Your account is currently disabled. You can monitor stock but cannot update it.
                             </span>
                         </div>
+                    </div>
+                )}
+
+                {loading && (
+                    <div className="flex flex-col items-center justify-center p-12">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-seller-600 mb-4"></div>
+                        <div className="text-neutral-500 font-medium">Loading stock data...</div>
+                    </div>
+                )}
+
+                {error && (
+                    <div className="p-6 bg-red-50 border-b border-red-200">
+                        <p className="text-red-600 text-sm font-medium text-center">{error}</p>
                     </div>
                 )}
 

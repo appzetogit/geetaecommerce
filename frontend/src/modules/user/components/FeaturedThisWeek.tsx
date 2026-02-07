@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { getProducts } from '../../../services/api/customerProductService';
 
 interface FeaturedCard {
@@ -11,36 +11,6 @@ interface FeaturedCard {
   borderColor: string;
 }
 
-const featuredCards: FeaturedCard[] = [
-  {
-    id: 'newly-launched',
-    type: 'newly-launched',
-    bgColor: 'bg-yellow-50',
-    borderColor: 'border-yellow-200',
-  },
-  {
-    id: 'price-drop',
-    type: 'price-drop',
-    title: 'PRICE DROP',
-    bgColor: 'bg-blue-900',
-    borderColor: 'border-blue-500',
-  },
-  {
-    id: 'plum-cakes',
-    type: 'plum-cakes',
-    title: 'Plum Cakes',
-    bgColor: 'bg-red-900',
-    borderColor: 'border-white',
-  },
-  {
-    id: 'fresh-arrivals',
-    type: 'featured',
-    title: 'Fresh Arrivals',
-    categoryId: 'fruits-veg',
-    bgColor: 'bg-green-600',
-    borderColor: 'border-green-400',
-  },
-];
 
 export default function FeaturedThisWeek() {
   const [currentProductIndex, setCurrentProductIndex] = useState(0);

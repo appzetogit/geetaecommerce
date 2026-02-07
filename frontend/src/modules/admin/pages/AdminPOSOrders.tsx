@@ -1189,7 +1189,7 @@ const AdminPOSOrders = () => {
                 variationId: item.variationId
             })),
             paymentMethod: 'Cash',
-            paymentStatus: "Paid" as "Paid"
+            paymentStatus: "Paid" as const
         };
 
         const response = await createPOSOrder(orderData);
@@ -1228,7 +1228,7 @@ const AdminPOSOrders = () => {
                     variationId: item.variationId
                 })),
                 paymentMethod: 'Credit',
-                paymentStatus: "Pending" as "Pending"
+                paymentStatus: "Pending" as const
             };
 
             const response = await createPOSOrder(orderData);

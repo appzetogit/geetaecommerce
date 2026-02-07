@@ -19,7 +19,7 @@ export default function DealOfTheDay() {
       try {
         const config = await bannerService.getDealsConfig();
 
-        let products: Product[] = [];
+        const products: Product[] = [];
 
         // Check for multiple IDs first
         if (config.dealOfTheDayProductIds && config.dealOfTheDayProductIds.length > 0) {

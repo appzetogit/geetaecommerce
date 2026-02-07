@@ -270,7 +270,7 @@ export default function AdminStockManagement() {
       const qty = 1; // Default to 1 for quick print from list
       const savedSize = localStorage.getItem('barcode_print_size') || 'medium';
 
-      let customSettings = barcodeSettings;
+      const customSettings = barcodeSettings;
       let containerWidth = 250;
       let barcodeHeight = 55;
       let fontSize = 14;

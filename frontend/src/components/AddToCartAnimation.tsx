@@ -72,14 +72,28 @@ export default function AddToCartAnimation({
     const prevItems = prevItemsRef.current;
     const currentItems = cart.items;
 
-    // Find removed product by comparing previous and current items
+     // Find removed product by comparing previous and current items
     if (prevItems.length > currentItems.length) {
       const removed = prevItems.find(
-        (prevItem) => !currentItems.some((currItem) => currItem.product.id === prevItem.product.id)
+        (prevItem) => {
+          const prevProd = prevItem.product;
+          if (!prevProd) return false;
+          const prevId = prevProd.id || prevProd._id;
+
+          return !currentItems.some((currItem) => {
+             const currProd = currItem.product;
+             if (!currProd) return false;
+             const currId = currProd.id || currProd._id;
+             return currId === prevId;
+          });
+        }
       );
 
       if (removed) {
-        setRemovedProduct(removed.product);
+        const prod = removed.product;
+        if (prod) {
+          setRemovedProduct(prod);
+        }
 
         // Animate the removed thumbnail bouncing out
         setTimeout(() => {
@@ -365,9 +379,17 @@ export default function AddToCartAnimation({
               {/* Left: Cart Icon or Product thumbnails */}
               {cart.itemCount > 0 ? (
                 <div className="flex items-center -space-x-4">
-                  {thumbnailItems.map((item, idx) => (
+                  {thumbnailItems.map((item, idx) => {
+                    const prod = item.product;
+                    if (!prod) return null;
+                    const prodId = prod.id || prod._id || 'item';
+                    const imageUrl = prod.imageUrl || prod.mainImage;
+                    const prodName = prod.name || prod.productName || 'Product';
+                    const firstChar = (prodName || 'P').charAt(0).toUpperCase();
+
+                    return (
                     <motion.div
-                      key={`${item.product._id || item.product.id || 'item'}-${idx}`}
+                      key={`${prodId}-${idx}`}
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{
@@ -378,19 +400,20 @@ export default function AddToCartAnimation({
                       }}
                       className="w-7 h-7 rounded-full border-2 border-white/90 overflow-hidden bg-white flex-shrink-0 shadow-md"
                     >
-                      {item.product.imageUrl || item.product.mainImage ? (
+                      {imageUrl ? (
                         <img
-                          src={item.product.imageUrl || item.product.mainImage}
-                          alt={item.product.name || item.product.productName || 'Product'}
+                          src={imageUrl}
+                          alt={prodName}
                           className="w-full h-full object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-neutral-200 text-neutral-400 text-xs font-semibold">
-                          {(item.product.name || item.product.productName || 'P').charAt(0).toUpperCase()}
+                          {firstChar}
                         </div>
                       )}
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <motion.div

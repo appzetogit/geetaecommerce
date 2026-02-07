@@ -109,16 +109,26 @@ export function OrdersProvider({ children }: { children: ReactNode }) {
           longitude: order.address.longitude ?? 0,
         },
         paymentMethod: order.paymentMethod || "COD",
-        items: order.items.map((item) => ({
-          product: {
-            id: item.product.id || (item.product as { _id?: string })._id || '',
-          },
-          quantity: item.quantity,
-          variant: item.variant, // Pass variant if available
-          isFreeGift: (item as any).isFreeGift,
-          price: (item as any).price,
-          freeGiftReason: (item as any).freeGiftReason
-        })),
+        items: order.items.map((item) => {
+          const prod = item.product;
+          // IMPORTANT: Check for existence
+          if (!prod) {
+             throw new Error('Product is missing in order item');
+          }
+          const prodId = prod.id || (prod as any)._id || '';
+          const qty = item.quantity || 1; // Default to 1 if missing
+
+          return {
+            product: {
+              id: prodId,
+            },
+            quantity: qty,
+            variant: item.variant, // Pass variant if available
+            isFreeGift: (item as any).isFreeGift,
+            price: (item as any).price,
+            freeGiftReason: (item as any).freeGiftReason
+          };
+        }),
         fees: {
           deliveryFee: order.fees?.deliveryFee || 0,
           platformFee: order.fees?.platformFee || 0,

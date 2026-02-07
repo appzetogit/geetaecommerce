@@ -6,7 +6,7 @@ import { useCart } from '../../context/CartContext';
 import { useLocation } from '../../hooks/useLocation';
 import { useToast } from '../../context/ToastContext';
 import Button from '../../components/ui/button';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { calculateProductPrice } from '../../utils/priceUtils';
 
 export default function Wishlist() {

@@ -5,13 +5,13 @@ import { appConfig } from '../../services/configService';
 import { calculateProductPrice, getApplicableUnitPrice } from '../../utils/priceUtils';
 
 export default function Cart() {
-  const { cart, updateQuantity, removeFromCart, clearCart, freeGiftRules: activeRules } = useCart();
+  const { cart, updateQuantity, removeFromCart, clearCart, freeGiftRules: activeRules, loading } = useCart();
   const navigate = useNavigate();
 
 
-  const deliveryFee = cart.total >= appConfig.freeDeliveryThreshold ? 0 : appConfig.deliveryFee;
-  const platformFee = appConfig.platformFee;
-  const totalAmount = cart.total + deliveryFee + platformFee;
+  const deliveryFee = (cart.total || 0) >= (appConfig.freeDeliveryThreshold || 500) ? 0 : (appConfig.deliveryFee || 40);
+  const platformFee = appConfig.platformFee || 0;
+  const totalAmount = (cart.total || 0) + deliveryFee + platformFee;
 
   const handleCheckout = () => {
     navigate('/checkout');
@@ -53,9 +53,10 @@ export default function Cart() {
         {(() => {
             if (activeRules.length === 0) return null;
 
-            const currentTotal = cart.total;
+            const currentTotal = cart.total || 0;
+            if (activeRules.length === 0) return null;
             const highestRule = activeRules[activeRules.length - 1];
-            const maxTarget = highestRule.minCartValue;
+            const maxTarget = highestRule.minCartValue || 1000;
 
             // Find next milestone
             const nextRule = activeRules.find(r => r.minCartValue > currentTotal);
@@ -124,32 +125,34 @@ export default function Cart() {
       {/* Cart Items */}
       <div className="px-4 md:px-6 lg:px-8 space-y-4 md:space-y-6 mb-4 md:mb-6">
         {cart.items.map((item) => {
-          if (!item.product) return null;
+          const prod = item.product;
+          if (!prod) return null;
 
-          const product = item.product;
           const qty = item.quantity ?? 0;
-          const { displayPrice, mrp, hasDiscount } = calculateProductPrice(product, item.variant);
-          const applicableUnitPrice = getApplicableUnitPrice(product, item.variant, qty || 1);
+          const { displayPrice, mrp, hasDiscount } = calculateProductPrice(prod, item.variant);
+          const applicableUnitPrice = getApplicableUnitPrice(prod, item.variant, qty || 1);
           const isTieredApplied = applicableUnitPrice < displayPrice;
           const isFreeGift = item.isFreeGift;
 
+          const prodId = prod.id || prod._id || '';
+
           return (
             <div
-              key={product.id}
+              key={prodId}
               className="bg-white rounded-lg border border-neutral-200 p-4 md:p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex gap-4 md:gap-6">
                 {/* Product Image */}
                 <div className="w-20 h-20 md:w-24 md:h-24 bg-neutral-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  {product.imageUrl ? (
+                  {prod.imageUrl ? (
                     <img
-                      src={product.imageUrl}
-                      alt={product.name}
+                      src={prod.imageUrl}
+                      alt={prod.name}
                       className="w-full h-full object-cover rounded-lg"
                     />
                   ) : (
                     <span className="text-2xl text-neutral-400">
-                      {product.name.charAt(0).toUpperCase()}
+                      {(prod.name || 'P').charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
@@ -157,81 +160,87 @@ export default function Cart() {
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-neutral-900 mb-1 md:mb-2 line-clamp-2 md:text-lg">
-                    {product.name}
+                    {prod.name}
                   </h3>
-                  <p className="text-xs md:text-sm text-neutral-500 mb-2">{product.pack}</p>
-                  <div className="flex items-center gap-2 mb-3 md:mb-4">
-                    <span className="text-base md:text-lg font-bold text-neutral-900">
-                      ₹{applicableUnitPrice.toLocaleString('en-IN')}
-                    </span>
-                    {(hasDiscount || isTieredApplied) && (
-                      <span className="text-xs md:text-sm text-neutral-500 line-through">
-                        ₹{mrp > displayPrice ? mrp.toLocaleString('en-IN') : displayPrice.toLocaleString('en-IN')}
-                      </span>
-                    )}
-                    {isTieredApplied && (
-                         <span className="text-xs font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
-                           Bulk Price
-                         </span>
-                    )}
+                  <div className="text-sm text-neutral-500 mb-2 md:mb-3">
+                    {item.variant ? `Variant: ${item.variant}` : (prod.pack || '')}
                   </div>
 
-                  {/* Quantity Controls */}
-                  {isFreeGift ? (
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-100">
-                              Qty: 1 (Free Gift) 🎁
+                        <span className="font-bold text-neutral-900 text-base md:text-lg">
+                          ₹{applicableUnitPrice.toLocaleString('en-IN')}
+                        </span>
+                        {mrp > applicableUnitPrice && (
+                          <span className="text-xs md:text-sm text-neutral-400 line-through">
+                            ₹{mrp.toLocaleString('en-IN')}
                           </span>
+                        )}
                       </div>
-                  ) : (
-                  <div className="flex items-center gap-3 md:gap-4">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateQuantity(product.id, qty - 1, item.variant, product.pack)}
-                      className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-green-600 hover:text-green-600 md:text-lg"
-                    >
-                      −
-                    </Button>
-                    <span className="text-base md:text-lg font-semibold text-neutral-900 min-w-[2rem] md:min-w-[2.5rem] text-center">
-                      {qty}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateQuantity(product.id, qty + 1, item.variant, product.pack)}
-                      className="w-8 h-8 md:w-10 md:h-10 p-0 border-neutral-300 text-neutral-600 hover:border-green-600 hover:text-green-600 md:text-lg"
-                    >
-                      +
-                    </Button>
-                    <div className="ml-auto text-right">
-                      <div className="text-sm md:text-base font-bold text-neutral-900">
-                        ₹{(applicableUnitPrice * qty).toFixed(0)}
-                      </div>
+                      {hasDiscount && (
+                        <span className="text-xs text-green-600 font-medium">
+                          {Math.round(((mrp - applicableUnitPrice) / mrp) * 100)}% OFF
+                        </span>
+                      )}
+                      {isTieredApplied && (
+                         <span className="text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded">
+                           Bulk Price Applied
+                         </span>
+                      )}
                     </div>
+
+                    {!isFreeGift ? (
+                    <div className="flex items-center gap-3 bg-neutral-100 rounded-lg p-1">
+                      <button
+                        onClick={() => {
+                           const vId = (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
+                           const vTitle = (prod as any).variantTitle || (prod as any).pack;
+                           updateQuantity(prodId, qty - 1, vId, vTitle);
+                        }}
+                        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-neutral-600 hover:text-red-500 disabled:opacity-50 transition-colors"
+                        disabled={loading}
+                      >
+                        -
+                      </button>
+                      <span className="w-6 md:w-8 text-center font-medium text-sm md:text-base">{qty}</span>
+                      <button
+                        onClick={() => {
+                           const vId = (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
+                           const vTitle = (prod as any).variantTitle || (prod as any).pack;
+                           updateQuantity(prodId, qty + 1, vId, vTitle);
+                        }}
+                        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-neutral-600 hover:text-green-600 disabled:opacity-50 transition-colors"
+                        disabled={loading}
+                      >
+                        +
+                      </button>
+                    </div>
+                    ) : (
+                        <div className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                            FREE GIFT
+                        </div>
+                    )}
                   </div>
-                  )}
                 </div>
 
-                {/* Remove Button */}
+                {/* Delete Button */}
                 {!isFreeGift && (
                 <button
-                  onClick={() => removeFromCart(product.id)}
-                  className="text-neutral-400 hover:text-red-600 transition-colors self-start"
+                  onClick={() => removeFromCart(prodId)}
+                  className="text-neutral-400 hover:text-red-500 p-1 md:p-2 transition-colors self-start"
+                  disabled={loading}
                   aria-label="Remove item"
                 >
-                  ✕
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                 </button>
-                )}
-                {isFreeGift && (
-                    <div className="self-start text-green-500" title="Cannot remove free gift">
-                        🔒
-                    </div>
                 )}
               </div>
             </div>
           );
-        }).filter(Boolean)}
+        })}
       </div>
 
       {/* Order Summary */}
@@ -241,11 +250,11 @@ export default function Cart() {
           <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
             <div className="flex justify-between text-neutral-700 md:text-base">
               <span>Subtotal</span>
-              <span className="font-medium">₹{cart.total.toLocaleString('en-IN')}</span>
+              <span className="font-medium">₹{(cart.total || 0).toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between text-neutral-700 md:text-base">
               <span>Platform Fee</span>
-              <span className="font-medium">₹{platformFee.toLocaleString('en-IN')}</span>
+              <span className="font-medium">₹{(platformFee || 0).toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between text-neutral-700 md:text-base">
               <span>Delivery Charges</span>
@@ -253,9 +262,9 @@ export default function Cart() {
                 {deliveryFee === 0 ? 'Free' : `₹${deliveryFee.toLocaleString('en-IN')}`}
               </span>
             </div>
-            {cart.total < appConfig.freeDeliveryThreshold && (
+            {(cart.total || 0) < (appConfig.freeDeliveryThreshold || 500) && (
               <div className="text-xs md:text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
-                Add ₹{(appConfig.freeDeliveryThreshold - cart.total).toLocaleString('en-IN')} more for free delivery
+                Add ₹{((appConfig.freeDeliveryThreshold || 500) - (cart.total || 0)).toLocaleString('en-IN')} more for free delivery
               </div>
             )}
           </div>
@@ -263,7 +272,7 @@ export default function Cart() {
             <div className="flex justify-between items-center mb-4 md:mb-6">
               <span className="text-lg md:text-xl font-bold text-neutral-900">Total</span>
               <span className="text-xl md:text-2xl font-bold text-neutral-900">
-                ₹{totalAmount.toLocaleString('en-IN')}
+                ₹{(totalAmount || 0).toLocaleString('en-IN')}
               </span>
             </div>
             <Button

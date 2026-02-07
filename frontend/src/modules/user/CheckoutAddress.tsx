@@ -461,14 +461,13 @@ export default function CheckoutAddress() {
           {/* Cart Items */}
           <div className="space-y-2 mb-3">
             {cart.items.map((item: any) => {
-              if (!item?.product) return null;
-
-              const product = item.product;
-              const { displayPrice } = calculateProductPrice(product);
+              const prod = item?.product;
+              if (!prod) return null;
+              const { displayPrice } = calculateProductPrice(prod);
               const qty = item.quantity ?? 0;
-              const prodId = product.id || product._id;
-              const prodName = product.name || product.productName;
-              const prodPack = product.pack;
+              const prodId = prod.id || prod._id || '';
+              const prodName = prod.name || (prod as any).productName;
+              const prodPack = prod.pack;
 
               return (
                 <div key={prodId} className="flex items-center justify-between text-xs">

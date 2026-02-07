@@ -46,7 +46,7 @@ export default function SellerWallet() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [currentPage, setCurrentPage] = useState(1);
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const entriesPerPage = 10;
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   // Real stats state
@@ -308,6 +308,13 @@ export default function SellerWallet() {
             ))}
           </nav>
         </div>
+
+        {/* Status Filter */}
+        {error && (
+          <div className="mx-4 sm:mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm font-medium text-center">{error}</p>
+          </div>
+        )}
 
         {/* Filters Panel */}
         <div className="p-4 sm:p-6 border-b border-neutral-200 bg-neutral-50/30">

@@ -100,9 +100,7 @@ export default function SellerAddProduct() {
   );
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>("");
-  const [successMessage, setSuccessMessage] = useState<string>("");
   const [isScanning, setIsScanning] = useState(false);
-  const [scanTarget, setScanTarget] = useState<"product" | "variation">("product");
   const scannerRef = React.useRef<Html5Qrcode | null>(null);
 
   // Print Barcode State
@@ -325,7 +323,6 @@ export default function SellerAddProduct() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
-  const [subSubCategories, setSubSubCategories] = useState<SubSubCategory[]>([]);
   const [taxes, setTaxes] = useState<Tax[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [headerCategories, setHeaderCategories] = useState<HeaderCategory[]>(
@@ -510,12 +507,13 @@ export default function SellerAddProduct() {
       if (formData.subcategory) {
         try {
           const res = await getSubSubCategories(formData.subcategory);
-          if (res.success) setSubSubCategories(res.data);
+          if (res.success) {
+            // Updated list of sub-subcategories fetched, but currently not used in UI list
+          }
         } catch (err) {
           console.error("Error fetching sub-subcategories:", err);
         }
       } else {
-        setSubSubCategories([]);
         setFormData((prev) => ({ ...prev, subSubCategory: "" }));
       }
     };
@@ -545,7 +543,6 @@ export default function SellerAddProduct() {
             subSubCategory: "",
           }));
           setSubcategories([]);
-          setSubSubCategories([]);
         }
       }
     } else {
@@ -678,7 +675,6 @@ export default function SellerAddProduct() {
 
   const startScanning = (target: "product" | "variation" = "product") => {
     setIsScanning(true);
-    setScanTarget(target);
     // Slight delay to ensure DOM element exists
     setTimeout(() => {
         const html5QrCode = new Html5Qrcode("reader");
@@ -699,12 +695,10 @@ export default function SellerAddProduct() {
                 // Optional: Play a beep sound
                 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
                 audio.play().catch(e => console.log('Audio play failed', e));
-                setSuccessMessage("Barcode Scanned Successfully!");
-                setTimeout(() => setSuccessMessage(""), 3000);
+                setTimeout(() => {}, 3000);
             },
-            (errorMessage) => {
+            () => {
                 // Error callback (scanning...)
-                // console.log(errorMessage);
             }
         ).catch(err => {
             console.error("Error starting scanner", err);
@@ -757,8 +751,6 @@ export default function SellerAddProduct() {
           setMainImagePreview(searchedImage);
           setMainImageFile(null); // Clear file since using URL
           setSearchedImage("");
-          setSuccessMessage("Image applied successfully!");
-          setTimeout(() => setSuccessMessage(""), 2000);
       }
   };
 
@@ -822,7 +814,7 @@ export default function SellerAddProduct() {
       }
 
       // Auto-add current variation if form is filled but list is empty
-      let finalVariations = [...variations];
+      const finalVariations = [...variations];
       if (finalVariations.length === 0) {
         if (variationForm.title && variationForm.price) {
           const price = parseFloat(variationForm.price);
@@ -908,11 +900,7 @@ export default function SellerAddProduct() {
       }
 
       if (response.success) {
-        setSuccessMessage(
-          id ? "Product updated successfully!" : "Product added successfully!"
-        );
         setTimeout(() => {
-          // Reset form or navigate
           if (!id) {
             setFormData({
               productName: "",
@@ -957,8 +945,6 @@ export default function SellerAddProduct() {
             setGalleryImageFiles([]);
             setGalleryImagePreviews([]);
           }
-          setSuccessMessage("");
-          // Navigate to product list
           navigate("/seller/product/list");
         }, 1500);
       } else {
@@ -1941,6 +1927,12 @@ export default function SellerAddProduct() {
               </div>
             </div>
           </div>
+          )}
+
+          {uploadError && (
+             <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
+               <p className="text-red-700 text-sm font-medium">{uploadError}</p>
+             </div>
           )}
 
           {/* Submit Button */}

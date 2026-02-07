@@ -70,7 +70,7 @@ export const createMockCustomer = (name: string, phone: string): MockCustomer =>
 
 // Ensure a customer exists (used when POS selects a customer)
 export const ensureMockCustomerBase = (apiCustomer: { _id: string, name: string, phone: string, email?: string }) => {
-    let customers = getMockCustomers();
+    const customers = getMockCustomers();
     let cust = customers.find(c => c.phone === apiCustomer.phone || c.name === apiCustomer.name); // Simple match
 
     if (!cust) {

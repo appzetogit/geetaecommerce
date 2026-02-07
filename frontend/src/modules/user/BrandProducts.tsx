@@ -11,7 +11,6 @@ export default function BrandProducts() {
   const [brand, setBrand] = useState<Brand | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,7 +37,6 @@ export default function BrandProducts() {
         }
       } catch (err) {
         console.error("Error fetching brand data:", err);
-        setError("Failed to load products");
       } finally {
         setLoading(false);
       }
