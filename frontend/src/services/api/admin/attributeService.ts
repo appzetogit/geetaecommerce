@@ -18,6 +18,15 @@ export const getAttributes = async (search: string = "") => {
   }
 };
 
+export const getSellerAttributes = async (search: string = "") => {
+  try {
+    const response = await api.get(`/seller/attributes?search=${search}`);
+    return response.data;
+  } catch (error: any) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export const updateAttribute = async (id: string, data: { name: string }) => {
   try {
     const response = await api.put(`/admin/attributes/${id}`, data);

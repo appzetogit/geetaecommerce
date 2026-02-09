@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getGSTSalesReport, GSTSalesData } from "../../../services/api/admin/adminInventoryService";
+import { getGSTSalesReport, GSTSalesData } from "../../../services/api/seller/sellerReportService";
 import { toast } from "react-hot-toast";
 
 type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
 
-const AdminGSTSalesReport = () => {
+const SellerGSTSalesReport = () => {
   const [data, setData] = useState<GSTSalesData[]>([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -117,7 +117,7 @@ const AdminGSTSalesReport = () => {
   const downloadExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(data.map(item => ({
       "Product Name": item.productName,
-      "HSN Code": item.hsnCode,
+      "HSN Code": item.hsn,
       "Stock": item.stock,
       "Price": item.price,
       "Tax %": item.taxPercentage,
@@ -138,7 +138,7 @@ const AdminGSTSalesReport = () => {
 
     const tableData = data.map(item => [
       item.productName,
-      item.hsnCode,
+      item.hsn,
       item.stock.toString(),
       `₹${item.price}`,
       `${item.taxPercentage}%`,
@@ -332,12 +332,12 @@ const AdminGSTSalesReport = () => {
                         {editMode ? (
                           <input
                             type="text"
-                            value={item.hsnCode}
-                            onChange={(e) => handleCellEdit(item._id, 'hsnCode', e.target.value)}
+                            value={item.hsn}
+                            onChange={(e) => handleCellEdit(item._id, 'hsn', e.target.value)}
                             className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
                           />
                         ) : (
-                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">{item.hsnCode || "N/A"}</span>
+                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">{item.hsn || "N/A"}</span>
                         )}
                       </td>
                       <td className="px-3 py-3">
@@ -446,4 +446,4 @@ const AdminGSTSalesReport = () => {
   );
 };
 
-export default AdminGSTSalesReport;
+export default SellerGSTSalesReport;

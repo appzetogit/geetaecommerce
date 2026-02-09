@@ -2,13 +2,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getDueSummaryReport, DueSummaryData } from "../../../services/api/admin/adminInventoryService";
+import { getReturnExchangeReport, ReturnExchangeData } from "../../../services/api/seller/sellerInventoryService";
 import { toast } from "react-hot-toast";
 
 type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
 
-const AdminDueSummary = () => {
-  const [data, setData] = useState<DueSummaryData[]>([]);
+const SellerReturnExchangeSummary = () => {
+  const [data, setData] = useState<ReturnExchangeData[]>([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
@@ -20,9 +20,9 @@ const AdminDueSummary = () => {
 
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 20,
     total: 0,
-    pages: 1
+    pages: 1,
+    limit: 20
   });
 
   const fetchData = useCallback(async () => {
@@ -56,8 +56,8 @@ const AdminDueSummary = () => {
         params.dateTo = new Date(new Date(customDateRange.end).setHours(23, 59, 59, 999)).toISOString();
       }
 
-      const response = await getDueSummaryReport(params);
-      if (response.success) {
+      const response = await getReturnExchangeReport(params);
+      if (response && (response as any).success) {
         setData(response.data);
         if (response.pagination) {
           setPagination(prev => ({
@@ -68,8 +68,8 @@ const AdminDueSummary = () => {
         }
       }
     } catch (error) {
-      console.error("Error fetching due summary:", error);
-      toast.error("Failed to fetch due summary data");
+      console.error("Error fetching return exchange summary:", error);
+      toast.error("Failed to fetch return exchange data");
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ const AdminDueSummary = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const handleCellEdit = (id: string, field: keyof DueSummaryData, value: any) => {
+  const handleCellEdit = (id: string, field: keyof ReturnExchangeData, value: any) => {
     setData(prev => prev.map(item =>
       item._id === id ? { ...item, [field]: value } : item
     ));
@@ -119,66 +119,67 @@ const AdminDueSummary = () => {
 
   const downloadExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(data.map(item => ({
-      "Order No": item.orderNo,
-      "Date": item.date,
+      Date: item.date,
+      "Sale Return No": item.saleReturnNo,
+      "Invoice No": item.invoiceNo,
       "Customer Name": item.customerName,
-      "Customer Phone": item.customerPhone,
-      "Total": item.total,
-      "Paid": item.paid,
-      "Due": item.due,
       "Payment Mode": item.paymentMode,
-      "Status": item.status
+      "No of Items": item.noOfItems,
+      "Total MRP": item.totalMRP,
+      "Total SP": item.totalSP,
+      "Total Discount": item.totalDiscount,
+      "Return Amt": item.returnAmt,
+      "Sale Amt": item.saleAmt,
+      "Bill Amt": item.billAmt,
+      "Paid By": item.paidBy
     })));
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Due Summary");
-    XLSX.writeFile(workbook, `Due_Summary_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Return & Exchange");
+    XLSX.writeFile(workbook, `Return_Exchange_Summary_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const downloadPDF = () => {
     const doc = new jsPDF('landscape');
     doc.setFontSize(18);
-    doc.text('Due Summary Report', 14, 15);
+    doc.text('Return & Exchange Summary Report', 14, 15);
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
 
     const tableData = data.map(item => [
-      item.orderNo,
       item.date,
+      item.saleReturnNo,
+      item.invoiceNo,
       item.customerName,
-      item.customerPhone,
-      item.total.toString(),
-      item.paid.toString(),
-      item.due.toString()
+      item.paymentMode,
+      item.noOfItems.toString(),
+      item.totalMRP.toString(),
+      item.totalSP.toString(),
+      item.returnAmt.toString()
     ]);
 
     autoTable(doc, {
-      head: [['Order No', 'Date', 'Customer', 'Phone', 'Total', 'Paid', 'Due']],
+      head: [['Date', 'Return No', 'Invoice', 'Customer', 'Payment', 'Items', 'MRP', 'SP', 'Return Amt']],
       body: tableData,
       startY: 28,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [255, 45, 148] }
     });
 
-    doc.save(`Due_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`Return_Exchange_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  // Stats for the current page/summary
-  // Note: For accurate total stats across ALL pages, backend should return aggregated totals.
-  // For now, calculating based on current page or filtered data is common if backend doesn't provide global sums separately.
-  // Ideally, backend should return these stats. The dummy version calculated on the fly.
-  const totalAmount = data.reduce((sum, item) => sum + item.total, 0);
-  const totalPaid = data.reduce((sum, item) => sum + item.paid, 0);
-  const totalDue = data.reduce((sum, item) => sum + item.due, 0);
+  const totalReturnAmt = data.reduce((sum, item) => sum + item.returnAmt, 0);
+  const totalSaleAmt = data.reduce((sum, item) => sum + item.saleAmt, 0);
+  const totalItems = data.reduce((sum, item) => sum + item.noOfItems, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6">
-      {/* Header Section */}
+    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Due Summary</h1>
-            <p className="text-sm text-gray-500 mt-1">Track pending payments and customer dues</p>
+            <h1 className="text-2xl font-bold text-gray-800">Return & Exchange Summary</h1>
+            <p className="text-sm text-gray-500 mt-1">Track all return and exchange transactions</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -193,8 +194,8 @@ const AdminDueSummary = () => {
 
             <button
               onClick={downloadExcel}
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              className="px-4 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Excel
@@ -202,8 +203,8 @@ const AdminDueSummary = () => {
 
             <button
               onClick={downloadPDF}
-              className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 active:scale-95 transition-all shadow-sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              className="px-4 py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
               PDF
@@ -211,7 +212,6 @@ const AdminDueSummary = () => {
           </div>
         </div>
 
-        {/* Date Filter Tabs */}
         <div className="mt-4 flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-lg">
           {(['today', 'tomorrow', 'last7days', 'last30days', 'alltime'] as DateFilterType[]).map((type) => (
             <button
@@ -236,7 +236,6 @@ const AdminDueSummary = () => {
           </button>
         </div>
 
-        {/* Custom Date Range Picker */}
         {showCustomDatePicker && (
           <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -262,56 +261,59 @@ const AdminDueSummary = () => {
           </div>
         )}
 
-        {/* Search Filter */}
         <div className="mt-4">
           <label className="block text-xs font-semibold text-gray-600 mb-1.5">Search</label>
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by order no, customer name, or phone..."
+            placeholder="Search by invoice, return no, or customer..."
             className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
           />
         </div>
       </div>
 
-      {/* Table Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50">
+              <tr>
                 {editMode && (
                   <th className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedRows.size === data.length && data.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                      className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
                     />
                   </th>
                 )}
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Order No</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Customer Name</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Phone</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Paid</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Due</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Date</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sale Return No</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Invoice No</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Customer Name</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Payment Mode</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">No of Items</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total MRP</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total SP</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Discount</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Return Amt</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sale Amt</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bill Amt</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Paid By</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                   <td colSpan={editMode ? 9 : 8} className="px-6 py-12 text-center text-gray-500 italic">
-                    Fetching due summary data...
+                   <td colSpan={editMode ? 15 : 14} className="px-6 py-12 text-center text-gray-500 italic">
+                    Fetching return data...
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={editMode ? 9 : 8} className="px-6 py-12 text-center text-gray-400 text-sm">
-                    No due records found
+                  <td colSpan={editMode ? 15 : 14} className="px-6 py-12 text-center text-gray-400 italic">
+                    No return/exchange data found
                   </td>
                 </tr>
               ) : (
@@ -323,76 +325,35 @@ const AdminDueSummary = () => {
                           type="checkbox"
                           checked={selectedRows.has(item._id)}
                           onChange={() => handleSelectRow(item._id)}
-                          className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                          className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
                         />
                       </td>
                     )}
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.date}</td>
                     <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="text"
-                          value={item.orderNo}
-                          onChange={(e) => handleCellEdit(item._id, 'orderNo', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold"
-                        />
-                      ) : (
-                        <span className="text-sm font-semibold text-gray-900">{item.orderNo}</span>
-                      )}
+                      <span className="text-sm font-semibold text-gray-900" title={item.saleReturnNo}>
+                        {item.saleReturnNo.substring(0, 8)}...
+                      </span>
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.invoiceNo}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.customerName}</td>
                     <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="text"
-                          value={item.date}
-                          onChange={(e) => handleCellEdit(item._id, 'date', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-600">{item.date}</span>
-                      )}
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                        (item.paymentMode || '').toLowerCase().includes('cash') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {item.paymentMode}
+                      </span>
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.noOfItems}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.totalMRP}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.totalSP}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.totalDiscount}</td>
                     <td className="px-4 py-3">
-                       {editMode ? (
-                        <input
-                          type="text"
-                          value={item.customerName}
-                          onChange={(e) => handleCellEdit(item._id, 'customerName', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-medium"
-                        />
-                      ) : (
-                        <span className="text-sm font-medium text-gray-900">{item.customerName}</span>
-                      )}
+                      <span className="text-sm font-bold text-red-600">₹{item.returnAmt}</span>
                     </td>
-                    <td className="px-4 py-3">
-                       {editMode ? (
-                        <input
-                          type="text"
-                          value={item.customerPhone}
-                          onChange={(e) => handleCellEdit(item._id, 'customerPhone', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-600">{item.customerPhone}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm font-semibold text-gray-900">₹{item.total.toLocaleString()}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-green-600 font-semibold">₹{item.paid.toLocaleString()}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm font-bold text-red-600">₹{item.due.toLocaleString()}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                            item.status === 'Paid' ? 'bg-green-100 text-green-700' :
-                            item.status === 'Partial' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
-                            {item.status}
-                        </span>
-                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.saleAmt}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.billAmt}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.paidBy}</td>
                   </tr>
                 ))
               )}
@@ -401,55 +362,54 @@ const AdminDueSummary = () => {
         </div>
 
         {pagination.pages > 1 && (
-           <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
-             <div className="text-sm text-gray-500">
-               Showing page <span className="font-semibold">{pagination.page}</span> of <span className="font-semibold">{pagination.pages}</span>
-             </div>
-             <div className="flex gap-2">
-               <button
-                 onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
-                 disabled={pagination.page === 1}
-                 className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
-                 Previous
-               </button>
-               <button
-                 onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.pages, prev.page + 1) }))}
-                 disabled={pagination.page === pagination.pages}
-                 className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
-                 Next
-               </button>
-             </div>
-           </div>
+          <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div className="text-sm text-gray-500">
+              Showing page <span className="font-semibold">{pagination.page}</span> of <span className="font-semibold">{pagination.pages}</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+                disabled={pagination.page === 1}
+                className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                Previous
+              </button>
+              <button
+                onClick={() => setPagination(prev => ({ ...prev, page: Math.min(pagination.pages, prev.page + 1) }))}
+                disabled={pagination.page === pagination.pages}
+                className="px-3 py-1 bg-white border border-gray-300 rounded shadow-sm disabled:opacity-50">
+                Next
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Orders</p>
-          <p className="text-3xl font-black text-gray-900 mt-2">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Returns</p>
+          <p className="text-2xl font-black text-gray-800 mt-2">
             {pagination.total}
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Amount</p>
-          <p className="text-3xl font-black text-blue-600 mt-2">
-            ₹{totalAmount.toLocaleString()}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Return Amount (Page)</p>
+          <p className="text-2xl font-black text-red-600 mt-2">
+            ₹{totalReturnAmt.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Paid</p>
-          <p className="text-3xl font-black text-green-600 mt-2">
-            ₹{totalPaid.toLocaleString()}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Sale Amount (Page)</p>
+          <p className="text-2xl font-black text-green-600 mt-2">
+            ₹{totalSaleAmt.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Due (Page)</p>
-          <p className="text-3xl font-black text-red-600 mt-2">
-            ₹{totalDue.toLocaleString()}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Items (Page)</p>
+          <p className="text-2xl font-black text-purple-600 mt-2">
+            {totalItems}
           </p>
         </div>
       </div>
@@ -457,4 +417,4 @@ const AdminDueSummary = () => {
   );
 };
 
-export default AdminDueSummary;
+export default SellerReturnExchangeSummary;

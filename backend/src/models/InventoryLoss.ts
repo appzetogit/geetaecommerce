@@ -8,6 +8,7 @@ export interface IInventoryLoss extends Document {
   reason: "Missing" | "Damaged" | "Expired" | "Theft" | "Broken" | "Other";
   weight: string; // UOM
   admin: mongoose.Types.ObjectId;
+  seller: mongoose.Types.ObjectId; // Added seller field
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,6 +45,10 @@ const InventoryLossSchema = new Schema<IInventoryLoss>(
       type: Schema.Types.ObjectId,
       ref: "Admin",
     },
+    seller: {
+      type: Schema.Types.ObjectId,
+      ref: "Seller",
+    },
   },
   {
     timestamps: true,
@@ -52,6 +57,8 @@ const InventoryLossSchema = new Schema<IInventoryLoss>(
 
 InventoryLossSchema.index({ date: -1 });
 InventoryLossSchema.index({ product: 1 });
+InventoryLossSchema.index({ admin: 1 });
+InventoryLossSchema.index({ seller: 1 });
 
 const InventoryLoss = mongoose.models.InventoryLoss || mongoose.model<IInventoryLoss>("InventoryLoss", InventoryLossSchema);
 

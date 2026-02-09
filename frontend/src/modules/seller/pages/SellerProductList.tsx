@@ -13,7 +13,8 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import QRScannerModal from "../../../components/QRScannerModal";
 import ThemedDropdown from "../components/ThemedDropdown";
-
+import SellerStockBulkEdit from "./SellerStockBulkEdit";
+import SellerStockBulkImport from "./SellerStockBulkImport";
 
 // ... (interfaces remain same)
 
@@ -44,6 +45,8 @@ export default function SellerProductList() {
   } | null>(null);
   const [allCategories, setAllCategories] = useState<apiCategory[]>([]);
   const [showScanner, setShowScanner] = useState(false);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   // Fetch categories
   useEffect(() => {
@@ -311,14 +314,14 @@ export default function SellerProductList() {
           </div>
         )}
 
-        {/* Filters and Controls */}
-        <div className="p-5 border-b border-neutral-100 bg-white">
-          <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-5">
+                {/* Filters and Controls */}
+        <div className="p-3 border-b border-neutral-100 bg-white">
+          <div className="flex flex-col 2xl:flex-row 2xl:items-end justify-between gap-3">
 
             {/* Filter Group */}
-            <div className="flex flex-col sm:flex-row gap-4 flex-1">
+            <div className="flex flex-col sm:flex-row gap-2 flex-1">
               <div className="w-full sm:w-48">
-                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">
                   Category
                 </label>
                 <ThemedDropdown
@@ -336,7 +339,7 @@ export default function SellerProductList() {
                 />
               </div>
               <div className="w-full sm:w-40">
-                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">
                   Status
                 </label>
                 <ThemedDropdown
@@ -346,7 +349,7 @@ export default function SellerProductList() {
                 />
               </div>
               <div className="w-full sm:w-40">
-                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">
                   Stock
                 </label>
                 <ThemedDropdown
@@ -358,9 +361,9 @@ export default function SellerProductList() {
             </div>
 
             {/* Actions Group */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
               <div className="w-24">
-                 <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                 <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">
                   Show
                 </label>
                 <ThemedDropdown
@@ -371,7 +374,7 @@ export default function SellerProductList() {
               </div>
 
               <div className="flex-1 sm:w-64">
-                 <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                 <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">
                   Search
                 </label>
                 <div className="relative group">
@@ -382,7 +385,7 @@ export default function SellerProductList() {
                   </div>
                   <input
                     type="text"
-                    className="block w-full pl-10 pr-10 py-2.5 border border-neutral-300 rounded-lg text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all shadow-sm"
+                    className="block w-full pl-10 pr-10 py-2 border border-neutral-300 rounded-lg text-sm placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all shadow-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search by Name, SKU..."
@@ -402,6 +405,38 @@ export default function SellerProductList() {
                   </button>
                 </div>
               </div>
+
+              {/* Bulk Edit & Import Buttons */}
+              <button
+                onClick={() => setShowBulkEdit(true)}
+                disabled={!isEnabled}
+                className={`h-[36px] px-3 border border-neutral-300 rounded-lg text-xs font-medium flex items-center gap-2 transition-all shadow-sm whitespace-nowrap ${
+                    isEnabled
+                    ? "bg-white text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400"
+                    : "bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                }`}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                Bulk Edit
+              </button>
+
+              <button
+                onClick={() => setShowBulkImport(true)}
+                disabled={!isEnabled}
+                className={`h-[36px] px-3 border border-neutral-300 rounded-lg text-xs font-medium flex items-center gap-2 transition-all shadow-sm whitespace-nowrap ${
+                    isEnabled
+                    ? "bg-white text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400"
+                    : "bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                }`}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Import
+              </button>
 
               <button
                 onClick={() => {
@@ -447,13 +482,13 @@ export default function SellerProductList() {
                   link.click();
                   document.body.removeChild(link);
                 }}
-                className="h-[42px] px-4 bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-sm whitespace-nowrap">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                className="h-[36px] px-3 bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50 hover:border-neutral-400 rounded-lg text-xs font-medium flex items-center gap-2 transition-all shadow-sm whitespace-nowrap">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
                   <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-                Export CSV
+                Export
               </button>
             </div>
 
@@ -493,78 +528,72 @@ export default function SellerProductList() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-neutral-50/50 border-b border-neutral-200 text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                <th className="p-4 w-16 whitespace-nowrap">
+                <th className="p-3 w-16 whitespace-nowrap">
                   <div className="flex items-center gap-1">
                     ID
                   </div>
                 </th>
                 <th
-                  className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
+                  className="p-3 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
                   onClick={() => handleSort("variationId")}>
                   <div className="flex items-center gap-1">
                     Var. ID <SortIcon column="variationId" />
                   </div>
                 </th>
                 <th
-                  className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors"
+                  className="p-3 cursor-pointer hover:bg-neutral-100 transition-colors"
                   onClick={() => handleSort("productName")}>
                   <div className="flex items-center gap-1">
                     Product Name <SortIcon column="productName" />
                   </div>
                 </th>
-                <th
-                  className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
-                  onClick={() => handleSort("sellerName")}>
-                  <div className="flex items-center gap-1">
-                    Seller <SortIcon column="sellerName" />
-                  </div>
-                </th>
-                <th className="p-4 text-center">
+                {/* Removed Seller Column */}
+                <th className="p-3 text-center">
                   Image
                 </th>
                 <th
-                  className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
+                  className="p-3 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
                   onClick={() => handleSort("brandName")}>
                   <div className="flex items-center gap-1">
                     Brand <SortIcon column="brandName" />
                   </div>
                 </th>
                 <th
-                  className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
+                  className="p-3 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
                   onClick={() => handleSort("category")}>
                   <div className="flex items-center gap-1">
                      Category <SortIcon column="category" />
                   </div>
                 </th>
                 <th
-                  className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
+                  className="p-3 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
                   onClick={() => handleSort("subCategory")}>
                   <div className="flex items-center gap-1">
                     SubCategory <SortIcon column="subCategory" />
                   </div>
                 </th>
                 <th
-                  className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap text-right"
+                  className="p-3 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap text-right"
                   onClick={() => handleSort("price")}>
                   <div className="flex items-center justify-end gap-1">
                     Price <SortIcon column="price" />
                   </div>
                 </th>
                 <th
-                  className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap text-right"
+                  className="p-3 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap text-right"
                   onClick={() => handleSort("discPrice")}>
                   <div className="flex items-center justify-end gap-1">
                     Disc. <SortIcon column="discPrice" />
                   </div>
                 </th>
                 <th
-                  className="p-4 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
+                  className="p-3 cursor-pointer hover:bg-neutral-100 transition-colors whitespace-nowrap"
                   onClick={() => handleSort("variation")}>
                   <div className="flex items-center gap-1">
-                    Attribute <SortIcon column="variation" />
+                    Attr. <SortIcon column="variation" />
                   </div>
                 </th>
-                <th className="p-4 text-center whitespace-nowrap">
+                <th className="p-3 text-center whitespace-nowrap">
                   Action
                 </th>
               </tr>
@@ -586,7 +615,7 @@ export default function SellerProductList() {
                   <tr
                     key={`${variation.productId}-${variation.variationId}`}
                     className="hover:bg-seller-50/30 transition-colors text-sm text-neutral-700 group">
-                    <td className="p-4 align-middle font-medium text-neutral-400 text-xs">
+                    <td className="p-3 align-middle font-medium text-neutral-400 text-xs">
                       <div className="flex items-center gap-2">
                         {isFirstVariation && hasMultipleVariations && (
                           <button
@@ -614,19 +643,17 @@ export default function SellerProductList() {
                         </span>
                       </div>
                     </td>
-                    <td className="p-4 align-middle text-xs text-neutral-500">
+                    <td className="p-3 align-middle text-xs text-neutral-500">
                        <span title={variation.variationId} className="truncate max-w-[60px] inline-block">
                            {variation.variationId.substring(0, 8)}...
                        </span>
                     </td>
-                    <td className="p-4 align-middle font-medium text-neutral-800">
+                    <td className="p-3 align-middle font-medium text-neutral-800">
                       {variation.productName}
                     </td>
-                    <td className="p-4 align-middle text-neutral-600">
-                      {variation.sellerName}
-                    </td>
-                    <td className="p-4 align-middle text-center">
-                      <div className="w-12 h-12 bg-white border border-neutral-100 rounded-lg p-1 mx-auto shadow-sm flex items-center justify-center">
+                    {/* Removed Seller Column */}
+                    <td className="p-3 align-middle text-center">
+                      <div className="w-10 h-10 bg-white border border-neutral-100 rounded-lg p-1 mx-auto shadow-sm flex items-center justify-center">
                         <img
                           src={variation.productImage}
                           alt={variation.productName}
@@ -638,21 +665,21 @@ export default function SellerProductList() {
                         />
                       </div>
                     </td>
-                    <td className="p-4 align-middle text-neutral-600">
+                    <td className="p-3 align-middle text-neutral-600">
                       {variation.brandName || "-"}
                     </td>
-                    <td className="p-4 align-middle text-neutral-600">
+                    <td className="p-3 align-middle text-neutral-600">
                       <span className="inline-flex px-2 py-1 rounded bg-neutral-100 text-neutral-600 text-xs border border-neutral-200">
                          {variation.category}
                       </span>
                     </td>
-                    <td className="p-4 align-middle text-neutral-600 text-xs">
+                    <td className="p-3 align-middle text-neutral-600 text-xs">
                       {variation.subCategory}
                     </td>
-                    <td className="p-4 align-middle text-right font-medium text-neutral-800">
+                    <td className="p-3 align-middle text-right font-medium text-neutral-800">
                       ₹{variation.price.toFixed(2)}
                     </td>
-                    <td className="p-4 align-middle text-right">
+                    <td className="p-3 align-middle text-right">
                       {variation.discPrice > 0 ? (
                         <span className="text-seller-600 font-medium text-xs bg-seller-50 px-1.5 py-0.5 rounded">
                             ₹{variation.discPrice.toFixed(2)}
@@ -661,12 +688,12 @@ export default function SellerProductList() {
                         <span className="text-neutral-300">-</span>
                       )}
                     </td>
-                    <td className="p-4 align-middle">
+                    <td className="p-3 align-middle">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
                          {variation.variation}
                       </span>
                     </td>
-                    <td className="p-4 align-middle">
+                    <td className="p-3 align-middle">
                       <div className="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={() => isEnabled && handleEdit(variation.productId)}
@@ -759,11 +786,6 @@ export default function SellerProductList() {
             </button>
             <div className="flex items-center gap-1">
                 {Array.from({ length: Math.min(5, displayTotalPages) }, (_, i) => {
-                     // Simple pagination logic for display to avoid too many buttons
-                     // Shows first 5 or logic could be more complex, keeping it simple as per original but limited
-                     // Actually original showed ALL pages. Let's start with all but maybe safeguard if too many.
-                     // For now, mapping up to displayTotalPages as before but with max limit if needed.
-                     // To keep it safe and functional like before without full re-write of pagination logic:
                      return i + 1;
                 }).map((page) => (
                    <button
@@ -798,6 +820,29 @@ export default function SellerProductList() {
         </div>
         )}
       </div>
+
+       {/* Bulk Edit Modal */}
+       {showBulkEdit && (
+        <SellerStockBulkEdit
+          products={products}
+          categories={allCategories as any}
+          onClose={() => setShowBulkEdit(false)}
+          onSave={() => {
+            fetchProducts();
+          }}
+        />
+      )}
+
+      {/* Bulk Import Modal */}
+      {showBulkImport && (
+        <SellerStockBulkImport
+          categories={allCategories as any}
+          onClose={() => setShowBulkImport(false)}
+          onSuccess={() => {
+            fetchProducts();
+          }}
+        />
+      )}
     </div>
   );
 }

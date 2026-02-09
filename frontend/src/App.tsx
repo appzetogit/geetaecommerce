@@ -100,6 +100,7 @@ const SellerSignUp = lazy(() => import("./modules/seller/pages/SellerSignUp"));
 const SellerPOSOrders = lazy(() => import("./modules/seller/pages/SellerPOSOrders"));
 const SellerPOSCustomers = lazy(() => import("./modules/seller/pages/SellerPOSCustomers"));
 const SellerPOSCustomerDetail = lazy(() => import("./modules/seller/pages/SellerPOSCustomerDetail"));
+const SellerPOSCustomerOrders = lazy(() => import("./modules/seller/pages/SellerPOSCustomerOrders"));
 const SellerPOSReport = lazy(() => import("./modules/seller/pages/SellerPOSReport"));
 const SellerSalesSummary = lazy(() => import("./modules/seller/pages/SellerSalesSummary"));
 const SellerAttributeSetup = lazy(() => import("./modules/seller/pages/SellerAttributeSetup"));
@@ -115,6 +116,19 @@ const SellerDeliveredOrders = lazy(() => import("./modules/seller/pages/SellerDe
 const SellerCancelledOrders = lazy(() => import("./modules/seller/pages/SellerCancelledOrders"));
 const SellerReturnRequests = lazy(() => import("./modules/seller/pages/SellerReturnRequests"));
 const SellerReplaceRequests = lazy(() => import("./modules/seller/pages/SellerReplaceRequests"));
+const SellerOnlineOrderReport = lazy(() => import("./modules/seller/pages/SellerOnlineOrderReport"));
+const SellerInvoiceReport = lazy(() => import("./modules/seller/pages/SellerInvoiceReport"));
+const SellerStockSummary = lazy(() => import("./modules/seller/pages/SellerStockSummary"));
+const SellerStockBalanceSummary = lazy(() => import("./modules/seller/pages/SellerStockBalanceSummary"));
+const SellerLowStockSummary = lazy(() => import("./modules/seller/pages/SellerLowStockSummary"));
+const SellerOutOfStockSummary = lazy(() => import("./modules/seller/pages/SellerOutOfStockSummary"));
+const SellerLossSummary = lazy(() => import("./modules/seller/pages/SellerLossSummary"));
+const SellerGSTSalesReport = lazy(() => import("./modules/seller/pages/SellerGSTSalesReport"));
+const SellerPaymentReport = lazy(() => import("./modules/seller/pages/SellerPaymentReport"));
+const SellerReportSalesSummary = lazy(() => import("./modules/seller/pages/SellerReportSalesSummary"));
+const SellerReturnExchangeSummary = lazy(() => import("./modules/seller/pages/SellerReturnExchangeSummary"));
+const SellerStockSalesSummary = lazy(() => import("./modules/seller/pages/SellerStockSalesSummary"));
+const SellerDueSummary = lazy(() => import("./modules/seller/pages/SellerDueSummary"));
 
 // Lazy load admin routes
 const AdminLayout = lazy(() => import("./modules/admin/components/AdminLayout"));
@@ -172,6 +186,7 @@ const AdminDeliverySettings = lazy(() => import("./modules/admin/pages/AdminDeli
 const AdminSalesSummary = lazy(() => import("./modules/admin/pages/AdminSalesSummary"));
 const AdminPOSCustomers = lazy(() => import("./modules/admin/pages/AdminPOSCustomers"));
 const AdminPOSCustomerDetail = lazy(() => import("./modules/admin/pages/AdminPOSCustomerDetail"));
+const AdminPOSCustomerOrders = lazy(() => import("./modules/admin/pages/AdminPOSCustomerOrders"));
 const AdminBannerSetup = lazy(() => import("./modules/admin/pages/AdminBannerSetup"));
 const AdminFlashDeal = lazy(() => import("./modules/admin/pages/AdminFlashDeal"));
 const AdminDealOfTheDay = lazy(() => import("./modules/admin/pages/AdminDealOfTheDay"));
@@ -415,14 +430,28 @@ function App() {
                               <Route path="wallet/transactions" element={<SellerWalletTransactions />} />
                               <Route path="wallet/withdrawals" element={<SellerWithdrawalRequests />} />
                               <Route path="reports/sales" element={<SellerSalesReport />} />
+                              <Route path="reports/order" element={<SellerOnlineOrderReport />} />
+                              <Route path="reports/invoice" element={<SellerInvoiceReport />} />
                               <Route path="sales-summary" element={<SellerSalesSummary />} />
                               <Route path="account-settings" element={<SellerAccountSettings />} />
                               <Route path="pos/orders" element={<SellerPOSOrders />} />
                               <Route path="pos/customers" element={<SellerPOSCustomers />} />
                               <Route path="pos/customers/:id" element={<SellerPOSCustomerDetail />} />
+                              <Route path="pos/customers/:id/orders" element={<SellerPOSCustomerOrders />} />
                               <Route path="pos/report" element={<SellerPOSReport />} />
                               <Route path="product-display-settings" element={<SellerProductDisplaySettings />} />
                               <Route path="barcode-settings" element={<SellerBarcodeSettings />} />
+                              <Route path="inventory-reports/stock-summary" element={<SellerStockSummary />} />
+                              <Route path="inventory-reports/stock-balance" element={<SellerStockBalanceSummary />} />
+                              <Route path="inventory-reports/low-stock" element={<SellerLowStockSummary />} />
+                              <Route path="inventory-reports/out-of-stock" element={<SellerOutOfStockSummary />} />
+                              <Route path="inventory-reports/loss-summary" element={<SellerLossSummary />} />
+                              <Route path="reports/gst-sales" element={<SellerGSTSalesReport />} />
+                              <Route path="reports/payment" element={<SellerPaymentReport />} />
+                              <Route path="reports/sales/summary" element={<SellerReportSalesSummary />} />
+                              <Route path="reports/sales/return-exchange" element={<SellerReturnExchangeSummary />} />
+                              <Route path="reports/sales/stock-sales" element={<SellerStockSalesSummary />} />
+                              <Route path="reports/sales/due-summary" element={<SellerDueSummary />} />
                             </Routes>
                           </SellerLayout>
                         </Suspense>
@@ -441,6 +470,7 @@ function App() {
                              <Route path="pos/orders" element={<AdminPOSOrders />} />
                              <Route path="pos/customers" element={<AdminPOSCustomers />} />
                              <Route path="pos/customers/:id" element={<AdminPOSCustomerDetail />} />
+                             <Route path="pos/customers/:id/orders" element={<AdminPOSCustomerOrders />} />
                              <Route path="pos/report" element={<AdminPOSReport />} />
                              <Route path="" element={<AdminDashboard />} />
                             <Route path="profile" element={<AdminProfile />} />

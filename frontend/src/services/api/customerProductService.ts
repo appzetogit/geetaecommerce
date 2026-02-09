@@ -63,6 +63,16 @@ export const getProducts = async (params?: GetProductsParams): Promise<ProductLi
 };
 
 /**
+ * Get search suggestions (Public)
+ */
+export const getSearchSuggestions = async (q: string, latitude?: number, longitude?: number): Promise<{ success: boolean; data: any[] }> => {
+    const response = await api.get('/customer/products/suggestions', {
+        params: { q, latitude, longitude }
+    });
+    return response.data;
+};
+
+/**
  * Get product details by ID (Public)
  * Location (latitude/longitude) is required to verify product availability
  */

@@ -10,7 +10,6 @@ import {
   updateProduct,
   getProductById,
   getShops,
-  searchProductImage,
   ProductVariation,
   Shop,
 } from "../../../services/api/productService";
@@ -28,6 +27,7 @@ import {
   getHeaderCategoriesPublic,
   HeaderCategory,
 } from "../../../services/api/headerCategoryService";
+import { getAttributes, getSellerAttributes } from "../../../services/api/admin/attributeService";
 import { getAppSettings } from "../../../services/api/admin/adminSettingsService";
 
 import ThemedDropdown from "../components/ThemedDropdown";
@@ -79,6 +79,11 @@ export default function SellerAddProduct() {
     purchasePrice: "",
     lowStockQuantity: "5",
     deliveryTime: "",
+    price: "",
+    discPrice: "0",
+    stock: "0",
+    offerPrice: "",
+    wholesalePrice: "",
   });
 
   const [variations, setVariations] = useState<ProductVariation[]>([]);
@@ -87,9 +92,11 @@ export default function SellerAddProduct() {
     price: "",
     discPrice: "0",
     stock: "0",
-    status: "Available" as "Available" | "Sold out",
+    status: "Available" as "Available" | "Sold out" | "In stock",
     barcode: "",
     offerPrice: "",
+    wholesalePrice: "",
+    tieredPrices: [] as { minQty: string, price: string }[],
   });
 
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
@@ -101,12 +108,255 @@ export default function SellerAddProduct() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>("");
   const [isScanning, setIsScanning] = useState(false);
+  const [scanTarget, setScanTarget] = useState<"product" | "variation" | "table-variation">("product");
+  const [scanTargetIndex, setScanTargetIndex] = useState<number | null>(null);
   const scannerRef = React.useRef<Html5Qrcode | null>(null);
 
   // Print Barcode State
   const [printQuantity, setPrintQuantity] = useState("1");
   const [selectedPrintBarcode, setSelectedPrintBarcode] = useState("");
   const [barcodeSettings, setBarcodeSettings] = useState<any>(null);
+
+  // Attribute Based Variations State
+  const [enableAttributes, setEnableAttributes] = useState(false);
+  const [availableAttributes, setAvailableAttributes] = useState<any[]>([]);
+  const [selectedAttributeId, setSelectedAttributeId] = useState("");
+  const [selectedAttributes, setSelectedAttributes] = useState<{id: string, name: string, values: string[]}[]>([]);
+  const [variationUnits, setVariationUnits] = useState<string[]>([]); // To store unit values like 1kg, 5kg
+  const [currentUnitInput, setCurrentUnitInput] = useState("");
+  const [attrInputValues, setAttrInputValues] = useState<Record<string, string>>({});
+
+  // Color specific state
+  const [enableColors, setEnableColors] = useState(false);
+  const [selectedColors, setSelectedColors] = useState<{name: string, code: string}[]>([]);
+  const [colorInput, setColorInput] = useState({ name: "", code: "#000000" });
+
+  // Unit Pricing Modal State
+  const [unitPricingModal, setUnitPricingModal] = useState<{ isOpen: boolean, variationIndex: number | null }>({ isOpen: false, variationIndex: null });
+  // Temp state for editing in modal
+  const [tempTieredPrices, setTempTieredPrices] = useState<{ minQty: number, price: number }[]>([]);
+
+  const [successMessage, setSuccessMessage] = useState<string>("");
+
+  useEffect(() => {
+    if (enableAttributes) {
+        getSellerAttributes().then(res => {
+            if(res.success) setAvailableAttributes(res.data);
+        }).catch(err => console.error(err));
+    }
+  }, [enableAttributes]);
+
+  const handleAddColor = () => {
+      if(!colorInput.name.trim()) return;
+      if(!selectedColors.some(c => c.name === colorInput.name.trim())) {
+          setSelectedColors([...selectedColors, { name: colorInput.name.trim(), code: colorInput.code }]);
+          setColorInput({ name: "", code: "#000000" });
+      }
+  };
+
+  const handleRemoveColor = (name: string) => {
+      setSelectedColors(prev => prev.filter(c => c.name !== name));
+  };
+
+  const handleAddAttribute = () => {
+      if (!selectedAttributeId) return;
+      const attr = availableAttributes.find(a => (a._id || a.id) === selectedAttributeId);
+      if (attr && !selectedAttributes.some(s => s.id === (attr._id || attr.id))) {
+          setSelectedAttributes([...selectedAttributes, { id: attr._id || attr.id, name: attr.name, values: [] }]);
+          setSelectedAttributeId(""); // Reset selection
+      }
+  };
+
+  const handleRemoveAttribute = (attrId: string) => {
+      setSelectedAttributes(prev => prev.filter(p => p.id !== attrId));
+  };
+
+  const handleAddAttributeValue = (attrId: string, value: string) => {
+      if (!value.trim()) return;
+      setSelectedAttributes(prev => prev.map(p => {
+          if(p.id === attrId && !p.values.includes(value.trim())) {
+              return { ...p, values: [...p.values, value.trim()] };
+          }
+          return p;
+      }));
+  };
+
+  const handleRemoveAttributeValue = (attrId: string, value: string) => {
+      setSelectedAttributes(prev => prev.map(p => {
+          if(p.id === attrId) {
+              return { ...p, values: p.values.filter(v => v !== value) };
+          }
+          return p;
+      }));
+  };
+
+  const handleAddUnit = () => {
+      if(!currentUnitInput.trim()) return;
+      if(!variationUnits.includes(currentUnitInput.trim())) {
+          setVariationUnits([...variationUnits, currentUnitInput.trim()]);
+          setCurrentUnitInput("");
+      }
+  };
+
+  const handleRemoveUnit = (unit: string) => {
+      setVariationUnits(prev => prev.filter(u => u !== unit));
+  };
+
+   const generateVariations = () => {
+       let combos: string[] = [];
+       const units = variationUnits.length > 0 ? variationUnits : [""];
+
+       // Prepare dimensions (including colors if enabled)
+       const activeDimensions: { name: string, values: string[] }[] = [];
+
+       if (enableColors && selectedColors.length > 0) {
+           activeDimensions.push({ name: "Color", values: selectedColors.map(c => c.name) });
+       }
+
+       selectedAttributes.forEach(attr => {
+           if (attr.values.length > 0) {
+               activeDimensions.push({ name: attr.name, values: attr.values });
+           }
+       });
+
+       if (activeDimensions.length === 0) {
+           // If no colors/attributes, just use units
+           combos = variationUnits;
+       } else {
+           // Helper to generate combinations
+           const generate = (index: number, current: string[]) => {
+               if (index === activeDimensions.length) {
+                   // Combined all attributes, now add units
+                   const attrStr = current.join("-");
+                   units.forEach(u => {
+                       combos.push(u ? `${attrStr} - ${u}` : attrStr);
+                   });
+                   return;
+               }
+
+               const dim = activeDimensions[index];
+               dim.values.forEach(val => {
+                   generate(index + 1, [...current, val]);
+               });
+           };
+           generate(0, []);
+       }
+
+       const newVariations = combos.map(title => ({
+           title: title,
+           value: title, // value field
+           name: formData.variationType || "Variation",
+           price: 0,
+           discPrice: 0,
+           stock: 0,
+           status: "Available" as const,
+           barcode: "",
+           offerPrice: undefined,
+           wholesalePrice: 0,
+           tieredPrices: []
+       }));
+
+       // Merge logic: preserve existing prices/stock if title matches
+       const merged = newVariations.map(nv => {
+           const existing = variations.find(v => v.title === nv.title);
+           return existing ? existing : nv;
+       });
+
+       if (merged.length > 0) {
+           setVariations(merged);
+       } else {
+           alert("No variations generated. Please add colors, attributes or units.");
+       }
+   };
+
+  const handleAddTier = () => {
+      setVariationForm(prev => ({
+          ...prev,
+          tieredPrices: [...prev.tieredPrices, { minQty: "", price: "" }]
+      }));
+  };
+
+  const handleRemoveTier = (idx: number) => {
+      setVariationForm(prev => ({
+          ...prev,
+          tieredPrices: prev.tieredPrices.filter((_, i) => i !== idx)
+      }));
+  };
+
+  const handleTierChange = (idx: number, field: string, value: string) => {
+      setVariationForm(prev => {
+          const newTiers = [...prev.tieredPrices];
+          newTiers[idx] = { ...newTiers[idx], [field]: value };
+          return { ...prev, tieredPrices: newTiers };
+      });
+  };
+
+  const handleAutoGenerateBarcode = (target: "product" | "variation" = "product") => {
+    // Generate 12 digit number
+    const newBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+    if (target === "product") {
+        setFormData(prev => ({ ...prev, barcode: newBarcode }));
+    } else {
+        setVariationForm(prev => ({ ...prev, barcode: newBarcode }));
+    }
+    setSuccessMessage("Barcode Generated Successfully!");
+    setTimeout(() => setSuccessMessage(""), 2000);
+  };
+
+  const startScanning = (target: "product" | "variation" | "table-variation", index: number | null = null) => {
+      setIsScanning(true);
+      setScanTarget(target);
+      setScanTargetIndex(index);
+      setUploadError("");
+      setTimeout(() => {
+          const scanner = new Html5Qrcode("reader");
+          scannerRef.current = scanner;
+          scanner.start(
+              { facingMode: "environment" },
+              {
+                  fps: 10,
+                  qrbox: { width: 250, height: 250 },
+              },
+              (decodedText) => {
+                  if(target === "product") {
+                       setFormData(prev => ({ ...prev, barcode: decodedText }));
+                  } else if (target === "variation") {
+                       setVariationForm(prev => ({ ...prev, barcode: decodedText }));
+                  } else if (target === "table-variation" && index !== null) {
+                       setVariations(prev => {
+                           const n = [...prev];
+                           n[index].barcode = decodedText;
+                           return n;
+                       });
+                  }
+                  stopScanning();
+                  setSuccessMessage("Barcode Scanned: " + decodedText);
+                  setTimeout(() => setSuccessMessage(""), 2000);
+              },
+              (errorMessage) => {
+                  // console.log(errorMessage);
+              }
+          ).catch((err) => {
+               console.error("Failed to start scanner", err);
+               setUploadError("Failed to start camera. Please ensure permissions are granted.");
+               setIsScanning(false);
+          });
+      }, 100);
+  };
+
+  const stopScanning = () => {
+      if (scannerRef.current) {
+          scannerRef.current.stop().then(() => {
+              scannerRef.current?.clear();
+              setIsScanning(false);
+          }).catch(err => {
+              console.error("Failed to stop scanner", err);
+              setIsScanning(false);
+          });
+      } else {
+          setIsScanning(false);
+      }
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -312,10 +562,7 @@ export default function SellerAddProduct() {
     printWindow.document.close();
   };
 
-  // Image Search State
-  const [imageSearchQuery, setImageSearchQuery] = useState("");
-  const [searchedImage, setSearchedImage] = useState("");
-  const [isSearchingImage, setIsSearchingImage] = useState(false);
+  const mainImageInputRef = React.useRef<HTMLInputElement>(null);
 
   // Dynamic Product Settings
   const [productDisplaySettings, setProductDisplaySettings] = useState<any[]>([]);
@@ -460,8 +707,31 @@ export default function SellerAddProduct() {
               purchasePrice: (product as any).purchasePrice?.toString() || "",
               lowStockQuantity: (product as any).lowStockQuantity?.toString() || "5",
               deliveryTime: (product as any).deliveryTime || "",
+              price: product.price?.toString() || "",
+              discPrice: (product as any).discPrice?.toString() || "",
+              stock: product.stock?.toString() || "0",
+              offerPrice: (product as any).offerPrice?.toString() || "",
+              wholesalePrice: (product as any).wholesalePrice?.toString() || "",
             });
             setVariations(product.variations);
+
+             // Populate Top Form with 1st variation if exists (Simulating Simple Product Edit)
+             if (product.variations && product.variations.length > 0) {
+                const v = product.variations[0];
+                setVariationForm(prev => ({
+                    ...prev,
+                    price: v.price?.toString() || "",
+                    discPrice: v.discPrice?.toString() || "",
+                    stock: v.stock?.toString() || "",
+                    status: v.status || "Available",
+                    title: v.title || v.value || "",
+                    wholesalePrice: v.wholesalePrice?.toString() || "",
+                    barcode: v.barcode || "",
+                    offerPrice: v.offerPrice?.toString() || "",
+                    tieredPrices: v.tieredPrices ? v.tieredPrices.map(t => ({minQty: t.minQty.toString(), price: t.price.toString()})) : [],
+                }));
+             }
+
             if (product.mainImageUrl || product.mainImage) {
               setMainImagePreview(
                 product.mainImageUrl || product.mainImage || ""
@@ -654,6 +924,7 @@ export default function SellerAddProduct() {
       status: variationForm.status,
       barcode: variationForm.barcode,
       offerPrice,
+      tieredPrices: variationForm.tieredPrices,
     };
 
     setVariations([...variations, newVariation]);
@@ -665,6 +936,8 @@ export default function SellerAddProduct() {
       status: "Available",
       barcode: "",
       offerPrice: "",
+      wholesalePrice: "",
+      tieredPrices: [],
     });
     setUploadError("");
   };
@@ -673,86 +946,7 @@ export default function SellerAddProduct() {
     setVariations((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const startScanning = (target: "product" | "variation" = "product") => {
-    setIsScanning(true);
-    // Slight delay to ensure DOM element exists
-    setTimeout(() => {
-        const html5QrCode = new Html5Qrcode("reader");
-        scannerRef.current = html5QrCode;
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-        html5QrCode.start(
-            { facingMode: "environment" },
-            config,
-            (decodedText) => {
-                // Success callback
-                if (target === "product") {
-                    setFormData(prev => ({ ...prev, barcode: decodedText }));
-                } else {
-                    setVariationForm(prev => ({ ...prev, barcode: decodedText }));
-                }
-                stopScanning();
-                // Optional: Play a beep sound
-                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                audio.play().catch(e => console.log('Audio play failed', e));
-                setTimeout(() => {}, 3000);
-            },
-            () => {
-                // Error callback (scanning...)
-            }
-        ).catch(err => {
-            console.error("Error starting scanner", err);
-            setUploadError("Failed to start camera. Please ensure permissions are granted.");
-            setIsScanning(false);
-        });
-    }, 100);
-  };
-
-  const stopScanning = () => {
-      if (scannerRef.current) {
-          scannerRef.current.stop().then(() => {
-              scannerRef.current?.clear();
-              setIsScanning(false);
-          }).catch(err => {
-              console.error("Failed to stop scanner", err);
-              setIsScanning(false);
-          });
-      } else {
-          setIsScanning(false);
-      }
-  };
-
-  const handleImageSearch = async () => {
-      if (!imageSearchQuery.trim()) {
-          setUploadError("Please enter a keyword to search");
-          return;
-      }
-      setIsSearchingImage(true);
-      setUploadError("");
-      try {
-          const res = await searchProductImage(imageSearchQuery);
-        if (res.success && res.data?.imageUrl) {
-            setSearchedImage(res.data.imageUrl);
-        } else {
-            // Show the detailed error message from the backend (which includes Google/Unsplash errors)
-            setUploadError(res.message || "No image found for this keyword");
-        }
-      } catch (err: any) {
-          console.error(err);
-          setUploadError("Image search failed. Please try again.");
-      } finally {
-          setIsSearchingImage(false);
-      }
-  };
-
-  const applySearchedImage = () => {
-      if (searchedImage) {
-          setFormData(prev => ({ ...prev, mainImageUrl: searchedImage }));
-          setMainImagePreview(searchedImage);
-          setMainImageFile(null); // Clear file since using URL
-          setSearchedImage("");
-      }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -766,10 +960,6 @@ export default function SellerAddProduct() {
 
     // Only validate categories if NOT shop by store only
     if (formData.isShopByStoreOnly !== "Yes") {
-      if (!formData.headerCategory) {
-        setUploadError("Please select a header category.");
-        return;
-      }
       if (!formData.category) {
         setUploadError("Please select a category.");
         return;
@@ -815,22 +1005,27 @@ export default function SellerAddProduct() {
 
       // Auto-add current variation if form is filled but list is empty
       const finalVariations = [...variations];
-      if (finalVariations.length === 0) {
-        if (variationForm.title && variationForm.price) {
-          const price = parseFloat(variationForm.price);
-          const discPrice = parseFloat(variationForm.discPrice || "0");
-          const stock = parseInt(variationForm.stock || "0");
 
+      const price = parseFloat(formData.price || "0"); // MRP
+      const discPrice = parseFloat(formData.discPrice || "0"); // Selling Price
+      const stock = parseInt(formData.stock || "0");
+      const offerPrice = formData.offerPrice ? parseFloat(formData.offerPrice) : undefined;
+      const wholesalePrice = formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : 0;
+
+      if (finalVariations.length === 0) {
+        if (formData.discPrice) {
           if (discPrice <= price) {
             finalVariations.push({
-              title: variationForm.title,
+              title: variationForm.title || "Default",
               price,
               discPrice,
               stock,
-              status: variationForm.status,
+              status: variationForm.status || "Available",
+              offerPrice,
+              wholesalePrice,
             });
           } else {
-            setUploadError("Discounted price cannot be greater than price in variation");
+            setUploadError("Selling price cannot be greater than Maximum Retail Price");
             setUploading(false);
             return;
           }
@@ -839,6 +1034,22 @@ export default function SellerAddProduct() {
           setUploading(false);
           return;
         }
+      } else if (finalVariations.length === 1) {
+           // Update single variation logic (Simple Product Mode)
+           if (discPrice > price) {
+             setUploadError("Selling price cannot be greater than Maximum Retail Price");
+             setUploading(false);
+             return;
+           }
+
+          finalVariations[0] = {
+              ...finalVariations[0],
+              price,
+              discPrice,
+              stock,
+              offerPrice,
+              wholesalePrice
+          };
       }
 
       // Prepare product data for API
@@ -938,6 +1149,11 @@ export default function SellerAddProduct() {
               purchasePrice: "",
               lowStockQuantity: "5",
               deliveryTime: "",
+              price: "",
+              discPrice: "0",
+              stock: "0",
+              offerPrice: "",
+              wholesalePrice: "",
             });
             setVariations([]);
             setMainImageFile(null);
@@ -989,17 +1205,33 @@ export default function SellerAddProduct() {
                     {/* Main Image */}
                     <div className="flex flex-col items-center">
                         <span className="text-sm font-semibold text-neutral-700 mb-2">Main Image</span>
-                        <label className="w-40 h-40 border-2 border-seller-500 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-seller-50 transition-colors relative overflow-hidden bg-white">
+                        <div
+                         onClick={() => mainImageInputRef.current?.click()}
+                         className="w-40 h-40 border-2 border-seller-500 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-seller-50 transition-colors relative overflow-hidden bg-white">
                             {mainImagePreview ? (
-                                <img src={mainImagePreview} className="w-full h-full object-contain" alt="Main" />
+                                <div className="w-full h-full relative group">
+                                    <img src={mainImagePreview} className="w-full h-full object-contain" alt="Main" />
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setMainImageFile(null);
+                                            setMainImagePreview("");
+                                        }}
+                                        className="absolute top-1 right-1 bg-red-600/80 hover:bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                </div>
                             ) : (
                                 <>
                                     <svg className="w-10 h-10 text-seller-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                     <span className="text-xs text-seller-600 font-bold">Upload Main</span>
                                 </>
                             )}
-                            <input type="file" accept="image/*" onChange={handleMainImageChange} className="hidden" />
-                        </label>
+                            <input ref={mainImageInputRef} type="file" accept="image/*" onChange={handleMainImageChange} className="hidden" disabled={uploading} />
+                        </div>
                     </div>
 
                     {/* Gallery Images */}
@@ -1040,61 +1272,113 @@ export default function SellerAddProduct() {
                  name="productName"
                  value={formData.productName}
                  onChange={handleChange}
-                 className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                 className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                />
             </div>
 
-            {/* 3. Prices (Simulating Variation Form for consistency) */}
-            <div className="grid grid-cols-2 gap-4">
-                 <div>
+            {/* 3. Pricing & Stock (Top Level - Matches Admin) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
                       Selling Price <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
                         <input
                            type="number"
-                           value={variationForm.discPrice}
-                           onChange={(e) => setVariationForm({ ...variationForm, discPrice: e.target.value })}
-                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                           name="discPrice"
+                           value={formData.discPrice}
+                           onChange={handleChange}
+                           placeholder="0.00"
+                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                         />
                     </div>
-                 </div>
-                 <div>
-                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                      Maximum Retail...
-                    </label>
-                    <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
-                        <input
-                           type="number"
-                           value={variationForm.price}
-                           onChange={(e) => setVariationForm({ ...variationForm, price: e.target.value })} // Setup Main Price
-                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                        />
-                    </div>
-                 </div>
-            </div>
-
-             {/* Purchase Price */}
-             {shouldShowField('purchase_price') && (
+                </div>
                 <div>
                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Purchase Price
+                     Maximum Retail Price
                    </label>
                    <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
                        <input
-                         type="number"
-                         name="purchasePrice"
-                         value={(formData as any).purchasePrice}
-                         onChange={handleChange}
-                         className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                          type="number"
+                          name="price"
+                          value={formData.price}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                          className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                        />
                    </div>
                 </div>
-             )}
-          </div>
+
+                <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      Offer Price (Online)
+                    </label>
+                    <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
+                        <input
+                           type="number"
+                           name="offerPrice"
+                           value={formData.offerPrice}
+                           onChange={handleChange}
+                           placeholder="0.00"
+                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                        />
+                    </div>
+                </div>
+                <div>
+                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                     Wholesale Price
+                   </label>
+                   <div className="relative">
+                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
+                        <input
+                           type="number"
+                           name="wholesalePrice"
+                           value={formData.wholesalePrice}
+                           onChange={handleChange}
+                           placeholder="0.00"
+                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                        />
+                   </div>
+                </div>
+
+                 {shouldShowField('purchase_price') && (
+                    <div>
+                        <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                         Purchase Price
+                        </label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
+                            <input
+                              type="number"
+                              name="purchasePrice"
+                              value={(formData as any).purchasePrice}
+                              onChange={handleChange}
+                              placeholder="0.00"
+                              className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      Stock <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                       type="number"
+                       name="stock"
+                       value={formData.stock}
+                       onChange={handleChange}
+                       placeholder="0"
+                       className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                    />
+                </div>
+            </div>
+
+        </div>
 
           {/* Product Section Details */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
@@ -1164,7 +1448,7 @@ export default function SellerAddProduct() {
                 {shouldShowField('header_category') && (
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Header Category <span className="text-red-500">*</span>
+                    Header Category
                   </label>
                   <ThemedDropdown
                     options={headerCategories.map(hc => ({ id: hc._id, label: hc.name, value: hc._id }))}
@@ -1195,8 +1479,7 @@ export default function SellerAddProduct() {
                     }
                     value={formData.category}
                     onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
-                    placeholder={formData.headerCategory ? "Select Category" : "Select Header Category First"}
-                    disabled={!formData.headerCategory}
+                    placeholder="Select Category"
                   />
                 </div>
                 )}
@@ -1386,190 +1669,530 @@ export default function SellerAddProduct() {
             </div>
           </div>
 
-          {/* Add Variation Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
-              <h2 className="text-lg font-semibold tracking-wide">Product Variations</h2>
-            </div>
-            <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
-              <div>
-                <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                  Variation Type
-                </label>
-                <div className="max-w-xs">
-                  <ThemedDropdown
-                    options={['Size', 'Weight', 'Color', 'Pack']}
-                    value={formData.variationType}
-                    onChange={(val) => setFormData(prev => ({ ...prev, variationType: val }))}
-                    placeholder="Select Variation Type"
-                  />
-                </div>
-              </div>
+            {/* Product Variations Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
+               <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
+                 <h2 className="text-lg font-semibold tracking-wide">Product Variations</h2>
+                 <div className="flex items-center gap-2">
+                     <span className="text-sm font-medium text-white/90">Enable Attributes</span>
+                     <button
+                         type="button"
+                         onClick={() => setEnableAttributes(!enableAttributes)}
+                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${enableAttributes ? 'bg-white shadow-inner' : 'bg-black/20'}`}
+                     >
+                         <span className={`inline-block h-4 w-4 transform rounded-full transition-transform shadow-sm ${enableAttributes ? 'translate-x-6 bg-[#f187b5]' : 'translate-x-1 bg-white'}`} />
+                     </button>
+                 </div>
+               </div>
 
-              {/* Variation Form */}
-              <div className="bg-neutral-50 rounded-xl p-6 border border-neutral-200">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                      Unit Value
-                    </label>
-                    <input
-                      type="text"
-                      value={variationForm.title}
-                      onChange={(e) => setVariationForm({ ...variationForm, title: e.target.value })}
-                      placeholder="e.g. XL, 1kg"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                      Price *
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
-                      <input
-                        type="number"
-                        value={variationForm.price}
-                        onChange={(e) => setVariationForm({ ...variationForm, price: e.target.value })}
-                        placeholder="0.00"
-                        className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                      Discount Price
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
-                      <input
-                        type="number"
-                        value={variationForm.discPrice}
-                        onChange={(e) => setVariationForm({ ...variationForm, discPrice: e.target.value })}
-                        placeholder="0.00"
-                        className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                      Stock
-                    </label>
-                    <input
-                      type="number"
-                      value={variationForm.stock}
-                      onChange={(e) => setVariationForm({ ...variationForm, stock: e.target.value })}
-                      placeholder="0 = Unlimited"
-                      className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                    />
-                  </div>
-                  {shouldShowField('online_offer_price') && (
-                  <div>
-                    <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                      Offer Price
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
-                      <input
-                        type="number"
-                        value={variationForm.offerPrice}
-                        onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
-                        placeholder="Optional"
-                        className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                      />
-                    </div>
-                  </div>
-                  )}
-                  <div className="md:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div className="flex-1">
-                        <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                            Barcode
-                        </label>
-                        <div className="flex gap-2">
-                             <input
-                                type="text"
-                                value={variationForm.barcode}
-                                onChange={(e) => setVariationForm({ ...variationForm, barcode: e.target.value })}
-                                placeholder="Scan or Enter"
-                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => startScanning("variation")}
-                                className="px-3 py-2 bg-neutral-100 border border-neutral-300 rounded-lg hover:bg-neutral-200 text-neutral-600 transition-colors"
-                                title="Scan Barcode"
-                                >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                            </button>
-                        </div>
-                     </div>
-                  </div>
-                  <div className="flex items-end h-full pt-6 md:col-span-5 justify-end">
-                    <button
-                      type="button"
-                      onClick={addVariation}
-                      className="px-6 py-2 bg-seller-500 hover:bg-seller-600 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
-                    >
-                      Add Variation +
-                    </button>
-                  </div>
-                </div>
-              </div>
+               <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
+                 <div>
+                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                     Variation Type
+                   </label>
+                   <div className="max-w-xs">
+                     <ThemedDropdown
+                       options={['Size', 'Weight', 'Color', 'Pack', 'Material']}
+                       value={formData.variationType}
+                       onChange={(val) => setFormData(prev => ({ ...prev, variationType: val }))}
+                       placeholder="Select Variation Type"
+                     />
+                   </div>
+                 </div>
 
-              {/* Variations List */}
-              {variations.length > 0 && (
-                <div className="border border-neutral-200 rounded-lg overflow-hidden">
-                  <div className="bg-neutral-50 px-4 py-2 border-b border-neutral-200">
-                    <h3 className="text-sm font-semibold text-neutral-700">Added Variations</h3>
-                  </div>
-                  <div className="divide-y divide-neutral-100">
-                    {variations.map((variation, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-4 bg-white hover:bg-neutral-50 transition-colors"
-                      >
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 flex-1">
-                          <div>
-                             <span className="text-xs text-neutral-400 block">Barcode</span>
-                             <span className="text-neutral-700 text-sm">{variation.barcode || "-"}</span>
-                          </div>
-                          <div>
-                            <span className="text-xs text-neutral-400 block">Unit Value</span>
-                            <span className="font-medium text-neutral-900">{variation.title}</span>
-                          </div>
-                          <div>
-                            <span className="text-xs text-neutral-400 block">Price</span>
-                            <span className="font-medium text-seller-600">₹{variation.price}</span>
-                            {variation.discPrice > 0 && (
-                               <span className="text-xs text-neutral-400 line-through ml-2">₹{variation.discPrice}</span>
+                 {enableAttributes ? (
+                     /* Attribute Selection UI */
+                     <div className="space-y-6 bg-neutral-50 p-6 rounded-xl border border-neutral-200">
+                        {/* Step 0: Select Colors */}
+                        <div>
+                            <div className="flex items-center justify-between mb-4">
+                               <label className="block text-sm font-semibold text-neutral-700">
+                                   Select Colors
+                               </label>
+                                <button
+                                   type="button"
+                                   onClick={() => setEnableColors(!enableColors)}
+                                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${enableColors ? 'bg-[#f187b5]' : 'bg-neutral-300'}`}
+                               >
+                                   <span className={`inline-block h-4 w-4 transform rounded-full transition-transform bg-white ${enableColors ? 'translate-x-6' : 'translate-x-1'}`} />
+                               </button>
+                            </div>
+
+                            {enableColors && (
+                                <div className="bg-white p-4 rounded-lg border border-neutral-200 shadow-sm mb-4">
+                                   <div className="flex flex-col sm:flex-row gap-2 mb-3 max-w-lg items-center">
+                                       <input
+                                           type="color"
+                                           className="w-10 h-10 p-1 border border-neutral-300 rounded cursor-pointer shrink-0"
+                                           value={colorInput.code}
+                                           onChange={(e) => setColorInput(prev => ({...prev, code: e.target.value}))}
+                                       />
+                                       <input
+                                           type="text"
+                                           placeholder="Color Name (e.g. Red, Forest Green)"
+                                           className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-blue-500"
+                                           value={colorInput.name}
+                                           onChange={(e) => setColorInput(prev => ({...prev, name: e.target.value}))}
+                                       />
+                                        <button
+                                           type="button"
+                                           onClick={handleAddColor}
+                                            className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded hover:bg-[#f187b5]/20 text-sm font-medium"
+                                        >Add</button>
+                                   </div>
+                                   <div className="flex flex-wrap gap-2">
+                                       {selectedColors.map(color => (
+                                           <span key={color.name} className="px-3 py-1 bg-neutral-100 text-neutral-800 border border-neutral-200 rounded-full text-xs font-medium flex items-center gap-2">
+                                               <span className="w-3 h-3 rounded-full border border-gray-300 shadow-sm" style={{ backgroundColor: color.code }}></span>
+                                               {color.name}
+                                               <button type="button" onClick={() => handleRemoveColor(color.name)} className="text-neutral-400 hover:text-red-500 font-bold focus:outline-none">&times;</button>
+                                           </span>
+                                       ))}
+                                   </div>
+                                </div>
                             )}
-                          </div>
+                        </div>
+
+                        {/* Step 1: Select Attributes */}
                           <div>
-                            <span className="text-xs text-neutral-400 block">Stock</span>
-                            <span className="text-neutral-700">{variation.stock === 0 ? "Unlimited" : variation.stock}</span>
+                             <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                                 Select Attributes
+                             </label>
+                             <div className="flex flex-col sm:flex-row gap-2 max-w-md">
+                                <select
+                                     className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]"
+                                     value={selectedAttributeId}
+                                     onChange={(e) => setSelectedAttributeId(e.target.value)}
+                                >
+                                    <option value="">Select an Attribute</option>
+                                    {availableAttributes.map(attr => (
+                                        <option key={attr._id || attr.id} value={attr._id || attr.id} disabled={selectedAttributes.some(s => s.id === (attr._id || attr.id))}>
+                                            {attr.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    type="button"
+                                    onClick={handleAddAttribute}
+                                    className="px-4 py-2 bg-[#f187b5] text-white rounded-lg text-sm font-medium hover:bg-[#e076a5]"
+                                >
+                                    Add
+                                </button>
+                             </div>
                           </div>
-                          <div>
-                            <span className="text-xs text-neutral-400 block">Status</span>
-                            <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${variation.status === 'Available' ? 'bg-seller-100 text-seller-800' : 'bg-red-100 text-red-800'}`}>
-                              {variation.status}
-                            </span>
+
+                          {/* Step 2: Attribute Values */}
+                          {selectedAttributes.map((attr) => (
+                              <div key={attr.id} className="bg-white p-4 rounded-lg border border-neutral-200 shadow-sm relative">
+                                  <button type="button" onClick={() => handleRemoveAttribute(attr.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-lg leading-none">&times;</button>
+                                  <h4 className="font-semibold text-[#f187b5] mb-2">{attr.name} Values</h4>
+                                  <div className="flex flex-col sm:flex-row gap-2 mb-3 max-w-lg">
+                                      <input
+                                          type="text"
+                                          placeholder={`Add ${attr.name} value`}
+                                          className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#f187b5]"
+                                          value={attrInputValues[attr.id] || ""}
+                                          onChange={(e) => setAttrInputValues(prev => ({...prev, [attr.id]: e.target.value}))}
+                                          onKeyDown={(e) => {
+                                             if(e.key === 'Enter') {
+                                                 e.preventDefault();
+                                                 handleAddAttributeValue(attr.id, attrInputValues[attr.id] || "");
+                                                 setAttrInputValues(prev => ({...prev, [attr.id]: ""}));
+                                             }
+                                          }}
+                                      />
+                                       <button
+                                          type="button"
+                                          onClick={() => {
+                                              handleAddAttributeValue(attr.id, attrInputValues[attr.id] || "");
+                                              setAttrInputValues(prev => ({...prev, [attr.id]: ""}));
+                                          }}
+                                            className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded hover:bg-[#f187b5]/20 text-sm font-medium"
+                                       >Add</button>
+                                  </div>
+                                  <div className="flex flex-wrap gap-2">
+                                      {attr.values.map(val => (
+                                          <span key={val} className="px-3 py-1 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded-full text-xs font-medium flex items-center gap-2">
+                                              {val}
+                                              <button type="button" onClick={() => handleRemoveAttributeValue(attr.id, val)} className="text-[#f187b5]/60 hover:text-red-500 font-bold focus:outline-none">&times;</button>
+                                          </span>
+                                      ))}
+                                  </div>
+                              </div>
+                          ))}
+
+                          {/* Unit Values */}
+                          <div className="bg-white p-4 rounded-lg border border-neutral-200 shadow-sm">
+                              <h4 className="font-semibold text-[#f187b5] mb-2">Unit Values (Optional)</h4>
+                              <div className="flex flex-col sm:flex-row gap-2 mb-3 max-w-lg">
+                                  <input
+                                      type="text"
+                                      placeholder="e.g. 1kg, 5kg"
+                                      className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#f187b5]"
+                                      value={currentUnitInput}
+                                      onChange={e => setCurrentUnitInput(e.target.value)}
+                                      onKeyDown={(e) => {
+                                         if(e.key === 'Enter') {
+                                             e.preventDefault();
+                                             handleAddUnit();
+                                         }
+                                      }}
+                                  />
+                                  <button
+                                      type="button"
+                                      onClick={handleAddUnit}
+                                      className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded hover:bg-[#f187b5]/20 text-sm font-medium"
+                                  >Add</button>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                  {variationUnits.map(unit => (
+                                      <span key={unit} className="px-3 py-1 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded-full text-xs font-medium flex items-center gap-2">
+                                          {unit}
+                                          <button type="button" onClick={() => handleRemoveUnit(unit)} className="text-[#f187b5]/60 hover:text-red-500 font-bold focus:outline-none">&times;</button>
+                                      </span>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div className="flex justify-end pt-4 border-t border-neutral-200">
+                              <button
+                                  type="button"
+                                  onClick={generateVariations}
+                                  className="px-6 py-2.5 bg-[#f187b5] text-white rounded-lg hover:bg-[#e076a5] shadow-sm font-medium transition-colors"
+                              >
+                                  Generate Variations Table
+                              </button>
+                          </div>
+
+                          {/* Generated Table */}
+                           {variations.length > 0 && (
+                             <div className="overflow-x-auto border border-neutral-200 rounded-lg mt-4">
+                                 <table className="w-full text-sm text-left">
+                                     <thead className="bg-[#f187b5]/10 text-[#f187b5] font-semibold border-b border-[#f187b5]/20">
+                                         <tr>
+                                             <th className="px-4 py-3 min-w-[150px]">Variation</th>
+                                             <th className="px-4 py-3 min-w-[100px]">Price (₹) <span className="text-red-500">*</span></th>
+                                             <th className="px-4 py-3 min-w-[100px]">Offer Price (Online)</th>
+                                             <th className="px-4 py-3 min-w-[100px]">Wholesale</th>
+                                             <th className="px-4 py-3 min-w-[80px]">Stock</th>
+                                             <th className="px-4 py-3 min-w-[180px]">SKU/Barcode</th>
+                                             <th className="px-4 py-3 min-w-[100px]">Unit Pricing</th>
+                                             <th className="px-4 py-3 w-10 text-center">Action</th>
+                                         </tr>
+                                     </thead>
+                                     <tbody className="divide-y divide-neutral-100 bg-white">
+                                         {variations.map((v, idx) => (
+                                             <tr key={idx} className="hover:bg-neutral-50 group">
+                                                 <td className="px-4 py-2 font-medium text-neutral-800">{v.title}</td>
+                                                 <td className="px-4 py-2">
+                                                     <input
+                                                         type="number"
+                                                         className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
+                                                         value={v.price} // MRP
+                                                         onChange={e => {
+                                                             const val = e.target.value;
+                                                             setVariations(prev => {
+                                                                 const n = [...prev];
+                                                                 n[idx].price = parseFloat(val) || 0;
+                                                                 return n;
+                                                             });
+                                                         }}
+                                                     />
+                                                 </td>
+                                                  <td className="px-4 py-2">
+                                                      <input
+                                                          type="number"
+                                                          className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
+                                                          value={v.offerPrice} // Online Offer Price
+                                                          onChange={e => {
+                                                              const val = e.target.value;
+                                                              setVariations(prev => {
+                                                                  const n = [...prev];
+                                                                  n[idx].offerPrice = parseFloat(val) || 0;
+                                                                  return n;
+                                                              });
+                                                          }}
+                                                      />
+                                                  </td>
+                                                 <td className="px-4 py-2">
+                                                     <input
+                                                         type="number"
+                                                         className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
+                                                         value={v.wholesalePrice}
+                                                         onChange={e => {
+                                                             const val = e.target.value;
+                                                             setVariations(prev => {
+                                                                 const n = [...prev];
+                                                                 n[idx].wholesalePrice = parseFloat(val) || 0;
+                                                                 return n;
+                                                             });
+                                                         }}
+                                                     />
+                                                 </td>
+                                                 <td className="px-4 py-2">
+                                                     <input
+                                                         type="number"
+                                                         className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
+                                                         value={v.stock}
+                                                         onChange={e => {
+                                                             const val = e.target.value;
+                                                             setVariations(prev => {
+                                                                 const n = [...prev];
+                                                                 n[idx].stock = parseInt(val) || 0;
+                                                                 return n;
+                                                             });
+                                                         }}
+                                                     />
+                                                 </td>
+                                                  <td className="px-4 py-2">
+                                                      <div className="flex items-center gap-1 min-w-[150px]">
+                                                          <input
+                                                               type="text"
+                                                               className="w-full flex-1 px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none text-sm"
+                                                               value={v.barcode || ""}
+                                                               placeholder="SKU"
+                                                               onChange={e => {
+                                                                   const val = e.target.value;
+                                                                   setVariations(prev => {
+                                                                       const n = [...prev];
+                                                                       n[idx].barcode = val;
+                                                                       return n;
+                                                                   });
+                                                               }}
+                                                          />
+                                                          <button
+                                                              type="button"
+                                                              onClick={() => {
+                                                                  const newCode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+                                                                  setVariations(prev => {
+                                                                      const n = [...prev];
+                                                                      n[idx].barcode = newCode;
+                                                                      return n;
+                                                                  });
+                                                              }}
+                                                              className="p-1.5 text-neutral-400 hover:text-seller-500 hover:bg-neutral-50 rounded transition-colors"
+                                                              title="Auto Generate"
+                                                          >
+                                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                                          </button>
+                                                          <button
+                                                              type="button"
+                                                              onClick={() => startScanning("table-variation", idx)}
+                                                              className="p-1.5 text-neutral-400 hover:text-seller-500 hover:bg-neutral-50 rounded transition-colors"
+                                                              title="Scan Barcode"
+                                                          >
+                                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                                          </button>
+                                                      </div>
+                                                  </td>
+                                                 <td className="px-4 py-2 text-center">
+                                                     <button
+                                                         type="button"
+                                                         onClick={() => {
+                                                             const existing = v.tieredPrices || [];
+                                                             setTempTieredPrices(existing.map(t => ({ minQty: Number(t.minQty), price: Number(t.price) })));
+                                                             setUnitPricingModal({ isOpen: true, variationIndex: idx });
+                                                         }}
+                                                         className={`text-xs px-2 py-1 rounded border font-medium transition-colors ${
+                                                             v.tieredPrices && v.tieredPrices.length > 0
+                                                             ? "bg-pink-100 text-[#f187b5] border-pink-200 hover:bg-pink-200"
+                                                             : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
+                                                         }`}
+                                                     >
+                                                         {v.tieredPrices && v.tieredPrices.length > 0 ? `${v.tieredPrices.length} Slabs` : "Add +"}
+                                                     </button>
+                                                 </td>
+                                                 <td className="px-4 py-2 text-center">
+                                                     <button type="button" onClick={() => {
+                                                         setVariations(prev => prev.filter((_, i) => i !== idx));
+                                                     }} className="text-gray-400 hover:text-red-500 font-bold transition-colors">
+                                                         &times;
+                                                     </button>
+                                                 </td>
+                                             </tr>
+                                         ))}
+                                     </tbody>
+                                 </table>
+                             </div>
+                           )}
+                     </div>
+                  ) : (
+                    /* Variation Form (Old Manual) - Sync with Admin Structure */
+                    <div className="bg-neutral-50 rounded-xl p-6 border border-neutral-200">
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
+                        <div>
+                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                            Unit Value
+                          </label>
+                          <input
+                            type="text"
+                            value={variationForm.title}
+                            onChange={(e) => setVariationForm({ ...variationForm, title: e.target.value })}
+                            placeholder="e.g. XL, 1kg"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                            Price *
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
+                            <input
+                              type="number"
+                              value={variationForm.price}
+                              onChange={(e) => setVariationForm({ ...variationForm, price: e.target.value })}
+                              placeholder="0.00"
+                              className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                            />
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => removeVariation(index)}
-                          className="ml-4 p-2 text-neutral-400 hover:text-red-600 transition-colors"
-                          title="Remove variation"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                            Stock
+                          </label>
+                          <input
+                            type="number"
+                            value={variationForm.stock}
+                            onChange={(e) => setVariationForm({ ...variationForm, stock: e.target.value })}
+                            placeholder="0 = Unlimited"
+                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                            Offer Price (Online)
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
+                            <input
+                              type="number"
+                              value={variationForm.offerPrice}
+                              onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
+                              placeholder="0.00"
+                              className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                            Wholesale Price
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
+                            <input
+                              type="number"
+                              value={variationForm.wholesalePrice}
+                              onChange={(e) => setVariationForm({ ...variationForm, wholesalePrice: e.target.value })}
+                              placeholder="0.00"
+                              className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Tiered Pricing Section */}
+                        <div className="md:col-span-5 bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300">
+                            <div className="flex justify-between items-center mb-3">
+                                <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
+                                    Unit Pricing (Buy X get for Y)
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={handleAddTier}
+                                  className="text-xs font-bold text-[#f187b5] hover:text-[#e076a5]"
+                                >
+                                  + Add Tier
+                                </button>
+                            </div>
+
+                            {variationForm.tieredPrices.length === 0 && (
+                                <p className="text-xs text-center text-gray-400 italic py-2">No unit pricing added.</p>
+                            )}
+
+                            <div className="space-y-3">
+                                {variationForm.tieredPrices.map((tier, idx) => (
+                                    <div key={idx} className="flex gap-3 items-center">
+                                        <div className="flex-1">
+                                            <input
+                                                type="number"
+                                                placeholder="Min Qty (e.g. 2)"
+                                                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm"
+                                                value={tier.minQty}
+                                                onChange={e => handleTierChange(idx, 'minQty', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="flex-1 relative">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">₹</span>
+                                            <input
+                                                type="number"
+                                                placeholder="Price/Unit"
+                                                className="w-full pl-6 pr-3 py-2 border border-neutral-300 rounded text-sm"
+                                                value={tier.price}
+                                                onChange={e => handleTierChange(idx, 'price', e.target.value)}
+                                            />
+                                        </div>
+                                        <button type="button" onClick={() => handleRemoveTier(idx)} className="text-red-500 hover:text-red-700">✕</button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="md:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <div className="flex-1">
+                              <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                                  Barcode
+                              </label>
+                              <div className="flex flex-col md:flex-row gap-2">
+                                   <input
+                                      type="text"
+                                      value={variationForm.barcode}
+                                      onChange={(e) => setVariationForm({ ...variationForm, barcode: e.target.value })}
+                                      placeholder="Scan or Enter"
+                                      className="w-full md:w-auto md:flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                                  />
+                                  <div className="flex gap-2 shrink-0">
+                                      <button
+                                          type="button"
+                                          onClick={() => handleAutoGenerateBarcode("variation")}
+                                          className="flex-1 md:flex-none px-3 py-2 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] transition-colors flex items-center justify-center gap-2"
+                                          title="Auto Generate Barcode"
+                                          >
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                          <span className="text-xs font-bold whitespace-nowrap">Auto Generate</span>
+                                      </button>
+                                      <button
+                                          type="button"
+                                          onClick={() => startScanning("variation")}
+                                          className="flex-1 md:flex-none px-3 py-2 bg-neutral-100 border border-neutral-300 rounded-lg hover:bg-neutral-200 text-neutral-600 transition-colors flex items-center justify-center gap-2"
+                                          title="Scan Barcode"
+                                          >
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                          <span className="text-xs font-bold whitespace-nowrap">Scan Code</span>
+                                      </button>
+                                  </div>
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="flex items-end h-full pt-6 md:col-span-5 justify-end">
+                          <button
+                            type="button"
+                            onClick={addVariation}
+                            className="px-6 py-2 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+                          >
+                            Add Variation +
+                          </button>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+                    </div>
+                  )}
+               </div>
+
+
           </div>
+
+
 
           {/* Add Other Details Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
@@ -1748,23 +2371,33 @@ export default function SellerAddProduct() {
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Barcode (EAN/UPC)
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col md:flex-row gap-2">
                     <input
                       type="text"
                       name="barcode"
                       value={(formData as any).barcode}
                       onChange={handleChange}
                       placeholder="Scan or enter barcode manually"
-                      className="flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
+                      className="w-full md:w-auto md:flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                     />
-                    <button
-                        type="button"
-                        onClick={() => startScanning("product")}
-                        className="px-4 py-2 bg-seller-50 border border-seller-200 rounded-lg hover:bg-seller-100 text-seller-700 flex items-center gap-2 font-medium transition-colors"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                        Scan Code
-                    </button>
+                    <div className="flex gap-2 shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => handleAutoGenerateBarcode("product")}
+                            className="flex-1 md:flex-none px-4 py-2 bg-[#f187b5]/10 border border-[#f187b5]/20 rounded-lg hover:bg-[#f187b5]/20 text-[#f187b5] flex items-center justify-center gap-2 font-medium transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <span className="whitespace-nowrap">Auto Generate</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => startScanning("product")}
+                            className="flex-1 md:flex-none px-4 py-2 bg-[#f187b5]/10 border border-[#f187b5]/20 rounded-lg hover:bg-[#f187b5]/20 text-[#f187b5] flex items-center justify-center gap-2 font-medium transition-colors"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                            <span className="whitespace-nowrap">Scan Code</span>
+                        </button>
+                    </div>
                   </div>
                 </div>
                 )}
@@ -1774,7 +2407,7 @@ export default function SellerAddProduct() {
 
           {/* Print Barcodes Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
+            <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Print Barcodes</h2>
             </div>
             <div className="p-6 border-x border-b border-neutral-200 rounded-b-xl">
@@ -1785,7 +2418,7 @@ export default function SellerAddProduct() {
                       type="number"
                       value={printQuantity}
                       onChange={(e) => setPrintQuantity(e.target.value)}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-seller-500/20 shadow-sm"
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 shadow-sm"
                       placeholder="Enter Quantity"
                    />
                 </div>
@@ -1793,7 +2426,7 @@ export default function SellerAddProduct() {
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">Select Barcode</label>
                     <div className="relative">
                         <select
-                            className="w-full px-4 py-2 border border-neutral-300 rounded-lg appearance-none bg-white focus:ring-2 focus:ring-seller-500/20 shadow-sm pr-10 cursor-pointer"
+                            className="w-full px-4 py-2 border border-neutral-300 rounded-lg appearance-none bg-white focus:ring-2 focus:ring-[#f187b5]/20 shadow-sm pr-10 cursor-pointer"
                             value={selectedPrintBarcode}
                             onChange={(e) => {
                                 const val = e.target.value;
@@ -1816,68 +2449,15 @@ export default function SellerAddProduct() {
                         </div>
                     </div>
                 </div>
-                <div className="text-sm text-neutral-500 italic bg-seller-50 p-3 rounded-lg border border-seller-100 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-seller-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <div className="text-sm text-neutral-500 italic bg-[#f187b5]/10 p-3 rounded-lg border border-[#f187b5]/20 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-[#f187b5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     * Select a barcode to immediately open the print preview.
                 </div>
               </div>
             </div>
           </div>
 
-          {/* AI Image Search Section (New) - Only for New Products */}
-          {!id && (
-            <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-                <div className="bg-purple-600 text-white px-4 sm:px-6 py-3 rounded-t-lg flex justify-between items-center">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 00-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                      Live Image Search
-                    </h2>
-                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded">AI Powered</span>
-                </div>
-                <div className="p-4 sm:p-6 space-y-4">
-                    <div className="flex gap-2">
-                         <input
-                            type="text"
-                            value={imageSearchQuery}
-                            onChange={(e) => setImageSearchQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleImageSearch())}
-                            placeholder="e.g. Vaseline 200ml, Dove Soap"
-                            className="flex-1 px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-                         />
-                         <button
-                            type="button"
-                            onClick={handleImageSearch}
-                            disabled={isSearchingImage}
-                            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-70 flex items-center gap-2"
-                         >
-                             {isSearchingImage ? (
-                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                             ) : (
-                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                             )}
-                             Search
-                         </button>
-                    </div>
 
-                    {searchedImage && (
-                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-col sm:flex-row gap-4 items-center">
-                            <img src={searchedImage} alt="Analysis Result" className="w-24 h-24 object-cover rounded bg-white border border-gray-200" />
-                            <div className="flex-1 text-center sm:text-left">
-                                <h4 className="font-medium text-gray-800">Image Found</h4>
-                                <p className="text-sm text-gray-500">Web Search Result</p>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={applySearchedImage}
-                                className="px-4 py-2 bg-seller-500 hover:bg-seller-600 text-white rounded-lg text-sm font-medium transition-colors"
-                            >
-                                Use this Image
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-          )}
 
 
 
@@ -1970,6 +2550,112 @@ export default function SellerAddProduct() {
           </div>
         </div>
       )}
+        {/* Unit Pricing Modal */}
+        {unitPricingModal.isOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+                    <div className="bg-[#f187b5] text-white px-6 py-4 flex justify-between items-center shrink-0">
+                        <h3 className="text-lg font-semibold">Unit Wise Pricing</h3>
+                        <button onClick={() => setUnitPricingModal({...unitPricingModal, isOpen: false})} className="text-white hover:bg-[#e076a5] p-1 rounded-full">✕</button>
+                    </div>
+
+                    <div className="p-6 overflow-y-auto flex-1">
+                        <p className="text-sm text-gray-500 mb-4 bg-pink-50 p-3 rounded border border-pink-100">
+                           Set discount prices when users buy in bulk. (e.g. Buy 2+ get at ₹95)
+                        </p>
+
+                        <div className="space-y-3">
+                            {tempTieredPrices.map((tier, idx) => (
+                                <div key={idx} className="flex gap-3 items-center">
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">Min Qty</label>
+                                        <input
+                                            type="number"
+                                            placeholder="e.g. 2"
+                                            className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:border-[#f187b5] focus:outline-none"
+                                            value={tier.minQty}
+                                            onChange={e => {
+                                                const val = parseInt(e.target.value) || 0;
+                                                setTempTieredPrices(prev => {
+                                                    const n = [...prev];
+                                                    n[idx].minQty = val;
+                                                    return n;
+                                                });
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="flex-1 relative">
+                                        <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1">Unit Price</label>
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">₹</span>
+                                            <input
+                                                type="number"
+                                                placeholder="Price"
+                                                className="w-full pl-6 pr-3 py-2 border border-neutral-300 rounded text-sm focus:border-[#f187b5] focus:outline-none"
+                                                value={tier.price}
+                                                onChange={e => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    setTempTieredPrices(prev => {
+                                                        const n = [...prev];
+                                                        n[idx].price = val;
+                                                        return n;
+                                                    });
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex items-end h-[58px]">
+                                        <button
+                                            type="button"
+                                            onClick={() => setTempTieredPrices(prev => prev.filter((_, i) => i !== idx))}
+                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded mb-0.5"
+                                        >✕</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setTempTieredPrices(prev => [...prev, { minQty: 0, price: 0 }])}
+                            className="mt-4 text-sm font-bold text-[#f187b5] hover:text-[#e076a5] flex items-center gap-1"
+                        >
+                            + Add Price Slab
+                        </button>
+                    </div>
+
+                    <div className="p-4 border-t border-gray-100 flex justify-end gap-3 shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => setUnitPricingModal({...unitPricingModal, isOpen: false})}
+                            className="px-4 py-2 text-neutral-600 hover:bg-neutral-100 rounded-lg font-medium"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (unitPricingModal.variationIndex !== null) {
+                                    const cleanedTiers = tempTieredPrices.filter(t => t.minQty > 1 && t.price > 0);
+                                    setVariations(prev => {
+                                        const n = [...prev];
+                                        n[unitPricingModal.variationIndex!] = {
+                                            ...n[unitPricingModal.variationIndex!],
+                                            tieredPrices: cleanedTiers
+                                        };
+                                        return n;
+                                    });
+                                    setUnitPricingModal({ isOpen: false, variationIndex: null });
+                                }
+                            }}
+                            className="px-6 py-2 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded-lg font-medium"
+                        >
+                            Save Prices
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
         {/* Unit Selection Modal */}
         <UnitSelectionModal
             isOpen={isUnitModalOpen}
@@ -1980,6 +2666,8 @@ export default function SellerAddProduct() {
             }}
             currentValue={(formData as any).pack}
         />
+
+
     </div>
   );
 }

@@ -123,6 +123,7 @@ router.use("/customer/free-gift-rules", customerFreeGiftRoutes);
 
 // Public Config Route
 import { getPublicConfig } from "../modules/customer/controllers/customerConfigController";
+router.get("/customer/config/public", getPublicConfig);
 router.get("/customer/config", getPublicConfig);
 
 router.use("/customer", customerRoutes);
@@ -164,9 +165,17 @@ router.use("/seller/reports", reportRoutes);
 import sellerPOSRoutes from "./sellerPOSRoutes";
 router.use("/seller/pos", sellerPOSRoutes);
 
+// Seller Order Routes (Reports)
+import sellerOrderRoutes from "./sellerOrderRoutes";
+router.use("/seller/orders", sellerOrderRoutes);
+
 // Seller Attribute Routes
 import sellerAttributeRoutes from "./sellerAttributeRoutes";
 router.use("/seller/attributes", sellerAttributeRoutes);
+
+// Seller Inventory Routes
+import sellerInventoryRoutes from "./sellerInventoryRoutes";
+router.use("/seller/inventory", sellerInventoryRoutes);
 
 // Wallet routes (protected, seller only)
 router.use("/seller/wallet", walletRoutes);

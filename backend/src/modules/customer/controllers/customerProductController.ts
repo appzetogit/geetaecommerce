@@ -58,15 +58,13 @@ export const getProducts = async (req: Request, res: Response) => {
       try {
         const adminSellers = await Seller.find({
           $or: [
-            { email: "admin-store@Geeta Stores.com" }, // legacy check
-            { category: "Admin" }, // Robust check
-            { storeName: { $regex: /Admin/i } } // Fallback
+            { email: /admin/i }, // Broaden check
+            { category: "Admin" },
+            { storeName: { $regex: /Admin/i } }
           ]
         }).select("_id");
 
         const adminSellerIds = adminSellers.map(s => s._id);
-
-        // Merge IDs
         allowedSellerIds = [...allowedSellerIds, ...adminSellerIds];
       } catch (err) {
         console.error("Error fetching admin seller for whitelist:", err);
@@ -81,10 +79,8 @@ export const getProducts = async (req: Request, res: Response) => {
       const enabledSellerIds = enabledSellers.map(s => s._id);
 
       if (enabledSellerIds.length === 0) {
-        // If no enabled sellers nearby, restrict query to an empty set of sellers
         query.seller = { $in: [] };
       } else {
-        // Filter products by enabled sellers within range (or Admin)
         query.seller = { $in: enabledSellerIds };
       }
     } else {
@@ -92,7 +88,6 @@ export const getProducts = async (req: Request, res: Response) => {
        const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
        const enabledSellerIds = enabledSellers.map(s => s._id);
        query.seller = { $in: enabledSellerIds };
-       console.log(`Filtering by ${enabledSellerIds.length} enabled sellers (no location provided)`);
     }
 
     // Helper to resolve category/subcategory ID from slug or ID
@@ -195,8 +190,25 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 
     if (search) {
-      // Use text search for broad matching
-      query.$text = { $search: search as string };
+      const searchRegex = { $regex: search as string, $options: "i" };
+      const searchOr = [
+        { productName: searchRegex },
+        { smallDescription: searchRegex },
+        { tags: searchRegex },
+        { sku: searchRegex },
+        { barcode: searchRegex },
+        { "variations.sku": searchRegex },
+        { "variations.barcode": searchRegex }
+      ];
+
+      // Merge with existing $or from line 39 correctly using $and
+      const originalOr = query.$or;
+      delete query.$or;
+
+      query.$and = [
+        { $or: originalOr },
+        { $or: searchOr }
+      ];
     }
 
     // Calculate skip for pagination
@@ -208,6 +220,8 @@ export const getProducts = async (req: Request, res: Response) => {
     if (sort === "price_desc") sortOptions = { price: -1 };
     if (sort === "discount") sortOptions = { discount: -1 };
     if (sort === "popular") sortOptions = { popular: -1, dealOfDay: -1 };
+
+    console.log("DEBUG: Final search query:", JSON.stringify(query));
 
     const products = await Product.find(query)
       .populate("category", "name icon image")
@@ -235,6 +249,91 @@ export const getProducts = async (req: Request, res: Response) => {
       success: false,
       message: "Error fetching products",
       error: error.message,
+    });
+  }
+};
+
+// Get search suggestions (public)
+export const getSearchSuggestions = async (req: Request, res: Response) => {
+  try {
+    const { q, latitude, longitude } = req.query;
+    console.log("DEBUG: getSearchSuggestions called with q:", q, "at", latitude, longitude);
+
+    if (!q || typeof q !== 'string') {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    const searchRegex = { $regex: q, $options: "i" };
+    const query: any = {
+      status: "Active",
+      publish: true,
+      $or: [
+        { productName: searchRegex },
+        { tags: searchRegex },
+        { sku: searchRegex },
+        { barcode: searchRegex },
+        { "variations.sku": searchRegex },
+        { "variations.barcode": searchRegex }
+      ]
+    };
+
+    // Location-based filtering for suggestions too
+    const userLat = latitude ? parseFloat(latitude as string) : null;
+    const userLng = longitude ? parseFloat(longitude as string) : null;
+
+    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
+      let allowedSellerIds = await findSellersWithinRange(userLat, userLng);
+      // Add Admin Sellers
+      const adminSellers = await Seller.find({
+        $or: [
+          { category: "Admin" },
+          { storeName: { $regex: /Admin/i } }
+        ]
+      }).select("_id");
+      allowedSellerIds = [...allowedSellerIds, ...adminSellers.map(s => s._id)];
+      query.seller = { $in: allowedSellerIds };
+      console.log(`DEBUG: Suggestions filtering for ${allowedSellerIds.length} sellers`);
+    }
+
+    const products = await Product.find(query)
+      .select("productName _id mainImage category price mrp discount compareAtPrice")
+      .populate("category", "name")
+      .limit(10)
+      .lean();
+
+    console.log(`DEBUG: Found ${products.length} matching products for suggestions`);
+
+    // Also search for categories
+    const categories = await Category.find({
+      name: searchRegex,
+      status: "Active"
+    }).limit(3).select("name _id image").lean();
+
+    const suggestions = [
+      { id: 'search', name: q, type: 'search', image: null },
+      ...products.map(p => ({
+        id: p._id,
+        name: p.productName,
+        type: 'product',
+        image: p.mainImage,
+        categoryName: (p.category as any)?.name,
+        price: p.price,
+        mrp: p.compareAtPrice || p.mrp || p.price,
+        discount: p.discount
+      })),
+      ...categories.map(c => ({ id: c._id, name: c.name, type: 'category', image: c.image }))
+    ];
+
+    return res.status(200).json({
+      success: true,
+      data: suggestions
+    });
+  } catch (error: any) {
+    console.error("ERROR: getSearchSuggestions:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching suggestions",
+      error: error.message
     });
   }
 };
@@ -300,9 +399,8 @@ export const getProductById = async (req: Request, res: Response) => {
 
     // Initialize availability flag
     let isAvailableAtLocation = false;
-
-    // Safely get seller ID - handle both populated and unpopulated cases
     let sellerId: mongoose.Types.ObjectId | null = null;
+
     if (seller) {
       if (typeof seller === "object" && seller._id) {
         // Seller is populated
@@ -446,7 +544,7 @@ export const getProductById = async (req: Request, res: Response) => {
 };
 
 // Get all brands (public)
-export const getAllBrands = async (req: Request, res: Response) => {
+export const getAllBrands = async (_req: Request, res: Response) => {
   try {
     const brands = await Brand.find({}).sort({ name: 1 });
     return res.status(200).json({

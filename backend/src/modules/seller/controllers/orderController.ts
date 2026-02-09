@@ -247,8 +247,17 @@ export const updateOrderStatus = asyncHandler(
       });
     }
 
+    // Check if seller has items in this order
+    const hasItems = await OrderItem.exists({ order: id, seller: sellerId });
+    if (!hasItems) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found or access denied",
+      });
+    }
+
     // Find the order
-    const order = await Order.findOne({ _id: id, sellerId });
+    const order = await Order.findById(id);
 
     if (!order) {
       return res.status(404).json({
@@ -300,6 +309,205 @@ export const updateOrderStatus = asyncHandler(
       data: {
         id: order._id,
         status: order.status,
+      },
+    });
+  }
+);
+
+/**
+ * Get online orders (excluding POS) for seller
+ */
+export const getOnlineOrders = asyncHandler(
+  async (req: Request, res: Response) => {
+    const sellerId = (req as any).user.userId;
+    const {
+      dateFrom,
+      dateTo,
+      status,
+      search,
+      page = "1",
+      limit = "10",
+      sortBy = "orderDate",
+      sortOrder = "desc",
+    } = req.query;
+
+    // Find all order IDs that contain items from this seller
+    const orderItems = await OrderItem.find({ seller: sellerId }).distinct("order");
+
+    // Build query - filter by orders containing this seller's items
+    const query: any = {
+      _id: { $in: orderItems },
+      // Exclude POS orders
+      adminNotes: { $not: { $regex: `POS Order - Seller:`, $options: 'i' } }
+    };
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      query.orderDate = {};
+      if (dateFrom) {
+        query.orderDate.$gte = new Date(dateFrom as string);
+      }
+      if (dateTo) {
+        query.orderDate.$lte = new Date(dateTo as string);
+      }
+    }
+
+    // Status filter
+    if (status && status !== 'All Status') {
+      const statusMapping: Record<string, string> = {
+        'Pending': 'Pending',
+        'Accepted': 'Accepted',
+        'On the way': 'On the way',
+        'Delivered': 'Delivered',
+        'Cancelled': 'Cancelled',
+        'Rejected': 'Rejected',
+      };
+      query.status = statusMapping[status as string] || status;
+    }
+
+    // Search filter
+    if (search) {
+      query.$or = [
+        { orderNumber: { $regex: search, $options: "i" } },
+        { customerName: { $regex: search, $options: "i" } },
+        { customerPhone: { $regex: search, $options: "i" } },
+       // { 'deliveryAddress.phone': { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Pagination
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Sort
+    const sort: any = {};
+    sort[sortBy as string] = sortOrder === "asc" ? 1 : -1;
+
+    // Get orders
+    const orders = await Order.find(query)
+      .populate("customer", "name email phone")
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum);
+
+    // Get total count
+    const total = await Order.countDocuments(query);
+
+    // Format for report
+    const formattedOrders = orders.map(order => ({
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      orderDate: order.orderDate,
+      customerName: order.customerName || (order.customer as any)?.name || 'Guest',
+      customerPhone: order.customerPhone || (order.customer as any)?.phone || '',
+      total: order.total,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
+      status: order.status
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: formattedOrders,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
+  }
+);
+
+/**
+ * Get POS orders for seller report
+ */
+export const getSellerPOSOrders = asyncHandler(
+  async (req: Request, res: Response) => {
+    const sellerId = (req as any).user.userId;
+    const {
+      dateFrom,
+      dateTo,
+      paymentMethod,
+      search,
+      page = "1",
+      limit = "10",
+      sortBy = "orderDate",
+      sortOrder = "desc",
+    } = req.query;
+
+    const query: any = {
+      // Filter strictly by POS note for this seller
+      adminNotes: { $regex: `POS Order - Seller: ${sellerId}`, $options: 'i' }
+    };
+
+    // Date range filter
+    if (dateFrom || dateTo) {
+      query.orderDate = {};
+      if (dateFrom) {
+        query.orderDate.$gte = new Date(dateFrom as string);
+      }
+      if (dateTo) {
+        query.orderDate.$lte = new Date(dateTo as string);
+      }
+    }
+
+    // Payment Method Filter
+    if (paymentMethod && paymentMethod !== 'All Methods') {
+      query.paymentMethod = paymentMethod;
+    }
+
+    // Search filter
+    if (search) {
+      query.$or = [
+        { orderNumber: { $regex: search, $options: "i" } },
+        { customerName: { $regex: search, $options: "i" } },
+        { customerPhone: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Pagination
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Sort
+    const sort: any = {};
+    if (sortBy) {
+        sort[sortBy as string] = sortOrder === "asc" ? 1 : -1;
+    } else {
+        sort.orderDate = -1;
+    }
+
+    // Get orders
+    const orders = await Order.find(query)
+      .sort(sort)
+      .skip(skip)
+      .limit(limitNum);
+
+    const total = await Order.countDocuments(query);
+
+    // Format Data
+    const formattedOrders = orders.map(order => ({
+      _id: order._id,
+      orderNumber: order.orderNumber,
+      orderDate: order.orderDate,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      total: order.total,
+      paymentMethod: order.paymentMethod,
+      status: order.status // Usually 'Delivered' for POS
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: formattedOrders,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
       },
     });
   }

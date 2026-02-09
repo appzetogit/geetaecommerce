@@ -29,13 +29,17 @@ export default function ProductDetail() {
     useState(false);
   const [isHighlightsExpanded, setIsHighlightsExpanded] = useState(false);
   const [isInfoExpanded, setIsInfoExpanded] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSearch = (query: string) => {
-    if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query)}`);
-    }
-  };
+  const searchSuggestions = ['atta', 'milk', 'dal', 'coke', 'bread', 'eggs', 'rice', 'oil'];
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSearchIndex((prev) => (prev + 1) % searchSuggestions.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
 
   const [product, setProduct] = useState<any>(null);
   const [similarProducts, setSimilarProducts] = useState<any[]>([]);
@@ -329,16 +333,27 @@ export default function ProductDetail() {
           </button>
 
           {/* Search Bar */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0" onClick={() => navigate('/search')}>
             <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
-                placeholder="Search..."
-                className="w-full h-10 pl-10 pr-4 rounded-full bg-neutral-100 border-none focus:ring-2 focus:ring-green-500/20 focus:bg-white transition-all text-sm placeholder:text-neutral-500 overflow-ellipsis"
-              />
+              <div className="w-full h-10 pl-10 pr-4 rounded-full bg-neutral-100 flex items-center text-sm text-neutral-500 cursor-pointer overflow-hidden">
+                <div className="relative h-4 w-full overflow-hidden">
+                  {searchSuggestions.map((suggestion, index) => {
+                    const isActive = index === currentSearchIndex;
+                    const prevIndex = (currentSearchIndex - 1 + searchSuggestions.length) % searchSuggestions.length;
+                    const isPrev = index === prevIndex;
+                    return (
+                      <div
+                        key={suggestion}
+                        className={`absolute inset-0 flex items-center transition-all duration-500 ${isActive ? 'translate-y-0 opacity-100' : isPrev ? '-translate-y-full opacity-0' : 'translate-y-full opacity-0'}`}
+                      >
+                        <span className="text-xs text-neutral-500">
+                          Search &apos;{suggestion}&apos;
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
               <svg
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"
                 width="18"

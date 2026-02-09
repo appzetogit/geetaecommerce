@@ -114,6 +114,12 @@ export default function AdminAddProduct() {
     purchasePrice: "",
     lowStockQuantity: "5",
     deliveryTime: "",
+    price: "",
+    compareAtPrice: "",
+    discPrice: "0",
+    stock: "0",
+    offerPrice: "",
+    wholesalePrice: "",
   });
 
   const [variations, setVariations] = useState<ProductVariation[]>([]);
@@ -144,7 +150,8 @@ export default function AdminAddProduct() {
   const [uploadError, setUploadError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isScanning, setIsScanning] = useState(false);
-  const [scanTarget, setScanTarget] = useState<"product" | "variation">("product");
+  const [scanTarget, setScanTarget] = useState<"product" | "variation" | "table-variation">("product");
+  const [scanTargetIndex, setScanTargetIndex] = useState<number | null>(null);
   const scannerRef = React.useRef<Html5Qrcode | null>(null);
    // Image Search State
    const [imageSearchQuery, setImageSearchQuery] = useState("");
@@ -203,120 +210,6 @@ export default function AdminAddProduct() {
         try {
             const response = await getAppSettings();
             if (response.success) {
-// ... existing code ...
-  const handleRemoveAttributeValue = (attrId: string, value: string) => {
-      setSelectedAttributes(prev => prev.map(p => {
-          if(p.id === attrId) {
-              return { ...p, values: p.values.filter(v => v !== value) };
-          }
-          return p;
-      }));
-  };
-
-  const handleAddColor = () => {
-      if(!colorInput.name.trim()) return;
-      if(!selectedColors.some(c => c.name === colorInput.name.trim())) {
-          setSelectedColors([...selectedColors, { name: colorInput.name.trim(), code: colorInput.code }]);
-          setColorInput({ name: "", code: "#000000" });
-      }
-  };
-
-  const handleRemoveColor = (name: string) => {
-      setSelectedColors(prev => prev.filter(c => c.name !== name));
-  };
-
-  const handleAddUnit = () => {
-      if(!currentUnitInput.trim()) return;
-      if(!variationUnits.includes(currentUnitInput.trim())) {
-          setVariationUnits([...variationUnits, currentUnitInput.trim()]);
-          setCurrentUnitInput("");
-      }
-  };
-
-  const handleRemoveUnit = (unit: string) => {
-      setVariationUnits(prev => prev.filter(u => u !== unit));
-  };
-
-  const generateVariations = () => {
-       let combos: string[] = [];
-
-       // Prepare dimensions
-       // 1. Colors (if enabled)
-       // 2. Attributes
-       // 3. Units
-
-       const dimensions: string[][] = [];
-
-       if (enableColors && selectedColors.length > 0) {
-           dimensions.push(selectedColors.map(c => c.name));
-       }
-
-       selectedAttributes.forEach(attr => {
-           if (attr.values.length > 0) {
-               dimensions.push(attr.values);
-           }
-       });
-
-       if (variationUnits.length > 0) {
-           dimensions.push(variationUnits);
-       }
-
-       // Generate Cartesian Product
-       if (dimensions.length === 0) {
-           combos = ["Default"]; // Should not happen ideally if triggered correctly
-       } else {
-           const cartesian = (sets: string[][]): string[] => {
-               return sets.reduce<string[]>((acc, set) => {
-                   return acc.flatMap(x => set.map(y => `${x} - ${y}`));
-               }, sets.shift() || []);
-           };
-
-           // We need to clone dimensions because shift() modifies it
-           // Actually reduce logic above is slightly wrong for n arrays.
-           // Correct reduce for cartesian:
-           // ['A', 'B'] x ['1', '2'] = A-1, A-2, B-1, B-2
-
-           const result = dimensions.reduce((acc, curr) => {
-               return acc.flatMap(x => curr.map(y => `${x}-${y}`));
-           }, [""]);
-
-           // Clean up leading hyphen if exists (due to initial [""])
-           combos = result.map(s => s.startsWith("-") ? s.substring(1) : s);
-
-           // If only one dimension, the reduce above with [""] might produce "-A", "-B".
-           // Let's retry simple recursive approach for clarity or fix the reduce.
-           // Reduce with [""] works: [""] x [A, B] -> [-A, -B].
-           // Then [-A, -B] x [1, 2] -> [-A-1, -A-2, ...].
-           // So trimming start is correct.
-       }
-
-       // Edge case: if dimensions empty but unit empty? Handled.
-
-       const newVariations = combos.map(title => ({
-           title: title,
-           value: title, // value field
-           name: formData.variationType || "Variation",
-           price: 0,
-           discPrice: 0,
-           stock: 0,
-           status: "Available" as const,
-           barcode: "",
-           offerPrice: undefined,
-           tieredPrices: []
-       }));
-
-       // Merge logic: preserve existing prices/stock if title matches
-       const merged = newVariations.map(nv => {
-           const existing = variations.find(v => v.title === nv.title);
-           return existing ? existing : nv;
-       });
-
-       if(merged.length > 0) {
-           setVariations(merged);
-       } else {
-            alert("No variations generated. Please add colors, attributes or units.");
-       }
-  };
                 // Field Visibility Settings
                 if (response.data?.productDisplaySettings) {
                     const settings = response.data.productDisplaySettings;
@@ -643,8 +536,14 @@ export default function AdminAddProduct() {
               rackNumber: (product as any).rackNumber || "",
               hsnCode: (product as any).hsnCode || "",
               purchasePrice: (product as any).purchasePrice?.toString() || "",
-              lowStockQuantity: (product as any).lowStockQuantity?.toString() || "5",
-              deliveryTime: (product as any).deliveryTime || "",
+              lowStockQuantity: product.lowStockQuantity?.toString() || "5",
+              deliveryTime: product.deliveryTime || "",
+              price: product.price?.toString() || "",
+              compareAtPrice: product.compareAtPrice?.toString() || "",
+              discPrice: product.discPrice?.toString() || "0",
+              stock: product.stock?.toString() || "0",
+              offerPrice: (product as any).offerPrice?.toString() || "",
+              wholesalePrice: product.wholesalePrice?.toString() || "",
             });
             const vars = (product.variations || []).map((v: any) => ({
               ...v,
@@ -657,19 +556,20 @@ export default function AdminAddProduct() {
             setVariations(vars);
 
             // Populate Top Form with 1st variation if exists (Simulating Simple Product Edit)
-            if (vars.length > 0) {
-               const v = vars[0];
-               setVariationForm(prev => ({
-                   ...prev,
-                   price: v.price?.toString() || "",
-                   compareAtPrice: v.compareAtPrice?.toString() || "",
-                   discPrice: v.discPrice?.toString() || "",
-                   stock: v.stock?.toString() || "",
-                   status: v.status,
-                   title: v.title || "",
-                   // And others if needed
-               }));
-            }
+            // This block is now removed as top-level fields are directly in formData
+            // if (vars.length > 0) {
+            //    const v = vars[0];
+            //    setVariationForm(prev => ({
+            //        ...prev,
+            //        price: v.price?.toString() || "",
+            //        compareAtPrice: v.compareAtPrice?.toString() || "",
+            //        discPrice: v.discPrice?.toString() || "",
+            //        stock: v.stock?.toString() || "",
+            //        status: v.status,
+            //        title: v.title || "",
+            //        // And others if needed
+            //    }));
+            // }
 
             if (product.mainImageUrl || product.mainImage) {
                setMainImagePreview(
@@ -1062,9 +962,10 @@ export default function AdminAddProduct() {
     setTimeout(() => setSuccessMessage(""), 2000);
   };
 
-  const startScanning = (target: "product" | "variation" = "product") => {
+  const startScanning = (target: "product" | "variation" | "table-variation" = "product", index: number | null = null) => {
     setIsScanning(true);
     setScanTarget(target);
+    setScanTargetIndex(index);
     // Slight delay to ensure DOM element exists
     setTimeout(() => {
         const html5QrCode = new Html5Qrcode("reader");
@@ -1078,26 +979,31 @@ export default function AdminAddProduct() {
                 // Success callback
                 if (target === "product") {
                     setFormData(prev => ({ ...prev, barcode: decodedText }));
-                } else {
+                } else if (target === "variation") {
                     setVariationForm(prev => ({ ...prev, barcode: decodedText }));
+                } else if (target === "table-variation" && index !== null) {
+                    setVariations(prev => {
+                        const n = [...prev];
+                        n[index].barcode = decodedText;
+                        return n;
+                    });
                 }
                 stopScanning();
+                setSuccessMessage("Barcode Scanned Successfully!");
+                setTimeout(() => setSuccessMessage(""), 3000);
                 // Optional: Play a beep sound
                 const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
                 audio.play().catch(e => console.log('Audio play failed', e));
-                setSuccessMessage("Barcode Scanned Successfully!");
-                setTimeout(() => setSuccessMessage(""), 3000);
-            },
-            (errorMessage) => {
-                // Error callback (scanning...)
-                // console.log(errorMessage);
-            }
+        },
+        (errorMessage) => {
+            // Optional: Handle scan error (not critical)
+        }
         ).catch(err => {
-            console.error("Error starting scanner", err);
-            setUploadError("Failed to start camera. Please ensure permissions are granted.");
+            console.error("Scanning failed", err);
             setIsScanning(false);
+            setUploadError("Failed to start camera. Please ensure permissions are granted.");
         });
-    }, 100);
+    }, 200);
   };
 
   const stopScanning = () => {
@@ -1127,10 +1033,6 @@ export default function AdminAddProduct() {
     // Only validate categories if NOT shop by store only
     if (formData.isShopByStoreOnly !== "Yes") {
       if (fieldVisibility.category) {
-          if (!formData.headerCategory) {
-            setUploadError("Please select a header category.");
-            return;
-          }
           if (!formData.category) {
             setUploadError("Please select a category.");
             return;
@@ -1188,31 +1090,31 @@ export default function AdminAddProduct() {
       // Auto-add current variation if form is filled but list is empty
       const finalVariations = [...variations];
 
-      const price = parseFloat(variationForm.price);
-      const compareAtPrice = variationForm.compareAtPrice ? parseFloat(variationForm.compareAtPrice) : 0;
-      const stock = parseInt(variationForm.stock || "0");
-      const offerPrice = variationForm.offerPrice ? parseFloat(variationForm.offerPrice) : undefined;
-      const wholesalePrice = variationForm.wholesalePrice ? parseFloat(variationForm.wholesalePrice) : 0;
-      const discPrice = offerPrice || price; // Use offerPrice as discPrice if provided
+      const price = parseFloat(formData.price || "0"); // Selling Price
+      const compareAtPrice = parseFloat(formData.compareAtPrice || "0"); // MRP
+      const stock = parseInt(formData.stock || "0");
+      const offerPrice = formData.offerPrice ? parseFloat(formData.offerPrice) : undefined;
+      const wholesalePrice = formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : 0;
+      const calculatedDiscPrice = offerPrice || price; // Use offerPrice as discPrice if provided
 
       if (finalVariations.length === 0) {
-        if (variationForm.title && variationForm.price) {
+        if (formData.price) { // Check if simple product pricing is provided
           if (compareAtPrice > 0 && price > compareAtPrice) {
              setUploadError("Selling price cannot be greater than Maximum Retail Price (MRP)");
              setUploading(false);
              return;
           }
 
-          finalVariations.push({
-             title: variationForm.title,
-             price,
-             compareAtPrice,
-             discPrice,
-             stock,
-             status: variationForm.status,
-             offerPrice,
-             wholesalePrice
-           });
+           finalVariations.push({
+              title: variationForm.title || "Default",
+              price,
+              compareAtPrice,
+              discPrice: calculatedDiscPrice,
+              stock,
+              status: variationForm.status || "Available",
+              offerPrice,
+              wholesalePrice
+            });
         } else {
           setUploadError("Please add at least one product variation");
           setUploading(false);
@@ -1231,7 +1133,7 @@ export default function AdminAddProduct() {
               ...finalVariations[0],
               price,
               compareAtPrice,
-              discPrice,
+              discPrice: calculatedDiscPrice,
               stock,
               offerPrice,
               wholesalePrice
@@ -1344,6 +1246,12 @@ export default function AdminAddProduct() {
               purchasePrice: "",
               lowStockQuantity: "5",
               deliveryTime: "",
+              price: "",
+              compareAtPrice: "",
+              discPrice: "0",
+              stock: "0",
+              offerPrice: "",
+              wholesalePrice: "",
             });
             setVariations([]);
             setMainImageFile(null);
@@ -1506,8 +1414,9 @@ const applySearchedImage = () => {
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                         <input
                            type="number"
-                           value={variationForm.price}
-                           onChange={(e) => setVariationForm({ ...variationForm, price: e.target.value })}
+                           name="price"
+                           value={formData.price}
+                           onChange={handleChange}
                            placeholder="0.00"
                            className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                         />
@@ -1521,8 +1430,9 @@ const applySearchedImage = () => {
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                         <input
                            type="number"
-                           value={variationForm.compareAtPrice}
-                           onChange={(e) => setVariationForm({ ...variationForm, compareAtPrice: e.target.value })}
+                           name="compareAtPrice"
+                           value={formData.compareAtPrice}
+                           onChange={handleChange}
                            placeholder="0.00"
                            className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                         />
@@ -1539,8 +1449,9 @@ const applySearchedImage = () => {
                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                          <input
                             type="number"
-                            value={variationForm.offerPrice}
-                            onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
+                            name="offerPrice"
+                            value={formData.offerPrice}
+                            onChange={handleChange}
                             placeholder="0.00"
                             className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                          />
@@ -1554,8 +1465,9 @@ const applySearchedImage = () => {
                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                          <input
                             type="number"
-                            value={variationForm.wholesalePrice}
-                            onChange={(e) => setVariationForm({ ...variationForm, wholesalePrice: e.target.value })}
+                            name="wholesalePrice"
+                            value={formData.wholesalePrice}
+                            onChange={handleChange}
                             placeholder="0.00"
                             className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                          />
@@ -1590,8 +1502,9 @@ const applySearchedImage = () => {
                 </label>
                 <input
                   type="number"
-                  value={variationForm.stock}
-                  onChange={(e) => setVariationForm({ ...variationForm, stock: e.target.value })}
+                  name="stock"
+                  value={formData.stock}
+                  onChange={handleChange}
                   placeholder="0 = Unlimited"
                   className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                 />
@@ -1654,7 +1567,7 @@ const applySearchedImage = () => {
                   <>
                     <div>
                       <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                        Header Category <span className="text-red-500">*</span>
+                        Header Category
                       </label>
                       <ThemedDropdown
                         options={headerCategories.map(hc => ({ id: hc._id, label: hc.name, value: hc._id }))}
@@ -1683,8 +1596,7 @@ const applySearchedImage = () => {
                         }
                         value={formData.category}
                         onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
-                        placeholder={formData.headerCategory ? "Select Category" : "Select Header Category First"}
-                        disabled={!formData.headerCategory}
+                        placeholder="Select Category"
                       />
                     </div>
 
@@ -2274,10 +2186,10 @@ const applySearchedImage = () => {
                                 <tr>
                                     <th className="px-4 py-3 min-w-[150px]">Variation</th>
                                     <th className="px-4 py-3 min-w-[100px]">Price (₹) <span className="text-red-500">*</span></th>
-                                    <th className="px-4 py-3 min-w-[100px]">Disc. Price</th>
+                                    <th className="px-4 py-3 min-w-[100px]">Offer Price (Online)</th>
                                     <th className="px-4 py-3 min-w-[100px]">Wholesale</th>
                                     <th className="px-4 py-3 min-w-[80px]">Stock</th>
-                                    <th className="px-4 py-3 min-w-[120px]">SKU/Barcode</th>
+                                    <th className="px-4 py-3 min-w-[180px]">SKU/Barcode</th>
                                     <th className="px-4 py-3 min-w-[100px]">Unit Pricing</th>
                                     <th className="px-4 py-3 w-10 text-center">Action</th>
                                 </tr>
@@ -2305,12 +2217,12 @@ const applySearchedImage = () => {
                                             <input
                                                 type="number"
                                                 className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
-                                                value={v.discPrice}
+                                                value={v.offerPrice}
                                                 onChange={e => {
                                                     const val = e.target.value;
                                                     setVariations(prev => {
                                                         const n = [...prev];
-                                                        n[idx].discPrice = parseFloat(val) || 0;
+                                                        n[idx].offerPrice = parseFloat(val) || 0;
                                                         return n;
                                                     });
                                                 }}
@@ -2347,20 +2259,45 @@ const applySearchedImage = () => {
                                             />
                                         </td>
                                         <td className="px-4 py-2">
-                                            <input
-                                                type="text"
-                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
-                                                value={v.barcode}
-                                                placeholder="SKU"
-                                                onChange={e => {
-                                                    const val = e.target.value;
-                                                    setVariations(prev => {
-                                                        const n = [...prev];
-                                                        n[idx].barcode = val;
-                                                        return n;
-                                                    });
-                                                }}
-                                            />
+                                            <div className="flex items-center gap-1 min-w-[150px]">
+                                                <input
+                                                    type="text"
+                                                    className="w-full flex-1 px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none text-sm"
+                                                    value={v.barcode}
+                                                    placeholder="SKU"
+                                                    onChange={e => {
+                                                        const val = e.target.value;
+                                                        setVariations(prev => {
+                                                            const n = [...prev];
+                                                            n[idx].barcode = val;
+                                                            return n;
+                                                        });
+                                                    }}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newCode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+                                                        setVariations(prev => {
+                                                            const n = [...prev];
+                                                            n[idx].barcode = newCode;
+                                                            return n;
+                                                        });
+                                                    }}
+                                                    className="p-1.5 text-neutral-400 hover:text-seller-500 hover:bg-neutral-50 rounded transition-colors"
+                                                    title="Auto Generate"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => startScanning("table-variation", idx)}
+                                                    className="p-1.5 text-neutral-400 hover:text-seller-500 hover:bg-neutral-50 rounded transition-colors"
+                                                    title="Scan Barcode"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                                </button>
+                                            </div>
                                         </td>
                                         <td className="px-4 py-2 text-center">
                                             <button

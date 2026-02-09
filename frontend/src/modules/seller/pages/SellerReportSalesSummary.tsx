@@ -2,21 +2,18 @@ import React, { useState, useEffect, useCallback } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getStockSalesSummary, StockSalesData } from "../../../services/api/admin/adminInventoryService";
-import { getCategories } from "../../../services/api/categoryService";
+import { getSalesSummaryReport, SalesSummaryReportData } from "../../../services/api/seller/sellerInventoryService";
 import { toast } from "react-hot-toast";
 
 type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
 
-const AdminStockSalesSummary = () => {
-  const [data, setData] = useState<StockSalesData[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+const SellerReportSalesSummary = () => {
+  const [data, setData] = useState<SalesSummaryReportData[]>([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
   const [dateFilterType, setDateFilterType] = useState<DateFilterType>('alltime');
   const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
@@ -28,21 +25,6 @@ const AdminStockSalesSummary = () => {
     limit: 20
   });
 
-  // Fetch Categories
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await getCategories();
-        if (response.success) {
-          setCategories(response.data.map((c: any) => c.name));
-        }
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      }
-    };
-    fetchCategories();
-  }, []);
-
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -50,7 +32,6 @@ const AdminStockSalesSummary = () => {
         page: pagination.page,
         limit: pagination.limit,
         search: debouncedSearchTerm || undefined,
-        category: categoryFilter || undefined,
       };
 
       const now = new Date();
@@ -75,8 +56,8 @@ const AdminStockSalesSummary = () => {
         params.dateTo = new Date(new Date(customDateRange.end).setHours(23, 59, 59, 999)).toISOString();
       }
 
-      const response = await getStockSalesSummary(params);
-      if (response.success) {
+      const response = await getSalesSummaryReport(params);
+      if (response && (response as any).success) {
         setData(response.data);
         if (response.pagination) {
           setPagination(prev => ({
@@ -87,12 +68,12 @@ const AdminStockSalesSummary = () => {
         }
       }
     } catch (error) {
-      console.error("Error fetching stock sales summary:", error);
-      toast.error("Failed to fetch stock sales data");
+      console.error("Error fetching sales summary:", error);
+      toast.error("Failed to fetch sales summary data");
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.limit, debouncedSearchTerm, categoryFilter, dateFilterType, customDateRange]);
+  }, [pagination.page, pagination.limit, debouncedSearchTerm, dateFilterType, customDateRange]);
 
   useEffect(() => {
     fetchData();
@@ -106,7 +87,7 @@ const AdminStockSalesSummary = () => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const handleCellEdit = (id: string, field: keyof StockSalesData, value: any) => {
+  const handleCellEdit = (id: string, field: keyof SalesSummaryReportData, value: any) => {
     setData(prev => prev.map(item =>
       item._id === id ? { ...item, [field]: value } : item
     ));
@@ -138,68 +119,74 @@ const AdminStockSalesSummary = () => {
 
   const downloadExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(data.map(item => ({
-      "Item Name": item.itemName,
-      "Variant Name": item.variantName,
-      "UOM": item.uom,
-      "HSN": item.hsn,
-      "Cess": item.cess,
-      "GST": item.gst,
-      "Category": item.category,
-      "Units Sold": item.unitsSold,
-      "Purchase Price": item.purchasePrice,
-      "Selling Price": item.sellingPrice,
-      "Total Selling Price": item.totalSellingPrice,
-      "Profit": item.profit,
-      "Salesman": item.salesman
+      Date: item.date,
+      Time: item.time,
+      "Invoice No": item.invoiceNo,
+      "Customer Name": item.customerName,
+      "Payment Mode": item.paymentMode,
+      Status: item.status,
+      Total: item.total,
+      "No of Items": item.noOfItems,
+      "Total MRP": item.totalMRP,
+      "Total SP": item.totalSP,
+      "Total Discount": item.totalDiscount,
+      "Total Discount %": item.totalDiscountPercent,
+      Profit: item.profit,
+      Mode: item.mode
     })));
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Stock Sales Summary");
-    XLSX.writeFile(workbook, `Stock_Sales_Summary_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sales Summary");
+    XLSX.writeFile(workbook, `Sales_Summary_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const downloadPDF = () => {
     const doc = new jsPDF('landscape');
     doc.setFontSize(18);
-    doc.text('Stock Sales Summary Report', 14, 15);
+    doc.text('Sales Summary Report', 14, 15);
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
 
     const tableData = data.map(item => [
-      item.itemName,
-      item.variantName,
-      item.category,
-      item.unitsSold.toString(),
-      item.purchasePrice.toString(),
-      item.sellingPrice.toString(),
-      item.totalSellingPrice.toString(),
-      item.profit.toString()
+      item.date,
+      item.time,
+      item.invoiceNo,
+      item.customerName,
+      item.paymentMode,
+      item.status,
+      `₹${item.total}`,
+      item.noOfItems.toString(),
+      `₹${item.totalMRP}`,
+      `₹${item.totalSP}`,
+      `₹${item.totalDiscount.toFixed(2)}`,
+      `${item.totalDiscountPercent.toFixed(2)}%`,
+      `₹${item.profit.toFixed(2)}`,
+      item.mode
     ]);
 
     autoTable(doc, {
-      head: [['Item', 'Variant', 'Category', 'Units Sold', 'Purchase', 'Selling', 'Total', 'Profit']],
+      head: [['Date', 'Time', 'Invoice', 'Customer', 'Payment', 'Status', 'Total', 'Items', 'MRP', 'SP', 'Discount', 'Disc %', 'Profit', 'Mode']],
       body: tableData,
       startY: 28,
-      styles: { fontSize: 8 },
+      styles: { fontSize: 7 },
       headStyles: { fillColor: [255, 45, 148] }
     });
 
-    doc.save(`Stock_Sales_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`Sales_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  // Stats calculation (Client-side matching displayed page data, for simplicity now)
-  const totalRevenue = data.reduce((sum, item) => sum + item.totalSellingPrice, 0);
+  const totalSales = data.reduce((sum, item) => sum + item.total, 0);
   const totalProfit = data.reduce((sum, item) => sum + item.profit, 0);
-  const totalUnits = data.reduce((sum, item) => sum + item.unitsSold, 0);
+  const totalDiscount = data.reduce((sum, item) => sum + item.totalDiscount, 0);
+  const totalOrders = pagination.total;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6">
-      {/* Header Section */}
+    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Stock Sales Summary</h1>
-            <p className="text-sm text-gray-500 mt-1">Track product-wise sales performance and profitability</p>
+            <h1 className="text-2xl font-bold text-gray-800">Sales Summary</h1>
+            <p className="text-sm text-gray-500 mt-1">Comprehensive sales report with all transaction details</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -214,8 +201,8 @@ const AdminStockSalesSummary = () => {
 
             <button
               onClick={downloadExcel}
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              className="px-4 py-2 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               Excel
@@ -223,8 +210,8 @@ const AdminStockSalesSummary = () => {
 
             <button
               onClick={downloadPDF}
-              className="inline-flex items-center px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 active:scale-95 transition-all shadow-sm">
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              className="px-4 py-2 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
               PDF
@@ -232,7 +219,6 @@ const AdminStockSalesSummary = () => {
           </div>
         </div>
 
-        {/* Date Filter Tabs */}
         <div className="mt-4 flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-lg">
           {(['today', 'tomorrow', 'last7days', 'last30days', 'alltime'] as DateFilterType[]).map((type) => (
             <button
@@ -257,7 +243,6 @@ const AdminStockSalesSummary = () => {
           </button>
         </div>
 
-        {/* Custom Date Range Picker */}
         {showCustomDatePicker && (
           <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -283,76 +268,60 @@ const AdminStockSalesSummary = () => {
           </div>
         )}
 
-        {/* Search and Category Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Search</label>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by item name or category..."
-              className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Category Filter</label>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all bg-white">
-              <option value="">All Categories</option>
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
+        <div className="mt-4">
+          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Search</label>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by invoice or customer..."
+            className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+          />
         </div>
       </div>
 
-      {/* Table Section */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50">
+              <tr>
                 {editMode && (
                   <th className="px-4 py-3">
                     <input
                       type="checkbox"
                       checked={selectedRows.size === data.length && data.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                      className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
                     />
                   </th>
                 )}
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Item Name</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Variant</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">UOM</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">HSN</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Cess</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">GST</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Units Sold</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Purchase Price</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Selling Price</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Total Selling</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Profit</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Salesman</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Date</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Time</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Invoice No</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Customer</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Payment Mode</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Items</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total MRP</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total SP</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Discount</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Discount %</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Profit</th>
+                <th className="px-4 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Mode</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-50">
               {loading ? (
                 <tr>
-                   <td colSpan={14} className="px-6 py-12 text-center text-gray-500 italic">
-                    Fetching stock sales data...
+                  <td colSpan={editMode ? 15 : 14} className="px-6 py-12 text-center text-gray-500 italic">
+                    Fetching sales data...
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="px-6 py-12 text-center text-gray-400 text-sm">
-                    No stock sales data found
+                   <td colSpan={editMode ? 15 : 14} className="px-6 py-12 text-center text-gray-400 font-medium italic">
+                    No sales data found
                   </td>
                 </tr>
               ) : (
@@ -364,70 +333,72 @@ const AdminStockSalesSummary = () => {
                           type="checkbox"
                           checked={selectedRows.has(item._id)}
                           onChange={() => handleSelectRow(item._id)}
-                          className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                          className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
                         />
                       </td>
                     )}
                     <td className="px-4 py-3">
                       {editMode ? (
                         <input
-                          type="text"
-                          value={item.itemName}
-                          onChange={(e) => handleCellEdit(item._id, 'itemName', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-medium"
-                        />
-                      ) : (
-                        <span className="text-sm font-medium text-gray-900">{item.itemName}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                       {editMode ? (
-                        <input
-                          type="text"
-                          value={item.variantName}
-                          onChange={(e) => handleCellEdit(item._id, 'variantName', e.target.value)}
+                          type="date"
+                          value={item.date}
+                          onChange={(e) => handleCellEdit(item._id, 'date', e.target.value)}
                           className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
                         />
                       ) : (
-                        <span className="text-sm text-gray-600">{item.variantName}</span>
+                        <span className="text-sm text-gray-700">{item.date}</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-gray-500">{item.uom}</span>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={item.time}
+                          onChange={(e) => handleCellEdit(item._id, 'time', e.target.value)}
+                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
+                        />
+                      ) : (
+                        <span className="text-sm text-gray-700">{item.time}</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-gray-500">{item.hsn}</span>
+                      {editMode ? (
+                        <input
+                          type="text"
+                          value={item.invoiceNo}
+                          onChange={(e) => handleCellEdit(item._id, 'invoiceNo', e.target.value)}
+                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold"
+                        />
+                      ) : (
+                        <span className="text-sm font-semibold text-gray-900">{item.invoiceNo}</span>
+                      )}
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.customerName}</td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-gray-500">{item.cess}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-500">{item.gst}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                        {item.category}
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                        item.paymentMode?.toLowerCase().includes('cash') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {item.paymentMode}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm font-semibold text-gray-900">{item.unitsSold}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-700">₹{item.purchasePrice}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-700">₹{item.sellingPrice}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm font-semibold text-gray-900">₹{item.totalSellingPrice.toLocaleString()}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-sm font-semibold ${item.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ₹{item.profit.toLocaleString()}
+                      <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-teal-100 text-teal-700 capitalize">
+                        {item.status}
                       </span>
                     </td>
+                    <td className="px-4 py-3 font-bold text-gray-900 text-sm">₹{item.total}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.noOfItems}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.totalMRP}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.totalSP}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.totalDiscount.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">{item.totalDiscountPercent.toFixed(2)}%</td>
+                    <td className="px-4 py-3 font-bold text-green-600 text-sm">₹{item.profit.toFixed(2)}</td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-gray-500">{item.salesman}</span>
+                       <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${
+                          item.mode === 'POS' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-purple-100 text-purple-700 border border-purple-200'
+                        }`}>
+                          {item.mode}
+                        </span>
                     </td>
                   </tr>
                 ))
@@ -435,7 +406,6 @@ const AdminStockSalesSummary = () => {
             </tbody>
           </table>
         </div>
-
 
         {pagination.pages > 1 && (
           <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
@@ -460,33 +430,32 @@ const AdminStockSalesSummary = () => {
         )}
       </div>
 
-      {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Items</p>
-          <p className="text-3xl font-black text-gray-900 mt-2">
-            {pagination.total}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Sales (Page)</p>
+          <p className="text-2xl font-black text-gray-800 mt-2">
+            ₹{totalSales.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Units Sold (Page)</p>
-          <p className="text-3xl font-black text-blue-600 mt-2">
-            {totalUnits}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Revenue (Page)</p>
-          <p className="text-3xl font-black text-purple-600 mt-2">
-            ₹{totalRevenue.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Profit (Page)</p>
-          <p className="text-3xl font-black text-green-600 mt-2">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Profit (Page)</p>
+          <p className="text-2xl font-black text-green-600 mt-2">
             ₹{totalProfit.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Discount (Page)</p>
+          <p className="text-2xl font-black text-orange-600 mt-2">
+            ₹{totalDiscount.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Orders</p>
+          <p className="text-2xl font-black text-purple-600 mt-2">
+            {totalOrders}
           </p>
         </div>
       </div>
@@ -494,4 +463,4 @@ const AdminStockSalesSummary = () => {
   );
 };
 
-export default AdminStockSalesSummary;
+export default SellerReportSalesSummary;

@@ -2,13 +2,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getStockSalesSummary, StockSalesData } from "../../../services/api/admin/adminInventoryService";
+import { getStockSalesSummary, StockSalesData } from "../../../services/api/seller/sellerInventoryService";
 import { getCategories } from "../../../services/api/categoryService";
 import { toast } from "react-hot-toast";
 
 type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
 
-const AdminStockSalesSummary = () => {
+const SellerStockSalesSummary = () => {
   const [data, setData] = useState<StockSalesData[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -76,7 +76,7 @@ const AdminStockSalesSummary = () => {
       }
 
       const response = await getStockSalesSummary(params);
-      if (response.success) {
+      if (response && (response as any).success) {
         setData(response.data);
         if (response.pagination) {
           setPagination(prev => ({
@@ -187,14 +187,12 @@ const AdminStockSalesSummary = () => {
     doc.save(`Stock_Sales_Summary_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  // Stats calculation (Client-side matching displayed page data, for simplicity now)
   const totalRevenue = data.reduce((sum, item) => sum + item.totalSellingPrice, 0);
   const totalProfit = data.reduce((sum, item) => sum + item.profit, 0);
   const totalUnits = data.reduce((sum, item) => sum + item.unitsSold, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6">
-      {/* Header Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
@@ -232,7 +230,6 @@ const AdminStockSalesSummary = () => {
           </div>
         </div>
 
-        {/* Date Filter Tabs */}
         <div className="mt-4 flex flex-wrap items-center gap-2 bg-gray-50 p-2 rounded-lg">
           {(['today', 'tomorrow', 'last7days', 'last30days', 'alltime'] as DateFilterType[]).map((type) => (
             <button
@@ -257,7 +254,6 @@ const AdminStockSalesSummary = () => {
           </button>
         </div>
 
-        {/* Custom Date Range Picker */}
         {showCustomDatePicker && (
           <div className="mt-4 p-4 bg-teal-50 rounded-lg border border-teal-200 animate-in fade-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -283,7 +279,6 @@ const AdminStockSalesSummary = () => {
           </div>
         )}
 
-        {/* Search and Category Filters */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Search</label>
@@ -311,7 +306,6 @@ const AdminStockSalesSummary = () => {
         </div>
       </div>
 
-      {/* Table Section */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -368,74 +362,33 @@ const AdminStockSalesSummary = () => {
                         />
                       </td>
                     )}
-                    <td className="px-4 py-3">
-                      {editMode ? (
-                        <input
-                          type="text"
-                          value={item.itemName}
-                          onChange={(e) => handleCellEdit(item._id, 'itemName', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-medium"
-                        />
-                      ) : (
-                        <span className="text-sm font-medium text-gray-900">{item.itemName}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                       {editMode ? (
-                        <input
-                          type="text"
-                          value={item.variantName}
-                          onChange={(e) => handleCellEdit(item._id, 'variantName', e.target.value)}
-                          className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                        />
-                      ) : (
-                        <span className="text-sm text-gray-600">{item.variantName}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-500">{item.uom}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-500">{item.hsn}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-500">{item.cess}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-500">{item.gst}</span>
-                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.itemName}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{item.variantName}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{item.uom}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{item.hsn}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{item.cess}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{item.gst}</td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
                         {item.category}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm font-semibold text-gray-900">{item.unitsSold}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-700">₹{item.purchasePrice}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-700">₹{item.sellingPrice}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm font-semibold text-gray-900">₹{item.totalSellingPrice.toLocaleString()}</span>
-                    </td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">{item.unitsSold}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.purchasePrice}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700">₹{item.sellingPrice}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">₹{item.totalSellingPrice.toLocaleString()}</td>
                     <td className="px-4 py-3">
                       <span className={`text-sm font-semibold ${item.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         ₹{item.profit.toLocaleString()}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="text-sm text-gray-500">{item.salesman}</span>
-                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">{item.salesman}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
-
 
         {pagination.pages > 1 && (
           <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
@@ -460,7 +413,6 @@ const AdminStockSalesSummary = () => {
         )}
       </div>
 
-      {/* Summary Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Items</p>
@@ -494,4 +446,4 @@ const AdminStockSalesSummary = () => {
   );
 };
 
-export default AdminStockSalesSummary;
+export default SellerStockSalesSummary;

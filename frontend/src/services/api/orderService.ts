@@ -4,6 +4,12 @@ export interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }
 
 export interface Order {
@@ -16,6 +22,21 @@ export interface Order {
   customerName?: string;
   customerPhone?: string;
   deliveryBoyName?: string;
+}
+
+export interface ReportOrder {
+  _id: string;
+  orderNumber: string;
+  orderDate: string;
+  customerName: string;
+  customerPhone: string;
+  total: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  status: string;
+  stock?: number;
+  taxAmount?: number;
+  price?: number;
 }
 
 export interface OrderItem {
@@ -156,5 +177,37 @@ export const getPOSStockLedger = async (params: any): Promise<ApiResponse<any>> 
  */
 export const updateStockLedgerEntry = async (id: string, data: any): Promise<ApiResponse<any>> => {
   const response = await api.put<ApiResponse<any>>(`/seller/pos/stock-ledger/${id}`, data);
+  return response.data;
+};
+
+/**
+ * Get online orders (excluding POS) for seller
+ */
+export const getOnlineOrders = async (
+  params?: any
+): Promise<ApiResponse<ReportOrder[]>> => {
+  const response = await api.get<ApiResponse<ReportOrder[]>>("/seller/orders/online", {
+    params,
+  });
+  return response.data;
+};
+
+/**
+ * Get POS orders for invoice report for seller
+ */
+export const getSellerPOSOrders = async (
+  params?: any
+): Promise<ApiResponse<ReportOrder[]>> => {
+  const response = await api.get<ApiResponse<ReportOrder[]>>("/seller/orders/pos-report", {
+    params,
+  });
+  return response.data;
+};
+
+/**
+ * Get Seller Order by ID
+ */
+export const getSellerOrderById = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.get<ApiResponse<any>>(`/seller/orders/pos/${id}`);
   return response.data;
 };

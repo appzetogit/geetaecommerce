@@ -5,6 +5,7 @@ interface SubMenuItem {
   label: string;
   path: string;
   icon: JSX.Element;
+  submenuItems?: SubMenuItem[];
 }
 
 interface MenuItem {
@@ -176,18 +177,115 @@ const menuItems: MenuItem[] = [
     hasSubmenu: true,
     submenuItems: [
       {
-        label: "Sales Report",
-        path: "/seller/reports/sales",
+        label: "Order Report",
+        path: "/seller/reports/order",
         icon: (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
         ),
       },
       {
-        label: "Sales Summary",
-        path: "/seller/sales-summary",
+        label: "Invoice Report",
+        path: "/seller/reports/invoice",
         icon: (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M12 18v-6"></path><path d="M8 15h8"></path></svg>
         ),
+      },
+      {
+        label: "GST Sales Report",
+        path: "/seller/reports/gst-sales",
+        icon: (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+        ),
+      },
+      {
+        label: "Payment Report",
+        path: "/seller/reports/payment",
+        icon: (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+        ),
+      },
+      {
+        label: "Sales Reports",
+        path: "/seller/reports/sales",
+        hasSubmenu: true,
+        icon: (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        ),
+        submenuItems: [
+          {
+            label: "Sales Summary",
+            path: "/seller/reports/sales/summary",
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            )
+          },
+          {
+            label: "Return and Exchange summary",
+            path: "/seller/reports/sales/return-exchange",
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            )
+          },
+          {
+            label: "Stock Sales Summary",
+            path: "/seller/reports/sales/stock-sales",
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            )
+          },
+          {
+            label: "Due Summary",
+            path: "/seller/reports/sales/due-summary",
+            icon: (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            )
+          },
+        ]
+      },
+      {
+        label: "Product Inventory Reports",
+        path: "/seller/inventory-reports",
+        hasSubmenu: true,
+        icon: (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        ),
+        submenuItems: [
+          {
+            label: "Stock Summary",
+            path: "/seller/inventory-reports/stock-summary",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            ),
+          },
+          {
+            label: "Stock Balance",
+            path: "/seller/inventory-reports/stock-balance",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            ),
+          },
+          {
+            label: "Low Stock",
+            path: "/seller/inventory-reports/low-stock",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            ),
+          },
+          {
+            label: "Out of Stock",
+            path: "/seller/inventory-reports/out-of-stock",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+            ),
+          },
+          {
+            label: "Loss Summary",
+            path: "/seller/inventory-reports/loss-summary",
+            icon: (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            ),
+          },
+        ],
       },
     ],
   },
@@ -242,13 +340,17 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
     return location.pathname.startsWith(path);
   };
 
-  const isSubmenuActive = (submenuItems?: SubMenuItem[]) => {
+  const isSubmenuActive = (submenuItems?: SubMenuItem[]): boolean => {
     if (!submenuItems) return false;
-    return submenuItems.some(
-      (item) =>
+    return submenuItems.some((item) => {
+      if (item.submenuItems) {
+        return isSubmenuActive(item.submenuItems);
+      }
+      return (
         location.pathname === item.path ||
         location.pathname.startsWith(item.path + "/")
-    );
+      );
+    });
   };
 
   const handleNavigation = (path: string) => {
@@ -355,6 +457,82 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                 {item.hasSubmenu && item.submenuItems && expanded && (
                   <ul className="mt-1 space-y-1 ml-4">
                     {item.submenuItems.map((subItem) => {
+                      if (subItem.submenuItems) {
+                        const expanded = isExpanded(subItem.path);
+                        const active =
+                          isSubmenuActive(subItem.submenuItems) ||
+                          isActive(subItem.path);
+
+                        return (
+                          <li key={subItem.path}>
+                            <button
+                              onClick={() => toggleMenu(subItem.path)}
+                              className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-left transition-colors ${
+                                active
+                                  ? "bg-[#e076a5] text-white"
+                                  : "text-pink-100 hover:bg-[#e076a5]/50 hover:text-white"
+                              }`}>
+                              <div className="flex items-center gap-2">
+                                <span className="flex-shrink-0">
+                                  {subItem.icon}
+                                </span>
+                                <span className="text-xs sm:text-sm font-medium">
+                                  {subItem.label}
+                                </span>
+                              </div>
+                              <svg
+                                width="14"
+                                height="14"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`transition-transform ${
+                                  expanded ? "rotate-180" : ""
+                                } ${active ? "text-white" : "text-pink-200"}`}>
+                                <path
+                                  d="M6 9L12 15L18 9"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                            {expanded && (
+                              <ul className="mt-1 space-y-1 ml-4 border-l border-pink-300 pl-2">
+                                {subItem.submenuItems.map((nestedItem) => {
+                                  const nestedActive =
+                                    location.pathname === nestedItem.path ||
+                                    location.pathname.startsWith(
+                                      nestedItem.path + "/"
+                                    );
+                                  return (
+                                    <li key={nestedItem.path}>
+                                      <button
+                                        onClick={() =>
+                                          handleNavigation(nestedItem.path)
+                                        }
+                                        className={`w-full flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-lg text-left transition-colors ${
+                                          nestedActive
+                                            ? "bg-[#cf6594] text-white"
+                                            : "text-pink-100 hover:bg-[#e076a5]/50 hover:text-white"
+                                        }`}>
+                                        <span className="flex-shrink-0 scale-75">
+                                          {nestedItem.icon}
+                                        </span>
+                                        <span className="text-xs sm:text-sm font-medium">
+                                          {nestedItem.label}
+                                        </span>
+                                      </button>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            )}
+                          </li>
+                        );
+                      }
+
                       const subActive =
                         location.pathname === subItem.path ||
                         location.pathname.startsWith(subItem.path + "/");
@@ -362,10 +540,11 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                         <li key={subItem.path}>
                           <button
                             onClick={() => handleNavigation(subItem.path)}
-                            className={`w-full flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-left transition-colors ${subActive
-                              ? "bg-[#cf6594] text-white"
-                              : "text-pink-100 hover:bg-[#e076a5]/50 hover:text-white"
-                              }`}>
+                            className={`w-full flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-left transition-colors ${
+                              subActive
+                                ? "bg-[#cf6594] text-white"
+                                : "text-pink-100 hover:bg-[#e076a5]/50 hover:text-white"
+                            }`}>
                             <span className="flex-shrink-0">
                               {subItem.icon}
                             </span>

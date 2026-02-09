@@ -44,6 +44,19 @@ const AdminPOSOrders = () => {
 
   const [selectedSeller, setSelectedSeller] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setSearchQuery('');
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Multi-Bill State
   const [bills, setBills] = useState<Bill[]>(() => {
@@ -101,9 +114,18 @@ const AdminPOSOrders = () => {
 
   const createNewBill = (reset: boolean = false) => {
     const newId = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
+
+    // Determine name: if resetting, try to keep the same name, otherwise increment
+    let billName = `Bill ${bills.length + 1}`;
+    if (reset) {
+         const current = bills.find(b => b.id === activeBillId);
+         if (current) billName = current.name;
+         else billName = `Bill 1`; // Fallback for full reset scenario
+    }
+
     const newBill: Bill = {
       id: newId,
-      name: `Bill ${reset ? 1 : bills.length + 1}`,
+      name: billName,
       cart: [],
       selectedCustomer: null,
       customerSearch: '',
@@ -113,7 +135,19 @@ const AdminPOSOrders = () => {
     };
 
     setBills(prev => {
-      const updated = reset ? [newBill] : [...prev, newBill];
+      let updated;
+      if (reset) {
+          // If resetting, replace ONLY the active bill with the new empty one
+          if (prev.some(b => b.id === activeBillId)) {
+               updated = prev.map(b => b.id === activeBillId ? newBill : b);
+          } else {
+               // Fallback if active bill not found, though unlikely
+               updated = [newBill];
+          }
+      } else {
+          updated = [...prev, newBill];
+      }
+
       localStorage.setItem('pos_bills', JSON.stringify(updated));
       return updated;
     });
@@ -297,7 +331,7 @@ const AdminPOSOrders = () => {
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
 
   // Quick Add Form
-  const [quickForm, setQuickForm] = useState({ name: '', price: '', qty: '1', mrp: '', purchasePrice: '', wholesalePrice: '', categoryId: '', brandId: '', addToInventory: false });
+  const [quickForm, setQuickForm] = useState({ barcode: '', name: '', price: '', qty: '1', mrp: '', purchasePrice: '', wholesalePrice: '', categoryId: '', brandId: '', addToInventory: false });
   // Edit Item Form
   const [editForm, setEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '' });
 
@@ -354,6 +388,7 @@ const AdminPOSOrders = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
   const lastScanRef = useRef({ code: '', time: 0 });
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
   // Mobile Search Modal State
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -441,36 +476,68 @@ const AdminPOSOrders = () => {
   };
 
   useEffect(() => {
-    let html5QrCode: Html5Qrcode | null = null;
+    const startScanner = async () => {
+        if (!showScanner) return;
+
+        // Give a little time for the modal and DOM to mount
+        await new Promise(r => setTimeout(r, 300));
+        const element = document.getElementById('reader');
+        if (!element) return;
+
+        try {
+            // If there's an existing instance, try to stop it first
+            if (html5QrCodeRef.current) {
+                try {
+                    if (html5QrCodeRef.current.isScanning) {
+                        await html5QrCodeRef.current.stop();
+                    }
+                    html5QrCodeRef.current.clear();
+                } catch (e) {
+                    console.warn("Error stopping previous scanner", e);
+                }
+            }
+
+            // Create new instance
+            const scanner = new Html5Qrcode("reader");
+            html5QrCodeRef.current = scanner;
+
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+
+            await scanner.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                () => {} // Ignore errors per frame
+            );
+        } catch (err) {
+            console.error("Scanner Start Error:", err);
+            showToast("Failed to start camera. Please check permissions and ensure you are on HTTPS.", "error");
+            setShowScanner(false);
+        }
+    };
+
     if (showScanner) {
-        // Only initialize if the element exists
-        const initScanner = async () => {
-             await new Promise(r => setTimeout(r, 100)); // Wait for Modal DOM
-             if (!document.getElementById('reader')) return;
-
-             html5QrCode = new Html5Qrcode("reader");
-             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-
-             try {
-                await html5QrCode.start(
-                    { facingMode: "environment" },
-                    config,
-                    onScanSuccess,
-                    (errorMessage) => { /* ignore frame errors */ }
-                );
-             } catch (err) {
-                 console.error("Error starting scanner", err);
-                 showToast("Failed to start camera. Ensure permissions are granted.", "error");
-                 setShowScanner(false);
-             }
-        };
-        initScanner();
+        startScanner();
     }
 
     return () => {
-        if (html5QrCode && html5QrCode.isScanning) {
-            html5QrCode.stop().then(() => html5QrCode?.clear()).catch(console.error);
-        }
+        const cleanup = async () => {
+            if (html5QrCodeRef.current) {
+                try {
+                    if (html5QrCodeRef.current.isScanning) {
+                        await html5QrCodeRef.current.stop();
+                    }
+                    html5QrCodeRef.current.clear();
+                } catch (e) {
+                    console.error("Scanner Cleanup Error:", e);
+                }
+            }
+        };
+        cleanup();
     };
   }, [showScanner, scannerKey]);
 
@@ -693,33 +760,23 @@ const AdminPOSOrders = () => {
     setCart(prev => prev.filter(item => item._id !== id));
   };
 
-  const updateQuantity = (id: string, delta: number) => {
-    setCart(prev => {
-      // If decreasing quantity
-      if (delta < 0) {
-        const item = prev.find(i => i._id === id);
-        // If item exists and new quantity would be 0 or less, remove it
-        if (item && item.qty + delta <= 0) {
-            return prev.filter(i => i._id !== id);
-        }
+  const updateQuantity = (id: string, diff: number) => {
+    setCart(prev => prev.map(item => {
+      if (item._id === id) {
+        const newQty = Math.max(1, item.qty + diff);
+        return { ...item, qty: newQty };
       }
+      return item;
+    }));
+  };
 
-      return prev.map(item => {
+  const updateItemDetails = (id: string, updates: any) => {
+    setCart(prev => prev.map(item => {
         if (item._id === id) {
-          const newQty = item.qty + delta;
-
-          // Check Stock for non-quick-add items
-          if (!item._id.toString().startsWith('quick-') && delta > 0) {
-              if (newQty > (item.stock || 0)) {
-                  showToast("Reached maximum available stock", "error");
-                  return item;
-              }
-          }
-          return { ...item, qty: newQty };
+            return { ...item, ...updates };
         }
         return item;
-      });
-    });
+    }));
   };
 
   /*
@@ -760,6 +817,7 @@ const AdminPOSOrders = () => {
         try {
             const res = await createProduct({
                 productName: quickForm.name,
+                barcode: quickForm.barcode,
                 price: parseFloat(quickForm.price) || 0,
                 compareAtPrice: parseFloat(quickForm.mrp) || 0,
                 purchasePrice: parseFloat(quickForm.purchasePrice) || 0,
@@ -811,6 +869,7 @@ const AdminPOSOrders = () => {
     setCart(prev => [...prev, newItem]);
     setShowQuickAdd(false);
     setQuickForm({
+        barcode: '',
         name: '', price: '', qty: '1', mrp: '',
         purchasePrice: '', wholesalePrice: '',
         categoryId: '', brandId: '', addToInventory: false
@@ -1314,7 +1373,7 @@ const AdminPOSOrders = () => {
            </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 md:hidden">
             <button
               onClick={() => setShowAddCustomerModal(true)}
               className="px-4 py-2 bg-[#f187b5] text-white rounded-lg text-sm font-bold hover:bg-[#e076a5] transition-colors flex items-center gap-2 border border-[#f187b5]"
@@ -1342,10 +1401,10 @@ const AdminPOSOrders = () => {
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 flex flex-col min-h-[85vh] relative transition-all duration-300">
 
           {/* Top Header Section */}
-          <div className="px-6 py-4 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center bg-white rounded-t-2xl gap-4">
+          <div className="px-6 py-2 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center bg-white rounded-t-2xl gap-4">
              <div className="flex items-center gap-4">
                 <h2 className="text-xl font-bold text-gray-800 tracking-tight">Billing & POS</h2>
-                <div className="hidden md:flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
+                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
                     <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Profit Mode</span>
                     <button
                       onClick={() => setShowProfit(!showProfit)}
@@ -1356,7 +1415,7 @@ const AdminPOSOrders = () => {
                  </div>
              </div>
 
-             <div className="flex items-center gap-3 w-full md:w-auto">
+             <div className="flex items-center gap-3 w-full md:w-auto md:hidden">
                  <button
                     onClick={() => setShowQuickAdd(true)}
                     className="flex-1 md:flex-none bg-[#f187b5] hover:bg-[#e076a5] text-white text-sm px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-[#f187b5]/20 transition-all active:scale-95 flex items-center justify-center gap-2"
@@ -1369,8 +1428,8 @@ const AdminPOSOrders = () => {
 
           {/* Search Bar Section */}
           {/* Search Bar Section - Visible only on Desktop */}
-          <div className="hidden lg:block px-6 py-4 bg-gray-50/50 border-b border-gray-100 relative z-30">
-             <div className="relative max-w-4xl mx-auto">
+          <div className="hidden lg:block px-6 py-2 bg-gray-50/50 border-b border-gray-100 relative z-30">
+             <div ref={searchRef} className="relative max-w-4xl mx-auto">
                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                      <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
@@ -1378,7 +1437,7 @@ const AdminPOSOrders = () => {
                  </div>
                  <input
                      type="text"
-                     className="block w-full pl-11 pr-12 py-4 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] text-base transition-shadow shadow-sm"
+                     className="block w-full pl-11 pr-12 py-2 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] text-base transition-shadow shadow-sm"
                      placeholder="Search products by name, barcode, or SKU (SHIFT + S)"
                      value={searchQuery}
                      onChange={(e) => setSearchQuery(e.target.value)}
@@ -1516,7 +1575,7 @@ const AdminPOSOrders = () => {
             <div className="flex-1 flex flex-col">
 
               {/* Payment Method & Order Type Controls */}
-              <div className="px-4 pt-4 pb-2">
+              <div className="px-4 pt-4 pb-2 md:hidden">
                    {/* Payment Method Dropdown */}
                    <div className="relative mb-3">
                        <button
@@ -1566,7 +1625,7 @@ const AdminPOSOrders = () => {
               </div>
 
               {/* Customer Selection */}
-              <div className="px-4 pb-4 border-b border-gray-100">
+              <div className="px-4 pb-4 border-b border-gray-100 md:hidden">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                       <input
@@ -1636,9 +1695,24 @@ const AdminPOSOrders = () => {
               </div>
 
               {/* Cart Items List */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-[50vh]">
+              <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+                  {/* Cart Items List */}
+                  <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-[50vh] flex flex-col relative">
+                  {/* Desktop Header Row */}
+                  <div className="hidden md:grid grid-cols-12 gap-2 text-xs font-bold text-gray-400 pb-2 border-b border-gray-100 px-2 sticky top-0 bg-white z-10">
+                      <div className="col-span-1 text-center">Sr.no</div>
+                      <div className="col-span-1 text-center">Edit</div>
+                      <div className="col-span-1 text-center">Image</div>
+                      <div className="col-span-3">Name</div>
+                      <div className="col-span-1 text-center">MRP</div>
+                      <div className="col-span-2 text-center">Quantity</div>
+                      <div className="col-span-1 text-center">Retail Price</div>
+                      <div className="col-span-1 text-center">Sub Total</div>
+                      <div className="col-span-1 text-center">Delete</div>
+                  </div>
+
                   {cart.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                      <div className="flex-1 flex flex-col items-center justify-center text-gray-400 min-h-[200px]">
                           <svg className="w-12 h-12 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                           <span className="text-sm">Cart is empty</span>
                       </div>
@@ -1653,7 +1727,7 @@ const AdminPOSOrders = () => {
                           return (
                           <React.Fragment key={index}>
                               {/* --- MOBILE VIEW (Card Style) --- */}
-                              <div className="block md:hidden bg-white border border-gray-200 rounded-xl p-3 shadow-sm mb-3">
+                              <div className="block md:hidden bg-white border border-gray-200 rounded-xl p-3 shadow-sm mb-3 relative overflow-hidden group">
                                   {/* Top Row: Rank, Title, Price */}
                                   <div className="flex justify-between items-start mb-2">
                                       <div className="flex items-start gap-2 max-w-[70%]">
@@ -1718,78 +1792,95 @@ const AdminPOSOrders = () => {
                                   </div>
                               </div>
 
-                              {/* --- DESKTOP VIEW (Row Style) --- */}
-                              <div className="hidden md:flex group items-center gap-4 p-4 border-b border-gray-50 hover:bg-gray-50/80 transition-all last:border-0 relative">
-                                   {/* Index & Image */}
-                                   <div className="flex items-center gap-3">
-                                       <span className="text-gray-300 text-xs font-bold w-5">{index + 1}</span>
-                                       <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center p-1 overflow-hidden shrink-0 shadow-sm">
+                              {/* --- DESKTOP VIEW (Table Row Style) --- */}
+                              <div className="hidden md:grid grid-cols-12 gap-2 items-center p-2 border-b border-gray-50 hover:bg-gray-50/80 transition-all even:bg-gray-50/20">
+                                   {/* Sr No */}
+                                   <div className="col-span-1 text-center text-gray-400 text-xs font-bold">
+                                       {index + 1}
+                                   </div>
+
+                                   {/* Edit Button */}
+                                   <div className="col-span-1 text-center">
+                                       <button
+                                          onClick={() => openEditModal(item)}
+                                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex"
+                                       >
+                                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                       </button>
+                                   </div>
+
+                                   {/* Image */}
+                                   <div className="col-span-1 flex justify-center">
+                                       <div className="w-10 h-10 bg-white rounded border border-gray-200 flex items-center justify-center p-0.5 overflow-hidden shadow-sm">
                                            {item.mainImage ? (
                                                <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
                                            ) : (
-                                               <span className="text-[10px] text-gray-300 font-bold">IMG</span>
+                                               <span className="text-[8px] text-gray-300 font-bold">IMG</span>
                                            )}
                                        </div>
                                    </div>
 
-                                   {/* Details */}
-                                   <div className="flex-1 min-w-0">
-                                       <div className="flex justify-between items-start">
-                                           <h4 className="text-sm font-semibold text-gray-800 truncate pr-4" title={item.productName}>{item.productName}</h4>
-                                           <div className="text-right shrink-0">
-                                               <div className="font-bold text-gray-900">₹{sp * item.qty}</div>
-                                               {mrp > sp && <div className="text-[10px] text-gray-400 line-through">₹{mrp * item.qty}</div>}
-                                           </div>
+                                   {/* Name */}
+                                   <div className="col-span-3 min-w-0">
+                                       <h4 className="text-xs font-semibold text-gray-800 truncate" title={item.productName}>{item.productName}</h4>
+                                       {showProfit && (
+                                           <span className={`text-[10px] ${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                               Profit: {profitPercent}%
+                                           </span>
+                                       )}
+                                   </div>
+
+                                   {/* MRP Input */}
+                                   <div className="col-span-1">
+                                        <input
+                                            type="number"
+                                            value={mrp}
+                                            onChange={(e) => updateItemDetails(item._id, { compareAtPrice: parseFloat(e.target.value) || 0 })}
+                                            className="w-full text-center text-xs border border-transparent hover:border-gray-200 focus:border-[#f187b5] bg-transparent focus:bg-white rounded px-1 py-1 outline-none transition-all"
+                                        />
+                                   </div>
+
+                                   {/* Quantity */}
+                                   <div className="col-span-2 flex justify-center">
+                                       <div className="flex items-center bg-white border border-gray-200 rounded h-7 w-20 shadow-sm">
+                                            <button
+                                              onClick={() => updateQuantity(item._id, -1)}
+                                              className="w-6 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors"
+                                            >−</button>
+                                            <div className="flex-1 h-full flex items-center justify-center text-xs font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
+                                                {item.qty}
+                                            </div>
+                                            <button
+                                              onClick={() => updateQuantity(item._id, 1)}
+                                              className="w-6 h-full flex items-center justify-center text-[#f187b5] hover:bg-gray-50 rounded-r transition-colors font-bold"
+                                            >+</button>
                                        </div>
-                                       <div className="flex items-center justify-between mt-1">
-                                           <div className="flex items-center gap-2 text-xs">
-                                               <span className="bg-[#f187b5]/10 text-[#f187b5] px-1.5 py-0.5 rounded font-bold">
-                                                   ₹{sp}
-                                               </span>
-                                               {showProfit && (
-                                                   <span className={`px-1.5 py-0.5 rounded font-medium ${parseFloat(profitPercent) >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                       {profitPercent}%
-                                                   </span>
-                                               )}
-                                               {orderType === 'Wholesale' && (item.wholesalePrice || 0) > 0 && (
-                                                   <span className="text-blue-500 font-medium text-[10px] border border-blue-100 px-1 rounded">Wholesale</span>
-                                               )}
-                                           </div>
+                                   </div>
 
-                                           {/* Actions Row (visible on hover) */}
-                                           <div className="flex items-center gap-3 opacity-100 group-hover:opacity-100 transition-opacity">
-                                               {/* Qty Control */}
-                                               <div className="flex items-center bg-white border border-gray-200 rounded-lg h-7 shadow-sm">
-                                                    <button
-                                                      onClick={() => updateQuantity(item._id, -1)}
-                                                      className="w-7 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l-lg transition-colors"
-                                                    >−</button>
-                                                    <div className="min-w-[24px] px-1 h-full flex items-center justify-center text-xs font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
-                                                        {item.qty}
-                                                    </div>
-                                                    <button
-                                                      onClick={() => updateQuantity(item._id, 1)}
-                                                      className="w-7 h-full flex items-center justify-center text-[#f187b5] hover:bg-gray-50 rounded-r-lg transition-colors font-bold"
-                                                    >+</button>
-                                               </div>
+                                   {/* Retail Price (SP) Input */}
+                                   <div className="col-span-1">
+                                       <input
+                                            type="number"
+                                            value={sp}
+                                            onChange={(e) => updateItemDetails(item._id, { customPrice: parseFloat(e.target.value) || 0 })}
+                                            className="w-full text-center text-xs font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all"
+                                        />
+                                   </div>
 
-                                               <button
-                                                  onClick={() => openEditModal(item)}
-                                                  className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                  title="Edit Price/Qty"
-                                               >
-                                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                               </button>
+                                   {/* Sub Total */}
+                                   <div className="col-span-1 text-center font-bold text-gray-900 text-sm">
+                                       ₹{sp * item.qty}
+                                   </div>
 
-                                               <button
-                                                  onClick={() => removeFromCart(item._id)}
-                                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                  title="Remove Item"
-                                               >
-                                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                               </button>
-                                           </div>
-                                       </div>
+                                   {/* Delete */}
+                                   <div className="col-span-1 text-center">
+                                       <button
+                                          onClick={() => removeFromCart(item._id)}
+                                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex"
+                                          title="Remove Item"
+                                       >
+                                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                       </button>
                                    </div>
                               </div>
                           </React.Fragment>
@@ -1798,45 +1889,226 @@ const AdminPOSOrders = () => {
               </div>
 
               {/* Footer Summary */}
-              <div className="bg-gray-50/80 p-6 border-t border-gray-100 backdrop-blur-sm mt-auto rounded-b-2xl">
-                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-6">
-                      <div className="space-y-1">
-                          <p className="text-gray-500 text-sm">Subtotal</p>
-                          <p className="text-2xl font-bold text-gray-800">₹{calculateTotal()}</p>
+
+                   {/* Desktop Sidebar (New Two-Column Layout) */}
+                  <div className="hidden md:flex w-[320px] bg-gray-50 border-l border-gray-200 flex-col p-4 shadow-[inset_4px_0_24px_-12px_rgba(0,0,0,0.1)] z-20 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
+
+                      {/* --- QUICK ACTIONS --- */}
+                      <div className="mb-4">
+                          <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-3">Quick Actions</h3>
+                          <div className="grid grid-cols-2 gap-2">
+                              <button
+                                onClick={() => setShowQuickAdd(true)}
+                                className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-xl hover:border-[#f187b5] hover:shadow-md transition-all group"
+                              >
+                                  <div className="w-8 h-8 bg-[#f187b5]/10 text-[#f187b5] rounded-lg flex items-center justify-center group-hover:bg-[#f187b5] group-hover:text-white transition-colors">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                                  </div>
+                                  <div className="text-left">
+                                      <p className="text-[11px] font-bold text-gray-800">Quick Add</p>
+                                  </div>
+                              </button>
+
+                              <button
+                                onClick={() => setShowAddCustomerModal(true)}
+                                className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-xl hover:border-teal-500 hover:shadow-md transition-all group"
+                              >
+                                  <div className="w-8 h-8 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center group-hover:bg-teal-500 group-hover:text-white transition-colors">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                                  </div>
+                                  <div className="text-left">
+                                      <p className="text-[11px] font-bold text-gray-800">Add Cust.</p>
+                                  </div>
+                              </button>
+
+                              <button
+                                onClick={() => navigate('/admin/pos/customers')}
+                                className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-xl hover:border-indigo-500 hover:shadow-md transition-all group col-span-2"
+                              >
+                                  <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                  </div>
+                                  <div className="text-left">
+                                      <p className="text-[11px] font-bold text-gray-800">Customer Credit (Udhaar)</p>
+                                  </div>
+                              </button>
+                          </div>
                       </div>
 
-                      <div className="flex-1 grid grid-cols-2 gap-3 max-w-md">
+                      {/* --- CUSTOMER SELECTION --- */}
+                      <div className="mb-4 p-3 bg-white border border-gray-200 rounded-2xl shadow-sm">
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Customer Selection</label>
+                          <div className="relative">
+                              <input
+                                  type="text"
+                                  placeholder="Search Customer..."
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                  value={customerSearch}
+                                  onChange={(e) => {
+                                      setCustomerSearch(e.target.value);
+                                      if (selectedCustomer) {
+                                          const expected = selectedCustomer.phone ? `${selectedCustomer.name} (${selectedCustomer.phone})` : selectedCustomer.name;
+                                          if (e.target.value !== expected) setSelectedCustomer(null);
+                                      }
+                                  }}
+                                  onFocus={() => customerSearch.length >= 2 && setShowCustomerDropdown(true)}
+                                  onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+                              />
+                              {selectedCustomer && (
+                                  <button onClick={clearCustomer} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">✕</button>
+                              )}
+                              {showCustomerDropdown && customers.length > 0 && (
+                                  <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-60 overflow-y-auto p-1">
+                                      {customers.map(c => (
+                                          <div
+                                              key={c._id}
+                                              onMouseDown={(e) => { e.preventDefault(); selectCustomer(c); }}
+                                              className="p-2 hover:bg-gray-50 cursor-pointer rounded-lg border-b border-gray-50 last:border-0"
+                                          >
+                                              <div className="font-bold text-[11px] text-gray-800">{c.name}</div>
+                                              <div className="text-[10px] text-gray-500">{c.phone}</div>
+                                          </div>
+                                      ))}
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+
+                      {/* --- ORDER TYPE --- */}
+                      <div className="mb-4">
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Order Type</label>
+                          <div className="bg-gray-200 p-1 rounded-xl flex relative h-9">
+                              <div
+                                  className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#f187b5] rounded-lg transition-all duration-300 ease-in-out shadow-sm ${orderType === 'Wholesale' ? 'left-[calc(50%+2px)]' : 'left-1'}`}
+                              ></div>
+                              <button onClick={() => setOrderType('Retail')} className={`flex-1 relative z-10 text-center text-[11px] font-bold transition-colors ${orderType === 'Retail' ? 'text-white' : 'text-gray-500'}`}>Retail</button>
+                              <button onClick={() => setOrderType('Wholesale')} className={`flex-1 relative z-10 text-center text-[11px] font-bold transition-colors ${orderType === 'Wholesale' ? 'text-white' : 'text-gray-500'}`}>Wholesale</button>
+                          </div>
+                      </div>
+
+                      {/* --- PAYMENT METHOD --- */}
+                      <div className="mb-4">
+                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Payment Method</label>
+                          <div className="relative">
+                              <button
+                                  onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
+                                  className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 hover:border-[#f187b5] transition-all shadow-sm"
+                              >
+                                  <span>{paymentMethod || 'Cash'}</span>
+                                  <svg className={`w-3 h-3 text-gray-400 transition-transform ${showPaymentDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                              </button>
+                              {showPaymentDropdown && (
+                                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden p-1">
+                                      {['Cash', 'Razorpay', 'Cashfree', 'Credit'].map((method) => (
+                                          <div
+                                              key={method}
+                                              onClick={() => { setPaymentMethod(method); setShowPaymentDropdown(false); }}
+                                              className="flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 cursor-pointer rounded-lg text-[11px] font-medium text-gray-700"
+                                          >
+                                              <span>{method === 'Credit' ? 'Credit (Udhaar)' : method}</span>
+                                              <span className="text-gray-300 text-[10px]">→</span>
+                                          </div>
+                                      ))}
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+
+                      {/* --- SUMMARY & ACTIONS --- */}
+                      <div className="mt-auto space-y-3">
+                          <div className="bg-gray-900 text-white p-4 rounded-[1.5rem] shadow-lg">
+                              <div className="flex justify-between items-center mb-1">
+                                 <span className="text-gray-400 text-[10px] uppercase tracking-widest">Subtotal</span>
+                                 <span className="font-bold text-sm">₹{calculateTotal().toLocaleString()}</span>
+                              </div>
+                              <div className="flex justify-between items-center mb-2">
+                                 <span className="text-gray-400 text-[10px] uppercase tracking-widest">Qty. Items</span>
+                                 <span className="font-bold text-sm">{cart.reduce((a, c) => a + c.qty, 0)}</span>
+                              </div>
+                              <div className="border-t border-white/10 pt-3 flex justify-between items-center">
+                                 <div className="flex flex-col">
+                                     <span className="text-[#f187b5] text-[9px] font-bold uppercase tracking-widest">Total Payable</span>
+                                     <span className="text-xl font-black">₹{calculateTotal().toLocaleString()}</span>
+                                 </div>
+                              </div>
+                          </div>
+
+                          <div className="space-y-2">
+                               {!activeBillId.startsWith('edit_') && (
+                                 <button
+                                   onClick={handleGenerateBill}
+                                   disabled={cart.length === 0}
+                                   className="w-full bg-white border-2 border-[#f187b5] text-[#f187b5] hover:bg-[#f187b5] hover:text-white font-black py-2.5 px-4 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group text-xs"
+                                 >
+                                    <svg className="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                    <span>GENERATE BILL</span>
+                                 </button>
+                               )}
+
+                               <button
+                                 onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
+                                 disabled={loading || cart.length === 0}
+                                 className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#f187b5] hover:bg-[#e076a5]' : 'bg-[#f187b5] hover:bg-[#e076a5]'} text-white font-black py-3 px-4 rounded-xl shadow-lg shadow-[#f187b5]/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-xs`}
+                               >
+                                  {loading ? (
+                                     <>
+                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                                         <span>{activeBillId.startsWith('edit_') ? 'UPDATING...' : 'PROCESSING...'}</span>
+                                     </>
+                                  ) : (
+                                     <>
+                                         <span className="tracking-widest">{activeBillId.startsWith('edit_') ? 'UPDATE ORDER' : 'COMPLETE TRANSACTION'}</span>
+                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d={activeBillId.startsWith('edit_') ? "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" : "M14 5l7 7m0 0l-7 7m7-7H3"}></path></svg>
+                                     </>
+                                  )}
+                               </button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              {/* Mobile Footer */}
+              <div className="md:hidden bg-gray-50/80 p-4 border-t border-gray-100 backdrop-blur-sm mt-auto rounded-b-2xl">
+                  {/* Desktop Footer Row */}
+                  <div className="hidden md:flex flex-row items-center justify-between gap-4">
+                      {/* Left Side: Total */}
+                      <div className="flex items-center gap-4">
+                          <p className="text-gray-500 text-sm font-medium">Subtotal</p>
+                          <p className="text-3xl font-bold text-gray-800">₹{calculateTotal()}</p>
+                      </div>
+
+                      {/* Right Side: Buttons */}
+                      <div className="flex items-center gap-3">
                            {!activeBillId.startsWith('edit_') && (
                              <button
                                onClick={handleGenerateBill}
                                disabled={cart.length === 0}
-                               className="bg-white border-2 border-[#f187b5] text-[#f187b5] hover:bg-[#f187b5] hover:text-white font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group"
+                               className="bg-white border-2 border-[#f187b5] text-[#f187b5] hover:bg-[#f187b5] hover:text-white font-bold py-2.5 px-6 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group text-sm"
                              >
                                 <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                                <span className="hidden sm:inline">Generate Bill</span>
-                                <span className="sm:hidden">Bill</span>
+                                <span>Generate Bill</span>
                              </button>
                            )}
 
                            <button
                              onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
                              disabled={loading}
-                             className={`col-span-${activeBillId.startsWith('edit_') ? '2' : '1'} ${activeBillId.startsWith('edit_') ? 'bg-[#f187b5] hover:bg-[#e076a5]' : 'bg-gray-900 hover:bg-black'} text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98]`}
+                             className={`${activeBillId.startsWith('edit_') ? 'bg-[#f187b5] hover:bg-[#e076a5]' : 'bg-gray-900 hover:bg-black'} text-white font-bold py-2.5 px-6 rounded-lg shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed active:scale-[0.98] text-sm min-w-[140px]`}
                            >
                               {loading ? (
                                  <>
                                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-                                     <span>Processing...</span>
+                                     <span>{activeBillId.startsWith('edit_') ? 'Updating...' : 'Processing...'}</span>
                                  </>
                               ) : (
                                  <>
                                      <span>{activeBillId.startsWith('edit_') ? 'Update Order' : 'Pay & Save'}</span>
-                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={activeBillId.startsWith('edit_') ? "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" : "M14 5l7 7m0 0l-7 7m7-7H3"}></path></svg>
                                  </>
                               )}
                            </button>
-                      </div>
-
+                       </div>
+                  </div>
 
                   {/* Mobile Search and Scan Buttons - Only visible on mobile/tablet */}
                   <div className="lg:hidden flex gap-2 mt-4">
@@ -1860,10 +2132,9 @@ const AdminPOSOrders = () => {
                     </button>
                   </div>
               </div>
-              </div>
             </div>
+          </div>
         </div>
-      </div>
 
       {/* --- QUICK ADD MODAL --- */}
       {showQuickAdd && (
@@ -1875,13 +2146,36 @@ const AdminPOSOrders = () => {
                 </div>
                 <form onSubmit={handleQuickAddSubmit} className="p-6 space-y-4">
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Barcode</label>
+                        <div className="relative">
+                            <input
+                               type="text"
+                               value={quickForm.barcode} onChange={e => setQuickForm({...quickForm, barcode: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                               placeholder="Enter or scan barcode"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowScanner(true)}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#f187b5]"
+                                title="Scan Barcode"
+                            >
+                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
                         <input
                            type="text" required
                            value={quickForm.name} onChange={e => setQuickForm({...quickForm, name: e.target.value})}
                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                            placeholder="Enter item name"
-                           autoFocus
+                           // autoFocus // Removed autoFocus to prioritize Barcode if needed, or keep it on Name?
+                           // User screenshot shows Barcode first. I'll let user decide focus or default to Name if they want, but typically Barcode is first.
+                           // Actually I'll remove autoFocus from Name.
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-4">

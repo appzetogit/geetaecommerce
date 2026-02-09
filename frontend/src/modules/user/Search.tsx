@@ -43,7 +43,8 @@ export default function Search() {
       }
     };
 
-    fetchProducts();
+    const timeout = setTimeout(fetchProducts, 500); // 500ms debounce
+    return () => clearTimeout(timeout);
   }, [searchQuery, location]);
 
   // Fetch trending/home content for initial view

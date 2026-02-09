@@ -71,18 +71,23 @@ export default function AppLayout({ children }: AppLayoutProps) {
   // Handle search input change
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
+
+    // Only update URL params if we are ALREADY on the search page
+    // If not, we just show suggestions and wait for an explicit action (click or Enter)
     if (location.pathname === '/search') {
-      // Update URL params when on search page
       if (value.trim()) {
         setSearchParams({ q: value });
       } else {
         setSearchParams({});
       }
-    } else {
-      // Navigate to search page with query
-      if (value.trim()) {
-        navigate(`/search?q=${encodeURIComponent(value)}`);
-      }
+    }
+  };
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (searchQuery.trim()) {
+      setShowSuggestions(false);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -123,6 +128,77 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const showHeader = isSearchPage && !isCheckoutPage && !isCartPage;
   const showSearchBar = isSearchPage && !isCheckoutPage && !isCartPage;
   const showFooter = !isCheckoutPage && !isProductDetailPage;
+
+  // Search Suggestions State
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchingSuggestions, setIsSearchingSuggestions] = useState(false);
+  const suggestionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!searchQuery.trim() || searchQuery.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      setIsSearchingSuggestions(true);
+      try {
+        const { getSearchSuggestions } = await import('../services/api/customerProductService');
+        console.log(`🔍 Suggestion fetching for: "${searchQuery}"`);
+        const response = await getSearchSuggestions(
+          searchQuery,
+          userLocation?.latitude,
+          userLocation?.longitude
+        );
+        console.log(`✅ Suggestions response:`, response);
+        if (response.success) {
+          setSuggestions(response.data);
+          setShowSuggestions(true);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching suggestions:", error);
+      } finally {
+        setIsSearchingSuggestions(false);
+      }
+    };
+
+    const timeout = setTimeout(fetchSuggestions, 400);
+    return () => clearTimeout(timeout);
+  }, [searchQuery, userLocation]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionRef.current && !suggestionRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSuggestionClick = (item: any) => {
+    setShowSuggestions(false);
+    setSearchQuery(item.name);
+
+    if (item.type === 'product') {
+      navigate(`/product/${item.id}`);
+    } else if (item.type === 'category') {
+      navigate(`/category/${item.id}`);
+    } else {
+      // General search
+      navigate(`/search?q=${encodeURIComponent(item.name)}`);
+    }
+  };
+
+  // Sync searchQuery with URL params for browser back/forward and initial load
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    if (q !== searchQuery) {
+      setSearchQuery(q);
+    }
+  }, [searchParams]);
 
   return (
     <div className="flex flex-col min-h-screen w-full overflow-x-hidden">
@@ -334,16 +410,95 @@ export default function AppLayout({ children }: AppLayoutProps) {
               {/* Search bar - Hidden on Order Again page */}
               {showSearchBar && (
                 <div className="px-4 md:px-6 lg:px-8 pb-3">
-                  <div className="relative max-w-2xl md:mx-auto flex gap-2">
+                  <div className="relative max-w-2xl md:mx-auto flex gap-2" ref={suggestionRef}>
                     <div className="relative flex-1">
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => handleSearchChange(e.target.value)}
+                        onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearchSubmit()}
                         placeholder="Search for products..."
                         className="w-full px-4 py-2.5 pl-10 bg-neutral-50 border border-neutral-200 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent md:py-3"
                       />
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">🔍</span>
+
+                      {/* Suggestions Dropdown */}
+                      <AnimatePresence>
+                        {showSuggestions && suggestions.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-neutral-100 overflow-hidden z-[100] max-h-[70vh] overflow-y-auto ring-1 ring-black/5"
+                          >
+                            <div className="py-1">
+                              {suggestions.map((item, index) => (
+                                <button
+                                  key={`${item.type}-${item.id}-${index}`}
+                                  onClick={() => handleSuggestionClick(item)}
+                                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors text-left group border-b border-neutral-50 last:border-0"
+                                >
+                                  <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg bg-neutral-50 group-hover:bg-white transition-colors overflow-hidden">
+                                    {item.type === 'search' ? (
+                                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-neutral-400">
+                                        <circle cx="11" cy="11" r="8" />
+                                        <path d="m21 21-4.35-4.35" />
+                                      </svg>
+                                    ) : item.image ? (
+                                      <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
+                                    ) : (
+                                      <span className="text-xl">
+                                        {item.type === 'category' ? '📁' : '📦'}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-medium text-neutral-900 group-hover:text-blue-600 transition-colors truncate">
+                                        {item.name}
+                                      </span>
+                                      {item.type === 'category' ? (
+                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-600 uppercase tracking-tight">
+                                          Category
+                                        </span>
+                                      ) : item.categoryName && (
+                                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-neutral-50 text-neutral-500 uppercase tracking-tight">
+                                          {item.categoryName}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {item.type === 'product' && item.price !== undefined && (
+                                      <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-xs font-bold text-green-600">₹{item.price}</span>
+                                        {item.mrp > item.price && (
+                                          <span className="text-[10px] text-neutral-400 line-through">₹{item.mrp}</span>
+                                        )}
+                                        {item.discount > 0 && (
+                                          <span className="text-[10px] text-orange-500 font-medium">({item.discount}% OFF)</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-300 group-hover:text-blue-500">
+                                      <path d="M7 17l9.2-9.2M17 17V7H7" />
+                                    </svg>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {isSearchingSuggestions && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Scanner Button */}
