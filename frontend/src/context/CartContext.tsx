@@ -63,10 +63,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, user } = useAuth();
   const { location } = useLocation();
 
+  // Sync cart from backend on mount or when user logs in
   useEffect(() => {
-    setLoading(false);
+    if (isAuthenticated) {
+      fetchCart();
+    } else {
+      setLoading(false);
+    }
     fetchFreeGiftRules();
-  }, []);
+  }, [isAuthenticated]);
+
+  const fetchCart = async () => {
+    setLoading(true);
+    try {
+      const res = await getCart({
+        latitude: location?.latitude,
+        longitude: location?.longitude
+      });
+      if (res.success && res.data) {
+        setItems(mapApiItemsToState(res.data.items));
+      }
+    } catch (e) {
+      console.error("Failed to fetch cart", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchFreeGiftRules = async () => {
     try {
@@ -84,57 +106,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Helper to map API items to state (Simplified for this context)
   const mapApiItemsToState = (apiItems: any[]): ExtendedCartItem[] => {
-      //... existing map logic if needed, or leave strictly local for now as per "FrontEnd Only Mode" comment
-      // For now, preservation of source in API sync is out of scope as API Sync is disabled in code
-      return [];
+      return apiItems.map(item => ({
+          id: item._id,
+          product: {
+              ...item.product,
+              id: item.product._id,
+              name: item.product.productName || item.product.name,
+              imageUrl: item.product.mainImage || item.product.imageUrl
+          },
+          quantity: item.quantity,
+          variant: item.variation,
+          isFreeGift: item.isFreeGift || false
+      }));
   };
 
   // Sync to localStorage whenever items change
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-
-    // Abandoned Cart tracking logic for Admin Panel
-    if (items.length > 0) {
-      const abandonedCarts = JSON.parse(localStorage.getItem('abandoned_carts') || '[]');
-      const guestId = localStorage.getItem('guest_id') || 'guest_' + Math.random().toString(36).substring(7);
-      if (!localStorage.getItem('guest_id')) localStorage.setItem('guest_id', guestId);
-
-      const cartData = {
-        id: (user as any)?._id || (user as any)?.id || guestId,
-        userName: user?.name || 'Guest User',
-        phone: (user as any)?.phone || '9876543210',
-        email: user?.email || 'guest@example.com',
-        address: (user as any)?.address || 'Address not provided',
-        items: items.map(i => {
-           const prod = i.product;
-           if (!prod) return null; // Should be filtered out but TS needs this
-           return {
-             id: prod.id || prod._id,
-             name: prod.name || (prod as any).productName,
-             qty: i.quantity,
-             price: (prod as any).discPrice || prod.price, // Safer cast
-             image: prod.imageUrl || (prod as any).mainImage
-           };
-        }).filter(Boolean),
-        total: items.filter(item => {
-           const prod = item?.product;
-           return prod && !item.isFreeGift;
-        }).reduce((sum, item) => {
-           const prod = item.product;
-           const unitPrice = getApplicableUnitPrice(prod, item.variant, item.quantity || 0);
-           return sum + unitPrice * (item.quantity || 0);
-        }, 0),
-        lastUpdated: new Date().toISOString()
-      };
-
-      const existingIndex = abandonedCarts.findIndex((c: any) => c.id === cartData.id);
-      if (existingIndex > -1) {
-        abandonedCarts[existingIndex] = cartData;
-      } else {
-        abandonedCarts.push(cartData);
-      }
-      localStorage.setItem('abandoned_carts', JSON.stringify(abandonedCarts));
-    }
   }, [items, user]);
 
   // Free Gift Logic (Multiple Gifts Support)
@@ -311,31 +299,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }];
     });
 
-    // API SYNC DISABLED FOR FRONTEND ONLY MODE
-    pendingOperationsRef.current.delete(productId);
-
-    // if (isAuthenticated && user?.userType === 'Customer') {
-    //   try {
-    //     const variation = (product as any).variantId || (product as any).selectedVariant?._id || (product as any).variantTitle || (product as any).pack;
-    //     const response = await apiAddToCart(
-    //       productId,
-    //       1,
-    //       variation,
-    //       location?.latitude,
-    //       location?.longitude
-    //     );
-    //     if (response && response.data && response.data.items) {
-    //       setItems(mapApiItemsToState(response.data.items));
-    //     }
-    //   } catch (error) {
-    //     console.error("Add to cart failed", error);
-    //     setItems(previousItems);
-    //   } finally {
-    //     pendingOperationsRef.current.delete(productId);
-    //   }
-    // } else {
-    //   pendingOperationsRef.current.delete(productId);
-    // }
+    if (isAuthenticated && (user as any)?.userType === 'Customer') {
+      try {
+        const variation = (product as any).variantId || (product as any).selectedVariant?._id || (product as any).variantTitle || (product as any).pack;
+        const response = await apiAddToCart(
+          productId,
+          1,
+          variation,
+          location?.latitude,
+          location?.longitude
+        );
+        if (response && response.data && response.data.items) {
+          setItems(mapApiItemsToState(response.data.items));
+        }
+      } catch (error) {
+        console.error("Add to cart failed", error);
+        // Error handling: if API fails, we could potentially rollback or stay optimistic
+      } finally {
+        pendingOperationsRef.current.delete(productId);
+      }
+    } else {
+      pendingOperationsRef.current.delete(productId);
+    }
   };
 
   const removeFromCart = async (productId: string) => {
@@ -361,28 +346,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return prodId !== productId;
     }));
 
-    // API SYNC DISABLED FOR FRONTEND ONLY MODE
-    pendingOperationsRef.current.delete(productId);
-
-    // if (isAuthenticated && user?.userType === 'Customer' && itemToRemove?.id) {
-    //   try {
-    //     const response = await apiRemoveFromCart(
-    //       itemToRemove.id,
-    //       location?.latitude,
-    //       location?.longitude
-    //     );
-    //     if (response && response.data && response.data.items) {
-    //       setItems(mapApiItemsToState(response.data.items));
-    //     }
-    //   } catch (error) {
-    //     console.error("Remove from cart failed", error);
-    //     setItems(previousItems);
-    //   } finally {
-    //     pendingOperationsRef.current.delete(productId);
-    //   }
-    // } else {
-    //   pendingOperationsRef.current.delete(productId);
-    // }
+    if (isAuthenticated && (user as any)?.userType === 'Customer' && itemToRemove?.id) {
+      try {
+        const response = await apiRemoveFromCart(
+          itemToRemove.id,
+          location?.latitude,
+          location?.longitude
+        );
+        if (response && response.data && response.data.items) {
+          setItems(mapApiItemsToState(response.data.items));
+        }
+      } catch (error) {
+        console.error("Remove from cart failed", error);
+        setItems(previousItems);
+      } finally {
+        pendingOperationsRef.current.delete(productId);
+      }
+    } else {
+      pendingOperationsRef.current.delete(productId);
+    }
   };
 
   const updateQuantity = async (productId: string, quantity: number, variantId?: string, variantTitle?: string) => {
@@ -448,40 +430,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
       })
     );
 
-    // API SYNC DISABLED FOR FRONTEND ONLY MODE
-    pendingOperationsRef.current.delete(operationKey);
-
-    // if (isAuthenticated && user?.userType === 'Customer' && itemToUpdate?.id) {
-    //   try {
-    //     const response = await apiUpdateCartItem(
-    //       itemToUpdate.id,
-    //       quantity,
-    //       location?.latitude,
-    //       location?.longitude
-    //     );
-    //     if (response && response.data && response.data.items) {
-    //       setItems(mapApiItemsToState(response.data.items));
-    //     }
-    //   } catch (error) {
-    //     console.error("Update quantity failed", error);
-    //     setItems(previousItems);
-    //   } finally {
-    //     pendingOperationsRef.current.delete(operationKey);
-    //   }
-    // } else {
-    //   pendingOperationsRef.current.delete(operationKey);
-    // }
+    if (isAuthenticated && (user as any)?.userType === 'Customer' && itemToUpdate?.id) {
+      try {
+        const response = await apiUpdateCartItem(
+          itemToUpdate.id,
+          quantity,
+          location?.latitude,
+          location?.longitude
+        );
+        if (response && response.data && response.data.items) {
+          setItems(mapApiItemsToState(response.data.items));
+        }
+      } catch (error) {
+        console.error("Update quantity failed", error);
+        setItems(previousItems);
+      } finally {
+        pendingOperationsRef.current.delete(operationKey);
+      }
+    } else {
+      pendingOperationsRef.current.delete(operationKey);
+    }
   };
 
 
   const clearCart = async () => {
     setItems([]);
-    // try {
-    //   await apiClearCart();
-    // } catch (error) {
-    //   console.error("Clear cart failed", error);
-    //   await fetchCart();
-    // }
+    if (isAuthenticated && (user as any)?.userType === 'Customer') {
+      try {
+        await apiClearCart();
+      } catch (error) {
+        console.error("Clear cart failed", error);
+        fetchCart();
+      }
+    }
   };
 
   return (

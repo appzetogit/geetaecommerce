@@ -43,6 +43,10 @@ export const getPublicConfig = asyncHandler(
         },
         estimatedDeliveryTime: defaultConfig.estimatedDeliveryTime,
         appName: settings.appName ?? defaultConfig.appName,
+        appLogo: settings.appLogo,
+        appFavicon: settings.appFavicon,
+        address: settings.address,
+        socialMediaLinks: settings.socialMediaLinks,
         contactPhone: settings.contactPhone,
         contactEmail: settings.contactEmail,
         onlinePaymentDiscount: settings.onlinePaymentDiscount || { enabled: false, percentage: 0 }

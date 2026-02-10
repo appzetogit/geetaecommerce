@@ -32,19 +32,37 @@ export const createNotification = asyncHandler(
     }
 
     // 1. Fetch Tokens based on recipientType
-    let targetTokens: string[] = [];
+    // We use a Map to ensure we only send to one token per unique person (by mobile/phone)
+    // and a global Set to ensure we don't send to duplicate token strings.
+    const tokenMap = new Map<string, string>(); // mobile/phone -> prioritized token
 
-    const fetchTokensFromModel = async (Model: any) => {
-      const users = await Model.find({
+    const fetchTokensFromModel = async (Model: any, targetId?: string) => {
+      const query: any = {
         $or: [
           { fcmToken: { $exists: true, $ne: "" } },
           { fcmTokenMobile: { $exists: true, $ne: "" } }
         ]
-      }).select('fcmToken fcmTokenMobile');
+      };
+
+      // If a specific recipientId is provided, only fetch for that user
+      if (targetId) query._id = targetId;
+
+      const users = await Model.find(query).select('fcmToken fcmTokenMobile mobile phone');
 
       users.forEach((u: any) => {
-        if (u.fcmToken) targetTokens.push(u.fcmToken);
-        if (u.fcmTokenMobile) targetTokens.push(u.fcmTokenMobile);
+        const identifier = u.mobile || u.phone || u._id.toString();
+
+        // Strategy: If we already have a token for this person (from another role or web),
+        // skip unless we find a high-priority mobile token.
+        // Actually, to truly stop "double" across apps, we should only keep the FIRST token we find for a mobile number.
+        if (tokenMap.has(identifier)) return;
+
+        // Prefer mobile token over web token for push notifications
+        if (u.fcmTokenMobile) {
+          tokenMap.set(identifier, u.fcmTokenMobile);
+        } else if (u.fcmToken) {
+          tokenMap.set(identifier, u.fcmToken);
+        }
       });
     };
 
@@ -56,14 +74,16 @@ export const createNotification = asyncHandler(
         fetchTokensFromModel(Admin)
       ]);
     } else if (recipientType === 'Customer') {
-      await fetchTokensFromModel(Customer);
+      await fetchTokensFromModel(Customer, recipientId);
     } else if (recipientType === 'Seller') {
-      await fetchTokensFromModel(Seller);
+      await fetchTokensFromModel(Seller, recipientId);
     } else if (recipientType === 'Delivery') {
-      await fetchTokensFromModel(Delivery);
+      await fetchTokensFromModel(Delivery, recipientId);
     } else if (recipientType === 'Admin') {
-      await fetchTokensFromModel(Admin);
+      await fetchTokensFromModel(Admin, recipientId);
     }
+
+    const targetTokens = Array.from(tokenMap.values());
 
     // 2. Send Push Notification if tokens found
     let fcmResult = null;

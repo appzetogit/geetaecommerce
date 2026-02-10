@@ -96,13 +96,18 @@ export const sendNotification = async (req: Request, res: Response, next: NextFu
         else if (userType === 'admin') Model = Admin;
         else return res.status(400).json({ success: false, message: 'Invalid user type' });
 
-        const users = await Model.find({ _id: { $in: userIds } }).select('fcmToken fcmTokenMobile');
+        const users = await Model.find({ _id: { $in: userIds } }).select('fcmToken fcmTokenMobile mobile phone');
 
-        let dbTokens: string[] = [];
+        const dbTokensSet = new Set<string>();
         users.forEach((user: any) => {
-          if (user.fcmToken) dbTokens.push(user.fcmToken);
-          if (user.fcmTokenMobile) dbTokens.push(user.fcmTokenMobile);
+          // If the user has both mobile and web tokens, prefer mobile to avoid double notifications on same device
+          if (user.fcmTokenMobile) {
+            dbTokensSet.add(user.fcmTokenMobile);
+          } else if (user.fcmToken) {
+            dbTokensSet.add(user.fcmToken);
+          }
         });
+        const dbTokens = Array.from(dbTokensSet);
 
         if (dbTokens.length === 0) {
           return res.status(200).json({ success: true, message: 'No registered devices found for these users' });

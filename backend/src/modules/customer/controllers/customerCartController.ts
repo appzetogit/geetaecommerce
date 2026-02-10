@@ -20,7 +20,7 @@ const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.O
         const Seller = (await import("../../../models/Seller")).default;
         const adminSellers = await Seller.find({
              $or: [
-                { email: "admin-store@Geeta Stores.com" },
+                { email: "admin-store@geetastores.com" },
                 { category: "Admin" },
                 { storeName: { $regex: /Admin/i } }
             ]
@@ -80,7 +80,7 @@ export const getCart = async (req: Request, res: Response) => {
             const Seller = (await import("../../../models/Seller")).default;
             const adminSellers = await Seller.find({
                 $or: [
-                    { email: "admin-store@Geeta Stores.com" },
+                    { email: "admin-store@geetastores.com" },
                     { category: "Admin" },
                     { storeName: { $regex: /Admin/i } }
                 ]
@@ -206,7 +206,7 @@ export const addToCart = async (req: Request, res: Response) => {
                  const Seller = (await import("../../../models/Seller")).default;
                  const seller = await Seller.findById(product.seller);
                  if (seller && (
-                     seller.email === "admin-store@Geeta Stores.com" ||
+                     seller.email === "admin-store@geetastores.com" ||
                      seller.category === "Admin" ||
                      /Admin/i.test(seller.storeName || "")
                  )) {
@@ -277,7 +277,7 @@ export const addToCart = async (req: Request, res: Response) => {
             const Seller = (await import("../../../models/Seller")).default;
             const adminSellers = await Seller.find({
                 $or: [
-                    { email: "admin-store@Geeta Stores.com" },
+                    { email: "admin-store@geetastores.com" },
                     { category: "Admin" },
                     { storeName: { $regex: /Admin/i } }
                 ]
@@ -361,7 +361,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
              const Seller = (await import("../../../models/Seller")).default;
              const seller = await Seller.findById(product.seller);
              if (seller && (
-                 seller.email === "admin-store@Geeta Stores.com" ||
+                 seller.email === "admin-store@geetastores.com" ||
                  seller.category === "Admin" ||
                  /Admin/i.test(seller.storeName || "")
              )) {
@@ -407,7 +407,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
             const Seller = (await import("../../../models/Seller")).default;
             const adminSellers = await Seller.find({
                 $or: [
-                    { email: "admin-store@Geeta Stores.com" },
+                    { email: "admin-store@geetastores.com" },
                     { category: "Admin" },
                     { storeName: { $regex: /Admin/i } }
                 ]
