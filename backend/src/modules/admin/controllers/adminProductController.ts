@@ -810,7 +810,7 @@ export const createProduct = asyncHandler(
           // Check for existing admin seller by email OR mobile to avoid duplicate key errors
           let adminSeller = await Seller.findOne({
             $or: [
-              { email: "admin-store@Geeta Stores.com" },
+              { email: "admin-store@geetastores.com" },
               { mobile: "9999999999" },
             ],
           });
@@ -820,7 +820,7 @@ export const createProduct = asyncHandler(
             adminSeller = await Seller.create({
               sellerName: "Geeta Stores Admin",
               storeName: "Geeta Stores Admin Store",
-              email: "admin-store@Geeta Stores.com",
+              email: "admin-store@geetastores.com",
               mobile: "9999999999",
               password: "AdminStore@123", // Should be hashed by pre-save hook
               address: "Geeta Stores HQ",
@@ -829,6 +829,10 @@ export const createProduct = asyncHandler(
               commission: 0,
               status: "Approved",
               requireProductApproval: false,
+              location: {
+                type: "Point",
+                coordinates: [0, 0],
+              },
             });
           }
           productData.seller = adminSeller._id;

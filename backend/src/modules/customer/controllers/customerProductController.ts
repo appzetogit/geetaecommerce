@@ -417,7 +417,7 @@ export const getProductById = async (req: Request, res: Response) => {
     // Check availability
     // Always available if it's the Admin Store
     if (seller && (
-      seller.email === "admin-store@Geeta Stores.com" ||
+      seller.email === "admin-store@geetastores.com" ||
       seller.category === "Admin" ||
       /Admin/i.test(seller.storeName || "")
     )) {
@@ -491,7 +491,7 @@ export const getProductById = async (req: Request, res: Response) => {
       try {
         const adminSellers = await Seller.find({
           $or: [
-            { email: "admin-store@Geeta Stores.com" },
+            { email: "admin-store@geetastores.com" },
             { category: "Admin" },
             { storeName: { $regex: /Admin/i } }
           ]

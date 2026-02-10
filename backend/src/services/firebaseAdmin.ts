@@ -7,6 +7,10 @@ dotenv.config();
 
 const serviceAccountPath = path.resolve(process.cwd(), 'config/firebase-service-account.json');
 
+console.log('Firebase Admin: Initialization sequence started');
+console.log('Firebase Admin: Current working directory:', process.cwd());
+console.log('Firebase Admin: Service account path:', serviceAccountPath);
+
 // Check if already initialized
 try {
   if (!admin.apps.length) {
@@ -16,11 +20,21 @@ try {
     }
 
     console.log('Firebase Admin: Loading config from', serviceAccountPath);
-    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+    const fileContent = fs.readFileSync(serviceAccountPath, 'utf8');
+    const serviceAccount = JSON.parse(fileContent);
+
+    console.log('Firebase Admin: Project ID:', serviceAccount.project_id);
+    console.log('Firebase Admin: Client Email:', serviceAccount.client_email);
 
     // Ensure the private key is properly formatted (common fix for JWT issues)
     if (serviceAccount.private_key) {
+      const originalKey = serviceAccount.private_key;
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+      if (originalKey !== serviceAccount.private_key) {
+        console.log('Firebase Admin: Private key was reformatted (literal \\n replaced)');
+      } else {
+        console.log('Firebase Admin: Private key format looks correct (already has newlines or no literal \\n found)');
+      }
     }
 
     admin.initializeApp({
@@ -30,12 +44,15 @@ try {
 
     // Async health check
     admin.app().options.credential?.getAccessToken()
-      .then(() => console.log('✅ Firebase Auth Check: Credentials are valid.'))
+      .then(() => console.log('✅ Firebase Auth Check: Credentials are valid and token fetched.'))
       .catch((err: any) => {
         console.error('❌ Firebase Auth Check failed: Invalid Credentials or System Time.');
-        console.error('   Error:', err.message);
+        console.error('   Error Code:', err.code);
+        console.error('   Error Message:', err.message);
       });
 
+  } else {
+    console.log('Firebase Admin: Already initialized (apps length:', admin.apps.length, ')');
   }
 } catch (error) {
   console.error('Firebase Admin Initialization Error:', error);

@@ -51,7 +51,7 @@ export const getAbandonedCarts = asyncHandler(
                 as: "customerInfo"
             }
         },
-        { $unwind: "$customerInfo" }
+        { $unwind: { path: "$customerInfo", preserveNullAndEmptyArrays: true } }
     ];
 
     if (search) {

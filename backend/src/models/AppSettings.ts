@@ -13,11 +13,19 @@ export interface IAppSettings extends Document {
   supportPhone?: string;
 
   // Address
+  address?: string; // Added to match frontend field name
   companyAddress?: string;
   companyCity?: string;
   companyState?: string;
   companyPincode?: string;
   companyCountry?: string;
+
+  // Social Media Links
+  socialMediaLinks?: {
+    facebook?: string;
+    youtube?: string;
+    instagram?: string;
+  };
 
   // Payment Settings
   paymentMethods: {
@@ -209,6 +217,10 @@ const AppSettingsSchema = new Schema<IAppSettings>(
     },
 
     // Address
+    address: {
+      type: String,
+      trim: true,
+    },
     companyAddress: {
       type: String,
       trim: true,
@@ -231,6 +243,13 @@ const AppSettingsSchema = new Schema<IAppSettings>(
       type: String,
       default: "India",
       trim: true,
+    },
+
+    // Social Media Links
+    socialMediaLinks: {
+      facebook: { type: String, trim: true },
+      youtube: { type: String, trim: true },
+      instagram: { type: String, trim: true },
     },
 
     // Payment Settings

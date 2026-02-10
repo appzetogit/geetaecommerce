@@ -8,11 +8,11 @@ export interface UpdateSettingsResponse {
 }
 
 export const getAdminAppSettings = async () => {
-    const response = await api.get('/admin/app-settings');
+    const response = await api.get('/admin/settings');
     return response.data;
 };
 
 export const updateAdminAppSettings = async (settings: Partial<PublicConfig>) => {
-    const response = await api.put('/admin/app-settings', settings);
+    const response = await api.put('/admin/settings', settings);
     return response.data;
 };

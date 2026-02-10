@@ -45,38 +45,24 @@ export default function AdminAddProduct() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  // Dynamic Field Settings State
-  const [fieldVisibility, setFieldVisibility] = useState<Record<string, boolean>>({
-    pack: true,
-    item_code: true,
-    rack_number: true,
-    header_category: true,
-    category: true,
-    subcategory: true,
-    sub_subcategory: true,
-    brand: true,
-    tags: true,
-    summary: true,
-    description: true,
-    video: false,
-    manufacturer: true,
-    made_in: true,
-    fssai: true,
-    is_returnable: true,
-    total_allowed_quantity: true,
-    seo_title: true,
-    seo_keywords: true,
-    seo_description: true,
-    seo_image_alt: true,
-    tax: true,
-    hsn_code: true,
-    purchase_price: true,
-    delivery_time: true,
-    online_offer_price: false,
-    barcode: true,
-    shop_by_store_only: true,
-    select_store: true,
-  });
+  // Dynamic Product Settings
+  const [productDisplaySettings, setProductDisplaySettings] = useState<any[]>([]);
+
+  const shouldShowField = (fieldId: string) => {
+    // If settings haven't loaded or are empty, default to Showing Everything (safer)
+    if (!productDisplaySettings || productDisplaySettings.length === 0) return true;
+
+    for (const section of productDisplaySettings) {
+        if (section.fields) {
+            const field = section.fields.find((f: any) => f.id === fieldId);
+            if (field) {
+                return field.isEnabled;
+            }
+        }
+    }
+    // If field is not found in settings configuration (e.g. new field), show it by default
+    return true;
+  };
 
   const [formData, setFormData] = useState({
     productName: "",
@@ -210,22 +196,9 @@ export default function AdminAddProduct() {
         try {
             const response = await getAppSettings();
             if (response.success) {
-                // Field Visibility Settings
+                // Product Display Settings
                 if (response.data?.productDisplaySettings) {
-                    const settings = response.data.productDisplaySettings;
-                    const newVisibility: Record<string, boolean> = { ...fieldVisibility };
-
-                    settings.forEach((section: any) => {
-                        if (section.fields) {
-                            section.fields.forEach((field: any) => {
-                                // Map settings IDs to local visibility keys
-                                if (Object.keys(newVisibility).includes(field.id)) {
-                                    newVisibility[field.id] = field.isEnabled;
-                                }
-                            });
-                        }
-                    });
-                    setFieldVisibility(newVisibility);
+                    setProductDisplaySettings(response.data.productDisplaySettings);
                 }
 
                 // Barcode Settings
@@ -1032,7 +1005,7 @@ export default function AdminAddProduct() {
 
     // Only validate categories if NOT shop by store only
     if (formData.isShopByStoreOnly !== "Yes") {
-      if (fieldVisibility.category) {
+      if (shouldShowField('category')) {
           if (!formData.category) {
             setUploadError("Please select a category.");
             return;
@@ -1441,6 +1414,7 @@ const applySearchedImage = () => {
             </div>
 
              <div className="grid grid-cols-2 gap-4 mt-4">
+                  {shouldShowField('online_offer_price') && (
                   <div>
                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
                        Offer Price (Online)
@@ -1457,6 +1431,7 @@ const applySearchedImage = () => {
                          />
                      </div>
                   </div>
+                  )}
                   <div>
                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
                        Wholesale Price
@@ -1475,8 +1450,8 @@ const applySearchedImage = () => {
                   </div>
              </div>
 
-             {/* Purchase Price */}
-             {fieldVisibility.purchase_price && (
+              {/* Purchase Price */}
+             {shouldShowField('purchase_price') && (
                 <div>
                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Purchase Price
@@ -1516,6 +1491,7 @@ const applySearchedImage = () => {
             <div className="p-6 space-y-6 rounded-b-xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+                {shouldShowField('pack') && (
                 <div className="md:col-span-2">
                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Pack / Unit Size <span className="text-xs text-neutral-500 font-normal ml-1">(e.g. 1 kg, 500 ml, 1 pc)</span>
@@ -1535,7 +1511,9 @@ const applySearchedImage = () => {
                      </div>
                    </div>
                 </div>
+                )}
 
+                {shouldShowField('item_code') && (
                 <div className="md:col-span-1">
                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Item Code (SKU)
@@ -1549,6 +1527,8 @@ const applySearchedImage = () => {
                      className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                    />
                 </div>
+                )}
+                {shouldShowField('rack_number') && (
                 <div className="md:col-span-1">
                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Rack Number
@@ -1562,9 +1542,9 @@ const applySearchedImage = () => {
                      className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                    />
                 </div>
+                )}
 
-                {fieldVisibility.category && (
-                  <>
+                {shouldShowField('header_category') && (
                     <div>
                       <label className="block text-sm font-semibold text-neutral-700 mb-2">
                         Header Category
@@ -1576,7 +1556,9 @@ const applySearchedImage = () => {
                         placeholder="Select Header Category"
                       />
                     </div>
+                )}
 
+                {shouldShowField('category') && (
                     <div>
                       <label className="block text-sm font-semibold text-neutral-700 mb-2">
                         Category
@@ -1599,7 +1581,9 @@ const applySearchedImage = () => {
                         placeholder="Select Category"
                       />
                     </div>
+                )}
 
+                {shouldShowField('subcategory') && (
                     <div>
                       <label className="block text-sm font-semibold text-neutral-700 mb-2">
                         SubCategory
@@ -1612,7 +1596,9 @@ const applySearchedImage = () => {
                         disabled={!formData.category}
                       />
                     </div>
+                )}
 
+                {shouldShowField('sub_subcategory') && (
                     <div>
                       <label className="block text-sm font-semibold text-neutral-700 mb-2">
                         Sub-SubCategory
@@ -1626,7 +1612,6 @@ const applySearchedImage = () => {
                         className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                       />
                     </div>
-                  </>
                 )}
 
                 <div>
@@ -1662,7 +1647,7 @@ const applySearchedImage = () => {
                   />
                 </div>
 
-                {fieldVisibility.brand && (
+                {shouldShowField('brand') && (
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
                       Brand
@@ -1676,6 +1661,7 @@ const applySearchedImage = () => {
                   </div>
                 )}
 
+                {shouldShowField('tags') && (
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Tags <span className="text-xs text-neutral-500 font-normal ml-1">(Separated by comma)</span>
@@ -1689,9 +1675,10 @@ const applySearchedImage = () => {
                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                   />
                 </div>
+                )}
               </div>
 
-              {fieldVisibility.summary && (
+              {shouldShowField('summary') && (
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Short Description
@@ -1716,6 +1703,7 @@ const applySearchedImage = () => {
             </div>
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {shouldShowField('seo_title') && (
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     meta Title
@@ -1729,6 +1717,8 @@ const applySearchedImage = () => {
                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                   />
                 </div>
+                )}
+                {shouldShowField('seo_keywords') && (
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     meta Keywords
@@ -1742,6 +1732,8 @@ const applySearchedImage = () => {
                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                   />
                 </div>
+                )}
+                {shouldShowField('seo_image_alt') && (
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Image Alt Attributes
@@ -1755,6 +1747,8 @@ const applySearchedImage = () => {
                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                   />
                 </div>
+                )}
+                {shouldShowField('seo_description') && (
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     meta Description
@@ -1768,6 +1762,7 @@ const applySearchedImage = () => {
                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] resize-none transition-all"
                   />
                 </div>
+                )}
               </div>
             </div>
           </div>
@@ -2049,7 +2044,7 @@ const applySearchedImage = () => {
                         className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                       />
                     </div>
-                    {fieldVisibility.online_offer_price && (
+                    {shouldShowField('online_offer_price') && (
                     <div>
                       <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
                         Offer Price (Online)
@@ -2396,6 +2391,7 @@ const applySearchedImage = () => {
             </div>
             <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {shouldShowField('manufacturer') && (
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Manufacturer
@@ -2409,6 +2405,8 @@ const applySearchedImage = () => {
                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                   />
                 </div>
+                )}
+                {shouldShowField('made_in') && (
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Made In
@@ -2422,7 +2420,8 @@ const applySearchedImage = () => {
                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                   />
                 </div>
-                {fieldVisibility.tax && (
+                )}
+                {shouldShowField('tax') && (
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
                       Tax Category
@@ -2435,29 +2434,34 @@ const applySearchedImage = () => {
                     />
                   </div>
                 )}
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Returnable?
-                  </label>
-                  <ThemedDropdown
-                    options={['Yes', 'No']}
-                    value={formData.isReturnable}
-                    onChange={(val) => setFormData(prev => ({ ...prev, isReturnable: val }))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Max Return Days
-                  </label>
-                  <input
-                    type="number"
-                    name="maxReturnDays"
-                    value={formData.maxReturnDays}
-                    onChange={handleChange}
-                    placeholder="e.g. 7"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
-                  />
-                </div>
+                {shouldShowField('is_returnable') && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                        Returnable?
+                      </label>
+                      <ThemedDropdown
+                        options={['Yes', 'No']}
+                        value={formData.isReturnable}
+                        onChange={(val) => setFormData(prev => ({ ...prev, isReturnable: val }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                        Max Return Days
+                      </label>
+                      <input
+                        type="number"
+                        name="maxReturnDays"
+                        value={formData.maxReturnDays}
+                        onChange={handleChange}
+                        placeholder="e.g. 7"
+                        className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                      />
+                    </div>
+                  </>
+                )}
+                {shouldShowField('fssai') && (
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     FSSAI Lic. No.
@@ -2471,6 +2475,8 @@ const applySearchedImage = () => {
                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                   />
                 </div>
+                )}
+                {shouldShowField('total_allowed_quantity') && (
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Total Allowed Quantity
@@ -2487,6 +2493,7 @@ const applySearchedImage = () => {
                     Max quantity a user can buy at once
                   </p>
                 </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
@@ -2504,6 +2511,7 @@ const applySearchedImage = () => {
 
 
 
+                {shouldShowField('hsn_code') && (
                 <div>
                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     HSN Code
@@ -2517,7 +2525,9 @@ const applySearchedImage = () => {
                       className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                     />
                 </div>
+                )}
 
+                {shouldShowField('delivery_time') && (
                 <div>
                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Delivery Time / In
@@ -2531,6 +2541,8 @@ const applySearchedImage = () => {
                       className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                     />
                 </div>
+                )}
+                {shouldShowField('barcode') && (
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Barcode (EAN/UPC)
@@ -2565,6 +2577,7 @@ const applySearchedImage = () => {
                         </div>
                       </div>
                 </div>
+                )}
 
                 {/* Print Barcode Section */}
                 <div className="md:col-span-2 border-t border-neutral-100 pt-4 mt-2">
@@ -2643,7 +2656,7 @@ const applySearchedImage = () => {
 
 
           {/* Shop by Store Section */}
-          {fieldVisibility.shop_by_store_only && (
+          {shouldShowField('shop_by_store_only') && (
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
             <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-xl">
               <h2 className="text-lg font-semibold tracking-wide">Store Visibility</h2>
@@ -2666,7 +2679,7 @@ const applySearchedImage = () => {
                     onChange={(val) => setFormData(prev => ({ ...prev, isShopByStoreOnly: val }))}
                   />
                 </div>
-                  {fieldVisibility.select_store && (
+                  {shouldShowField('select_store') && (
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
                       Select Store <span className="text-red-500">*</span>
