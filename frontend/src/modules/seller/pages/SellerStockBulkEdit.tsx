@@ -340,7 +340,7 @@ export default function SellerStockBulkEdit({
              ...v,
              discPrice: p.offerPrice
           })) || [],
-          // unitPricing: p.unitPricing, // Seller endpoint might not support unitPricing yet? Check definition.
+          unitPricing: (p as any).unitPricing, // Include unitPricing in payload, assuming backend supports it (even if not in simplified interface)
           // ProductVariation interface (line 15 in productService.ts) has tieredPrices.
           // But Product interface doesn't have it on root level explicitly in CreateProductData.
           // However, UpdateProductData extends Partial<CreateProductData>.

@@ -69,8 +69,8 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
 
       {/* Main Content */}
       <div
-        className={`flex-1 flex flex-col transition-all duration-300 w-full ${
-          isSidebarOpen ? 'ml-0 lg:ml-64' : 'ml-0'
+        className={`flex-1 flex flex-col transition-all duration-300 w-full min-w-0 ${
+          isSidebarOpen ? 'lg:pl-64' : ''
         }`}
       >
         {/* Header */}
