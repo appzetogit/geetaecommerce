@@ -2110,6 +2110,42 @@ const AdminPOSOrders = () => {
                        </div>
                   </div>
 
+                  {/* Mobile Mobile Actions - Subtotal, Generate Bill, Access Payment */}
+                  <div className="lg:hidden flex flex-col gap-3 mt-2">
+                       <div className="flex justify-between items-center px-1">
+                          <span className="text-gray-600 font-medium text-sm">Subtotal</span>
+                          <span className="text-xl font-bold text-gray-900">₹{calculateTotal().toLocaleString()}</span>
+                      </div>
+                      {!activeBillId.startsWith('edit_') && (
+                        <button
+                          onClick={handleGenerateBill}
+                          disabled={cart.length === 0}
+                          className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                           Generate Bill
+                        </button>
+                      )}
+
+                      <button
+                        onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
+                        disabled={loading || cart.length === 0}
+                        className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#f187b5] hover:bg-[#e076a5]' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      >
+                         {loading ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                                <span>{activeBillId.startsWith('edit_') ? 'Updating...' : 'Processing...'}</span>
+                            </>
+                         ) : (
+                            <>
+                                <span>{activeBillId.startsWith('edit_') ? 'Update Order' : 'Access Payment'}</span>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={activeBillId.startsWith('edit_') ? "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" : "M14 5l7 7m0 0l-7 7m7-7H3"}></path></svg>
+                            </>
+                         )}
+                      </button>
+                  </div>
+
                   {/* Mobile Search and Scan Buttons - Only visible on mobile/tablet */}
                   <div className="lg:hidden flex gap-2 mt-4">
                     <button
