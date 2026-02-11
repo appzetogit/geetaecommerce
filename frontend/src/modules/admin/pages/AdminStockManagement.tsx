@@ -498,8 +498,8 @@ export default function AdminStockManagement() {
         product.variations.forEach((v: any, index) => {
           const currentStock = Number(v.stock) || 0;
            // Detect Size/Color
-          const isSize = v.name.toLowerCase().includes("size");
-          const isColor = v.name.toLowerCase().includes("color");
+          const isSize = (v.name || "").toLowerCase().includes("size");
+          const isColor = (v.name || "").toLowerCase().includes("color");
 
           variations.push({
             ...baseVariation,
@@ -588,8 +588,8 @@ export default function AdminStockManagement() {
           typeof product.stock === "number" &&
           product.stock === 0);
       const matchesSearch =
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.seller.toLowerCase().includes(searchTerm.toLowerCase());
+        (product.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+        (product.seller || "").toLowerCase().includes((searchTerm || "").toLowerCase());
 
       return (
         matchesCategory &&
@@ -622,16 +622,16 @@ export default function AdminStockManagement() {
           bValue = b.id;
           break;
         case "name":
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
+          aValue = (a.name || "").toLowerCase();
+          bValue = (b.name || "").toLowerCase();
           break;
         case "seller":
-          aValue = a.seller.toLowerCase();
-          bValue = b.seller.toLowerCase();
+          aValue = (a.seller || "").toLowerCase();
+          bValue = (b.seller || "").toLowerCase();
           break;
         case "variation":
-          aValue = a.variation.toLowerCase();
-          bValue = b.variation.toLowerCase();
+          aValue = (a.variation || "").toLowerCase();
+          bValue = (b.variation || "").toLowerCase();
           break;
         case "stock":
           aValue = typeof a.stock === "number" ? a.stock : 999999;

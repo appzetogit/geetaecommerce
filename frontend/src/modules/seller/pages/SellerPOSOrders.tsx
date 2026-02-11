@@ -344,9 +344,9 @@ const SellerPOSOrders = () => {
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
 
   // Quick Add Form
-  const [quickForm, setQuickForm] = useState({ barcode: '', name: '', price: '', qty: '1', mrp: '', purchasePrice: '', wholesalePrice: '', categoryId: '', brandId: '', addToInventory: false });
+  const [quickForm, setQuickForm] = useState({ barcode: '', name: '', price: '', qty: '1', mrp: '', purchasePrice: '', wholesalePrice: '', categoryId: '', brandId: '', addToInventory: false, warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
   // Edit Item Form
-  const [editForm, setEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '' });
+  const [editForm, setEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
 
   // New UI States
   const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
@@ -399,6 +399,7 @@ const SellerPOSOrders = () => {
 
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
+  const [scanTarget, setScanTarget] = useState<'inventory' | 'quick-add'>('inventory');
   const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
@@ -419,44 +420,47 @@ const SellerPOSOrders = () => {
       // Don't process if loading to prevent spam
       if (loading) return;
 
-      console.log(`Scan result: ${decodedText}`, decodedResult);
+      console.log(`Scan result (${scanTarget}): ${decodedText}`, decodedResult);
 
-      // Pause scanner briefly?
-      // For now, let's process
+      if (scanTarget === 'quick-add') {
+          setQuickForm(prev => ({ ...prev, barcode: decodedText }));
+          setShowScanner(false);
+          showToast("Barcode added to form", "success");
+          return;
+      }
 
+      // Default: Inventory search and add to cart
       try {
           // Play beep
           // const audio = new Audio('/assets/beep.mp3'); audio.play().catch(e=>{});
 
-          // Check if we have the products loaded locally first (optimistic)
-          // The 'products' state only has filtered results, so we likely need to fetch specific.
-          // However, user might have cleared search so 'products' is empty.
-          // We'll fetch from API directly.
-
-          // Use POS Product Search
+          // Use POS Product Search with case-insensitive check
           const res = await getSellerPOSProducts({ search: decodedText });
           if (res.success && res.data && res.data.length > 0) {
              const productsFound = res.data;
              // Try to find exact match on Barcode or SKU
              let match = productsFound.find((p: any) =>
-               p.barcode === decodedText ||
-               p.sku === decodedText
+               (p.barcode && p.barcode.toLowerCase() === decodedText.toLowerCase()) ||
+               (p.sku && p.sku.toLowerCase() === decodedText.toLowerCase())
              );
 
              // If not found in product root, check variations
              let variationMatch: any = null;
-             if (!match) {
-               for (const p of productsFound) {
-                 if (p.variations) {
-                   const v = p.variations.find((varItem: any) => varItem.barcode === decodedText || varItem.sku === decodedText);
-                   if (v) {
-                     match = p;
-                     variationMatch = v;
-                     break;
-                   }
-                 }
-               }
-             }
+              if (!match) {
+                for (const p of productsFound) {
+                  if (p.variations) {
+                    const v = p.variations.find((varItem: any) =>
+                      (varItem.barcode && varItem.barcode.toLowerCase() === decodedText.toLowerCase()) ||
+                      (varItem.sku && varItem.sku.toLowerCase() === decodedText.toLowerCase())
+                    );
+                    if (v) {
+                      match = p;
+                      variationMatch = v;
+                      break;
+                    }
+                  }
+                }
+              }
 
              if (!match) match = productsFound[0];
 
@@ -831,6 +835,8 @@ const SellerPOSOrders = () => {
                 stock: parseInt(quickForm.qty) || 0,
                 category: quickForm.categoryId,
                 brand: quickForm.brandId,
+                warrantyType: quickForm.warrantyType,
+                warrantyDuration: quickForm.warrantyDuration,
                 // seller: selectedSeller || undefined, // Will use authenticated seller context
                 publish: true
             } as any);
@@ -867,6 +873,8 @@ const SellerPOSOrders = () => {
       wholesalePrice: parseFloat(quickForm.wholesalePrice) || 0,
       purchasePrice: parseFloat(quickForm.purchasePrice) || 0,
       qty: parseInt(quickForm.qty) || 1,
+      warrantyType: quickForm.warrantyType,
+      warrantyDuration: quickForm.warrantyDuration,
       mainImage: '', // Placeholder
       originalProductId: null,
       addToInventory: quickForm.addToInventory // Store flag
@@ -878,7 +886,9 @@ const SellerPOSOrders = () => {
         barcode: '',
         name: '', price: '', qty: '1', mrp: '',
         purchasePrice: '', wholesalePrice: '',
-        categoryId: '', brandId: '', addToInventory: false
+        categoryId: '', brandId: '', addToInventory: false,
+        warrantyType: 'None',
+        warrantyDuration: ''
     });
   };
 
@@ -891,7 +901,9 @@ const SellerPOSOrders = () => {
       qty: (item as any).qty.toString(),
       mrp: ((item as any).compareAtPrice || 0).toString(),
       purchasePrice: ((item as any).purchasePrice || 0).toString(),
-      wholesalePrice: ((item as any).wholesalePrice || 0).toString()
+      wholesalePrice: ((item as any).wholesalePrice || 0).toString(),
+      warrantyType: (item as any).warrantyType || 'None',
+      warrantyDuration: (item as any).warrantyDuration || ''
     });
   };
 
@@ -924,7 +936,9 @@ const SellerPOSOrders = () => {
               ...prev,
               mrp: (mrp || 0).toString(),
               purchasePrice: (purchasePrice || 0).toString(),
-              wholesalePrice: (wholesalePrice || 0).toString()
+              wholesalePrice: (wholesalePrice || 0).toString(),
+              warrantyType: product.warrantyType || 'None',
+              warrantyDuration: product.warrantyDuration || ''
           }));
         }
       } catch (err) {
@@ -949,6 +963,8 @@ const SellerPOSOrders = () => {
           purchasePrice: parseFloat(editForm.purchasePrice) || 0,
           wholesalePrice: parseFloat(editForm.wholesalePrice) || 0,
           qty: parseInt(editForm.qty) || 1,
+          warrantyType: editForm.warrantyType,
+          warrantyDuration: editForm.warrantyDuration,
           updateInventory: (document.getElementById('updateInventory') as HTMLInputElement)?.checked || false
         };
 
@@ -960,6 +976,8 @@ const SellerPOSOrders = () => {
                 compareAtPrice: updatedItem.compareAtPrice,
                 purchasePrice: updatedItem.purchasePrice,
                 wholesalePrice: updatedItem.wholesalePrice,
+                warrantyType: updatedItem.warrantyType,
+                warrantyDuration: updatedItem.warrantyDuration,
                 // We don't update stock here as stock is handled during checkout,
                 // but we update the display info.
             } as any).catch(console.error);
@@ -977,7 +995,8 @@ const SellerPOSOrders = () => {
    * Renamed from handleGenerateBill to downloadPDF
    */
   const downloadPDF = () => {
-    if (cart.length === 0) return;
+    const dataToUse = cart.length > 0 ? cart : (lastBillDetails?.cart || []);
+    if (dataToUse.length === 0) return;
 
     const doc = new jsPDF();
     const invoiceNum = lastBillDetails?.invoiceNum || Math.floor(10000 + Math.random() * 90000).toString();
@@ -1029,7 +1048,7 @@ const SellerPOSOrders = () => {
     let totalMRP = 0;
     let totalBillAmount = 0;
 
-    cart.forEach((item: any, index: number) => {
+    dataToUse.forEach((item: any, index: number) => {
         const qty = (item as any).qty;
         const sp = (item as any).customPrice !== undefined ? (item as any).customPrice : (item as any).price;
         // @ts-ignore
@@ -1048,6 +1067,24 @@ const SellerPOSOrders = () => {
         const truncatedName = name.length > 40 ? name.substring(0, 37) + "..." : name;
 
         doc.text(truncatedName, 14, y);
+        if ((item as any).warrantyType && (item as any).warrantyType !== 'None') {
+            y += 4;
+            const text = `${(item as any).warrantyType}: ${(item as any).warrantyDuration}`;
+            const oldFontSize = doc.getFontSize();
+            doc.setFontSize(7.5);
+            doc.setFont("helvetica", "bold");
+
+            // Draw a light background highlight
+            const textWidth = doc.getTextWidth(text);
+            doc.setFillColor(248, 248, 248);
+            doc.rect(17, y - 3, textWidth + 2, 4, 'F');
+            doc.setDrawColor(200, 200, 200);
+            doc.line(17, y - 3, 17, y + 1); // Small left accent line
+
+            doc.text(text, 18, y);
+            doc.setFontSize(oldFontSize);
+            doc.setFont("helvetica", "normal");
+        }
         doc.text(qty.toString(), 100, y);
         doc.text(itemMrp.toString(), 125, y);
         doc.text(sp.toString(), 155, y);
@@ -1458,7 +1495,10 @@ const SellerPOSOrders = () => {
                          </button>
                      )}
                      <button
-                        onClick={() => setShowScanner(true)}
+                        onClick={() => {
+                            setScanTarget('inventory');
+                            setShowScanner(true);
+                        }}
                         className="p-2.5 text-gray-500 hover:text-[#f187b5] rounded-xl hover:bg-[#f187b5]/10 transition-colors group"
                         title="Scan Barcode"
                      >
@@ -1682,7 +1722,10 @@ const SellerPOSOrders = () => {
                       )}
                   </div>
                   <button
-                    onClick={() => setShowScanner(true)}
+                    onClick={() => {
+                        setScanTarget('inventory');
+                        setShowScanner(true);
+                    }}
                     className="bg-[#f187b5] text-white px-3 rounded hover:bg-[#e076a5] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
                     title="Scan Product"
                   >
@@ -1733,7 +1776,14 @@ const SellerPOSOrders = () => {
                                   <div className="flex justify-between items-start mb-2">
                                        <div className="flex items-start gap-2 max-w-[70%]">
                                            <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">#{index + 1}</span>
-                                           <h4 className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">{(item as any).productName}</h4>
+                                           <div>
+                                                <h4 className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">{(item as any).productName}</h4>
+                                                {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
+                                                    <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
+                                                        {(item as any).warrantyType}: {(item as any).warrantyDuration}
+                                                    </div>
+                                                )}
+                                            </div>
                                        </div>
                                        <div className="text-right">
                                            <div className="font-bold text-gray-900 text-base">₹{sp * (item as any).qty}</div>
@@ -1835,6 +1885,11 @@ const SellerPOSOrders = () => {
                                    {/* Name */}
                                    <div className="col-span-3 min-w-0">
                                        <h4 className="text-xs font-semibold text-gray-800 truncate" title={(item as any).productName}>{(item as any).productName}</h4>
+                                        {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
+                                            <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
+                                                {(item as any).warrantyType}: {(item as any).warrantyDuration}
+                                            </div>
+                                        )}
                                        {showProfit && (
                                            <span className={`text-[10px] ${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                                                Profit: {profitPercent}%
@@ -2133,8 +2188,11 @@ const SellerPOSOrders = () => {
                             <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             Search Items
                         </button>
-                        <button
-                            onClick={() => setShowScanner(true)}
+                         <button
+                            onClick={() => {
+                                setScanTarget('inventory');
+                                setShowScanner(true);
+                            }}
                             className="w-12 bg-white border border-gray-300 text-gray-700 rounded-lg flex items-center justify-center shadow-sm active:bg-gray-50"
                         >
                             <svg className="w-6 h-6 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -2178,29 +2236,7 @@ const SellerPOSOrders = () => {
                       </button>
                   </div>
               </div>
-              {/* Mobile Footer */}
-              <div className="md:hidden bg-gray-50/80 p-4 border-t border-gray-100 backdrop-blur-sm mt-auto rounded-b-2xl">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setShowMobileSearch(true)}
-                      className="flex-[2] bg-white border border-gray-200 text-gray-700 px-3 py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98]"
-                    >
-                      <svg className="w-5 h-5 text-[#f187b5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                      </svg>
-                      <span className="font-semibold text-sm whitespace-nowrap">Search Items</span>
-                    </button>
-                    <button
-                      onClick={() => setShowScanner(true)}
-                      className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98]"
-                    >
-                      <span className="font-semibold text-sm">Scan</span>
-                      <svg className="w-5 h-5 text-[#f187b5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"/>
-                      </svg>
-                    </button>
-                  </div>
-              </div>
+
             </div>
           </div>
 
@@ -2226,8 +2262,19 @@ const SellerPOSOrders = () => {
               onChange={(e) => setMobileSearchQuery(e.target.value)}
               placeholder="Search products..."
               className="flex-1 px-4 py-2 rounded-lg border-none outline-none text-gray-800"
-              autoFocus
+               autoFocus
             />
+            <button
+              onClick={() => {
+                setScanTarget('inventory');
+                setShowScanner(true);
+              }}
+              className="text-white p-1"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"></path>
+              </svg>
+            </button>
           </div>
 
           {/* Product List */}
@@ -2249,7 +2296,7 @@ const SellerPOSOrders = () => {
                   })
                   .slice(0, 20)
                   .map(product => {
-                    const cartItem = cart.find(item => (item as any)._id === (product as any)._id);
+                    const cartItem = cart.find(c => (c as any)._id === (product as any)._id);
                     const inCart = !!cartItem;
 
                     return (
@@ -2364,9 +2411,12 @@ const SellerPOSOrders = () => {
                                className="w-full border border-gray-300 rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                                placeholder="Enter or scan barcode"
                             />
-                            <button
+                             <button
                                 type="button"
-                                onClick={() => setShowScanner(true)}
+                                onClick={() => {
+                                    setScanTarget('quick-add');
+                                    setShowScanner(true);
+                                }}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#f187b5]"
                                 title="Scan Barcode"
                             >
@@ -2431,6 +2481,30 @@ const SellerPOSOrders = () => {
                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Warranty / Guarantee</label>
+                            <select
+                                value={quickForm.warrantyType}
+                                onChange={e => setQuickForm({...quickForm, warrantyType: e.target.value})}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                            >
+                                <option value="None">None</option>
+                                <option value="Warranty">Warranty</option>
+                                <option value="Guarantee">Guarantee</option>
+                            </select>
+                        </div>
+                        {quickForm.warrantyType !== 'None' && (
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{quickForm.warrantyType} Duration</label>
+                                <input
+                                    type="text"
+                                    value={quickForm.warrantyDuration}
+                                    onChange={e => setQuickForm({...quickForm, warrantyDuration: e.target.value})}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                                    placeholder="Enter duration (e.g. 6 Months / 1 Year)"
+                                />
+                            </div>
+                        )}
                     </div>
 
                      {/* Add to Inventory Checkbox */}
@@ -2522,6 +2596,30 @@ const SellerPOSOrders = () => {
                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
                             />
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Warranty / Guarantee</label>
+                            <select
+                                value={editForm.warrantyType}
+                                onChange={e => setEditForm({...editForm, warrantyType: e.target.value})}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
+                            >
+                                <option value="None">None</option>
+                                <option value="Warranty">Warranty</option>
+                                <option value="Guarantee">Guarantee</option>
+                            </select>
+                        </div>
+                        {editForm.warrantyType !== 'None' && (
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{editForm.warrantyType} Duration</label>
+                                <input
+                                    type="text"
+                                    value={editForm.warrantyDuration}
+                                    onChange={e => setEditForm({...editForm, warrantyDuration: e.target.value})}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
+                                    placeholder="Enter duration (e.g. 6 Months / 1 Year)"
+                                />
+                            </div>
+                        )}
                     </div>
                      <div className="flex items-center gap-2">
                         <input
@@ -2694,7 +2792,15 @@ const SellerPOSOrders = () => {
                     )}
 
                     <div className="grid grid-cols-2 gap-2">
-                         <button onClick={() => setShowSuccessModal(false)} className="bg-white border border-gray-200 text-gray-500 font-bold py-2 text-[10px] tracking-widest uppercase rounded">
+                         <button
+                            onClick={() => {
+                                if (lastBillDetails?.cart) {
+                                    setCart(lastBillDetails.cart);
+                                }
+                                setShowSuccessModal(false);
+                            }}
+                            className="bg-white border border-gray-200 text-gray-500 font-bold py-2 text-[10px] tracking-widest uppercase rounded"
+                         >
                             [ Edit ]
                         </button>
                         <button onClick={() => setShowSuccessModal(false)} className="bg-white border border-gray-200 text-gray-500 font-bold py-2 text-[10px] tracking-widest uppercase rounded">
@@ -2754,6 +2860,11 @@ const SellerPOSOrders = () => {
                       return (
                        <div key={idx}>
                            <div>{idx + 1}. {(item as any).productName}</div>
+                           {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
+                               <div className="text-[10px] bg-gray-100 px-2 py-0.5 border-l-2 border-black font-bold mt-1 ml-4" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                   {(item as any).warrantyType}: {(item as any).warrantyDuration}
+                               </div>
+                           )}
                            <div className="grid grid-cols-12 gap-1">
                                <div className="col-span-12"></div> {/* Spacer for name line */}
                                <div className="col-span-3 text-right">{(item as any).qty}PC</div>

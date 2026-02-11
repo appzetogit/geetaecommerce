@@ -18,8 +18,20 @@ export const getAllCustomers = asyncHandler(
     } = req.query;
 
     const query: any = {};
-
     if (status) query.status = status;
+
+    // Filter by sellerId to separate Admin and Seller customers
+    if (req.user && req.user.userType === "Seller") {
+      query.sellerId = req.user.userId;
+    } else if (req.user && req.user.userType === "Admin") {
+      // For Admin, only show Admin-created/Global customers in POS context
+      // If we are in the main Admin Customers list, we might want to see all,
+      // but the user said "admin wale seller ko show na ho dono ko alag alag manage karna hai"
+      // and "seller wale admin ko show nahi ho".
+      // This implies Admin should only see Admin customers.
+      query.sellerId = null;
+    }
+
     if (search) {
       query.$or = [
         { name: { $regex: search as string, $options: "i" } },
@@ -160,9 +172,10 @@ export const createCustomer = asyncHandler(
   async (req: Request, res: Response) => {
     const { name, email, phone, address, city, state, pincode } = req.body;
 
-    // Check if customer already exists
+    // Check if customer already exists within this context
     const existingCustomer = await Customer.findOne({
       $or: [{ email }, { phone }],
+      sellerId: req.user && req.user.userType === 'Seller' ? req.user.userId : null,
     });
 
     if (existingCustomer) {
@@ -184,6 +197,7 @@ export const createCustomer = asyncHandler(
       pincode,
       registrationDate: new Date(),
       status: 'Active',
+      sellerId: req.user && req.user.userType === 'Seller' ? req.user.userId : null,
     });
 
     return res.status(201).json({

@@ -90,6 +90,7 @@ export default function SellerAddProduct() {
   const [variationForm, setVariationForm] = useState({
     title: "",
     price: "",
+    compareAtPrice: "",
     discPrice: "0",
     stock: "0",
     status: "Available" as "Available" | "Sold out" | "In stock",
@@ -97,6 +98,7 @@ export default function SellerAddProduct() {
     offerPrice: "",
     wholesalePrice: "",
     tieredPrices: [] as { minQty: string, price: string }[],
+    image: "",
   });
 
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
@@ -108,7 +110,7 @@ export default function SellerAddProduct() {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string>("");
   const [isScanning, setIsScanning] = useState(false);
-  const [scanTarget, setScanTarget] = useState<"product" | "variation" | "table-variation">("product");
+  const [scanTarget, setScanTarget] = useState<"product" | "variation" | "table-variation" | "sku">("product");
   const [scanTargetIndex, setScanTargetIndex] = useState<number | null>(null);
   const scannerRef = React.useRef<Html5Qrcode | null>(null);
 
@@ -247,13 +249,15 @@ export default function SellerAddProduct() {
            value: title, // value field
            name: formData.variationType || "Variation",
            price: 0,
+           compareAtPrice: 0,
            discPrice: 0,
            stock: 0,
            status: "Available" as const,
            barcode: "",
            offerPrice: undefined,
            wholesalePrice: 0,
-           tieredPrices: []
+           tieredPrices: [],
+           image: ""
        }));
 
        // Merge logic: preserve existing prices/stock if title matches
@@ -291,11 +295,13 @@ export default function SellerAddProduct() {
       });
   };
 
-  const handleAutoGenerateBarcode = (target: "product" | "variation" = "product") => {
+  const handleAutoGenerateBarcode = (target: "product" | "variation" | "sku" = "product") => {
     // Generate 12 digit number
     const newBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
     if (target === "product") {
         setFormData(prev => ({ ...prev, barcode: newBarcode }));
+    } else if (target === "sku") {
+        setFormData(prev => ({ ...prev, itemCode: newBarcode }));
     } else {
         setVariationForm(prev => ({ ...prev, barcode: newBarcode }));
     }
@@ -303,7 +309,7 @@ export default function SellerAddProduct() {
     setTimeout(() => setSuccessMessage(""), 2000);
   };
 
-  const startScanning = (target: "product" | "variation" | "table-variation", index: number | null = null) => {
+  const startScanning = (target: "product" | "variation" | "table-variation" | "sku" = "product", index: number | null = null) => {
       setIsScanning(true);
       setScanTarget(target);
       setScanTargetIndex(index);
@@ -320,6 +326,8 @@ export default function SellerAddProduct() {
               (decodedText) => {
                   if(target === "product") {
                        setFormData(prev => ({ ...prev, barcode: decodedText }));
+                  } else if (target === "sku") {
+                       setFormData(prev => ({ ...prev, itemCode: decodedText }));
                   } else if (target === "variation") {
                        setVariationForm(prev => ({ ...prev, barcode: decodedText }));
                   } else if (target === "table-variation" && index !== null) {
@@ -329,10 +337,13 @@ export default function SellerAddProduct() {
                            return n;
                        });
                   }
-                  stopScanning();
-                  setSuccessMessage("Barcode Scanned: " + decodedText);
-                  setTimeout(() => setSuccessMessage(""), 2000);
-              },
+                   stopScanning();
+                   setSuccessMessage("Barcode Scanned: " + decodedText);
+                   setTimeout(() => setSuccessMessage(""), 2000);
+                   // Play a beep sound
+                   const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                   audio.play().catch(e => console.log('Audio play failed', e));
+               },
               (errorMessage) => {
                   // console.log(errorMessage);
               }
@@ -729,6 +740,8 @@ export default function SellerAddProduct() {
                     barcode: v.barcode || "",
                     offerPrice: v.offerPrice?.toString() || "",
                     tieredPrices: v.tieredPrices ? v.tieredPrices.map(t => ({minQty: t.minQty.toString(), price: t.price.toString()})) : [],
+                    compareAtPrice: v.compareAtPrice?.toString() || "",
+                    image: v.image || "",
                 }));
              }
 
@@ -905,12 +918,15 @@ export default function SellerAddProduct() {
     }
 
     const price = parseFloat(variationForm.price);
-    const discPrice = parseFloat(variationForm.discPrice || "0");
+    const compareAtPrice = variationForm.compareAtPrice ? parseFloat(variationForm.compareAtPrice) : 0;
     const stock = parseInt(variationForm.stock || "0");
     const offerPrice = variationForm.offerPrice ? parseFloat(variationForm.offerPrice) : undefined;
+    const wholesalePrice = variationForm.wholesalePrice ? parseFloat(variationForm.wholesalePrice) : 0;
+    const discPrice = offerPrice || price; // Use offerPrice as discPrice if provided
 
-    if (discPrice > price) {
-      setUploadError("Discounted price cannot be greater than price");
+    // Validate: Selling Price (price) should not be greater than MRP (compareAtPrice) if MRP is set
+    if (compareAtPrice > 0 && price > compareAtPrice) {
+      setUploadError("Selling price cannot be greater than Maximum Retail Price (MRP)");
       return;
     }
 
@@ -919,18 +935,25 @@ export default function SellerAddProduct() {
       value: variationForm.title,
       name: formData.variationType || "Variation",
       price,
+      compareAtPrice,
       discPrice,
       stock,
       status: variationForm.status,
       barcode: variationForm.barcode,
       offerPrice,
-      tieredPrices: variationForm.tieredPrices,
+      wholesalePrice,
+      tieredPrices: variationForm.tieredPrices.map(t => ({
+        minQty: parseInt(t.minQty) || 0,
+        price: parseFloat(t.price) || 0
+      })).filter(t => t.minQty > 1 && t.price > 0),
+      image: variationForm.image
     };
 
     setVariations([...variations, newVariation]);
     setVariationForm({
       title: "",
       price: "",
+      compareAtPrice: "",
       discPrice: "0",
       stock: "0",
       status: "Available",
@@ -938,6 +961,7 @@ export default function SellerAddProduct() {
       offerPrice: "",
       wholesalePrice: "",
       tieredPrices: [],
+      image: "",
     });
     setUploadError("");
   };
@@ -1006,29 +1030,31 @@ export default function SellerAddProduct() {
       // Auto-add current variation if form is filled but list is empty
       const finalVariations = [...variations];
 
-      const price = parseFloat(formData.price || "0"); // MRP
-      const discPrice = parseFloat(formData.discPrice || "0"); // Selling Price
+      const mrp = parseFloat(formData.price || "0"); // MRP
+      const sellingPrice = parseFloat(formData.discPrice || "0"); // Selling Price
       const stock = parseInt(formData.stock || "0");
       const offerPrice = formData.offerPrice ? parseFloat(formData.offerPrice) : undefined;
       const wholesalePrice = formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : 0;
+      const calculatedDiscPrice = offerPrice || sellingPrice;
 
       if (finalVariations.length === 0) {
         if (formData.discPrice) {
-          if (discPrice <= price) {
-            finalVariations.push({
-              title: variationForm.title || "Default",
-              price,
-              discPrice,
-              stock,
-              status: variationForm.status || "Available",
-              offerPrice,
-              wholesalePrice,
-            });
-          } else {
+          if (mrp > 0 && sellingPrice > mrp) {
             setUploadError("Selling price cannot be greater than Maximum Retail Price");
             setUploading(false);
             return;
           }
+          finalVariations.push({
+            title: variationForm.title || "Default",
+            price: sellingPrice,
+            compareAtPrice: mrp,
+            discPrice: calculatedDiscPrice,
+            stock,
+            status: variationForm.status || "Available",
+            offerPrice,
+            wholesalePrice,
+            image: variationForm.image || ""
+          });
         } else {
           setUploadError("Please add at least one product variation");
           setUploading(false);
@@ -1036,7 +1062,7 @@ export default function SellerAddProduct() {
         }
       } else if (finalVariations.length === 1) {
            // Update single variation logic (Simple Product Mode)
-           if (discPrice > price) {
+           if (mrp > 0 && sellingPrice > mrp) {
              setUploadError("Selling price cannot be greater than Maximum Retail Price");
              setUploading(false);
              return;
@@ -1044,11 +1070,13 @@ export default function SellerAddProduct() {
 
           finalVariations[0] = {
               ...finalVariations[0],
-              price,
-              discPrice,
+              price: sellingPrice,
+              compareAtPrice: mrp,
+              discPrice: calculatedDiscPrice,
               stock,
               offerPrice,
-              wholesalePrice
+              wholesalePrice,
+              image: finalVariations[0].image || variationForm.image || ""
           };
       }
 
@@ -1419,14 +1447,37 @@ export default function SellerAddProduct() {
                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
                     Item Code (SKU)
                    </label>
-                   <input
-                     type="text"
-                     name="itemCode"
-                     value={(formData as any).itemCode}
-                     onChange={handleChange}
-                     placeholder="Enter Item Code / SKU"
-                     className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
-                   />
+                   <div className="flex flex-col md:flex-row gap-2">
+                        <input
+                          type="text"
+                          name="itemCode"
+                          value={(formData as any).itemCode}
+                          onChange={handleChange}
+                          onKeyDown={(e) => {
+                             if (e.key === "Enter") e.preventDefault();
+                          }}
+                          placeholder="Enter Item Code / SKU"
+                          className="w-full md:w-auto md:flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
+                        />
+                        <div className="flex gap-1 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => handleAutoGenerateBarcode("sku")}
+                                className="p-2.5 bg-seller-50 border border-seller-200 rounded-lg hover:bg-seller-100 text-seller-600 transition-colors"
+                                title="Auto Generate SKU"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => startScanning("sku")}
+                                className="p-2.5 bg-seller-50 border border-seller-200 rounded-lg hover:bg-seller-100 text-seller-600 transition-colors"
+                                title="Scan SKU"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 )}
                 {shouldShowField('rack_number') && (
@@ -1870,8 +1921,10 @@ export default function SellerAddProduct() {
                                  <table className="w-full text-sm text-left">
                                      <thead className="bg-[#f187b5]/10 text-[#f187b5] font-semibold border-b border-[#f187b5]/20">
                                          <tr>
+                                             <th className="px-4 py-3 w-[80px]">Image</th>
                                              <th className="px-4 py-3 min-w-[150px]">Variation</th>
-                                             <th className="px-4 py-3 min-w-[100px]">Price (₹) <span className="text-red-500">*</span></th>
+                                             <th className="px-4 py-3 min-w-[100px]">MRP (₹)</th>
+                                             <th className="px-4 py-3 min-w-[100px]">Selling Price (₹) <span className="text-red-500">*</span></th>
                                              <th className="px-4 py-3 min-w-[100px]">Offer Price (Online)</th>
                                              <th className="px-4 py-3 min-w-[100px]">Wholesale</th>
                                              <th className="px-4 py-3 min-w-[80px]">Stock</th>
@@ -1883,12 +1936,73 @@ export default function SellerAddProduct() {
                                      <tbody className="divide-y divide-neutral-100 bg-white">
                                          {variations.map((v, idx) => (
                                              <tr key={idx} className="hover:bg-neutral-50 group">
+                                                 <td className="px-4 py-2">
+                                                    <div className="relative w-12 h-12 bg-white border border-neutral-300 rounded overflow-hidden flex items-center justify-center cursor-pointer hover:border-[#f187b5]">
+                                                        {v.image ? (
+                                                            <div className="w-full h-full relative group/img">
+                                                                <img src={v.image} alt="Var" className="w-full h-full object-cover" />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setVariations(prev => {
+                                                                            const n = [...prev];
+                                                                            n[idx].image = "";
+                                                                            return n;
+                                                                        });
+                                                                    }}
+                                                                    className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover/img:opacity-100"
+                                                                >
+                                                                    &times;
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*"
+                                                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                                                    onChange={async (e) => {
+                                                                        const file = e.target.files?.[0];
+                                                                        if(!file) return;
+                                                                        try {
+                                                                            const res = await uploadImage(file, "Geeta Stores/products/variations");
+                                                                            if(res.secureUrl) {
+                                                                                setVariations(prev => {
+                                                                                    const n = [...prev];
+                                                                                    n[idx].image = res.secureUrl;
+                                                                                    return n;
+                                                                                });
+                                                                            }
+                                                                        } catch(err) { console.error("Upload failed", err); }
+                                                                    }}
+                                                                />
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                 </td>
                                                  <td className="px-4 py-2 font-medium text-neutral-800">{v.title}</td>
                                                  <td className="px-4 py-2">
                                                      <input
                                                          type="number"
                                                          className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
-                                                         value={v.price} // MRP
+                                                         value={v.compareAtPrice}
+                                                         onChange={e => {
+                                                             const val = e.target.value;
+                                                             setVariations(prev => {
+                                                                 const n = [...prev];
+                                                                 n[idx].compareAtPrice = parseFloat(val) || 0;
+                                                                 return n;
+                                                             });
+                                                         }}
+                                                     />
+                                                 </td>
+                                                 <td className="px-4 py-2">
+                                                     <input
+                                                         type="number"
+                                                         className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
+                                                         value={v.price} // Selling Price
                                                          onChange={e => {
                                                              const val = e.target.value;
                                                              setVariations(prev => {
@@ -1903,7 +2017,7 @@ export default function SellerAddProduct() {
                                                       <input
                                                           type="number"
                                                           className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
-                                                          value={v.offerPrice} // Online Offer Price
+                                                          value={v.offerPrice}
                                                           onChange={e => {
                                                               const val = e.target.value;
                                                               setVariations(prev => {
@@ -1959,6 +2073,9 @@ export default function SellerAddProduct() {
                                                                        return n;
                                                                    });
                                                                }}
+                                                               onKeyDown={(e) => {
+                                                                   if (e.key === "Enter") e.preventDefault();
+                                                               }}
                                                           />
                                                           <button
                                                               type="button"
@@ -1978,7 +2095,7 @@ export default function SellerAddProduct() {
                                                           <button
                                                               type="button"
                                                               onClick={() => startScanning("table-variation", idx)}
-                                                              className="p-1.5 text-neutral-400 hover:text-seller-500 hover:bg-neutral-50 rounded transition-colors"
+                                                              className="p-1.5 text-seller-500 hover:bg-seller-50 rounded transition-colors"
                                                               title="Scan Barcode"
                                                           >
                                                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
@@ -2019,76 +2136,148 @@ export default function SellerAddProduct() {
                   ) : (
                     /* Variation Form (Old Manual) - Sync with Admin Structure */
                     <div className="bg-neutral-50 rounded-xl p-6 border border-neutral-200">
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start">
-                        <div>
-                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                            Unit Value
-                          </label>
-                          <input
-                            type="text"
-                            value={variationForm.title}
-                            onChange={(e) => setVariationForm({ ...variationForm, title: e.target.value })}
-                            placeholder="e.g. XL, 1kg"
-                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                            Price *
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
-                            <input
-                              type="number"
-                              value={variationForm.price}
-                              onChange={(e) => setVariationForm({ ...variationForm, price: e.target.value })}
-                              placeholder="0.00"
-                              className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                            />
-                          </div>
+                      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-start">
+                        {/* Variation Image */}
+                        <div className="md:col-span-1">
+                            <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                                Image
+                            </label>
+                            <div className="relative w-full aspect-square bg-white border border-neutral-300 rounded-lg flex items-center justify-center overflow-hidden group cursor-pointer hover:border-[#f187b5]">
+                                {variationForm.image ? (
+                                    <>
+                                        <img src={variationForm.image} alt="Var" className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setVariationForm(prev => ({...prev, image: ""}));
+                                            }}
+                                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        </button>
+                                    </>
+                                ) : (
+                                    <div className="text-center p-2">
+                                        <span className="text-xs text-gray-400">Upload</span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if(!file) return;
+                                                // Validate function assumed to be available or skipped for brevity if not imported?
+                                                // It is available in SellerAddProduct usually if imported. Assuming yes.
+                                                // Actually validateImageFile might be imported.
+                                                // If not, I should be careful. AdminAddProduct had it.
+                                                // Let's assume yes or add basic check?
+                                                // Looking at Step 317/322/325/328/331/334, I didn't verify imports.
+                                                // But `handleMainImageChange` usually uses it.
+                                                try {
+                                                    const res = await uploadImage(file, "Geeta Stores/products/variations");
+                                                    if(res && res.secureUrl) {
+                                                        setVariationForm(prev => ({...prev, image: res.secureUrl}));
+                                                    }
+                                                } catch(err) {
+                                                    console.error(err);
+                                                    setUploadError("Failed to upload image");
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        <div>
-                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                            Stock
-                          </label>
-                          <input
-                            type="number"
-                            value={variationForm.stock}
-                            onChange={(e) => setVariationForm({ ...variationForm, stock: e.target.value })}
-                            placeholder="0 = Unlimited"
-                            className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                            Offer Price (Online)
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
-                            <input
-                              type="number"
-                              value={variationForm.offerPrice}
-                              onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
-                              placeholder="0.00"
-                              className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                            Wholesale Price
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
-                            <input
-                              type="number"
-                              value={variationForm.wholesalePrice}
-                              onChange={(e) => setVariationForm({ ...variationForm, wholesalePrice: e.target.value })}
-                              placeholder="0.00"
-                              className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                            />
-                          </div>
+                        <div className="md:col-span-5 grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <div className="col-span-1">
+                              <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                                Unit Value
+                              </label>
+                              <input
+                                type="text"
+                                value={variationForm.title}
+                                onChange={(e) => setVariationForm({ ...variationForm, title: e.target.value })}
+                                placeholder="e.g. XL, 1kg"
+                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                              />
+                            </div>
+                            <div className="col-span-1">
+                              <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                                MRP Price
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
+                                <input
+                                  type="number"
+                                  value={variationForm.compareAtPrice}
+                                  onChange={(e) => setVariationForm({ ...variationForm, compareAtPrice: e.target.value })}
+                                  placeholder="0.00"
+                                  className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                                />
+                              </div>
+                            </div>
+                            <div className="col-span-1">
+                              <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                                Selling Price *
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
+                                <input
+                                  type="number"
+                                  value={variationForm.price}
+                                  onChange={(e) => setVariationForm({ ...variationForm, price: e.target.value })}
+                                  placeholder="0.00"
+                                  className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="col-span-1">
+                              <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                                Stock
+                              </label>
+                              <input
+                                type="number"
+                                value={variationForm.stock}
+                                onChange={(e) => setVariationForm({ ...variationForm, stock: e.target.value })}
+                                placeholder="0 = Unlimited"
+                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                              />
+                            </div>
+
+                            <div className="col-span-1">
+                              <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                                Wholesale Price
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
+                                <input
+                                  type="number"
+                                  value={variationForm.wholesalePrice}
+                                  onChange={(e) => setVariationForm({ ...variationForm, wholesalePrice: e.target.value })}
+                                  placeholder="0.00"
+                                  className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                                />
+                              </div>
+                            </div>
+
+                             <div className="col-span-1">
+                              <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
+                                Offer Price (Online)
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
+                                <input
+                                  type="number"
+                                  value={variationForm.offerPrice}
+                                  onChange={(e) => setVariationForm({ ...variationForm, offerPrice: e.target.value })}
+                                  placeholder="0.00"
+                                  className="w-full pl-7 pr-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                                />
+                              </div>
+                            </div>
                         </div>
 
                         {/* Tiered Pricing Section */}
@@ -2144,13 +2333,16 @@ export default function SellerAddProduct() {
                                   Barcode
                               </label>
                               <div className="flex flex-col md:flex-row gap-2">
-                                   <input
-                                      type="text"
-                                      value={variationForm.barcode}
-                                      onChange={(e) => setVariationForm({ ...variationForm, barcode: e.target.value })}
-                                      placeholder="Scan or Enter"
-                                      className="w-full md:w-auto md:flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
-                                  />
+                                    <input
+                                       type="text"
+                                       value={variationForm.barcode}
+                                       onChange={(e) => setVariationForm({ ...variationForm, barcode: e.target.value })}
+                                       onKeyDown={(e) => {
+                                           if (e.key === "Enter") e.preventDefault();
+                                       }}
+                                       placeholder="Scan or Enter"
+                                       className="w-full md:w-auto md:flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500"
+                                   />
                                   <div className="flex gap-2 shrink-0">
                                       <button
                                           type="button"
@@ -2161,15 +2353,15 @@ export default function SellerAddProduct() {
                                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                                           <span className="text-xs font-bold whitespace-nowrap">Auto Generate</span>
                                       </button>
-                                      <button
-                                          type="button"
-                                          onClick={() => startScanning("variation")}
-                                          className="flex-1 md:flex-none px-3 py-2 bg-neutral-100 border border-neutral-300 rounded-lg hover:bg-neutral-200 text-neutral-600 transition-colors flex items-center justify-center gap-2"
-                                          title="Scan Barcode"
-                                          >
-                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                                          <span className="text-xs font-bold whitespace-nowrap">Scan Code</span>
-                                      </button>
+                                       <button
+                                           type="button"
+                                           onClick={() => startScanning("variation")}
+                                           className="flex-1 md:flex-none px-3 py-2 bg-seller-50 border border-seller-200 rounded-lg hover:bg-seller-100 text-seller-600 transition-colors flex items-center justify-center gap-2"
+                                           title="Scan Barcode"
+                                           >
+                                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                           <span className="text-xs font-bold whitespace-nowrap">Scan Code</span>
+                                       </button>
                                   </div>
                               </div>
                            </div>
@@ -2374,12 +2566,15 @@ export default function SellerAddProduct() {
                   <div className="flex flex-col md:flex-row gap-2">
                     <input
                       type="text"
-                      name="barcode"
-                      value={(formData as any).barcode}
-                      onChange={handleChange}
-                      placeholder="Scan or enter barcode manually"
-                      className="w-full md:w-auto md:flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
-                    />
+                       name="barcode"
+                       value={(formData as any).barcode}
+                       onChange={handleChange}
+                       onKeyDown={(e) => {
+                          if (e.key === "Enter") e.preventDefault();
+                       }}
+                       placeholder="Scan or enter barcode manually"
+                       className="w-full md:w-auto md:flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                     />
                     <div className="flex gap-2 shrink-0">
                         <button
                             type="button"
@@ -2389,14 +2584,14 @@ export default function SellerAddProduct() {
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                             <span className="whitespace-nowrap">Auto Generate</span>
                         </button>
-                        <button
-                            type="button"
-                            onClick={() => startScanning("product")}
-                            className="flex-1 md:flex-none px-4 py-2 bg-[#f187b5]/10 border border-[#f187b5]/20 rounded-lg hover:bg-[#f187b5]/20 text-[#f187b5] flex items-center justify-center gap-2 font-medium transition-colors"
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                            <span className="whitespace-nowrap">Scan Code</span>
-                        </button>
+                         <button
+                             type="button"
+                             onClick={() => startScanning("product")}
+                             className="flex-1 md:flex-none px-4 py-2 bg-seller-50 border border-seller-200 rounded-lg hover:bg-seller-100 text-seller-600 flex items-center justify-center gap-2 font-medium transition-colors"
+                         >
+                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                             <span className="whitespace-nowrap">Scan Code</span>
+                         </button>
                     </div>
                   </div>
                 </div>

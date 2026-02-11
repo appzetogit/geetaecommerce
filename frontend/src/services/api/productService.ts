@@ -27,6 +27,7 @@ export interface ProductVariation {
   offerPrice?: number;
   wholesalePrice?: number;
   tieredPrices?: { minQty: number; price: number }[];
+  image?: string;
 }
 
 export interface Product {
@@ -119,6 +120,8 @@ export interface CreateProductData {
   deliveryTime?: string;
   isShopByStoreOnly?: boolean;
   shopId?: string;
+  warrantyType?: 'None' | 'Warranty' | 'Guarantee';
+  warrantyDuration?: string;
 }
 
 export interface Shop {

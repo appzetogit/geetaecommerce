@@ -198,8 +198,8 @@ export default function SellerStockManagement() {
 
     // Filter items
     const filteredItems = stockItems.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.seller.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = (item.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+            (item.seller || "").toLowerCase().includes((searchTerm || "").toLowerCase());
         const matchesCategory = categoryFilter === 'All Category' || item.category === categoryFilter;
         const matchesStatus = statusFilter === 'All Products' ||
             (statusFilter === 'Published' && item.status === 'Published') ||
@@ -216,8 +216,8 @@ export default function SellerStockManagement() {
             let aVal: any = a[sortColumn as keyof typeof a];
             let bVal: any = b[sortColumn as keyof typeof b];
             if (typeof aVal === 'string') {
-                aVal = aVal.toLowerCase();
-                bVal = bVal.toLowerCase();
+                aVal = (aVal || "").toLowerCase();
+                bVal = (bVal || "").toLowerCase();
             }
             if (sortColumn === 'stock') {
                 // Stock is now always a number

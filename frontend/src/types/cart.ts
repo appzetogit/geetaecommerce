@@ -23,6 +23,8 @@ export interface CartItem {
   wholesalePrice?: number;
   customPrice?: number;
   sku?: string;
+  warrantyType?: string;
+  warrantyDuration?: string;
 }
 
 export interface Cart {

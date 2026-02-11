@@ -50,5 +50,7 @@ export interface Product {
   maxReturnDays?: number;
   sellerId?: string;
   isAvailable?: boolean;
+  warrantyType?: 'None' | 'Warranty' | 'Guarantee';
+  warrantyDuration?: string;
 }
 

@@ -495,8 +495,8 @@ export default function SellerProductList() {
       if (product.variations && product.variations.length > 0) {
         product.variations.forEach((v: any, index: number) => {
           const currentStock = Number(v.stock) || 0;
-          const isSize = v.name && v.name.toLowerCase().includes("size");
-          const isColor = v.name && v.name.toLowerCase().includes("color");
+          const isSize = (v.name || "").toLowerCase().includes("size");
+          const isColor = (v.name || "").toLowerCase().includes("color");
 
           variations.push({
             ...baseVariation,
@@ -571,8 +571,8 @@ export default function SellerProductList() {
           typeof product.stock === "number" &&
           product.stock === 0);
       const matchesSearch =
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+        (product.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+        (product.sku || "").toLowerCase().includes((searchTerm || "").toLowerCase());
 
       return (
         matchesCategory &&
@@ -600,8 +600,8 @@ export default function SellerProductList() {
       // Handle sort columns
       switch (sortColumn) {
         case "id": aValue = a.id; bValue = b.id; break;
-        case "name": aValue = a.name.toLowerCase(); bValue = b.name.toLowerCase(); break;
-        case "variation": aValue = a.variation.toLowerCase(); bValue = b.variation.toLowerCase(); break;
+        case "name": aValue = (a.name || "").toLowerCase(); bValue = (b.name || "").toLowerCase(); break;
+        case "variation": aValue = (a.variation || "").toLowerCase(); bValue = (b.variation || "").toLowerCase(); break;
         case "stock": aValue = typeof a.stock === "number" ? a.stock : 999999; bValue = typeof b.stock === "number" ? b.stock : 999999; break;
         case "status": aValue = a.status; bValue = b.status; break;
         // Add more sorts as needed

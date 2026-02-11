@@ -21,8 +21,8 @@ export const sendSmsOtp = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Check if customer exists with this mobile (Login Flow)
-  const customer = await Customer.findOne({ phone: mobile });
+  // Check if customer exists with this mobile (Login Flow) - Only Global customers (sellerId: null) can login to the app
+  const customer = await Customer.findOne({ phone: mobile, sellerId: null });
   if (!customer) {
     return res.status(404).json({
       success: false,
@@ -85,8 +85,8 @@ export const verifySmsOtp = asyncHandler(async (req: Request, res: Response) => 
     });
   }
 
-  // Find customer
-  const customer = await Customer.findOne({ phone: mobile });
+  // Find customer - Only Global customers (sellerId: null)
+  const customer = await Customer.findOne({ phone: mobile, sellerId: null });
   if (!customer) {
     return res.status(404).json({
       success: false,
@@ -136,9 +136,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Check if customer already exists
+  // Check if customer already exists - Only check within Global customers
   const existingCustomer = await Customer.findOne({
     $or: [{ phone: mobile }, { email }],
+    sellerId: null,
   });
 
   if (existingCustomer) {
@@ -158,6 +159,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     walletAmount: 0,
     totalOrders: 0,
     totalSpent: 0,
+    sellerId: null,
   });
 
   // Generate token

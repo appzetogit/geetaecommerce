@@ -160,6 +160,8 @@ export interface Product {
   commission?: number;
   createdAt?: string;
   updatedAt?: string;
+  warrantyType?: 'None' | 'Warranty' | 'Guarantee';
+  warrantyDuration?: string;
   discPrice?: number;
   pack?: string;
   isShopByStoreOnly?: boolean;
@@ -233,6 +235,8 @@ export interface CreateProductData {
   discPrice?: number;
   isShopByStoreOnly?: boolean;
   shopId?: string;
+  warrantyType?: 'None' | 'Warranty' | 'Guarantee';
+  warrantyDuration?: string;
   unitPricing?: { minQty: number; price: number }[];
 }
 

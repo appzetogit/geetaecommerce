@@ -78,11 +78,16 @@ export default function ProductDetail() {
           // Set location availability flag
           setIsAvailableAtLocation(productData.isAvailableAtLocation !== false);
 
-          // Get all images (main + gallery)
+          // Get all images (main + gallery + variations)
+          const variationImages = (productData.variations || [])
+            .map((v: any) => v.image)
+            .filter(Boolean);
+
           const allImages = [
             productData.mainImage || productData.imageUrl || "",
             ...(productData.galleryImages || productData.galleryImageUrls || []),
-          ].filter(Boolean);
+            ...variationImages
+          ].filter((value, index, self) => value && self.indexOf(value) === index);
 
           setProduct({
             ...productData,
@@ -140,6 +145,17 @@ export default function ProductDetail() {
 
     fetchProduct();
   }, [id, location?.latitude, location?.longitude]);
+
+  // Update selected image when variant changes if the variant has a specific image
+  useEffect(() => {
+    if (product?.variations?.[selectedVariantIndex]?.image) {
+      const variantImageUrl = product.variations[selectedVariantIndex].image;
+      const imageIndex = product.allImages.indexOf(variantImageUrl);
+      if (imageIndex !== -1) {
+        setSelectedImageIndex(imageIndex);
+      }
+    }
+  }, [selectedVariantIndex, product]);
 
   // Get selected variant
   const selectedVariant = product?.variations?.[selectedVariantIndex] || null;

@@ -708,9 +708,9 @@ export default function AdminAddSeller() {
             type="submit"
             disabled={loading}
             className={`px-8 py-3 text-white font-bold rounded transition-colors ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            style={{ background: '#e91e63' }}
-            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = '#c2185b')}
-            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = '#e91e63')}
+            style={{ background: '#f187b5' }}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = '#e076a5')}
+            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = '#f187b5')}
           >
             {loading ? 'Adding Seller...' : 'Add Seller'}
           </button>

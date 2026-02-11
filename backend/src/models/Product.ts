@@ -102,6 +102,10 @@ export interface IProduct extends Document {
   isShopByStoreOnly?: boolean;
   shopId?: mongoose.Types.ObjectId;
 
+  // Warranty
+  warrantyType?: "None" | "Warranty" | "Guarantee";
+  warrantyDuration?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -376,6 +380,17 @@ export interface IProduct extends Document {
     shopId: {
       type: Schema.Types.ObjectId,
       ref: "Shop",
+    },
+
+    // Warranty
+    warrantyType: {
+      type: String,
+      enum: ["None", "Warranty", "Guarantee"],
+      default: "None",
+    },
+    warrantyDuration: {
+      type: String,
+      trim: true,
     },
   },
   {

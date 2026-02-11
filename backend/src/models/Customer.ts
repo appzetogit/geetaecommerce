@@ -36,6 +36,7 @@ export interface ICustomer extends Document {
   accountPrivacy?: {
     hideSensitiveItems: boolean;
   };
+  sellerId?: mongoose.Types.ObjectId;
 }
 
 
@@ -49,7 +50,6 @@ const CustomerSchema = new Schema<ICustomer>(
     email: {
       type: String,
       required: [true, 'Email is required'],
-      unique: true,
       lowercase: true,
       trim: true,
       validate: {
@@ -63,7 +63,6 @@ const CustomerSchema = new Schema<ICustomer>(
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
-      unique: true,
       trim: true,
       validate: {
         validator: function (v: string) {
@@ -86,7 +85,6 @@ const CustomerSchema = new Schema<ICustomer>(
     },
     refCode: {
       type: String,
-      unique: true,
       trim: true,
       uppercase: true,
     },
@@ -151,6 +149,11 @@ const CustomerSchema = new Schema<ICustomer>(
     accountPrivacy: {
       hideSensitiveItems: { type: Boolean, default: false },
     },
+    sellerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Seller',
+      default: null,
+    },
   },
 
   {
@@ -159,6 +162,11 @@ const CustomerSchema = new Schema<ICustomer>(
     toObject: { virtuals: true },
   }
 );
+
+// Compound unique indexes to separate customers by seller
+CustomerSchema.index({ phone: 1, sellerId: 1 }, { unique: true });
+CustomerSchema.index({ email: 1, sellerId: 1 }, { unique: true });
+CustomerSchema.index({ refCode: 1, sellerId: 1 }, { unique: true });
 
 // Virtual for walletAmount to match frontend expectations
 CustomerSchema.virtual('walletAmount').get(function (this: ICustomer) {

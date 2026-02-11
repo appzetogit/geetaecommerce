@@ -14,6 +14,14 @@ export const getCreditCustomers = asyncHandler(async (req: Request, res: Respons
     const { search } = req.query;
 
     const query: any = {};
+
+    // Filter by sellerId to separate Admin and Seller customers
+    if (req.user && req.user.userType === "Seller") {
+        query.sellerId = req.user.userId;
+    } else if (req.user && req.user.userType === "Admin") {
+        query.sellerId = null;
+    }
+
     if (search) {
         query.$or = [
             { name: { $regex: search, $options: "i" } },
@@ -38,9 +46,15 @@ export const getCreditCustomers = asyncHandler(async (req: Request, res: Respons
  */
 export const getCustomerHistory = asyncHandler(async (req: Request, res: Response) => {
     const { customerId } = req.params;
+    const customerQuery: any = { _id: customerId };
+    if (req.user && req.user.userType === 'Seller') {
+        customerQuery.sellerId = req.user.userId;
+    } else if (req.user && req.user.userType === 'Admin') {
+        customerQuery.sellerId = null;
+    }
 
     const [customer, transactions, orders] = await Promise.all([
-        Customer.findById(customerId).select('name phone email creditBalance'),
+        Customer.findOne(customerQuery).select('name phone email creditBalance'),
         CreditTransaction.find({ customer: customerId }).sort({ date: -1 }).limit(100),
         Order.find({ customer: customerId }).sort({ orderDate: -1 }).limit(10).select('orderNumber orderDate total paymentMethod items')
     ]);
