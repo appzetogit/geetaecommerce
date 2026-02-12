@@ -428,20 +428,22 @@ const AdminPOSOrders = () => {
           if (res.success && res.data && res.data.length > 0) {
              const productsFound = res.data;
              // Try to find exact match on Barcode or SKU
-             let match = productsFound.find((p: any) =>
-               (p.barcode && p.barcode.toLowerCase() === decodedText.toLowerCase()) ||
-               (p.sku && p.sku.toLowerCase() === decodedText.toLowerCase())
-             );
+             let match = productsFound.find((p: any) => {
+               const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
+               return barcodes.some((b: string) => String(b).toLowerCase() === decodedText.toLowerCase()) ||
+                      (p.sku && String(p.sku).toLowerCase() === decodedText.toLowerCase());
+             });
 
              // If not found in product root, check variations
              let variationMatch: any = null;
               if (!match) {
                 for (const p of productsFound) {
                   if (p.variations) {
-                    const v = p.variations.find((varItem: any) =>
-                      (varItem.barcode && varItem.barcode.toLowerCase() === decodedText.toLowerCase()) ||
-                      (varItem.sku && varItem.sku.toLowerCase() === decodedText.toLowerCase())
-                    );
+                    const v = p.variations.find((varItem: any) => {
+                      const barcodes = Array.isArray(varItem.barcode) ? varItem.barcode : (varItem.barcode ? [varItem.barcode] : []);
+                      return barcodes.some((b: string) => String(b).toLowerCase() === decodedText.toLowerCase()) ||
+                             (varItem.sku && String(varItem.sku).toLowerCase() === decodedText.toLowerCase());
+                    });
                     if (v) {
                       match = p;
                       variationMatch = v;
@@ -716,21 +718,68 @@ const AdminPOSOrders = () => {
   }, [searchQuery, mobileSearchQuery, selectedSeller, selectedCategory, selectedBrand, showMobileSearch]);
 
   // Barcode Scanner Handler
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
         const query = searchQuery.trim().toLowerCase();
-        // Exact match check for Barcode/SKU/ItemCode
-        const exactMatch = products.find(p =>
-            (p.barcode && p.barcode.toLowerCase() === query) ||
-            (p.sku && p.sku.toLowerCase() === query) ||
-            ((p as any).itemCode && (p as any).itemCode.toLowerCase() === query)
-        );
+
+        // Helper to check for match
+        const findMatch = (list: any[]) => list.find(p => {
+            const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
+            return barcodes.some((b: string) => String(b).toLowerCase() === query) ||
+                   (p.sku && String(p.sku).toLowerCase() === query) ||
+                   (p.itemCode && String(p.itemCode).toLowerCase() === query);
+        });
+
+        let exactMatch = findMatch(products);
 
         if (exactMatch) {
             e.preventDefault();
             addToCart(exactMatch as CartItem);
             setSearchQuery(''); // Clear for next scan
-            // showToast("Item added!", "success");
+            return;
+        }
+
+        // If not found in current products (maybe due to debounce or filter), fetch immediately
+        try {
+            const res = await getProducts({ search: searchQuery.trim(), limit: 50 });
+            if (res.success && res.data && res.data.length > 0) {
+                const expanded: any[] = [];
+                res.data.forEach((product: any) => {
+                    if (product.variations && product.variations.length > 0) {
+                        product.variations.forEach((variation: any) => {
+                            expanded.push({
+                                ...product,
+                                _id: `${product._id}-${variation._id}`,
+                                originalProductId: product._id,
+                                productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || 'Variation'}`,
+                                price: variation.price,
+                                compareAtPrice: variation.compareAtPrice || product.compareAtPrice,
+                                purchasePrice: variation.purchasePrice || product.purchasePrice,
+                                stock: variation.stock,
+                                sku: variation.sku || product.sku,
+                                isVariation: true,
+                                variationId: variation._id,
+                                wholesalePrice: Number(product.wholesalePrice || 0)
+                            });
+                        });
+                    } else {
+                        expanded.push({
+                            ...product,
+                            originalProductId: product._id,
+                            wholesalePrice: product.wholesalePrice || 0
+                        });
+                    }
+                });
+
+                exactMatch = findMatch(expanded);
+                if (exactMatch) {
+                    e.preventDefault();
+                    addToCart(exactMatch as CartItem);
+                    setSearchQuery('');
+                }
+            }
+        } catch (err) {
+            console.error("Direct barcode search failed", err);
         }
     }
   };
@@ -824,7 +873,7 @@ const AdminPOSOrders = () => {
         try {
             const res = await createProduct({
                 productName: quickForm.name,
-                barcode: quickForm.barcode,
+                barcode: quickForm.barcode ? [quickForm.barcode] : [],
                 price: parseFloat(quickForm.price) || 0,
                 compareAtPrice: parseFloat(quickForm.mrp) || 0,
                 purchasePrice: parseFloat(quickForm.purchasePrice) || 0,
@@ -2321,7 +2370,7 @@ const AdminPOSOrders = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Warranty / Guarantee</label>
                             <select
                                 value={quickForm.warrantyType}
-                                onChange={e => setQuickForm({...quickForm, warrantyType: e.target.value})}
+                                onChange={e => setQuickForm({...quickForm, warrantyType: e.target.value as any})}
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                             >
                                 <option value="None">None</option>
@@ -2436,7 +2485,7 @@ const AdminPOSOrders = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Warranty / Guarantee</label>
                             <select
                                 value={editForm.warrantyType}
-                                onChange={e => setEditForm({...editForm, warrantyType: e.target.value})}
+                                onChange={e => setEditForm({...editForm, warrantyType: e.target.value as any})}
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
                             >
                                 <option value="None">None</option>
@@ -2953,7 +3002,7 @@ const AdminPOSOrders = () => {
                     const query = mobileSearchQuery.toLowerCase();
                     return (
                       product.productName.toLowerCase().includes(query) ||
-                      (product.barcode && product.barcode.toLowerCase().includes(query))
+                      (Array.isArray(product.barcode) ? product.barcode.some((b: string) => String(b).toLowerCase().includes(query)) : (product.barcode && String(product.barcode).toLowerCase().includes(query)))
                     );
                   })
                   .slice(0, 20)
@@ -3043,7 +3092,7 @@ const AdminPOSOrders = () => {
 
                 {mobileSearchQuery && products.filter(p => {
                   const query = mobileSearchQuery.toLowerCase();
-                  return p.productName.toLowerCase().includes(query) || (p.barcode && p.barcode.toLowerCase().includes(query));
+                  return p.productName.toLowerCase().includes(query) || (Array.isArray(p.barcode) ? (p.barcode as string[]).some(b => String(b).toLowerCase().includes(query)) : (p.barcode && String(p.barcode).toLowerCase().includes(query)));
                 }).length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     No products found

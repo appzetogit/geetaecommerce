@@ -6,6 +6,10 @@ import {
 import { uploadImage } from "../../../services/api/uploadService";
 import { getBrands, Brand } from "../../../services/api/brandService";
 import { getAllSubcategories, Category, SubCategory, ApiResponse } from "../../../services/api/categoryService";
+import { getAttributes } from "../../../services/api/seller/sellerAttributeService";
+import AttributeDropdown from "../../../components/AttributeDropdown";
+import VariationEditor from "../../../components/VariationEditor";
+import VariationDropdown from "../../../components/VariationDropdown";
 
 interface SellerStockBulkEditProps {
   products: Product[];
@@ -104,6 +108,8 @@ interface EditableProduct {
   tax: string;
   offerPrice: number;
   unitPricing: { minQty: number; price: number }[]; // Add this
+  attributes: string[]; // Selected Attribute Names
+  variations: any[]; // Full variation objects
 }
 
 export default function SellerStockBulkEdit({
@@ -120,18 +126,21 @@ export default function SellerStockBulkEdit({
 
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [availableAttributes, setAvailableAttributes] = useState<{_id: string, name: string}[]>([]);
+  const [activeVariationModalIndex, setActiveVariationModalIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
         try {
-            const [subRes, brandRes] = await Promise.all([
+            const [subRes, brandRes, attrRes] = await Promise.all([
                 // Using generic category service function, assuming it returns just simple subcategories list eventually
                  // But wait, getAllSubcategories returns ApiResponse<SubCategory[]>. Admin used getSubCategories.
                  // Checking if getAllSubcategories is correct replacement.
                  // Admin service: getSubCategories({ limit: 1000 })
                  // Seller service: getAllSubcategories
                 getAllSubcategories({ limit: 1000 } as any),
-                getBrands()
+                getBrands(),
+                getAttributes() // sellerAttributeService returns response.data directly
             ]);
 
             // Fix type mismatch if necessary. SubCategory interface from admin service vs category service
@@ -141,6 +150,7 @@ export default function SellerStockBulkEdit({
             // Assuming they are compatible.
             if(subRes.success && subRes.data) setSubCategories(subRes.data);
             if(brandRes.success && brandRes.data) setBrands(brandRes.data);
+            if(attrRes) setAvailableAttributes((attrRes as any).data || attrRes); // Assuming getAttributes returns data directly or check structure
         } catch (e) {
             console.error("Failed to load metadata for bulk edit", e);
         }
@@ -217,6 +227,8 @@ export default function SellerStockBulkEdit({
         unitPricing: (p as any).unitPricing && (p as any).unitPricing.length > 0 ? (p as any).unitPricing : [{ minQty: 1, price: 0 }], // Initialize
         images: images,
         isChanged: false,
+        attributes: [], // Initialize empty, or derive from existing variations if possible (complex logic simplified for now)
+        variations: p.variations || [],
       };
     });
     setEditableProducts(initialized);
@@ -334,12 +346,11 @@ export default function SellerStockBulkEdit({
           wholesalePrice: p.wholesalePrice,
           ...(p.subCategoryId ? { subcategory: p.subCategoryId } : {}),
           ...(p.subSubCategory ? { subSubCategory: p.subSubCategory } : {}),
-          ...(p.brandId ? { brand: p.brandId } : {}),
-           // Propagate offer price to all variations to ensure consistency
-          variations: p.original.variations?.map((v: any) => ({
+           ...(p.brandId ? { brand: p.brandId } : {}),
+           variations: p.variations.map((v: any) => ({
              ...v,
-             discPrice: p.offerPrice
-          })) || [],
+             discPrice: v.offerPrice || v.discPrice || p.offerPrice // Preserve variation specific offer or fallback
+           })),
           unitPricing: (p as any).unitPricing, // Include unitPricing in payload, assuming backend supports it (even if not in simplified interface)
           // ProductVariation interface (line 15 in productService.ts) has tieredPrices.
           // But Product interface doesn't have it on root level explicitly in CreateProductData.
@@ -381,6 +392,7 @@ export default function SellerStockBulkEdit({
   const [activeMenuColumn, setActiveMenuColumn] = useState<string | null>(null);
   const [columnOrder, setColumnOrder] = useState<string[]>([
     "index", "image", "productName", "category", "subCategory", "subSubCategory",
+    "attributes", "variations", // Added new columns
     "sku", "rackNumber", "description", "barcode", "hsnCode", "pack",
     "size", "color", "attr", "tax", "gst", "purchasePrice", "compareAtPrice",
     "price", "deliveryTime", "stock", "offerPrice", "wholesalePrice",
@@ -417,7 +429,9 @@ export default function SellerStockBulkEdit({
     brand: "24. Brand",
     valMrp: "25. Val (MRP)",
     valPur: "26. Val (Pur)",
-    unitPrice: "27. Unit Pricing Rules", // Rename
+    unitPrice: "27. Unit Pricing Rules",
+    attributes: "Attributes",
+    variations: "Variations",
     status: "Status"
   };
 
@@ -561,6 +575,8 @@ export default function SellerStockBulkEdit({
     valMrp: 100,
     valPur: 100,
     unitPrice: 100,
+    attributes: 150,
+    variations: 120,
     status: 100,
   });
 
@@ -626,7 +642,7 @@ export default function SellerStockBulkEdit({
         );
       case "productName":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#f187b5] focus:bg-white text-sm" value={product.productName} onChange={(e) => handleFieldChange(originalIndex, "productName", e.target.value)} /></td>;
-      case "category":
+          case "category":
         return (
           <td key={key} className="p-0 border-r border-neutral-200">
             <select className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#f187b5] focus:bg-white text-sm cursor-pointer" value={product.categoryId} onChange={(e) => handleFieldChange(originalIndex, "categoryId", e.target.value)}>
@@ -634,6 +650,25 @@ export default function SellerStockBulkEdit({
               {categories.map((cat) => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
             </select>
           </td>
+        );
+      case "attributes":
+        return (
+            <td key={key} className="p-0 border-r border-neutral-200 bg-white">
+                <AttributeDropdown
+                    options={availableAttributes}
+                    selectedAttributes={product.attributes || []}
+                    onChange={(newAttrs) => handleFieldChange(originalIndex, 'attributes', newAttrs)}
+                />
+            </td>
+        );
+      case "variations":
+        return (
+            <td key={key} className="p-0 border-r border-neutral-200 bg-white">
+                <VariationDropdown
+                    variations={product.variations || []}
+                    onEdit={() => setActiveVariationModalIndex(originalIndex)}
+                />
+            </td>
         );
       case "subCategory":
         return (
@@ -846,6 +881,17 @@ export default function SellerStockBulkEdit({
             onClose={() => setActivePricingModalIndex(null)}
             onSave={(newSlabs) => handleFieldChange(activePricingModalIndex, 'unitPricing', newSlabs)}
         />
+      )}
+      {/* Variation Editor Modal */}
+      {activeVariationModalIndex !== null && (
+          <VariationEditor
+            productName={editableProducts[activeVariationModalIndex].productName}
+            isOpen={true}
+            onClose={() => setActiveVariationModalIndex(null)}
+            variations={editableProducts[activeVariationModalIndex].variations || []}
+            selectedAttributes={editableProducts[activeVariationModalIndex].attributes || []}
+            onSave={(newVariations) => handleFieldChange(activeVariationModalIndex, 'variations', newVariations)}
+          />
       )}
     </div>
   );

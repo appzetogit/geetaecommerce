@@ -118,7 +118,7 @@ export interface Product {
   stock: number;
   sku?: string;
   itemCode?: string; // mapped to sku
-  barcode?: string;
+  barcode?: string[];
   rackNumber?: string;
   hsnCode?: string;
   purchasePrice?: number;
@@ -136,7 +136,7 @@ export interface Product {
     stock?: number;
     sku?: string;
     status?: string;
-    barcode?: string;
+    barcode?: string[];
   }>;
   publish: boolean;
   popular: boolean;
@@ -196,7 +196,7 @@ export interface CreateProductData {
   stock: number;
   sku?: string;
   itemCode?: string; // Alias for sku input
-  barcode?: string;
+  barcode?: string[];
   rackNumber?: string;
   hsnCode?: string;
   purchasePrice?: number;
@@ -213,7 +213,7 @@ export interface CreateProductData {
     stock?: number;
     sku?: string;
     status?: string;
-    barcode?: string;
+    barcode?: string[];
   }>;
   publish?: boolean;
   popular?: boolean;

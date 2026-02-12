@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Html5Qrcode } from "html5-qrcode";
 import {
   getProducts,
   getCategories,
@@ -12,6 +13,7 @@ import { useAuth } from "../../../context/AuthContext";
 import AdminStockBulkEdit from "./AdminStockBulkEdit";
 import AdminStockBulkImport from "./AdminStockBulkImport";
 import { getAppSettings } from "../../../services/api/admin/adminSettingsService";
+import VariationDropdown from "../../../components/VariationDropdown";
 
 interface ProductVariation {
   id: string;
@@ -41,6 +43,7 @@ interface ProductVariation {
   sizeName: string; // 11
   colorName: string; // 12
   attributeName: string; // 13
+  allVariations?: any[];
   taxCategory: string; // 14
   gst: string; // 15
   purchasePrice: number; // 16
@@ -79,6 +82,12 @@ export default function AdminStockManagement() {
   const [savingChanges, setSavingChanges] = useState(false);
   const [changedProductIds, setChangedProductIds] = useState<Set<string>>(new Set());
   const [barcodeSettings, setBarcodeSettings] = useState<any>(null);
+
+  // Scanner State
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannerKey, setScannerKey] = useState(0);
+  const lastScanRef = useRef({ code: '', time: 0 });
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
 
   const [filterCategory, setFilterCategory] = useState("All Category");
@@ -159,6 +168,67 @@ export default function AdminStockManagement() {
     filterStatus,
     location.key,
   ]);
+
+  // Handle Barcode Scan
+  const onScanSuccess = (decodedText: string) => {
+    const now = Date.now();
+    if (decodedText === lastScanRef.current.code && (now - lastScanRef.current.time < 2000)) {
+      return;
+    }
+    lastScanRef.current = { code: decodedText, time: now };
+
+    setSearchTerm(decodedText);
+    setCurrentPage(1);
+    setShowScanner(false);
+  };
+
+  useEffect(() => {
+    const startScanner = async () => {
+      if (!showScanner) return;
+      await new Promise(r => setTimeout(r, 300));
+      const element = document.getElementById('reader');
+      if (!element) return;
+
+      try {
+        if (html5QrCodeRef.current) {
+          try {
+            if (html5QrCodeRef.current.isScanning) {
+              await html5QrCodeRef.current.stop();
+            }
+            html5QrCodeRef.current.clear();
+          } catch (e) {
+            console.warn("Scanner stop error", e);
+          }
+        }
+
+        const scanner = new Html5Qrcode("reader");
+        html5QrCodeRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+          onScanSuccess,
+          () => {}
+        );
+      } catch (err) {
+        console.error("Scanner Error:", err);
+        alert("Failed to start camera. Please check permissions.");
+        setShowScanner(false);
+      }
+    };
+
+    if (showScanner) {
+      startScanner();
+    }
+
+    return () => {
+      if (html5QrCodeRef.current) {
+        const scanner = html5QrCodeRef.current;
+        if (scanner.isScanning) {
+          scanner.stop().then(() => scanner.clear()).catch(console.error);
+        }
+      }
+    };
+  }, [showScanner, scannerKey]);
 
   const handleDelete = async (productId: string) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
@@ -492,6 +562,7 @@ export default function AdminStockManagement() {
         lowStockQuantity: Number(p.lowStockQuantity) || 5,
         brand: brandName,
         publish: product.publish,
+        allVariations: product.variations || [],
       };
 
       if (product.variations && product.variations.length > 0) {
@@ -589,7 +660,11 @@ export default function AdminStockManagement() {
           product.stock === 0);
       const matchesSearch =
         (product.name || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
-        (product.seller || "").toLowerCase().includes((searchTerm || "").toLowerCase());
+        (product.seller || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+        (product.sku || "").toLowerCase().includes((searchTerm || "").toLowerCase()) ||
+        (Array.isArray(product.barcode)
+          ? product.barcode.some((b: string) => String(b).toLowerCase().includes(searchTerm.toLowerCase()))
+          : (product.barcode && String(product.barcode).toLowerCase().includes(searchTerm.toLowerCase())));
 
       return (
         matchesCategory &&
@@ -869,20 +944,35 @@ export default function AdminStockManagement() {
                     </select>
                   </div>
 
-                  <div className="relative w-full sm:w-auto">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">
-                      Search:
-                    </span>
-                    <input
-                      type="text"
-                      className="pl-14 pr-3 py-2 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-[#f187b5] w-full sm:w-48"
-                      value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      placeholder="..."
-                    />
+                  <div className="relative w-full sm:w-auto flex items-center gap-1">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">
+                        Search:
+                      </span>
+                      <input
+                        type="text"
+                        className="pl-14 pr-10 py-2 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-[#f187b5] w-full sm:w-48"
+                        value={searchTerm}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(1);
+                        }}
+                        placeholder="..."
+                      />
+                      <button
+                        onClick={() => {
+                          setScannerKey(prev => prev + 1);
+                          setShowScanner(true);
+                        }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-[#f187b5] transition-colors"
+                        title="Scan Barcode"
+                      >
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M7 12h10" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
                   </div>
               </div>
 
@@ -944,6 +1034,7 @@ export default function AdminStockManagement() {
                   <th className="p-4 whitespace-nowrap">11. Size</th>
                   <th className="p-4 whitespace-nowrap">12. Color</th>
                   <th className="p-4 whitespace-nowrap">13. Attr</th>
+                  <th className="p-4 whitespace-nowrap">Variations</th>
                   <th className="p-4 whitespace-nowrap">14. Tax Cat</th>
                   <th className="p-4 whitespace-nowrap">15. GST</th>
                   <th className="p-4 whitespace-nowrap">16. Pur. Price</th>
@@ -1019,6 +1110,13 @@ export default function AdminStockManagement() {
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.sizeName}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.colorName}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.attributeName}</td>
+                      <td className="p-4 align-middle text-sm text-neutral-600 min-w-[150px]">
+                        {product.allVariations && product.allVariations.length > 0 ? (
+                           <VariationDropdown variations={product.allVariations} />
+                        ) : (
+                           <span className="text-gray-400">-</span>
+                        )}
+                      </td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.taxCategory}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.gst}</td>
                       <td className="p-4 align-middle text-sm text-neutral-800 text-right">{product.purchasePrice}</td>
@@ -1177,6 +1275,43 @@ export default function AdminStockManagement() {
               fetchData();
            }}
         />
+      )}
+
+      {showScanner && (
+        <div className="fixed inset-0 bg-black/60 z-[100] flex flex-col items-center justify-center p-4 backdrop-blur-[2px]">
+          <div className="relative bg-white rounded-xl overflow-hidden w-full max-w-sm shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="bg-[#f187b5] p-3 text-white flex justify-between items-center">
+              <h3 className="font-bold flex items-center gap-2 text-sm">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Scan Barcode
+              </h3>
+              <button
+                onClick={() => setShowScanner(false)}
+                className="hover:bg-white/20 p-1 rounded-full transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-3 bg-gray-900 aspect-square text-white">
+               <div id="reader" className="w-full h-full overflow-hidden rounded-lg border border-gray-700"></div>
+            </div>
+
+            <div className="p-3 bg-gray-50 text-center">
+              <p className="text-[11px] text-gray-500 font-medium">Align the barcode within the frame to scan</p>
+              <button
+                onClick={() => setShowScanner(false)}
+                className="mt-3 px-6 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold text-xs transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

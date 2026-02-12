@@ -75,6 +75,16 @@ export default function SellerStockBulkImport({
     if (row['Attr'] || row['13. Attr']) {
        variations.push({ name: "Attribute", value: String(row['Attr'] || row['13. Attr']) });
     }
+    // New Generic Variations Column
+    const rawVars = row['Variations'] || row['29. Variations'];
+    if (rawVars) {
+        String(rawVars).split(';').forEach(v => {
+            const [name, val] = v.split(':').map(s => s.trim());
+            if (name && val) {
+                variations.push({ name: name, value: val });
+            }
+        });
+    }
 
     let unitPricing: { minQty: number; price: number }[] = [];
     try {
@@ -241,11 +251,11 @@ export default function SellerStockBulkImport({
         "22. Wholesale Price", "23. Low Stock", "24. Brand", "25. Val (MRP)", "26. Val (Pur)"
     ];
 
-    // Row 1: Standard Cols + "Unit Pricing Rules" (Merged) + "Image"
-    const row1 = [...stdCols, "Unit Pricing Rules", "", "Image"];
+    // Row 1: Standard Cols + "Unit Pricing Rules" (Merged) + "29. Variations" + "Image"
+    const row1 = [...stdCols, "Unit Pricing Rules", "", "29. Variations", "Image"];
 
-    // Row 2: Standard Cols (Repeated for parsing) + Sub-Headers + "Image"
-    const row2 = [...stdCols, "Price (Min Qty 2)", "Price (Min Qty 4)", "Image"];
+    // Row 2: Standard Cols (Repeated for parsing) + Sub-Headers + "29. Variations" + "Image"
+    const row2 = [...stdCols, "Price (Min Qty 2)", "Price (Min Qty 4)", "29. Variations", "Image"];
 
     const ws = XLSX.utils.aoa_to_sheet([row1, row2]);
 
@@ -256,8 +266,11 @@ export default function SellerStockBulkImport({
     for (let i = 0; i < stdCols.length; i++) {
         merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
     }
-    // Image Column (Index 28)
+    // Variations Column (Index 28)
     merges.push({ s: { r: 0, c: 28 }, e: { r: 1, c: 28 } });
+
+    // Image Column (Index 29)
+    merges.push({ s: { r: 0, c: 29 }, e: { r: 1, c: 29 } });
 
     // Horizontal Merge for Unit Pricing (Index 26-27)
     merges.push({ s: { r: 0, c: 26 }, e: { r: 0, c: 27 } });
@@ -333,6 +346,7 @@ export default function SellerStockBulkImport({
                    <span>26. Val (Pur)</span>
                    <span>27. Unit Price (Min Qty 2)</span>
                    <span>28. Unit Price (Min Qty 4)</span>
+                   <span>29. Variations</span>
                    <span>Image</span>
                 </div>
               </div>

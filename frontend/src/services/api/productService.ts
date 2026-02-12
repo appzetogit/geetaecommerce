@@ -22,7 +22,7 @@ export interface ProductVariation {
   stock: number;
   status: "Available" | "Sold out" | "In stock"; // Added In stock
   sku?: string;
-  barcode?: string;
+  barcode?: string[];
   compareAtPrice?: number;
   offerPrice?: number;
   wholesalePrice?: number;
@@ -71,7 +71,7 @@ export interface Product {
   price?: number;
   stock?: number;
   compareAtPrice?: number;
-  barcode?: string;
+  barcode?: string[];
   createdAt?: string;
   updatedAt?: string;
   // Fallback for old fields if any legacy code uses them
@@ -110,6 +110,7 @@ export interface CreateProductData {
   fssaiLicNo?: string;
   mainImageUrl?: string;
   galleryImageUrls?: string[];
+  barcode?: string[];
   variations: ProductVariation[];
   variationType?: string;
   itemCode?: string; // Alias for sku

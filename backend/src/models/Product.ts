@@ -28,7 +28,7 @@ export interface IProduct extends Document {
   compareAtPrice?: number;
   stock: number;
   sku?: string;
-  barcode?: string;
+  barcode?: string[];
   rackNumber?: string;
   hsnCode?: string;
   purchasePrice?: number;
@@ -48,7 +48,7 @@ export interface IProduct extends Document {
     stock?: number;
     sku?: string;
     status?: string;
-    barcode?: string;
+    barcode?: string[];
     tieredPrices?: { minQty: number; price: number }[];
   }>;
 
@@ -210,8 +210,8 @@ export interface IProduct extends Document {
       sparse: true,
     },
     barcode: {
-      type: String,
-      trim: true,
+      type: [String],
+      default: [],
     },
     rackNumber: {
       type: String,
@@ -256,7 +256,7 @@ export interface IProduct extends Document {
             default: "Available",
           },
           sku: String,
-          barcode: String,
+          barcode: { type: [String], default: [] },
           tieredPrices: {
              type: [{ minQty: Number, price: Number }],
              default: []

@@ -93,7 +93,7 @@ export default function AdminAddProduct() {
     isShopByStoreOnly: "No",
     shopId: "",
     pack: "",
-    barcode: "",
+    barcode: [] as string[],
     itemCode: "", // sku alias
     rackNumber: "",
     hsnCode: "",
@@ -116,7 +116,7 @@ export default function AdminAddProduct() {
     discPrice: "0",
     stock: "0",
     status: "Available" as "Available" | "Sold out",
-    barcode: "",
+    barcode: [] as string[],
     offerPrice: "",
     wholesalePrice: "",
     tieredPrices: [] as { minQty: string, price: string }[],
@@ -137,9 +137,14 @@ export default function AdminAddProduct() {
   const [uploadError, setUploadError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isScanning, setIsScanning] = useState(false);
-  const [scanTarget, setScanTarget] = useState<"product" | "variation" | "table-variation" | "sku">("product");
+  const [scanTarget, setScanTarget] = useState<"product" | "variation" | "table-variation" | "sku" | "check-exists">("product");
   const [scanTargetIndex, setScanTargetIndex] = useState<number | null>(null);
   const scannerRef = React.useRef<Html5Qrcode | null>(null);
+  const [foundProduct, setFoundProduct] = useState<any>(null);
+  const [showProductFoundModal, setShowProductFoundModal] = useState(false);
+  const [currentBarcode, setCurrentBarcode] = useState("");
+  const [currentVarBarcode, setCurrentVarBarcode] = useState("");
+  const [currentTableVarBarcode, setCurrentTableVarBarcode] = useState<Record<number, string>>({});
    // Image Search State
    const [imageSearchQuery, setImageSearchQuery] = useState("");
    const [searchedImage, setSearchedImage] = useState("");
@@ -505,7 +510,7 @@ export default function AdminAddProduct() {
               isShopByStoreOnly: product.isShopByStoreOnly ? "Yes" : "No",
               shopId: typeof product.shopId === 'object' ? product.shopId?._id : product.shopId || "",
               pack: product.pack || "",
-              barcode: product.barcode || "",
+              barcode: product.barcode || [],
               itemCode: product.sku || product.itemCode || "",
               rackNumber: (product as any).rackNumber || "",
               hsnCode: (product as any).hsnCode || "",
@@ -525,6 +530,7 @@ export default function AdminAddProduct() {
               discPrice: v.discPrice || 0,
               compareAtPrice: v.compareAtPrice || 0,
               stock: v.stock || 0,
+              barcode: v.barcode || [],
               status: (v.status as "Available" | "Sold out" | "In stock") || "Available"
             }));
             setVariations(vars);
@@ -769,7 +775,7 @@ export default function AdminAddProduct() {
       discPrice: "0",
       stock: "0",
       status: "Available",
-      barcode: "",
+      barcode: variationForm.barcode,
       offerPrice: "",
       wholesalePrice: "",
       tieredPrices: [],
@@ -894,7 +900,7 @@ export default function AdminAddProduct() {
            discPrice: 0,
            stock: 0,
            status: "Available" as const,
-           barcode: "",
+           barcode: [],
            offerPrice: undefined,
            wholesalePrice: 0,
            tieredPrices: [],
@@ -928,21 +934,53 @@ export default function AdminAddProduct() {
       setSelectedColors(prev => prev.filter(c => c.name !== name));
   };
 
-   const handleAutoGenerateBarcode = (target: "product" | "variation" | "sku" = "product") => {
+   const handleAutoGenerateBarcode = (target: "product" | "variation" | "sku" | "table-variation" = "product", index: number | null = null) => {
     // Generate 12 digit number
     const newBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
     if (target === "product") {
-        setFormData(prev => ({ ...prev, barcode: newBarcode }));
+        setFormData(prev => ({ ...prev, barcode: [...prev.barcode, newBarcode] }));
     } else if (target === "sku") {
         setFormData(prev => ({ ...prev, itemCode: newBarcode }));
-    } else {
-        setVariationForm(prev => ({ ...prev, barcode: newBarcode }));
+    } else if (target === "variation") {
+        setVariationForm(prev => ({ ...prev, barcode: [...prev.barcode, newBarcode] }));
+    } else if (index !== null) {
+        setVariations(prev => {
+            const n = [...prev];
+            n[index].barcode = [...(n[index].barcode || []), newBarcode];
+            return n;
+        });
     }
-    setSuccessMessage("Barcode Generated Successfully!");
+    setSuccessMessage("Barcode Generated!");
     setTimeout(() => setSuccessMessage(""), 2000);
   };
 
-  const startScanning = (target: "product" | "variation" | "table-variation" | "sku" = "product", index: number | null = null) => {
+  const handleCheckExists = async (barcode: string) => {
+    try {
+      setUploading(true);
+      const res = await getProducts({ search: barcode });
+      if (res.success && res.data.length > 0) {
+        // Find exact match in barcodes array or standard barcode field
+        const exactMatch = res.data.find((p: any) => {
+            const barcodes = Array.isArray(p.barcode) ? p.barcode : [p.barcode];
+            return barcodes.some((b: any) => String(b).toLowerCase() === barcode.toLowerCase());
+        }) || res.data[0];
+
+        setFoundProduct(exactMatch);
+        setShowProductFoundModal(true);
+      } else {
+        // Not found, just set the barcode and name if possible
+        setFormData(prev => ({ ...prev, barcode: [barcode] }));
+        setSuccessMessage("Product not found. You can add it now.");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const startScanning = (target: "product" | "variation" | "table-variation" | "sku" | "check-exists" = "product", index: number | null = null) => {
     setIsScanning(true);
     setScanTarget(target);
     setScanTargetIndex(index);
@@ -956,17 +994,22 @@ export default function AdminAddProduct() {
             { facingMode: "environment" },
             config,
             (decodedText) => {
+                if (target === "check-exists") {
+                    handleCheckExists(decodedText);
+                    stopScanning();
+                    return;
+                }
                 // Success callback
                 if (target === "product") {
-                    setFormData(prev => ({ ...prev, barcode: decodedText }));
+                    setFormData(prev => ({ ...prev, barcode: [...prev.barcode, decodedText] }));
                 } else if (target === "sku") {
                     setFormData(prev => ({ ...prev, itemCode: decodedText }));
                 } else if (target === "variation") {
-                    setVariationForm(prev => ({ ...prev, barcode: decodedText }));
+                    setVariationForm(prev => ({ ...prev, barcode: [...prev.barcode, decodedText] }));
                 } else if (target === "table-variation" && index !== null) {
                     setVariations(prev => {
                         const n = [...prev];
-                        n[index].barcode = decodedText;
+                        n[index].barcode = [...(n[index].barcode || []), decodedText];
                         return n;
                     });
                 }
@@ -997,9 +1040,45 @@ export default function AdminAddProduct() {
               console.error("Failed to stop scanner", err);
               setIsScanning(false);
           });
-      } else {
-          setIsScanning(false);
       }
+  };
+  const addBarcode = (target: 'product' | 'variation' | 'table-variation', index: number | null = null, value: string) => {
+    if(!value.trim()) return;
+    if(target === 'product') {
+        if(!formData.barcode.includes(value.trim())) {
+            setFormData(prev => ({ ...prev, barcode: [...prev.barcode, value.trim()] }));
+            setCurrentBarcode("");
+        }
+    } else if(target === 'variation') {
+        if(!variationForm.barcode.includes(value.trim())) {
+            setVariationForm(prev => ({ ...prev, barcode: [...prev.barcode, value.trim()] }));
+            setCurrentVarBarcode("");
+        }
+    } else if(target === 'table-variation' && index !== null) {
+        setVariations(prev => {
+            const n = [...prev];
+            const currentBarcodes = n[index].barcode || [];
+            if(!currentBarcodes.includes(value.trim())) {
+                n[index].barcode = [...currentBarcodes, value.trim()];
+            }
+            return n;
+        });
+        setCurrentTableVarBarcode(prev => ({ ...prev, [index]: "" }));
+    }
+  };
+
+  const removeBarcode = (target: 'product' | 'variation' | 'table-variation', barcode: string, index: number | null = null) => {
+    if(target === 'product') {
+        setFormData(prev => ({ ...prev, barcode: prev.barcode.filter(b => b !== barcode) }));
+    } else if(target === 'variation') {
+        setVariationForm(prev => ({ ...prev, barcode: prev.barcode.filter(b => b !== barcode) }));
+    } else if(target === 'table-variation' && index !== null) {
+        setVariations(prev => {
+            const n = [...prev];
+            n[index].barcode = (n[index].barcode || []).filter(b => b !== barcode);
+            return n;
+        });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1096,7 +1175,7 @@ export default function AdminAddProduct() {
               status: variationForm.status || "Available",
               offerPrice,
               wholesalePrice,
-              image: variationForm.image || ""
+              barcode: variationForm.barcode || []
             });
         } else {
           setUploadError("Please add at least one product variation");
@@ -1223,7 +1302,7 @@ export default function AdminAddProduct() {
               isShopByStoreOnly: "No",
               shopId: "",
               pack: "",
-              barcode: "",
+              barcode: [],
               itemCode: "",
               rackNumber: "",
               hsnCode: "",
@@ -1297,6 +1376,27 @@ const applySearchedImage = () => {
     <div className="flex flex-col h-full">
       {/* Main Content */}
       <div className="flex-1">
+
+        {/* Quick Action Search/Scan - NEW SECTION as per User Request */}
+        {!id && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div
+                  onClick={() => startScanning("check-exists")}
+                  className="bg-white p-4 rounded-xl border border-neutral-200 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-pink-50 transition-all group border-l-4 border-l-[#f187b5]">
+                  <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center text-[#f187b5] group-hover:scale-110 transition-transform">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                          <path d="M7 12h10" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+                      </svg>
+                  </div>
+                  <div>
+                      <h4 className="font-bold text-gray-800">Scan Barcode</h4>
+                      <p className="text-xs text-gray-500">Search existing product</p>
+                  </div>
+              </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Top Image & Name & Price Section (Seller Style) */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 space-y-6 mb-6">
@@ -2231,35 +2331,56 @@ const applySearchedImage = () => {
                     <div className="md:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                        <div className="flex-1">
                           <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                              Barcode
+                              Barcodes
                           </label>
-                          <div className="flex flex-col md:flex-row gap-2">
-                               <input
-                                  type="text"
-                                  value={variationForm.barcode}
-                                  onChange={(e) => setVariationForm({ ...variationForm, barcode: e.target.value })}
-                                  placeholder="Scan or Enter"
-                                  className="w-full md:w-auto md:flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
-                              />
-                              <div className="flex gap-2 shrink-0">
-                                  <button
-                                      type="button"
-                                      onClick={() => handleAutoGenerateBarcode("variation")}
-                                      className="flex-1 md:flex-none px-3 py-2 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] transition-colors flex items-center justify-center gap-2"
-                                      title="Auto Generate Barcode"
-                                      >
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                      <span className="text-xs font-bold whitespace-nowrap">Auto Generate</span>
-                                  </button>
-                                  <button
-                                      type="button"
-                                      onClick={() => startScanning("variation")}
-                                      className="flex-1 md:flex-none px-3 py-2 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] transition-colors flex items-center justify-center gap-2"
-                                      title="Scan Barcode"
-                                      >
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                                      <span className="text-xs font-bold whitespace-nowrap">Scan Code</span>
-                                  </button>
+                          <div className="space-y-2">
+                              <div className="flex flex-wrap gap-2 mb-2">
+                                  {variationForm.barcode.map(b => (
+                                      <span key={b} className="inline-flex items-center gap-1 px-2 py-1 bg-pink-100 text-[#AD1457] rounded-md text-xs font-medium">
+                                          {b}
+                                          <button type="button" onClick={() => removeBarcode('variation', b)} className="hover:text-red-500">
+                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                          </button>
+                                      </span>
+                                  ))}
+                              </div>
+                              <div className="flex flex-col md:flex-row gap-2">
+                                   <input
+                                      type="text"
+                                      value={currentVarBarcode}
+                                      onChange={(e) => setCurrentVarBarcode(e.target.value)}
+                                      onKeyDown={(e) => {
+                                          if(e.key === 'Enter') {
+                                              e.preventDefault();
+                                              addBarcode('variation', null, currentVarBarcode);
+                                          }
+                                      }}
+                                      placeholder="Scan or Enter"
+                                      className="w-full md:w-auto md:flex-1 px-3 py-2 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                                  />
+                                  <div className="flex gap-2 shrink-0">
+                                      <button
+                                          type="button"
+                                          onClick={() => addBarcode('variation', null, currentVarBarcode)}
+                                          className="px-3 py-2 bg-[#f187b5] text-white rounded-lg text-xs font-bold hover:bg-[#e076a5]"
+                                      >Add</button>
+                                      <button
+                                          type="button"
+                                          onClick={() => handleAutoGenerateBarcode("variation")}
+                                          className="flex-1 md:flex-none px-3 py-2 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] transition-colors flex items-center justify-center gap-2"
+                                          title="Auto Generate Barcode"
+                                          >
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                      </button>
+                                      <button
+                                          type="button"
+                                          onClick={() => startScanning("variation")}
+                                          className="flex-1 md:flex-none px-3 py-2 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] transition-colors flex items-center justify-center gap-2"
+                                          title="Scan Barcode"
+                                          >
+                                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                      </button>
+                                  </div>
                               </div>
                           </div>
                        </div>
@@ -2422,48 +2543,54 @@ const applySearchedImage = () => {
                                                 }}
                                             />
                                         </td>
-                                        <td className="px-4 py-2">
-                                            <div className="flex items-center gap-1 min-w-[150px]">
-                                                <input
-                                                    type="text"
-                                                    className="w-full flex-1 px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none text-sm"
-                                                    value={v.barcode}
-                                                    placeholder="SKU"
-                                                    onChange={e => {
-                                                        const val = e.target.value;
-                                                        setVariations(prev => {
-                                                            const n = [...prev];
-                                                            n[idx].barcode = val;
-                                                            return n;
-                                                        });
-                                                    }}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter") e.preventDefault();
-                                                    }}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        const newCode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
-                                                        setVariations(prev => {
-                                                            const n = [...prev];
-                                                            n[idx].barcode = newCode;
-                                                            return n;
-                                                        });
-                                                    }}
-                                                    className="p-1.5 text-neutral-400 hover:text-seller-500 hover:bg-neutral-50 rounded transition-colors"
-                                                    title="Auto Generate"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => startScanning("table-variation", idx)}
-                                                    className="p-1.5 text-[#f187b5] hover:bg-pink-50 rounded transition-colors"
-                                                    title="Scan Barcode"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                                                </button>
+                                         <td className="px-4 py-2">
+                                            <div className="flex flex-col gap-1 min-w-[180px]">
+                                                <div className="flex flex-wrap gap-1 mb-1">
+                                                    {(v.barcode || []).map(b => (
+                                                        <span key={b} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-neutral-100 text-neutral-700 rounded text-[10px] border border-neutral-200">
+                                                            {b}
+                                                            <button type="button" onClick={() => removeBarcode('table-variation', b, idx)} className="hover:text-red-500">&times;</button>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="text"
+                                                        className="w-full flex-1 px-2 py-1 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none text-xs"
+                                                        value={currentTableVarBarcode[idx] || ""}
+                                                        placeholder="Add barcode"
+                                                        onChange={e => setCurrentTableVarBarcode(prev => ({ ...prev, [idx]: e.target.value }))}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") {
+                                                                e.preventDefault();
+                                                                addBarcode('table-variation', idx, currentTableVarBarcode[idx]);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => addBarcode('table-variation', idx, currentTableVarBarcode[idx])}
+                                                        className="p-1 bgColor text-white rounded hover:bg-[#e076a5]"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleAutoGenerateBarcode("table-variation", idx)}
+                                                        className="p-1 text-neutral-400 hover:text-[#f187b5] transition-colors"
+                                                        title="Auto Generate"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startScanning("table-variation", idx)}
+                                                        className="p-1 text-[#f187b5] hover:bg-pink-50 rounded transition-colors"
+                                                        title="Scan Barcode"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-2 text-center">
@@ -2505,9 +2632,13 @@ const applySearchedImage = () => {
                         className="flex items-center justify-between p-4 bg-white hover:bg-neutral-50 transition-colors"
                       >
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 flex-1">
-                          <div>
-                             <span className="text-xs text-neutral-400 block">Barcode</span>
-                             <span className="text-neutral-700 text-sm">{variation.barcode || "-"}</span>
+                           <div>
+                             <span className="text-xs text-neutral-400 block">Barcodes</span>
+                             <div className="flex flex-wrap gap-1">
+                                {(variation.barcode || []).map(b => (
+                                    <span key={b} className="text-[10px] bg-neutral-100 px-1 rounded border border-neutral-200">{b}</span>
+                                ))}
+                             </div>
                           </div>
                           <div>
                             <span className="text-xs text-neutral-400 block">Unit Value</span>
@@ -2714,19 +2845,32 @@ const applySearchedImage = () => {
                     />
                 </div>
                 )}
-                {shouldShowField('barcode') && (
-                <div className="md:col-span-2">
+                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Barcode (EAN/UPC)
+                    Barcodes (EAN/UPC)
                   </label>
+                  <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                          {formData.barcode.map(b => (
+                              <span key={b} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#f187b5]/10 text-[#f187b5] rounded-full text-sm font-semibold border border-[#f187b5]/20">
+                                  {b}
+                                  <button type="button" onClick={() => removeBarcode('product', b)} className="hover:text-red-600 transition-colors">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                  </button>
+                              </span>
+                          ))}
+                      </div>
                       <div className="flex flex-col md:flex-row gap-2">
                         <input
                           type="text"
                           name="barcode"
-                          value={(formData as any).barcode}
-                          onChange={handleChange}
+                          value={currentBarcode}
+                          onChange={(e) => setCurrentBarcode(e.target.value)}
                           onKeyDown={(e) => {
-                             if (e.key === "Enter") e.preventDefault();
+                             if (e.key === "Enter") {
+                                 e.preventDefault();
+                                 addBarcode('product', null, currentBarcode);
+                             }
                           }}
                           placeholder="Scan or enter barcode manually"
                           className="w-full md:w-auto md:flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
@@ -2734,12 +2878,16 @@ const applySearchedImage = () => {
                         <div className="flex gap-2 shrink-0">
                             <button
                                 type="button"
+                                onClick={() => addBarcode('product', null, currentBarcode)}
+                                className="px-6 py-2 bg-[#f187b5] text-white rounded-lg font-bold hover:bg-[#e076a5]"
+                            >Add</button>
+                            <button
+                                type="button"
                                 onClick={() => handleAutoGenerateBarcode("product")}
                                 className="flex-1 md:flex-none px-4 py-2 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] flex items-center justify-center gap-2 font-medium transition-colors"
                                 title="Auto Generate Barcode"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                                Auto Generate
                             </button>
                             <button
                                 type="button"
@@ -2747,12 +2895,11 @@ const applySearchedImage = () => {
                                 className="flex-1 md:flex-none px-4 py-2 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] flex items-center justify-center gap-2 font-medium transition-colors"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                                Scan Code
                             </button>
                         </div>
                       </div>
+                  </div>
                 </div>
-                )}
 
                 {/* Print Barcode Section */}
                 <div className="md:col-span-2 border-t border-neutral-100 pt-4 mt-2">
@@ -2775,47 +2922,43 @@ const applySearchedImage = () => {
 
                        <div>
                          <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">Select Barcode</label>
-                         <select
-                           className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
-                           value={selectedPrintBarcode}
-                             onChange={(e) => {
-                             const selectedVal = e.target.value;
-                             setSelectedPrintBarcode(selectedVal);
+                          <select
+                            className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                            value={selectedPrintBarcode}
+                              onChange={(e) => {
+                              const selectedVal = e.target.value;
+                              setSelectedPrintBarcode(selectedVal);
 
-                             if(selectedVal) {
-                                let name = formData.productName;
-                                let sp: number | undefined;
-                                let mrp: number | undefined;
+                              if(selectedVal) {
+                                 let name = formData.productName;
+                                 let sp: number | undefined;
+                                 let mrp: number | undefined;
 
-                                // Check if variation
-                                const variation = variations.find(v => v.barcode === selectedVal);
-                                if (variation) {
-                                    name = `${formData.productName} - ${variation.title}`;
-                                    // Logic: Price is MRP, DiscPrice is SP (if exists)
-                                    mrp = variation.price;
-                                    sp = variation.discPrice > 0 ? variation.discPrice : variation.price;
-                                } else if (selectedVal === (formData as any).barcode) {
-                                    // Main product - try to get price from first variation if possible
-                                    if (variations.length > 0) {
-                                        mrp = variations[0].price;
-                                        sp = variations[0].discPrice > 0 ? variations[0].discPrice : variations[0].price;
-                                    } else {
-                                        // Fallback logic could be added here if main fields existed
-                                    }
-                                }
+                                 // Check if variation
+                                 const variation = variations.find(v => (v.barcode || []).includes(selectedVal));
+                                 if (variation) {
+                                     name = `${formData.productName} - ${variation.title}`;
+                                     mrp = variation.price;
+                                     sp = variation.discPrice > 0 ? variation.discPrice : variation.price;
+                                 } else if (formData.barcode.includes(selectedVal)) {
+                                     if (variations.length > 0) {
+                                         mrp = variations[0].price;
+                                         sp = variations[0].discPrice > 0 ? variations[0].discPrice : variations[0].price;
+                                     }
+                                 }
 
-                                handlePrintBarcode(selectedVal, parseInt(printQuantity) || 1, name, sp, mrp);
-                             }
-                           }}
-                         >
-                           <option value="">-- Select to Print --</option>
-                           {(formData as any).barcode && (
-                               <option value={(formData as any).barcode}>{(formData as any).barcode} (Main Product)</option>
-                           )}
-                           {variations.map((v, idx) => v.barcode ? (
-                               <option key={idx} value={v.barcode}>{v.barcode} ({v.title})</option>
-                           ) : null)}
-                         </select>
+                                 handlePrintBarcode(selectedVal, parseInt(printQuantity) || 1, name, sp, mrp);
+                              }
+                            }}
+                          >
+                            <option value="">-- Select to Print --</option>
+                            {formData.barcode.map(b => (
+                                <option key={b} value={b}>{b} (Main Product)</option>
+                            ))}
+                            {variations.map((v, idx) => (v.barcode || []).map(b => (
+                                <option key={`${idx}-${b}`} value={b}>{b} ({v.title})</option>
+                            )))}
+                          </select>
                        </div>
                      </div>
                      <p className="text-xs text-neutral-500 mt-2">
@@ -3113,6 +3256,75 @@ const applySearchedImage = () => {
                                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                                 </div>
                                 <span className="font-semibold text-sm text-gray-600 group-hover:text-[#f187b5]">Camera</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Product Found Modal - NEW SECTION as per User Request */}
+        {showProductFoundModal && foundProduct && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-300">
+                <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden transform transition-all animate-in zoom-in-95 duration-300">
+                    <div className="p-8 flex flex-col items-center text-center">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-6">
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">Product Found!</h3>
+                        <p className="text-sm text-gray-500 mb-8 px-4">Is this the product you're looking for?</p>
+
+                        <div className="w-full bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-100 relative group">
+                            <div className="w-32 h-32 mx-auto mb-4 bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                                <img
+                                    src={foundProduct.mainImage || foundProduct.mainImageUrl || "https://placehold.co/200x200?text=No+Image"}
+                                    alt={foundProduct.productName}
+                                    className="w-full h-full object-contain p-2"
+                                />
+                            </div>
+                            <h4 className="font-bold text-gray-800 text-base line-clamp-2 uppercase tracking-tight mb-2">
+                                {foundProduct.productName}
+                            </h4>
+                            <div className="inline-block bg-green-500 text-white px-6 py-1.5 rounded-lg font-bold text-lg shadow-sm">
+                                ₹{foundProduct.price}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-4 w-full">
+                            <button
+                                onClick={() => setShowProductFoundModal(false)}
+                                className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" /></svg>
+                                No
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setFormData({
+                                        ...formData,
+                                        productName: foundProduct.productName,
+                                        price: foundProduct.price?.toString() || "",
+                                        compareAtPrice: foundProduct.compareAtPrice?.toString() || "",
+                                        stock: foundProduct.stock?.toString() || "0",
+                                        mainImageUrl: foundProduct.mainImage || foundProduct.mainImageUrl || "",
+                                        barcode: Array.isArray(foundProduct.barcode) ? foundProduct.barcode : [foundProduct.barcode || ""],
+                                        discPrice: foundProduct.discPrice?.toString() || "0",
+                                        itemCode: foundProduct.sku || foundProduct.itemCode || "",
+                                    });
+                                    if (foundProduct.mainImage || foundProduct.mainImageUrl) {
+                                        setMainImagePreview(foundProduct.mainImage || foundProduct.mainImageUrl || "");
+                                    }
+                                    setShowProductFoundModal(false);
+                                    setSuccessMessage("Product details loaded!");
+                                    setTimeout(() => setSuccessMessage(""), 2000);
+                                }}
+                                className="flex-1 py-4 bg-green-500 hover:bg-green-600 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-200 transition-all active:scale-[0.97]"
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" /></svg>
+                                Yes
                             </button>
                         </div>
                     </div>

@@ -9,6 +9,10 @@ import {
   SubCategory,
   Brand,
 } from "../../../services/api/admin/adminProductService";
+import { getAttributes } from "../../../services/api/admin/attributeService";
+import AttributeDropdown from "../../../components/AttributeDropdown";
+import VariationEditor from "../../../components/VariationEditor";
+import VariationDropdown from "../../../components/VariationDropdown";
 
 interface AdminStockBulkEditProps {
   products: Product[];
@@ -107,6 +111,8 @@ interface EditableProduct {
   tax: string;
   offerPrice: number;
   unitPricing: { minQty: number; price: number }[]; // Add this
+  attributes: string[];
+  variations: any[];
 }
 
 export default function AdminStockBulkEdit({
@@ -123,16 +129,20 @@ export default function AdminStockBulkEdit({
 
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [availableAttributes, setAvailableAttributes] = useState<{_id: string, name: string}[]>([]);
+  const [activeVariationModalIndex, setActiveVariationModalIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
         try {
-            const [subRes, brandRes] = await Promise.all([
+            const [subRes, brandRes, attrRes] = await Promise.all([
                 getSubCategories({ limit: 1000 } as any),
-                getBrands()
+                getBrands(),
+                getAttributes()
             ]);
             if(subRes.success && subRes.data) setSubCategories(subRes.data);
             if(brandRes.success && brandRes.data) setBrands(brandRes.data);
+            if(attrRes) setAvailableAttributes((attrRes as any).data || attrRes);
         } catch (e) {
             console.error("Failed to load metadata for bulk edit", e);
         }
@@ -209,6 +219,8 @@ export default function AdminStockBulkEdit({
         unitPricing: p.unitPricing && p.unitPricing.length > 0 ? p.unitPricing : [{ minQty: 1, price: 0 }], // Initialize
         images: images,
         isChanged: false,
+        attributes: [],
+        variations: p.variations || [],
       };
     });
     setEditableProducts(initialized);
@@ -322,11 +334,11 @@ export default function AdminStockBulkEdit({
           ...(p.subCategoryId ? { subcategory: p.subCategoryId } : {}),
           ...(p.subSubCategory ? { subSubCategory: p.subSubCategory } : {}),
           ...(p.brandId ? { brand: p.brandId } : {}),
-          // Propagate offer price to all variations to ensure consistency
-          variations: p.original.variations?.map((v: any) => ({
+          ...(p.brandId ? { brand: p.brandId } : {}),
+           variations: p.variations.map((v: any) => ({
              ...v,
-             discPrice: p.offerPrice
-          })) || [],
+             discPrice: v.offerPrice || v.discPrice || p.offerPrice
+           })),
           unitPricing: p.unitPricing, // Include unitPricing in payload
         } as any);
       });
@@ -365,6 +377,7 @@ export default function AdminStockBulkEdit({
   const [activeMenuColumn, setActiveMenuColumn] = useState<string | null>(null);
   const [columnOrder, setColumnOrder] = useState<string[]>([
     "index", "image", "productName", "category", "subCategory", "subSubCategory",
+    "attributes", "variations",
     "sku", "rackNumber", "description", "barcode", "hsnCode", "pack",
     "size", "color", "attr", "tax", "gst", "purchasePrice", "compareAtPrice",
     "price", "deliveryTime", "stock", "offerPrice", "wholesalePrice",
@@ -402,6 +415,8 @@ export default function AdminStockBulkEdit({
     valMrp: "25. Val (MRP)",
     valPur: "26. Val (Pur)",
     unitPrice: "27. Unit Pricing Rules", // Rename
+    attributes: "Attributes",
+    variations: "Variations",
     status: "Status"
   };
 
@@ -555,6 +570,8 @@ export default function AdminStockBulkEdit({
     valMrp: 100,
     valPur: 100,
     unitPrice: 100,
+    attributes: 150,
+    variations: 120,
     status: 100,
   });
 
@@ -628,6 +645,25 @@ export default function AdminStockBulkEdit({
               {categories.map((cat) => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
             </select>
           </td>
+        );
+      case "attributes":
+        return (
+            <td key={key} className="p-0 border-r border-neutral-200 bg-white">
+                <AttributeDropdown
+                    options={availableAttributes}
+                    selectedAttributes={product.attributes || []}
+                    onChange={(newAttrs) => handleFieldChange(originalIndex, 'attributes', newAttrs)}
+                />
+            </td>
+        );
+      case "variations":
+        return (
+            <td key={key} className="p-0 border-r border-neutral-200 bg-white">
+                <VariationDropdown
+                    variations={product.variations || []}
+                    onEdit={() => setActiveVariationModalIndex(originalIndex)}
+                />
+            </td>
         );
       case "subCategory":
         return (
@@ -853,6 +889,17 @@ export default function AdminStockBulkEdit({
               slabs={editableProducts[activePricingModalIndex].unitPricing || []}
               onClose={() => setActivePricingModalIndex(null)}
               onSave={(newSlabs) => handleFieldChange(activePricingModalIndex, 'unitPricing', newSlabs)}
+          />
+      )}
+      {/* Variation Editor Modal */}
+      {activeVariationModalIndex !== null && (
+          <VariationEditor
+            productName={editableProducts[activeVariationModalIndex].productName}
+            isOpen={true}
+            onClose={() => setActiveVariationModalIndex(null)}
+            variations={editableProducts[activeVariationModalIndex].variations || []}
+            selectedAttributes={editableProducts[activeVariationModalIndex].attributes || []}
+            onSave={(newVariations) => handleFieldChange(activeVariationModalIndex, 'variations', newVariations)}
           />
       )}
     </div>
