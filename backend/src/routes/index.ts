@@ -140,6 +140,10 @@ router.use("/sellers", sellerRoutes);
 // Admin routes (protected, admin only)
 router.use("/admin", adminRoutes);
 
+// Admin Variation Type Routes
+import adminVariationTypeRoutes from "./adminVariationTypeRoutes";
+router.use("/admin/variation-types", adminVariationTypeRoutes);
+
 // Upload routes (protected)
 router.use("/upload", uploadRoutes);
 
@@ -172,6 +176,10 @@ router.use("/seller/orders", sellerOrderRoutes);
 // Seller Attribute Routes
 import sellerAttributeRoutes from "./sellerAttributeRoutes";
 router.use("/seller/attributes", sellerAttributeRoutes);
+
+// Seller Variation Type Routes
+import sellerVariationTypeRoutes from "./sellerVariationTypeRoutes";
+router.use("/seller/variation-types", sellerVariationTypeRoutes);
 
 // Seller Inventory Routes
 import sellerInventoryRoutes from "./sellerInventoryRoutes";

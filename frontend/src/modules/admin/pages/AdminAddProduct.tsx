@@ -16,8 +16,10 @@ import {
   updateProductOrder,
   uploadImage as uploadImageLegacy,
   Product,
+  getProducts as fetchProducts,
 } from "../../../services/api/admin/adminProductService";
 import { getAttributes } from "../../../services/api/admin/attributeService";
+import { getVariationTypes } from "../../../services/api/admin/adminVariationTypeService";
 import { ProductVariation, Shop, searchProductImage } from "../../../services/api/productService";
 import {
   getCategories,
@@ -44,6 +46,7 @@ import UnitSelectionModal from "../../../components/UnitSelectionModal";
 export default function AdminAddProduct() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [isProductLoaded, setIsProductLoaded] = useState(false);
 
   // Dynamic Product Settings
   const [productDisplaySettings, setProductDisplaySettings] = useState<any[]>([]);
@@ -81,6 +84,7 @@ export default function AdminAddProduct() {
     seoImageAlt: "",
     seoDescription: "",
     variationType: "",
+    variationName: "",
     manufacturer: "",
     madeIn: "",
     tax: "",
@@ -150,6 +154,9 @@ export default function AdminAddProduct() {
    const [searchedImage, setSearchedImage] = useState("");
    const [isSearchingImage, setIsSearchingImage] = useState(false);
    const [showImageSourceModal, setShowImageSourceModal] = useState(false);
+   const [productSearchQuery, setProductSearchQuery] = useState("");
+   const [productSuggestions, setProductSuggestions] = useState<any[]>([]);
+   const [isSearchingProducts, setIsSearchingProducts] = useState(false);
    const mainImageInputRef = React.useRef<HTMLInputElement>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -178,6 +185,7 @@ export default function AdminAddProduct() {
   const [currentUnitInput, setCurrentUnitInput] = useState("");
   const [attrInputValues, setAttrInputValues] = useState<Record<string, string>>({});
   const [currentAttrValueInput, setCurrentAttrValueInput] = useState(""); // Deprecated/Backup
+  const [availableVariationTypes, setAvailableVariationTypes] = useState<any[]>([]);
 
   // Color specific state
   const [enableColors, setEnableColors] = useState(false);
@@ -196,6 +204,13 @@ export default function AdminAddProduct() {
         }).catch(err => console.error(err));
     }
   }, [enableAttributes]);
+
+  useEffect(() => {
+    // Fetch admin variation types on component mount
+    getVariationTypes().then(res => {
+        if(res.success) setAvailableVariationTypes(res.data);
+    }).catch(err => console.error(err));
+  }, []);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -497,6 +512,7 @@ export default function AdminAddProduct() {
               seoImageAlt: product.seoImageAlt || "",
               seoDescription: product.seoDescription || "",
               variationType: product.variationType || "",
+              variationName: product.variationName || "",
               manufacturer: product.manufacturer || "",
               madeIn: product.madeIn || "",
               tax: (product.tax as any)?._id || (product as any).taxId || (product as any).tax || "",
@@ -937,11 +953,11 @@ export default function AdminAddProduct() {
    const handleAutoGenerateBarcode = (target: "product" | "variation" | "sku" | "table-variation" = "product", index: number | null = null) => {
     // Generate 12 digit number
     const newBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
-    if (target === "product") {
-        setFormData(prev => ({ ...prev, barcode: [...prev.barcode, newBarcode] }));
-    } else if (target === "sku") {
-        setFormData(prev => ({ ...prev, itemCode: newBarcode }));
-    } else if (target === "variation") {
+     if (target === "product") {
+         setFormData(prev => ({ ...prev, barcode: [...prev.barcode, newBarcode] }));
+     } else if (target === "sku") {
+         addBarcode('product', null, newBarcode);
+     } else if (target === "variation") {
         setVariationForm(prev => ({ ...prev, barcode: [...prev.barcode, newBarcode] }));
     } else if (index !== null) {
         setVariations(prev => {
@@ -957,7 +973,7 @@ export default function AdminAddProduct() {
   const handleCheckExists = async (barcode: string) => {
     try {
       setUploading(true);
-      const res = await getProducts({ search: barcode });
+      const res = await fetchProducts({ search: barcode });
       if (res.success && res.data.length > 0) {
         // Find exact match in barcodes array or standard barcode field
         const exactMatch = res.data.find((p: any) => {
@@ -1000,11 +1016,11 @@ export default function AdminAddProduct() {
                     return;
                 }
                 // Success callback
-                if (target === "product") {
-                    setFormData(prev => ({ ...prev, barcode: [...prev.barcode, decodedText] }));
-                } else if (target === "sku") {
-                    setFormData(prev => ({ ...prev, itemCode: decodedText }));
-                } else if (target === "variation") {
+                 if (target === "product") {
+                     setFormData(prev => ({ ...prev, barcode: [...prev.barcode, decodedText] }));
+                 } else if (target === "sku") {
+                     addBarcode('product', null, decodedText);
+                 } else if (target === "variation") {
                     setVariationForm(prev => ({ ...prev, barcode: [...prev.barcode, decodedText] }));
                 } else if (target === "table-variation" && index !== null) {
                     setVariations(prev => {
@@ -1248,10 +1264,10 @@ export default function AdminAddProduct() {
         isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",
         shopId: formData.shopId || undefined,
         pack: (formData as any).pack || undefined,
-        barcode: (formData as any).barcode || undefined,
-        itemCode: (formData as any).itemCode || undefined, // maps to sku in backend
-        sku: (formData as any).itemCode || undefined,
-        rackNumber: (formData as any).rackNumber || undefined,
+         barcode: (formData as any).barcode || undefined,
+         itemCode: (formData as any).itemCode || (formData as any).barcode?.[0] || undefined, // maps to sku in backend
+         sku: (formData as any).itemCode || (formData as any).barcode?.[0] || undefined,
+         rackNumber: (formData as any).rackNumber || undefined,
         hsnCode: (formData as any).hsnCode || undefined,
         purchasePrice: (formData as any).purchasePrice ? parseFloat((formData as any).purchasePrice) : undefined,
         lowStockQuantity: (formData as any).lowStockQuantity ? parseInt((formData as any).lowStockQuantity) : undefined,
@@ -1372,6 +1388,101 @@ const applySearchedImage = () => {
     }
   };
 
+  const handleProductSearch = async (query: string) => {
+    setProductSearchQuery(query);
+    if (!query.trim() || query.length < 2) {
+      setProductSuggestions([]);
+      return;
+    }
+
+    setIsSearchingProducts(true);
+    try {
+      const res = await fetchProducts({ search: query, limit: 10 });
+      if (res.success) {
+        setProductSuggestions(res.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSearchingProducts(false);
+    }
+  };
+
+  const selectProductFromSearch = (product: any) => {
+    setFormData({
+      ...formData,
+      productName: product.productName,
+      price: product.price?.toString() || "",
+      compareAtPrice: product.compareAtPrice?.toString() || "",
+      stock: product.stock?.toString() || "0",
+      mainImageUrl: product.mainImage || product.mainImageUrl || "",
+      barcode: Array.isArray(product.barcode) ? product.barcode : [product.barcode || ""],
+      discPrice: product.discPrice?.toString() || "0",
+      itemCode: product.sku || product.itemCode || "",
+      variationName: product.variationName || "",
+    });
+    if (product.mainImage || product.mainImageUrl) {
+      setMainImagePreview(product.mainImage || product.mainImageUrl || "");
+    }
+    setProductSuggestions([]);
+    setProductSearchQuery("");
+    setIsProductLoaded(true);
+    setSuccessMessage("Product details loaded!");
+    setTimeout(() => setSuccessMessage(""), 2000);
+  };
+
+  const handleClearProduct = () => {
+    setFormData({
+      productName: "",
+      headerCategory: "",
+      category: "",
+      subcategory: "",
+      subSubCategory: "",
+      publish: "Yes",
+      popular: "No",
+      dealOfDay: "No",
+      brand: "",
+      tags: "",
+      smallDescription: "",
+      seoTitle: "",
+      seoKeywords: "",
+      seoImageAlt: "",
+      seoDescription: "",
+      variationType: "",
+      variationName: "",
+      manufacturer: "",
+      madeIn: "",
+      tax: "",
+      isReturnable: "No",
+      maxReturnDays: "",
+      fssaiLicNo: "",
+      totalAllowedQuantity: "10",
+      mainImageUrl: "",
+      galleryImageUrls: [],
+      isShopByStoreOnly: "No",
+      shopId: "",
+      pack: "",
+      barcode: [],
+      itemCode: "",
+      rackNumber: "",
+      hsnCode: "",
+      purchasePrice: "",
+      lowStockQuantity: "5",
+      deliveryTime: "",
+      price: "",
+      compareAtPrice: "",
+      discPrice: "0",
+      stock: "0",
+      offerPrice: "",
+      wholesalePrice: "",
+    });
+    setMainImagePreview("");
+    setMainImageFile(null);
+    setIsProductLoaded(false);
+    setSuccessMessage("Form cleared!");
+    setTimeout(() => setSuccessMessage(""), 2000);
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Main Content */}
@@ -1389,10 +1500,72 @@ const applySearchedImage = () => {
                           <path d="M7 12h10" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
                       </svg>
                   </div>
-                  <div>
+              <div>
                       <h4 className="font-bold text-gray-800">Scan Barcode</h4>
                       <p className="text-xs text-gray-500">Search existing product</p>
                   </div>
+              </div>
+
+              {/* Product Search Bar */}
+              <div className="bg-white p-4 rounded-xl border border-neutral-200 shadow-sm flex flex-col justify-center relative col-span-1 sm:col-span-2 lg:col-span-3">
+                  <div className="relative w-full">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                      </div>
+                      <input
+                          type="text"
+                          className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#f187b5]/50 focus:border-[#f187b5] outline-none text-sm transition-all"
+                          placeholder="Search product by name to auto-fill..."
+                          value={productSearchQuery}
+                          onChange={(e) => handleProductSearch(e.target.value)}
+                      />
+                      {isSearchingProducts && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <div className="w-4 h-4 border-2 border-[#f187b5] border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                      )}
+                      {!isSearchingProducts && isProductLoaded && (
+                          <button
+                              onClick={handleClearProduct}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 p-1"
+                              title="Clear selection"
+                          >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                          </button>
+                      )}
+                  </div>
+
+                  {/* Suggestions Dropdown */}
+                  {productSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl z-[70] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                          {productSuggestions.map((product) => (
+                              <div
+                                  key={product._id}
+                                  onClick={() => selectProductFromSearch(product)}
+                                  className="flex items-center gap-3 p-3 hover:bg-pink-50 cursor-pointer transition-colors border-b border-gray-50 last:border-0"
+                              >
+                                  <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-gray-100">
+                                      <img
+                                          src={product.mainImage || product.mainImageUrl || "https://placehold.co/100x100?text=??"}
+                                          className="w-full h-full object-contain"
+                                          alt=""
+                                      />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-bold text-gray-800 truncate uppercase">{product.productName}</p>
+                                      <div className="flex items-center gap-2">
+                                          <span className="text-xs text-pink-600 font-bold">₹{product.price}</span>
+                                          {product.sku && <span className="text-[10px] text-gray-400">SKU: {product.sku}</span>}
+                                      </div>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                  )}
               </div>
           </div>
         )}
@@ -1624,44 +1797,83 @@ const applySearchedImage = () => {
                 </div>
                 )}
 
-                 {shouldShowField('item_code') && (
-                 <div className="md:col-span-1">
-                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                     Item Code (SKU)
-                    </label>
-                    <div className="flex flex-col md:flex-row gap-2">
-                        <input
-                          type="text"
-                          name="itemCode"
-                          value={formData.itemCode}
-                          onChange={handleChange}
-                          onKeyDown={(e) => {
-                             if (e.key === "Enter") e.preventDefault();
-                          }}
-                          placeholder="Enter Item Code / SKU"
-                          className="w-full md:w-auto md:flex-1 px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
-                        />
-                        <div className="flex gap-1 shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => handleAutoGenerateBarcode("sku")}
-                                className="p-2.5 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] transition-colors"
-                                title="Auto Generate SKU"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => startScanning("sku")}
-                                className="p-2.5 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] transition-colors"
-                                title="Scan SKU"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-                 </div>
-                 )}
+                  {shouldShowField('item_code') && (
+                  <div className="md:col-span-1 border-b border-neutral-100 pb-4 mb-2">
+                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                      Item Code (SKU) & Multiple Barcodes
+                     </label>
+                     <div className="space-y-3">
+                         {/* Barcode Fragments/Chips */}
+                         <div className="flex flex-wrap gap-2">
+                             {formData.barcode && formData.barcode.length > 0 ? (
+                                 formData.barcode.map(b => (
+                                     <span key={b} className="inline-flex items-center gap-1 px-3 py-1 bg-pink-100 text-[#AD1457] border border-pink-200 rounded-md text-xs font-semibold shadow-sm">
+                                         {b}
+                                         <button type="button" onClick={() => removeBarcode('product', b)} className="hover:text-red-500 transition-colors ml-1">
+                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                         </button>
+                                     </span>
+                                 ))
+                             ) : (
+                                 <span className="text-xs text-gray-400 italic">No barcodes added yet</span>
+                             )}
+                         </div>
+
+                         {/* Input Row */}
+                         <div className="flex flex-col md:flex-row gap-2">
+                             <div className="flex-1 relative">
+                                <input
+                                  type="text"
+                                  name="itemCode" // Keep itemCode as temporary input but encourage adding to multiple list
+                                  value={formData.itemCode}
+                                  onChange={handleChange}
+                                  onKeyDown={(e) => {
+                                     if (e.key === "Enter") {
+                                         e.preventDefault();
+                                         if(formData.itemCode.trim()) {
+                                             addBarcode('product', null, formData.itemCode);
+                                             setFormData(prev => ({ ...prev, itemCode: "" }));
+                                         }
+                                     }
+                                  }}
+                                  placeholder="Enter Barcode / SKU"
+                                  className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                />
+                             </div>
+                             <div className="flex gap-2 shrink-0">
+                                 <button
+                                     type="button"
+                                     onClick={() => {
+                                         if(formData.itemCode.trim()) {
+                                             addBarcode('product', null, formData.itemCode);
+                                             setFormData(prev => ({ ...prev, itemCode: "" }));
+                                         }
+                                     }}
+                                      className="px-4 py-2.5 bg-[#f187b5] text-white rounded-lg text-sm font-bold hover:bg-[#e076a5] transition-colors shadow-sm"
+                                 >
+                                     Add
+                                 </button>
+                                 <button
+                                     type="button"
+                                     onClick={() => handleAutoGenerateBarcode("sku")}
+                                     className="p-2.5 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] transition-colors"
+                                     title="Auto Generate"
+                                 >
+                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                 </button>
+                                 <button
+                                     type="button"
+                                     onClick={() => startScanning("sku")}
+                                     className="p-2.5 bg-pink-50 border border-pink-200 rounded-lg hover:bg-pink-100 text-[#f187b5] transition-colors"
+                                     title="Scan"
+                                 >
+                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                 </button>
+                             </div>
+                         </div>
+                     </div>
+                  </div>
+                  )}
                 {shouldShowField('rack_number') && (
                 <div className="md:col-span-1">
                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
@@ -1924,13 +2136,95 @@ const applySearchedImage = () => {
                 </label>
                 <div className="max-w-xs">
                   <ThemedDropdown
-                    options={['Size', 'Weight', 'Color', 'Pack', 'Material']}
+                    options={availableVariationTypes.map(vt => ({ id: vt._id || vt.id, label: vt.name, value: vt.name }))}
                     value={formData.variationType}
-                    onChange={(val) => setFormData(prev => ({ ...prev, variationType: val }))}
+                    onChange={(val) => {
+                      setFormData(prev => ({ ...prev, variationType: val }));
+                      setEnableColors(val.toLowerCase() === 'color');
+                    }}
                     placeholder="Select Variation Type"
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  Variation Name <span className="text-xs text-neutral-500 font-normal ml-1">(e.g. Scent Name, Material)</span>
+                </label>
+                <div className="max-w-xs">
+                  <input
+                    type="text"
+                    name="variationName"
+                    value={formData.variationName}
+                    onChange={handleChange}
+                    placeholder="Enter Variation Name"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                  />
+                </div>
+              </div>
+
+              {formData.variationType.toLowerCase() === 'color' && (
+                  <div className="bg-white p-4 rounded-lg border border-neutral-200 shadow-sm mb-4">
+                     <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                        Select Colors
+                     </label>
+                     <div className="flex flex-col sm:flex-row gap-2 mb-3 max-w-lg items-center">
+                         <input
+                             type="color"
+                             className="w-10 h-10 p-1 border border-neutral-300 rounded cursor-pointer shrink-0"
+                             value={colorInput.code}
+                             onChange={(e) => setColorInput(prev => ({...prev, code: e.target.value}))}
+                         />
+                         <input
+                             type="text"
+                             placeholder="Color Name (e.g. Red, Forest Green)"
+                             className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#f187b5]"
+                             value={colorInput.name}
+                             onChange={(e) => {
+                                 const name = e.target.value;
+                                 setColorInput(prev => ({...prev, name}));
+
+                                 // Try to auto-detect color code from name
+                                 if (name.length > 2) {
+                                     const s = new Option().style;
+                                     s.color = name;
+                                     if (s.color !== '') {
+                                         const tempEl = document.createElement("div");
+                                         tempEl.style.color = name;
+                                         document.body.appendChild(tempEl);
+                                         const computedColor = window.getComputedStyle(tempEl).color;
+                                         document.body.removeChild(tempEl);
+
+                                         const rgbMatch = computedColor.match(/\d+/g);
+                                         if (rgbMatch && rgbMatch.length >= 3) {
+                                             const hex = "#" + rgbMatch.slice(0, 3).map(x => {
+                                                 const h = parseInt(x).toString(16);
+                                                 return h.length === 1 ? "0" + h : h;
+                                             }).join("");
+                                             setColorInput(prev => ({...prev, code: hex}));
+                                         }
+                                     }
+                                 }
+                             }}
+                         />
+                          <button
+                             type="button"
+                             onClick={handleAddColor}
+                              className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded hover:bg-[#f187b5]/20 text-sm font-medium"
+                          >Add</button>
+                     </div>
+                     <div className="flex flex-wrap gap-2">
+                         {selectedColors.length === 0 && <span className="text-xs text-gray-400 italic">No colors added yet</span>}
+                         {selectedColors.map(color => (
+                             <span key={color.name} className="px-3 py-1 bg-neutral-100 text-neutral-800 border border-neutral-200 rounded-full text-xs font-medium flex items-center gap-2">
+                                 <span className="w-3 h-3 rounded-full border border-gray-300 shadow-sm" style={{ backgroundColor: color.code }}></span>
+                                 {color.name}
+                                 <button type="button" onClick={() => handleRemoveColor(color.name)} className="text-neutral-400 hover:text-red-500 font-bold focus:outline-none">&times;</button>
+                             </span>
+                         ))}
+                     </div>
+                  </div>
+              )}
 
               {enableAttributes ? (
                   /* Attribute Selection UI */
@@ -2053,7 +2347,7 @@ const applySearchedImage = () => {
                        {selectedAttributes.map((attr) => (
                            <div key={attr.id} className="bg-white p-4 rounded-lg border border-neutral-200 shadow-sm relative">
                                <button type="button" onClick={() => handleRemoveAttribute(attr.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-lg leading-none">&times;</button>
-                               <h4 className="font-semibold text-[#AD1457] mb-2">{attr.name} Values</h4>
+                               <h4 className="font-semibold text-[#f187b5] mb-2">{attr.name} Values</h4>
                                <div className="flex flex-col sm:flex-row gap-2 mb-3 max-w-lg">
                                    <input
                                        type="text"
@@ -2075,13 +2369,13 @@ const applySearchedImage = () => {
                                            handleAddAttributeValue(attr.id, attrInputValues[attr.id] || "");
                                            setAttrInputValues(prev => ({...prev, [attr.id]: ""}));
                                        }}
-                                         className="px-4 py-2 bg-pink-50 text-[#f187b5] border border-pink-200 rounded hover:bg-pink-100 text-sm font-medium"
+                                         className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded hover:bg-[#f187b5]/20 text-sm font-medium"
                                     >Add</button>
                                </div>
                                <div className="flex flex-wrap gap-2">
                                    {attr.values.length === 0 && <span className="text-xs text-gray-400 italic">No values added yet</span>}
                                    {attr.values.map(val => (
-                                       <span key={val} className="px-3 py-1 bg-pink-50 text-[#AD1457] border border-pink-200 rounded-full text-xs font-medium flex items-center gap-2">
+                                       <span key={val} className="px-3 py-1 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded-full text-xs font-medium flex items-center gap-2">
                                            {val}
                                            <button type="button" onClick={() => handleRemoveAttributeValue(attr.id, val)} className="text-[#f187b5]/60 hover:text-red-500 font-bold focus:outline-none">&times;</button>
                                        </span>
@@ -2092,7 +2386,7 @@ const applySearchedImage = () => {
 
                        {/* Unit Values */}
                        <div className="bg-white p-4 rounded-lg border border-neutral-200 shadow-sm">
-                           <h4 className="font-semibold text-[#AD1457] mb-2">Unit Values (Optional)</h4>
+                           <h4 className="font-semibold text-[#f187b5] mb-2">Unit Values (Optional)</h4>
                            <div className="flex flex-col sm:flex-row gap-2 mb-3 max-w-lg">
                                <input
                                    type="text"
@@ -2110,17 +2404,18 @@ const applySearchedImage = () => {
                                <button
                                    type="button"
                                    onClick={handleAddUnit}
-                                   className="px-4 py-2 bg-pink-50 text-[#f187b5] border border-pink-200 rounded hover:bg-pink-100 text-sm font-medium"
+                                   className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded hover:bg-[#f187b5]/20 text-sm font-medium"
                                >Add</button>
                            </div>
                            <div className="flex flex-wrap gap-2">
                                {variationUnits.length === 0 && <span className="text-xs text-gray-400 italic">No units added (Will generate single variation per attribute combo)</span>}
                                {variationUnits.map(unit => (
-                                   <span key={unit} className="px-3 py-1 bg-pink-50 text-[#AD1457] border border-pink-200 rounded-full text-xs font-medium flex items-center gap-2">
+                                   <span key={unit} className="px-3 py-1 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded-full text-xs font-medium flex items-center gap-2">
                                        {unit}
                                        <button type="button" onClick={() => handleRemoveUnit(unit)} className="text-[#f187b5]/60 hover:text-red-500 font-bold focus:outline-none">&times;</button>
                                    </span>
                                ))}
+
                            </div>
                        </div>
 
@@ -2193,7 +2488,7 @@ const applySearchedImage = () => {
                     <div className="md:col-span-5 grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div className="col-span-1">
                           <label className="block text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5">
-                            Unit Value
+                            {formData.variationName || "Unit Value"}
                           </label>
                           <input
                             type="text"
@@ -2406,7 +2701,7 @@ const applySearchedImage = () => {
                             <thead className="bg-pink-50 text-[#880E4F] font-semibold border-b border-pink-100">
                                 <tr>
                                     <th className="px-4 py-3 w-[80px]">Image</th>
-                                    <th className="px-4 py-3 min-w-[150px]">Variation</th>
+                                    <th className="px-4 py-3 min-w-[150px]">{formData.variationName || "Variation"}</th>
                                     <th className="px-4 py-3 min-w-[100px]">MRP (₹)</th>
                                     <th className="px-4 py-3 min-w-[100px]">Selling Price (₹) <span className="text-red-500">*</span></th>
                                     <th className="px-4 py-3 min-w-[100px]">Offer Price (Online)</th>
@@ -3313,10 +3608,12 @@ const applySearchedImage = () => {
                                         barcode: Array.isArray(foundProduct.barcode) ? foundProduct.barcode : [foundProduct.barcode || ""],
                                         discPrice: foundProduct.discPrice?.toString() || "0",
                                         itemCode: foundProduct.sku || foundProduct.itemCode || "",
+                                        variationName: foundProduct.variationName || "",
                                     });
                                     if (foundProduct.mainImage || foundProduct.mainImageUrl) {
                                         setMainImagePreview(foundProduct.mainImage || foundProduct.mainImageUrl || "");
                                     }
+                                    setIsProductLoaded(true);
                                     setShowProductFoundModal(false);
                                     setSuccessMessage("Product details loaded!");
                                     setTimeout(() => setSuccessMessage(""), 2000);

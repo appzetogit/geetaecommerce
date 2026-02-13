@@ -317,13 +317,13 @@ const AdminLowStockSummary = () => {
           {/* Search and Category Filters */}
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Search</label>
+              <label className="block text-xs font-bold text-gray-700 mb-1.5 px-1">Search</label>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by product name, variant, category, or supplier..."
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                placeholder="Search by product name, variant, category..."
+                className="w-full px-4 py-2.5 text-sm bg-white border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all shadow-sm"
               />
             </div>
             <div>
@@ -342,8 +342,31 @@ const AdminLowStockSummary = () => {
         </div>
       </div>
 
-      {/* Table Section */}
+      {/* Stats and Table Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Low Stock Items</p>
+            <p className="text-3xl font-black text-orange-600 mt-2">
+              {pagination.total}
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Critical (Qty ≤ 0)</p>
+            <p className="text-3xl font-black text-red-600 mt-2">
+              {data.filter(item => item.quantity <= 0).length}
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Value at Risk</p>
+            <p className="text-3xl font-black text-purple-600 mt-2">
+              ₹{data.reduce((sum, item) => sum + (item.sellingPrice * Math.max(item.lowStockQty - item.quantity, 0)), 0).toLocaleString()}
+            </p>
+          </div>
+        </div>
         {/* Warning Alert */}
         <div className="mb-6 bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-500 p-4 rounded-lg">
           <div className="flex items-center">
@@ -583,29 +606,6 @@ const AdminLowStockSummary = () => {
           </div>
         )}
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Low Stock Items</p>
-            <p className="text-3xl font-black text-orange-600 mt-2">
-              {pagination.total}
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Critical (Qty ≤ 0)</p>
-            <p className="text-3xl font-black text-red-600 mt-2">
-              {data.filter(item => item.quantity <= 0).length}
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Value at Risk</p>
-            <p className="text-3xl font-black text-purple-600 mt-2">
-              ₹{data.reduce((sum, item) => sum + (item.sellingPrice * Math.max(item.lowStockQty - item.quantity, 0)), 0).toLocaleString()}
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

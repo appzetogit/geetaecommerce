@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 import {
   Product,
   updateProduct,
@@ -93,7 +94,7 @@ interface EditableProduct {
   itemCode: string; // SKU
   rackNumber: string;
   description: string;
-  barcode: string;
+  barcode: string[];
   hsnCode: string;
   pack: string; // Unit
   purchasePrice: number;
@@ -110,6 +111,7 @@ interface EditableProduct {
   unitPricing: { minQty: number; price: number }[]; // Add this
   attributes: string[]; // Selected Attribute Names
   variations: any[]; // Full variation objects
+  variationName: string;
 }
 
 export default function SellerStockBulkEdit({
@@ -128,6 +130,49 @@ export default function SellerStockBulkEdit({
   const [brands, setBrands] = useState<Brand[]>([]);
   const [availableAttributes, setAvailableAttributes] = useState<{_id: string, name: string}[]>([]);
   const [activeVariationModalIndex, setActiveVariationModalIndex] = useState<number | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanIndex, setScanIndex] = useState<number | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  const startScanning = (index: number) => {
+    setIsScanning(true);
+    setScanIndex(index);
+    setTimeout(() => {
+        const scanner = new Html5Qrcode("seller-bulk-reader");
+        scannerRef.current = scanner;
+        scanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+                if (index !== null) {
+                    const currentBarcodes = editableProducts[index].barcode || [];
+                    if (!currentBarcodes.includes(decodedText)) {
+                        handleFieldChange(index, 'barcode', [...currentBarcodes, decodedText]);
+                    }
+                }
+                stopScanning();
+            },
+            () => {}
+        ).catch(err => {
+            console.error(err);
+            setIsScanning(false);
+        });
+    }, 100);
+  };
+
+  const stopScanning = () => {
+    if (scannerRef.current) {
+        scannerRef.current.stop().then(() => {
+            scannerRef.current?.clear();
+            setIsScanning(false);
+        }).catch(err => {
+            console.error(err);
+            setIsScanning(false);
+        });
+    } else {
+        setIsScanning(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -211,7 +256,7 @@ export default function SellerStockBulkEdit({
         itemCode: (p as any).itemCode || (p as any).sku || "",
         rackNumber: (p as any).rackNumber || "",
         description: p.smallDescription || (p as any).description || "",
-        barcode: (p as any).barcode || "",
+        barcode: Array.isArray((p as any).barcode) ? (p as any).barcode : (p as any).barcode ? [(p as any).barcode] : [],
         hsnCode: (p as any).hsnCode || "",
         pack: (p as any).pack || "", // unit
         purchasePrice: (p as any).purchasePrice || 0,
@@ -229,6 +274,7 @@ export default function SellerStockBulkEdit({
         isChanged: false,
         attributes: [], // Initialize empty, or derive from existing variations if possible (complex logic simplified for now)
         variations: p.variations || [],
+        variationName: (p as any).variationName || "",
       };
     });
     setEditableProducts(initialized);
@@ -352,6 +398,7 @@ export default function SellerStockBulkEdit({
              discPrice: v.offerPrice || v.discPrice || p.offerPrice // Preserve variation specific offer or fallback
            })),
           unitPricing: (p as any).unitPricing, // Include unitPricing in payload, assuming backend supports it (even if not in simplified interface)
+          variationName: p.variationName,
           // ProductVariation interface (line 15 in productService.ts) has tieredPrices.
           // But Product interface doesn't have it on root level explicitly in CreateProductData.
           // However, UpdateProductData extends Partial<CreateProductData>.
@@ -392,7 +439,7 @@ export default function SellerStockBulkEdit({
   const [activeMenuColumn, setActiveMenuColumn] = useState<string | null>(null);
   const [columnOrder, setColumnOrder] = useState<string[]>([
     "index", "image", "productName", "category", "subCategory", "subSubCategory",
-    "attributes", "variations", // Added new columns
+    "attributes", "variations", "variationName", // Added variations and variationName
     "sku", "rackNumber", "description", "barcode", "hsnCode", "pack",
     "size", "color", "attr", "tax", "gst", "purchasePrice", "compareAtPrice",
     "price", "deliveryTime", "stock", "offerPrice", "wholesalePrice",
@@ -432,6 +479,7 @@ export default function SellerStockBulkEdit({
     unitPrice: "27. Unit Pricing Rules",
     attributes: "Attributes",
     variations: "Variations",
+    variationName: "Variation Name",
     status: "Status"
   };
 
@@ -577,6 +625,7 @@ export default function SellerStockBulkEdit({
     unitPrice: 100,
     attributes: 150,
     variations: 120,
+    variationName: 150,
     status: 100,
   });
 
@@ -670,6 +719,8 @@ export default function SellerStockBulkEdit({
                 />
             </td>
         );
+      case "variationName":
+        return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.variationName} onChange={(e) => handleFieldChange(originalIndex, 'variationName', e.target.value)} /></td>;
       case "subCategory":
         return (
           <td key={key} className="p-0 border-r border-neutral-200">
@@ -697,7 +748,57 @@ export default function SellerStockBulkEdit({
       case "description":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.description} onChange={(e) => handleFieldChange(originalIndex, 'description', e.target.value)} /></td>;
       case "barcode":
-        return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.barcode} onChange={(e) => handleFieldChange(originalIndex, 'barcode', e.target.value)} /></td>;
+        return (
+          <td key={key} className="p-1 border-r border-neutral-200 align-top">
+            <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap gap-1 px-1">
+                    {(product.barcode || []).map(b => (
+                        <span key={b} className="bg-pink-50 text-pink-700 px-1.5 py-0.5 rounded text-[10px] border border-pink-100 flex items-center gap-1 group/chip">
+                            {b}
+                            <button onClick={() => {
+                                const newBarcodes = (product.barcode || []).filter(item => item !== b);
+                                handleFieldChange(originalIndex, 'barcode', newBarcodes);
+                            }} className="text-pink-400 hover:text-red-500 transition-colors">&times;</button>
+                        </span>
+                    ))}
+                </div>
+                <div className="flex gap-1 px-1 mt-1">
+                    <input
+                        type="text"
+                        className="flex-1 px-2 py-1 border border-gray-200 rounded text-[11px] focus:ring-1 focus:ring-[#f187b5] focus:outline-none"
+                        placeholder="Add"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const val = (e.currentTarget as HTMLInputElement).value.trim();
+                                if (val && !(product.barcode || []).includes(val)) {
+                                    handleFieldChange(originalIndex, 'barcode', [...(product.barcode || []), val]);
+                                    (e.currentTarget as HTMLInputElement).value = '';
+                                }
+                            }
+                        }}
+                    />
+                    <button
+                        onClick={() => {
+                            const newB = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+                            handleFieldChange(originalIndex, 'barcode', [...(product.barcode || []), newB]);
+                        }}
+                        className="p-1.5 bg-pink-50 border border-pink-200 rounded text-[#f187b5] hover:bg-pink-100 transition-colors"
+                        title="Auto Generate"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </button>
+                    <button
+                        onClick={() => startScanning(originalIndex)}
+                        className="p-1.5 bg-pink-50 border border-pink-200 rounded text-[#f187b5] hover:bg-pink-100 transition-colors"
+                        title="Scan Barcode"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>
+                    </button>
+                </div>
+            </div>
+          </td>
+        );
       case "hsnCode":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.hsnCode} onChange={(e) => handleFieldChange(originalIndex, 'hsnCode', e.target.value)} /></td>;
       case "pack":
@@ -890,8 +991,30 @@ export default function SellerStockBulkEdit({
             onClose={() => setActiveVariationModalIndex(null)}
             variations={editableProducts[activeVariationModalIndex].variations || []}
             selectedAttributes={editableProducts[activeVariationModalIndex].attributes || []}
+            variationName={editableProducts[activeVariationModalIndex].variationName || ""}
+            onVariationNameChange={(name) => handleFieldChange(activeVariationModalIndex, 'variationName', name)}
             onSave={(newVariations) => handleFieldChange(activeVariationModalIndex, 'variations', newVariations)}
           />
+      )}
+      {isScanning && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80">
+              <div className="bg-white rounded-lg overflow-hidden w-full max-w-sm shadow-2xl">
+                  <div className="bg-[#f187b5] p-3 text-white flex justify-between items-center">
+                      <h3 className="font-bold flex items-center gap-2">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          Scan Barcode
+                      </h3>
+                      <button onClick={stopScanning} className="hover:bg-white/20 p-1 rounded-full">&times;</button>
+                  </div>
+                  <div className="aspect-square bg-gray-900 border-y border-gray-700">
+                      <div id="seller-bulk-reader" className="w-full h-full"></div>
+                  </div>
+                  <div className="p-4 bg-gray-50 text-center">
+                      <p className="text-xs text-gray-500 mb-3">Place the barcode inside the frame</p>
+                      <button onClick={stopScanning} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold text-xs transition-colors">Cancel</button>
+                  </div>
+              </div>
+          </div>
       )}
     </div>
   );

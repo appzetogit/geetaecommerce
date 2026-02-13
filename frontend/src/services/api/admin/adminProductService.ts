@@ -138,6 +138,7 @@ export interface Product {
     status?: string;
     barcode?: string[];
   }>;
+  variationName?: string;
   publish: boolean;
   popular: boolean;
   dealOfDay: boolean;
@@ -215,6 +216,7 @@ export interface CreateProductData {
     status?: string;
     barcode?: string[];
   }>;
+  variationName?: string;
   publish?: boolean;
   popular?: boolean;
   dealOfDay?: boolean;

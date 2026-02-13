@@ -62,6 +62,7 @@ export default function ProductDetail() {
       setLoading(true);
       setError(null);
       startLoading();
+
       try {
         // Check if navigation came from store page
         const fromStore = (routerLocation.state as any)?.fromStore === true;

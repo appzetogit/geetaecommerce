@@ -59,6 +59,7 @@ export interface Product {
   mainImage?: string; // Mapped directly from Product model
   galleryImageUrls: string[];
   variations: ProductVariation[];
+  variationName?: string;
   variationType?: string;
   itemCode?: string; // mapped to sku
   rackNumber?: string;
@@ -112,6 +113,7 @@ export interface CreateProductData {
   galleryImageUrls?: string[];
   barcode?: string[];
   variations: ProductVariation[];
+  variationName?: string;
   variationType?: string;
   itemCode?: string; // Alias for sku
   rackNumber?: string;

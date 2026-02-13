@@ -549,7 +549,7 @@ export default function AdminStockManagement() {
         sku: p.itemCode || p.sku || "", // Item Code (5) (Note: variation might allow specific SKU)
         rackNumber: p.rackNumber || "-",
         description: p.smallDescription || p.description || "-",
-        barcode: p.barcode || "-",
+        barcode: Array.isArray(p.barcode) ? p.barcode.join(', ') : (p.barcode || "-"),
         hsnCode: p.hsnCode || "-",
         unit: p.pack || "-", // Unit (10)
         taxCategory: taxName,
@@ -1104,7 +1104,25 @@ export default function AdminStockManagement() {
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.sku}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.rackNumber}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600 max-w-xs truncate" title={product.description}>{product.description}</td>
-                      <td className="p-4 align-middle text-sm text-neutral-600">{product.barcode}</td>
+                      <td className="p-4 align-middle text-sm text-neutral-600">
+                        <div className="flex flex-wrap gap-1">
+                          {Array.isArray(product.barcode) ? (
+                            product.barcode.map((b: string) => (
+                              <span key={b} className="bg-pink-50 text-[#AD1457] px-2 py-0.5 rounded border border-pink-100/50 text-[10px] font-medium">
+                                {b}
+                              </span>
+                            ))
+                          ) : product.barcode && product.barcode !== "-" ? (
+                            product.barcode.split(', ').map((b: string) => (
+                              <span key={b} className="bg-pink-50 text-[#AD1457] px-2 py-0.5 rounded border border-pink-100/50 text-[10px] font-medium">
+                                {b}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.hsnCode}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.unit}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.sizeName}</td>

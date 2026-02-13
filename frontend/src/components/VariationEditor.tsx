@@ -1,5 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Html5Qrcode } from "html5-qrcode";
+import { getVariationTypes } from "../services/api/admin/adminVariationTypeService";
 
 export interface Variation {
   id?: string; // Internal ID for tracking in this editor
@@ -15,6 +17,7 @@ export interface Variation {
   wholesalePrice?: number | string; // Wholesale Price
   barcode?: string[]; // Multiple barcodes
   stock: number | string;
+  colorCode?: string;
   // Dynamic attribute values
   [key: string]: any;
 }
@@ -25,6 +28,8 @@ interface VariationEditorProps {
   onClose: () => void;
   variations: any[]; // Incoming variations
   selectedAttributes: string[]; // e.g. ["Color", "Size"]
+  variationName: string;
+  onVariationNameChange: (name: string) => void;
   onSave: (newVariations: any[]) => void;
 }
 
@@ -34,9 +39,68 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
   onClose,
   variations,
   selectedAttributes,
+  variationName,
+  onVariationNameChange,
   onSave,
 }) => {
   const [localVariations, setLocalVariations] = useState<Variation[]>([]);
+  const [variationType, setVariationType] = useState<string>('');
+  const [availableVariationTypes, setAvailableVariationTypes] = useState<any[]>([]);
+  const [selectedColors, setSelectedColors] = useState<{name: string, code: string}[]>([]);
+  const [colorInput, setColorInput] = useState<{name: string, code: string}>({ name: "", code: "#000000" });
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanIndex, setScanIndex] = useState<number | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  const startScanning = (index: number) => {
+    setIsScanning(true);
+    setScanIndex(index);
+    setTimeout(() => {
+        const scanner = new Html5Qrcode("variation-reader");
+        scannerRef.current = scanner;
+        scanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+                if (index !== null) {
+                    const currentBarcodes = localVariations[index].barcode || [];
+                    if (!currentBarcodes.includes(decodedText)) {
+                        handleChange(index, 'barcode', [...currentBarcodes, decodedText]);
+                    }
+                }
+                stopScanning();
+            },
+            () => {}
+        ).catch(err => {
+            console.error(err);
+            setIsScanning(false);
+        });
+    }, 100);
+  };
+
+  const stopScanning = () => {
+    if (scannerRef.current) {
+        scannerRef.current.stop().then(() => {
+            scannerRef.current?.clear();
+            setIsScanning(false);
+        }).catch(err => {
+            console.error(err);
+            setIsScanning(false);
+        });
+    } else {
+        setIsScanning(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchTypes = async () => {
+        try {
+            const res = await getVariationTypes();
+            if (res.success) setAvailableVariationTypes(res.data);
+        } catch (err) { console.error(err); }
+    };
+    if (isOpen) fetchTypes();
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -76,13 +140,25 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
         // We can try to use them
         return item;
       });
+      setLocalVariations(mapped.length > 0 ? mapped : [{ id: 'new-1', price: '', stock: '' }]);
 
-      if (mapped.length === 0) {
-          // Initialize one empty row if no variations
-          const empty: Variation = { id: 'new-1', price: '', stock: '' };
-          setLocalVariations([empty]);
-      } else {
-          setLocalVariations(mapped);
+      // Initial state for variationType
+      if (variations.length > 0) {
+          const first = variations[0];
+          if (first.name) {
+              setVariationType(first.name);
+              if (first.name.toLowerCase() === 'color') {
+                  const colors: {name: string, code: string}[] = [];
+                  variations.forEach(v => {
+                      if (v.name?.toLowerCase() === 'color' && v.value && !colors.some(c => c.name === v.value)) {
+                          colors.push({ name: v.value, code: v.colorCode || '#000000' });
+                      }
+                  });
+                  setSelectedColors(colors);
+              }
+          }
+      } else if (selectedAttributes.length > 0) {
+          setVariationType(selectedAttributes[0]);
       }
     }
   }, [isOpen, variations, selectedAttributes]);
@@ -134,6 +210,7 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
             stock: Number(v.stock) || 0,
             sku: v.sku,
             barcode: v.barcode || [],
+            colorCode: v.colorCode,
             status: Number(v.stock) > 0 ? "In stock" : "Sold out"
         };
     });
@@ -158,6 +235,116 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
             </button>
         </div>
 
+        {/* Variation Type Selection */}
+        <div className="bg-white px-6 py-4 border-b border-gray-100 flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex-1 max-w-xs">
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Variation Type</label>
+                    <div className="relative">
+                        <select
+                            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm appearance-none outline-none focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5]/20 cursor-pointer"
+                            value={variationType}
+                            onChange={(e) => setVariationType(e.target.value)}
+                        >
+                            <option value="">Select Variation Type</option>
+                            {availableVariationTypes.map((vt: any) => (
+                                <option key={vt._id || vt.id} value={vt.name}>{vt.name}</option>
+                            ))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex-1 max-w-xs">
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5 uppercase tracking-wider">Variation Name</label>
+                    <input
+                        type="text"
+                        className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm outline-none focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5]/20"
+                        value={variationName}
+                        onChange={(e) => onVariationNameChange(e.target.value)}
+                        placeholder="e.g. Scent Name, Material"
+                    />
+                </div>
+            </div>
+
+            {variationType.toLowerCase() === 'color' && (
+                <div className="bg-white p-4 rounded-lg border border-neutral-200 shadow-sm">
+                    <label className="block text-sm font-semibold text-neutral-700 mb-2">Select Colors</label>
+                    <div className="flex flex-col sm:flex-row gap-2 mb-3 max-w-lg items-center">
+                        <input
+                            type="color"
+                            className="w-10 h-10 p-1 border border-neutral-300 rounded cursor-pointer shrink-0"
+                            value={colorInput.code}
+                            onChange={(e) => setColorInput(prev => ({...prev, code: e.target.value}))}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Color Name (e.g. Red, Forest Green)"
+                            className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#f187b5]"
+                            value={colorInput.name}
+                            onChange={(e) => {
+                                const name = e.target.value;
+                                setColorInput(prev => ({ ...prev, name }));
+                                if (name.trim()) {
+                                    const s = new Option().style;
+                                    s.color = name.trim().toLowerCase();
+                                    if (s.color) {
+                                        // A simple check to see if the color is valid
+                                        // We can use a canvas to get the hex code
+                                        const ctx = document.createElement('canvas').getContext('2d');
+                                        if (ctx) {
+                                            ctx.fillStyle = name.trim().toLowerCase();
+                                            const hex = ctx.fillStyle;
+                                            if (hex && hex.startsWith('#')) {
+                                                setColorInput(prev => ({ ...prev, code: hex }));
+                                            }
+                                        }
+                                    }
+                                }
+                            }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if(!colorInput.name.trim()) return;
+                                if(!selectedColors.some(c => c.name === colorInput.name.trim())) {
+                                    const newName = colorInput.name.trim();
+                                    const newCode = colorInput.code;
+                                    setSelectedColors([...selectedColors, { name: newName, code: newCode }]);
+
+                                    // Add to table if not exists
+                                    if (!localVariations.some(v => v.value === newName || v[variationType] === newName || v.Color === newName)) {
+                                        setLocalVariations([...localVariations, {
+                                            id: `new-${Date.now()}`,
+                                            Color: newName,
+                                            value: newName,
+                                            name: 'Color',
+                                            colorCode: newCode,
+                                            price: '',
+                                            stock: ''
+                                        }]);
+                                    }
+                                    setColorInput({ name: "", code: "#000000" });
+                                }
+                            }}
+                            className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] border border-[#f187b5]/20 rounded hover:bg-[#f187b5]/20 text-sm font-medium transition-all"
+                        >Add</button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {selectedColors.map((color: any) => (
+                            <span key={color.name} className="px-3 py-1 bg-neutral-100 text-neutral-800 border border-neutral-200 rounded-full text-xs font-medium flex items-center gap-2 shadow-sm">
+                                <span className="w-3 h-3 rounded-full border border-gray-300 shadow-sm" style={{ backgroundColor: color.code }}></span>
+                                {color.name}
+                                <button type="button" onClick={() => setSelectedColors((prev: any) => prev.filter((c: any) => c.name !== color.name))} className="text-neutral-400 hover:text-red-500 font-bold focus:outline-none tracking-tighter">&times;</button>
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+
         {/* Info */}
         <div className="bg-blue-50 px-6 py-2 text-xs text-blue-700 border-b border-blue-100 flex items-center gap-2">
             <span className="font-bold">Attributes:</span>
@@ -180,7 +367,7 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
                 {selectedAttributes.map(attr => (
                     <th key={attr} className="p-3 text-left font-semibold text-gray-700 border-b border-gray-200 min-w-[120px]">{attr}</th>
                 ))}
-                {selectedAttributes.length === 0 && <th className="p-3 text-left font-semibold text-gray-700 border-b border-gray-200 min-w-[120px]">Value</th>}
+                {selectedAttributes.length === 0 && <th className="p-3 text-left font-semibold text-gray-700 border-b border-gray-200 min-w-[120px]">{variationName || "Value"}</th>}
                 <th className="p-3 text-left font-semibold text-gray-700 border-b border-gray-200 w-24">MRP</th>
                 <th className="p-3 text-left font-semibold text-gray-700 border-b border-gray-200 w-24">Selling Price</th>
                 <th className="p-3 text-left font-semibold text-gray-700 border-b border-gray-200 w-24">Online Offer Price</th>
@@ -197,24 +384,37 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
                     {/* Attribute Inputs */}
                     {selectedAttributes.map(attr => (
                         <td key={attr} className="p-2">
-                            <input
-                                type="text"
-                                className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] text-sm"
-                                placeholder={`Enter ${attr}`}
-                                value={v[attr] || ''}
-                                onChange={(e) => handleChange(index, attr, e.target.value)}
-                            />
+                            <div className="flex items-center gap-2">
+                                {attr.toLowerCase() === 'color' && v.colorCode && (
+                                    <span className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0" style={{ backgroundColor: v.colorCode }} />
+                                )}
+                                <input
+                                    type="text"
+                                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] text-sm"
+                                    placeholder={`Enter ${attr}`}
+                                    value={v[attr] || ''}
+                                    onChange={(e) => {
+                                        handleChange(index, attr, e.target.value);
+                                        if (attr.toLowerCase() === 'color') handleChange(index, 'value', e.target.value);
+                                    }}
+                                />
+                            </div>
                         </td>
                     ))}
                     {selectedAttributes.length === 0 && (
                         <td className="p-2">
-                             <input
-                                type="text"
-                                className="w-full px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] text-sm"
-                                placeholder="Value"
-                                value={v.value || ''}
-                                onChange={(e) => handleChange(index, 'value', e.target.value)}
-                            />
+                             <div className="flex items-center gap-2">
+                                {variationType.toLowerCase() === 'color' && v.colorCode && (
+                                    <span className="w-4 h-4 rounded-full border border-gray-300 flex-shrink-0" style={{ backgroundColor: v.colorCode }} />
+                                )}
+                                <input
+                                    type="text"
+                                    className="flex-1 px-2 py-1.5 border border-gray-300 rounded focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] text-sm"
+                                    placeholder="Value"
+                                    value={v.value || ''}
+                                    onChange={(e) => handleChange(index, 'value', e.target.value)}
+                                />
+                             </div>
                         </td>
                     )}
 
@@ -239,32 +439,51 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
                     </td>
                     <td className="p-2">
                         <div className="flex flex-col gap-1">
-                            <div className="flex flex-wrap gap-1">
+                            <div className="flex flex-wrap gap-1 mb-1">
                                 {(v.barcode || []).map(b => (
-                                    <span key={b} className="bg-pink-50 text-pink-700 px-1.5 py-0.5 rounded text-[10px] border border-pink-100 flex items-center gap-1">
+                                    <span key={b} className="bg-pink-50 text-pink-700 px-1.5 py-0.5 rounded text-[10px] border border-pink-100 flex items-center gap-1 group/chip">
                                         {b}
                                         <button onClick={() => {
                                             const newBarcodes = (v.barcode || []).filter(item => item !== b);
                                             handleChange(index, 'barcode', newBarcodes);
-                                        }} className="text-pink-400 hover:text-red-500">&times;</button>
+                                        }} className="text-pink-400 hover:text-red-500 transition-colors">&times;</button>
                                     </span>
                                 ))}
                             </div>
-                            <input
-                                type="text"
-                                className="w-full px-2 py-1 border border-gray-200 rounded text-xs"
-                                placeholder="Add barcode"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        const val = (e.currentTarget as HTMLInputElement).value.trim();
-                                        if (val && !(v.barcode || []).includes(val)) {
-                                            handleChange(index, 'barcode', [...(v.barcode || []), val]);
-                                            (e.currentTarget as HTMLInputElement).value = '';
+                            <div className="flex gap-1">
+                                <input
+                                    type="text"
+                                    className="flex-1 px-2 py-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#f187b5] focus:outline-none"
+                                    placeholder="Add barcode"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            const val = (e.currentTarget as HTMLInputElement).value.trim();
+                                            if (val && !(v.barcode || []).includes(val)) {
+                                                handleChange(index, 'barcode', [...(v.barcode || []), val]);
+                                                (e.currentTarget as HTMLInputElement).value = '';
+                                            }
                                         }
-                                    }
-                                }}
-                            />
+                                    }}
+                                />
+                                <button
+                                    onClick={() => {
+                                        const newB = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+                                        handleChange(index, 'barcode', [...(v.barcode || []), newB]);
+                                    }}
+                                    className="p-1.5 bg-pink-50 border border-pink-100 rounded text-[#f187b5] hover:bg-pink-100 transition-colors"
+                                    title="Auto Generate"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                </button>
+                                <button
+                                    onClick={() => startScanning(index)}
+                                    className="p-1.5 bg-pink-50 border border-pink-100 rounded text-[#f187b5] hover:bg-pink-100 transition-colors"
+                                    title="Scan Barcode"
+                                >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"></path></svg>
+                                </button>
+                            </div>
                         </div>
                     </td>
                     <td className="p-2 text-center">
@@ -288,6 +507,26 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
           <button onClick={handleSave} className="px-5 py-2 bg-[#f187b5] text-white rounded hover:bg-[#e076a5] font-medium shadow-sm transition-colors text-sm">Save Variations</button>
         </div>
       </div>
+      {isScanning && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80">
+              <div className="bg-white rounded-lg overflow-hidden w-full max-w-sm shadow-2xl">
+                  <div className="bg-[#f187b5] p-3 text-white flex justify-between items-center">
+                      <h3 className="font-bold flex items-center gap-2">
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          Scan Barcode
+                      </h3>
+                      <button onClick={stopScanning} className="hover:bg-white/20 p-1 rounded-full">&times;</button>
+                  </div>
+                  <div className="aspect-square bg-gray-900 border-y border-gray-700">
+                      <div id="variation-reader" className="w-full h-full"></div>
+                  </div>
+                  <div className="p-4 bg-gray-50 text-center">
+                      <p className="text-xs text-gray-500 mb-3">Place the barcode inside the frame</p>
+                      <button onClick={stopScanning} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold text-xs transition-colors">Cancel</button>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 };
