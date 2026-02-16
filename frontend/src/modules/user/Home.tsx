@@ -50,10 +50,44 @@ export default function Home() {
         setError(null);
         const response = await getHomeContent(undefined);
         if (response.success && response.data) {
-          setHomeData(response.data);
+          let finalData = { ...response.data };
 
-          if (response.data.bestsellers) {
-            setProducts(response.data.bestsellers);
+          // Inject Seller Categories into homeSections
+          const sellerCatsStorage = localStorage.getItem('seller_own_categories');
+          if (sellerCatsStorage) {
+            try {
+              const sellerCats = JSON.parse(sellerCatsStorage);
+              if (sellerCats.length > 0) {
+                 const sellerSection = {
+                      id: 'seller-categories-section-home',
+                      title: 'Seller Categories',
+                      type: 'category',
+                      displayType: 'category',
+                      columns: 4,
+                      data: sellerCats.map((c: any) => ({
+                          id: c._id,
+                          name: c.name,
+                          image: c.image,
+                          categoryId: c._id,
+                          type: 'category',
+                          productImages: [c.image],
+                          itemCount: c.totalSubcategory || 0
+                      }))
+                  };
+
+                  // Append to homeSections if it exists, or create it
+                  const existingSections = finalData.homeSections || [];
+                  finalData.homeSections = [...existingSections, sellerSection];
+              }
+            } catch (e) {
+              console.error("Error parsing seller categories in Home", e);
+            }
+          }
+
+          setHomeData(finalData);
+
+          if (finalData.bestsellers) {
+            setProducts(finalData.bestsellers);
           }
         } else {
           setError("Failed to load content. Please try again.");

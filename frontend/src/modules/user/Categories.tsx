@@ -22,8 +22,43 @@ export default function Categories() {
           location?.latitude,
           location?.longitude
         );
+
+        let sections = [];
         if (response.success && response.data) {
-          setHomeData(response.data);
+          sections = response.data.homeSections || [];
+        }
+
+        // Inject Seller Categories
+        const sellerCatsStorage = localStorage.getItem('seller_own_categories');
+        if (sellerCatsStorage) {
+            try {
+                const sellerCats = JSON.parse(sellerCatsStorage);
+                if (sellerCats.length > 0) {
+                    const sellerSection = {
+                        id: 'seller-categories-section',
+                        title: 'Seller Categories',
+                        type: 'category', // or whatever type matches CategoryTileSection
+                        displayType: 'category', // Ensure this matches rendering logic
+                        columns: 4,
+                        data: sellerCats.map((c: any) => ({
+                            id: c._id,
+                            name: c.name,
+                            image: c.image,
+                            categoryId: c._id, // Add this so routing works
+                            type: 'category',
+                            productImages: [c.image], // Fallback for some views
+                            itemCount: c.totalSubcategory || 0
+                        }))
+                    };
+                    sections = [...sections, sellerSection];
+                }
+            } catch (e) {
+                console.error("Error parsing seller categories", e);
+            }
+        }
+
+        if (response.success || sections.length > 0) { // Allow if only seller cats exist too
+          setHomeData({ ...response.data, homeSections: sections });
         } else {
           setError("Failed to load categories. Please try again.");
         }

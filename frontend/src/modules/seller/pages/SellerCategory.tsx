@@ -3,15 +3,48 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getCategories, Category } from '../../../services/api/categoryService';
 import ThemedDropdown from '../components/ThemedDropdown';
+import SellerCategoryForm from './SellerCategoryForm';
+import { useToast } from '../../../context/ToastContext';
 
 export default function SellerCategory() {
+    const { showToast } = useToast();
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
     const [searchTerm, setSearchTerm] = useState('');
     const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [canCreateCategories, setCanCreateCategories] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [ownCategories, setOwnCategories] = useState<Category[]>([]);
+    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-    // Fetch categories from API
+    // Initial Data Loading
+    useEffect(() => {
+        // 1. Check Seller Permission
+        const sellerData = localStorage.getItem('seller_category_permission');
+        // Note: In a real app we would get current seller ID, but for demo we assume generic permission
+        // or check 'seller_category_permissions' map if we had seller context
+        // IMPROVED: Let's check the map from Admin side if possible, or fallback
+        const permissionsMap = localStorage.getItem('seller_category_permissions');
+        if (permissionsMap) {
+            // Since we don't have exact seller context in this specific file easily without Context,
+            // we will check if ANY permission is true for demo,
+            // OR strictly, we should assume the backend would return this flag in user profile.
+            // For this frontend-only demo, let's look for a flag we set in Admin.
+            const parsed = JSON.parse(permissionsMap);
+            // Check if any value is true (assuming single seller for demo flow simplicity)
+            const hasPermission = Object.values(parsed).some(val => val === true);
+            setCanCreateCategories(hasPermission);
+        }
+
+        // 2. Load Own Categories
+        const savedCategories = localStorage.getItem('seller_own_categories');
+        if (savedCategories) {
+            setOwnCategories(JSON.parse(savedCategories));
+        }
+    }, []);
+
+    // Fetch Admin Categories
     useEffect(() => {
         const fetchCategories = async () => {
             setLoading(true);
@@ -38,10 +71,52 @@ export default function SellerCategory() {
         fetchCategories();
     }, [searchTerm]);
 
-    // Client-side filtering for display (API handles search, but we can filter further if needed)
-    const filteredCategories = categories.filter(cat =>
+    // Merge and Filter Categories
+    // We mark admin categories as read-only and seller categories as editable
+    const allCategories = [
+        ...categories.map(c => ({ ...c, type: 'admin' })),
+        ...ownCategories.map(c => ({ ...c, type: 'seller' }))
+    ];
+
+    const filteredCategories = allCategories.filter(cat =>
         cat.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    // Pagination
+    const displayedCategories = filteredCategories.slice(0, rowsPerPage); // Simple slicing for demo
+
+    const handleSaveCategory = (category: Category) => {
+        let updatedCategories = [...ownCategories];
+
+        // Check if editing or new
+        const existingIndex = updatedCategories.findIndex(c => c._id === category._id);
+
+        if (existingIndex >= 0) {
+            updatedCategories[existingIndex] = category;
+            showToast('Category updated successfully!', 'success');
+        } else {
+            updatedCategories.push(category);
+            showToast('Category created successfully!', 'success');
+        }
+
+        setOwnCategories(updatedCategories);
+        localStorage.setItem('seller_own_categories', JSON.stringify(updatedCategories));
+        setEditingCategory(null);
+    };
+
+    const handleEdit = (category: Category) => {
+        setEditingCategory(category);
+        setIsAddModalOpen(true);
+    };
+
+    const handleDelete = (id: string) => {
+        if (window.confirm('Are you sure you want to delete this category?')) {
+            const updatedCategories = ownCategories.filter(c => c._id !== id);
+            setOwnCategories(updatedCategories);
+            localStorage.setItem('seller_own_categories', JSON.stringify(updatedCategories));
+            showToast('Category deleted successfully!', 'success');
+        }
+    };
 
     const containerVariants = {
         hidden: { opacity: 0, y: 20 },
@@ -80,6 +155,24 @@ export default function SellerCategory() {
                 </div>
             </div>
 
+            {/* Permission Banner */}
+            {!canCreateCategories && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow-sm">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                        <div className="ml-3">
+                            <p className="text-sm text-yellow-700">
+                                You can currently only view admin categories. Contact support to request permission to create your own categories.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Content Card */}
             <div className="bg-white rounded-xl shadow-sm border border-neutral-200 flex-1 flex flex-col overflow-hidden">
                 {/* Header Section */}
@@ -99,13 +192,14 @@ export default function SellerCategory() {
 
                         <button
                             onClick={() => {
-                                const headers = ['ID', 'Category Name', 'Total Subcategory'];
+                                const headers = ['ID', 'Category Name', 'Total Subcategory', 'Type'];
                                 const csvContent = [
                                     headers.join(','),
                                     ...filteredCategories.map(cat => [
                                         cat._id,
                                         `"${cat.name}"`,
-                                        cat.totalSubcategory
+                                        cat.totalSubcategory,
+                                        (cat as any).type
                                     ].join(','))
                                 ].join('\n');
                                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -118,11 +212,25 @@ export default function SellerCategory() {
                                 link.click();
                                 document.body.removeChild(link);
                             }}
-                            className="w-full sm:w-auto bg-seller-600 hover:bg-seller-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
+                            className="w-full sm:w-auto bg-white border border-neutral-300 hover:bg-neutral-50 text-neutral-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                            Export CSV
+                            Export
                         </button>
+
+                        {/* Add Category Button */}
+                        {canCreateCategories && (
+                            <button
+                                onClick={() => {
+                                    setEditingCategory(null);
+                                    setIsAddModalOpen(true);
+                                }}
+                                className="w-full sm:w-auto bg-[#f187b5] hover:bg-[#e076a5] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                Add Category
+                            </button>
+                        )}
 
                         <div className="relative w-full sm:w-64">
                             <input
@@ -166,18 +274,21 @@ export default function SellerCategory() {
                                     <th className="p-4 px-6 font-bold text-neutral-500 uppercase text-xs tracking-wider w-20">ID</th>
                                     <th className="p-4 px-6 font-bold text-neutral-500 uppercase text-xs tracking-wider">Category Name</th>
                                     <th className="p-4 px-6 font-bold text-neutral-500 uppercase text-xs tracking-wider text-center">Image</th>
-                                    <th className="p-4 px-6 font-bold text-neutral-500 uppercase text-xs tracking-wider text-center">Total Subcategory</th>
+                                    <th className="p-4 px-6 font-bold text-neutral-500 uppercase text-xs tracking-wider text-center">Type</th>
+                                    <th className="p-4 px-6 font-bold text-neutral-500 uppercase text-xs tracking-wider text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-neutral-100 bg-white">
-                                {filteredCategories.map((category, index) => (
+                                {displayedCategories.map((category, index) => (
                                     <motion.tr
                                         key={category._id}
                                         className="hover:bg-seller-50/30 transition-colors group text-sm text-neutral-700"
                                         variants={itemVariants}
                                         custom={index}
                                     >
-                                        <td className="p-4 px-6 align-middle font-mono text-neutral-500">#{category._id}</td>
+                                        <td className="p-4 px-6 align-middle font-mono text-neutral-500">
+                                            {category._id.length > 8 ? '#' + category._id.slice(-6) : '#' + category._id}
+                                        </td>
                                         <td className="p-4 px-6 align-middle font-medium text-neutral-900">{category.name}</td>
                                         <td className="p-4 px-6 align-middle">
                                             <div className="w-16 h-12 bg-white border border-neutral-200 rounded-lg p-1 flex items-center justify-center mx-auto shadow-sm group-hover:scale-110 transition-transform">
@@ -192,15 +303,44 @@ export default function SellerCategory() {
                                             </div>
                                         </td>
                                         <td className="p-4 px-6 align-middle text-center">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-seller-100 text-seller-800">
-                                                {category.totalSubcategory || 0}
-                                            </span>
+                                            {(category as any).type === 'admin' ? (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    Admin
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    My Category
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="p-4 px-6 align-middle text-center">
+                                            {(category as any).type === 'seller' && (
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button
+                                                        onClick={() => handleEdit(category)}
+                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                        title="Edit"
+                                                    >
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(category._id)}
+                                                        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {(category as any).type === 'admin' && (
+                                                <span className="text-xs text-neutral-400 italic">Read Only</span>
+                                            )}
                                         </td>
                                     </motion.tr>
                                 ))}
                                 {filteredCategories.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="p-12 text-center text-neutral-500">
+                                        <td colSpan={5} className="p-12 text-center text-neutral-500">
                                             <div className="flex flex-col items-center justify-center">
                                                 <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mb-4">
                                                     <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
@@ -217,8 +357,8 @@ export default function SellerCategory() {
                 )}
             </div>
 
-             {/* Footer */}
-             <footer className="text-center py-4">
+            {/* Footer */}
+            <footer className="text-center py-4">
                 <p className="text-sm text-neutral-500">
                 Copyright © 2025. Developed By{' '}
                 <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium hover:underline">
@@ -226,6 +366,14 @@ export default function SellerCategory() {
                 </Link>
                 </p>
             </footer>
+
+            {/* Category Form Modal */}
+            <SellerCategoryForm
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onSave={handleSaveCategory}
+                editingCategory={editingCategory}
+            />
         </motion.div>
     );
 }

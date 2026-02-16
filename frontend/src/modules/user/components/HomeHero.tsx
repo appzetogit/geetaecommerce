@@ -212,12 +212,27 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
     const fetchCategories = async () => {
       try {
         const response = await getCategories();
+        let apiCategories = [];
         if (response.success && response.data) {
-          setCategories(response.data.map((c: any) => ({
+          apiCategories = response.data.map((c: any) => ({
             ...c,
             id: c._id || c.id
-          })));
+          }));
         }
+
+        // Merge with Seller Categories from localStorage
+        const sellerPermissions = JSON.parse(localStorage.getItem('seller_category_permissions') || '{}');
+        const sellerCatsStorage = localStorage.getItem('seller_own_categories'); // Using simplified key for demo
+        let sellerCategories: any[] = [];
+
+        if (sellerCatsStorage) {
+             sellerCategories = JSON.parse(sellerCatsStorage);
+        }
+
+        // In a real scenario we would filter by permission, but for demo we just show created ones
+        // const allowedSellerCategories = sellerCategories.filter(...)
+
+        setCategories([...apiCategories, ...sellerCategories]);
       } catch (error) {
         console.error("Error fetching categories for suggestions:", error);
       }

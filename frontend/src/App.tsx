@@ -97,6 +97,7 @@ const SellerReturnRequest = lazy(() => import("./modules/seller/pages/SellerRetu
 const SellerAccountSettings = lazy(() => import("./modules/seller/pages/SellerAccountSettings"));
 const SellerLogin = lazy(() => import("./modules/seller/pages/SellerLogin"));
 const SellerSignUp = lazy(() => import("./modules/seller/pages/SellerSignUp"));
+const SellerBillSettings = lazy(() => import("./modules/seller/pages/SellerBillSettings"));
 const SellerPOSOrders = lazy(() => import("./modules/seller/pages/SellerPOSOrders"));
 const SellerPOSCustomers = lazy(() => import("./modules/seller/pages/SellerPOSCustomers"));
 const SellerPOSCustomerDetail = lazy(() => import("./modules/seller/pages/SellerPOSCustomerDetail"));
@@ -151,6 +152,7 @@ const AdminNotification = lazy(() => import("./modules/admin/pages/AdminNotifica
 const AdminSellerLocation = lazy(() => import("./modules/admin/pages/AdminSellerLocation"));
 const AdminWallet = lazy(() => import("./modules/admin/pages/AdminWallet"));
 const AdminManageDeliveryBoy = lazy(() => import("./modules/admin/pages/AdminManageDeliveryBoy"));
+const AdminAddDeliveryBoy = lazy(() => import("./modules/admin/pages/AdminAddDeliveryBoy"));
 const AdminFundTransfer = lazy(() => import("./modules/admin/pages/AdminFundTransfer"));
 const AdminCashCollection = lazy(() => import("./modules/admin/pages/AdminCashCollection"));
 const AdminReturnRequest = lazy(() => import("./modules/admin/pages/AdminReturnRequest"));
@@ -217,6 +219,7 @@ import { Toaster } from 'react-hot-toast';
 import { AppProvider } from "./context/AppContext";
 
 const AdminStoreSettings = lazy(() => import("./modules/admin/pages/AdminStoreSettings"));
+const AdminAppSettings = lazy(() => import("./modules/admin/pages/AdminAppSettings"));
 
 function NotificationHandler() {
   const { user, token: authToken } = useAuth();
@@ -443,6 +446,7 @@ function App() {
                               <Route path="pos/customers/:id/orders" element={<SellerPOSCustomerOrders />} />
                               <Route path="pos/report" element={<SellerPOSReport />} />
                               <Route path="product-display-settings" element={<SellerProductDisplaySettings />} />
+                              <Route path="bill-settings" element={<SellerBillSettings />} />
                               <Route path="barcode-settings" element={<SellerBarcodeSettings />} />
                               <Route path="inventory-reports/stock-summary" element={<SellerStockSummary />} />
                               <Route path="inventory-reports/stock-balance" element={<SellerStockBalanceSummary />} />
@@ -491,6 +495,7 @@ function App() {
                             <Route path="manage-seller/add" element={<AdminAddSeller />} />
                             <Route path="manage-seller/list" element={<AdminManageSellerList />} />
                             <Route path="manage-seller/transaction" element={<AdminSellerTransaction />} />
+                            <Route path="delivery-boy/add" element={<AdminAddDeliveryBoy />} />
                             <Route path="delivery-boy/manage" element={<AdminManageDeliveryBoy />} />
                             <Route path="delivery-boy/fund-transfer" element={<AdminFundTransfer />} />
                             <Route path="delivery-boy/cash-collection" element={<AdminCashCollection />} />
@@ -531,6 +536,7 @@ function App() {
                             <Route path="delivery-settings" element={<AdminDeliverySettings />} />
                             <Route path="sales-summary" element={<AdminSalesSummary />} />
                             <Route path="settings/store" element={<AdminStoreSettings />} />
+                            <Route path="app-settings" element={<AdminAppSettings />} />
 
                             {/* Report Routes */}
                             <Route path="reports/sales/summary" element={<AdminReportSalesSummary />} />

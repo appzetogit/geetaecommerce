@@ -653,13 +653,13 @@ export default function ProductDetail() {
 
           {/* Variant Selection - Only show if multiple variants */}
           {product.variations && product.variations.length > 1 && (
-            <div className="mb-2">
-              <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-1.5">
-                Select {product.variationType || "Variant"}:
+            <div className="mb-4">
+              <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-2">
+                {product.variationType || "Variant"}: <span className="font-bold text-neutral-900 ml-1">{variantTitle}</span>
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {product.variations.map((variant: any, index: number) => {
-                  const variantTitle = variant.title || variant.value || `Variant ${index + 1}`;
+                  const vTitle = variant.title || variant.value || `Variant ${index + 1}`;
                   const isOutOfStock = variant.status === "Sold out" || (variant.stock === 0 && variant.stock !== undefined && variant.stock !== null);
                   const isSelected = index === selectedVariantIndex;
 
@@ -668,16 +668,41 @@ export default function ProductDetail() {
                       key={index}
                       onClick={() => setSelectedVariantIndex(index)}
                       disabled={isOutOfStock}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border-2 ${
-                        isSelected
-                          ? "border-green-600 bg-green-50 text-green-700"
-                          : isOutOfStock
-                          ? "border-neutral-200 bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                          : "border-neutral-300 bg-white text-neutral-700 hover:border-green-500 hover:bg-green-50"
-                      }`}>
-                      {variantTitle}
+                      className={`relative group transition-all duration-200 ${
+                        variant.image ? "w-20 md:w-24" : "min-w-[70px]"
+                      }`}
+                    >
+                      <div className={`
+                        relative rounded-xl border-2 overflow-hidden bg-neutral-50 flex flex-col items-center justify-center transition-all
+                        ${isSelected ? "border-blue-600 bg-white ring-4 ring-blue-50 shadow-sm" : "border-neutral-100"}
+                        ${isOutOfStock ? "grayscale opacity-50" : "hover:border-neutral-200"}
+                        ${variant.image ? "aspect-[1/1]" : "py-2 px-3 h-11"}
+                      `}>
+                        {variant.image ? (
+                          <>
+                            <img
+                              src={variant.image}
+                              alt={vTitle}
+                              className="w-full h-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className={`
+                              absolute bottom-0 left-0 right-0 py-1 px-1 text-center backdrop-blur-[2px]
+                              ${isSelected ? "bg-blue-600 text-white" : "bg-white/90 text-neutral-800"}
+                            `}>
+                              <span className="text-[10px] font-bold truncate block tracking-tight">{vTitle}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <span className={`text-xs font-bold leading-tight ${isSelected ? "text-blue-700" : "text-neutral-700"}`}>
+                            {vTitle}
+                          </span>
+                        )}
+                      </div>
                       {isOutOfStock && (
-                        <span className="ml-1 text-xs">(Out of Stock)</span>
+                        <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full uppercase font-bold shadow-sm z-10">
+                          Sold
+                        </div>
                       )}
                     </button>
                   );

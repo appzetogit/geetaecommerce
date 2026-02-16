@@ -13,6 +13,7 @@ export interface HomeContentResponse {
     cookingIdeas: any[];
     promoCards?: any[];
     promoStrip?: any; // PromoStrip data from backend
+    homeSections?: any[];
   };
 }
 

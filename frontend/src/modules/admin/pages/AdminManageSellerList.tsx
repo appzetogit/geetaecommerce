@@ -42,6 +42,7 @@ interface Seller {
     requireProductApproval?: boolean;
     viewCustomerDetails?: boolean;
     isEnabled?: boolean;
+    canCreateCategories?: boolean;
 }
 
 // Helper function to convert backend seller to frontend format
@@ -142,6 +143,20 @@ export default function AdminManageSellerList() {
         };
 
         fetchSellers();
+
+        // Load category permissions from localStorage
+        const savedPermissions = localStorage.getItem('seller_category_permissions');
+        if (savedPermissions) {
+            try {
+                const permissions = JSON.parse(savedPermissions);
+                setSellers(prev => prev.map(s => ({
+                    ...s,
+                    canCreateCategories: permissions[s._id] || false
+                })));
+            } catch (e) {
+                console.error("Error loading permissions", e);
+            }
+        }
     }, []);
 
     const handleSort = (column: string) => {
@@ -419,6 +434,29 @@ export default function AdminManageSellerList() {
         }
     };
 
+    const handleToggleCategoryPermission = (id: string) => {
+        const seller = sellers.find(s => s._id === id);
+        if (!seller) return;
+
+        const newPermission = !seller.canCreateCategories;
+
+        // Update local state
+        const updatedSellers = sellers.map(s =>
+            s._id === id ? { ...s, canCreateCategories: newPermission } : s
+        );
+        setSellers(updatedSellers);
+
+        // Update localStorage
+        const permissions: Record<string, boolean> = {};
+        updatedSellers.forEach(s => {
+            if (s.canCreateCategories) permissions[s._id] = true;
+        });
+        localStorage.setItem('seller_category_permissions', JSON.stringify(permissions));
+
+        setSuccessMessage(`Category creation ${newPermission ? 'enabled' : 'disabled'} for ${seller.storeName}`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+    };
+
     return (
         <div className="flex flex-col h-full bg-gray-50">
             {/* Page Content */}
@@ -578,6 +616,9 @@ export default function AdminManageSellerList() {
                                             Enable/Disable
                                         </th>
                                         <th className="p-4">
+                                            Category Permission
+                                        </th>
+                                        <th className="p-4">
                                             Action
                                         </th>
                                     </tr>
@@ -655,6 +696,21 @@ export default function AdminManageSellerList() {
                                                 </button>
                                             </td>
                                             <td className="p-4 align-middle">
+                                                <button
+                                                    onClick={() => handleToggleCategoryPermission(seller._id)}
+                                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#f187b5] focus:ring-offset-2 ${
+                                                        seller.canCreateCategories ? 'bg-[#f187b5]' : 'bg-gray-200'
+                                                    }`}
+                                                    title={seller.canCreateCategories ? 'Can create categories' : 'Cannot create categories'}
+                                                >
+                                                    <span
+                                                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                                            seller.canCreateCategories ? 'translate-x-6' : 'translate-x-1'
+                                                        }`}
+                                                    />
+                                                </button>
+                                            </td>
+                                            <td className="p-4 align-middle">
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         onClick={() => handleEdit(seller._id)}
@@ -682,7 +738,7 @@ export default function AdminManageSellerList() {
                                     ))}
                                     {displayedSellers.length === 0 && (
                                         <tr>
-                                            <td colSpan={12} className="p-8 text-center text-neutral-400">
+                                            <td colSpan={13} className="p-8 text-center text-neutral-400">
                                                 No sellers found.
                                             </td>
                                         </tr>

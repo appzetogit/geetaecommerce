@@ -44,6 +44,10 @@ export default function SellerAddProduct() {
   const { id } = useParams();
   const { user } = useAuth();
   const isEnabled = user?.isEnabled !== false; // Default to true if undefined
+  const [showSEO, setShowSEO] = useState(false);
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
+  const [showVariations, setShowVariations] = useState(true);
+  const [showStoreVisibility, setShowStoreVisibility] = useState(true);
 
   const [formData, setFormData] = useState({
     productName: "",
@@ -1402,14 +1406,14 @@ export default function SellerAddProduct() {
   return (
     <div className="flex flex-col h-full">
       {/* Main Content */}
-      <div className="flex-1">
+      <div className="flex-1 pb-24">
 
         {!id && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
               <div
                   onClick={() => startScanning("check-exists")}
-                  className="bg-white p-4 rounded-xl border border-neutral-200 shadow-sm flex items-center gap-4 cursor-pointer hover:bg-seller-50 transition-all group border-l-4 border-l-seller-500">
-                  <div className="w-12 h-12 bg-seller-100 rounded-lg flex items-center justify-center text-seller-600 group-hover:scale-110 transition-transform">
+                  className="bg-white p-2.5 rounded-lg border border-neutral-200 shadow-sm flex items-center gap-3 cursor-pointer hover:bg-seller-50 transition-all group border-l-4 border-l-seller-500">
+                  <div className="w-10 h-10 bg-seller-100 rounded-lg flex items-center justify-center text-seller-600 group-hover:scale-110 transition-transform">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
                           <path d="M7 12h10" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
@@ -1422,7 +1426,7 @@ export default function SellerAddProduct() {
               </div>
 
               {/* Product Search Bar */}
-              <div className="bg-white p-4 rounded-xl border border-neutral-200 shadow-sm flex flex-col justify-center relative col-span-1 sm:col-span-2 lg:col-span-3">
+              <div className="bg-white p-2.5 rounded-lg border border-neutral-200 shadow-sm flex flex-col justify-center relative col-span-1 sm:col-span-2 lg:col-span-3">
                   <div className="relative w-full">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1431,7 +1435,7 @@ export default function SellerAddProduct() {
                       </div>
                       <input
                           type="text"
-                          className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-seller-500/50 focus:border-seller-500 outline-none text-sm transition-all"
+                          className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-seller-500/50 focus:border-seller-500 outline-none text-sm transition-all"
                           placeholder="Search product by name to auto-fill..."
                           value={productSearchQuery}
                           onChange={(e) => handleProductSearch(e.target.value)}
@@ -1485,7 +1489,7 @@ export default function SellerAddProduct() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form id="seller-product-form" onSubmit={handleSubmit} className="space-y-4">
           {!isEnabled && (
             <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
               <div className="flex items-center">
@@ -1500,18 +1504,18 @@ export default function SellerAddProduct() {
           )}
           {/* Product Section */}
           {/* Top Image & Name Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-6 space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 space-y-4">
 
             {/* 1. Image Upload - Compact Square */}
             {/* 1. Image Upload Section */}
             <div>
-                 <div className="flex flex-col gap-6">
+                 <div className="flex flex-col sm:flex-row gap-6 sm:items-start">
                     {/* Main Image */}
-                    <div className="flex flex-col items-center">
-                        <span className="text-sm font-semibold text-neutral-700 mb-2">Main Image</span>
+                    <div className="flex flex-col items-center shrink-0">
+                        <span className="text-sm font-semibold text-neutral-700 mb-1">Main Image</span>
                         <div
                          onClick={() => mainImageInputRef.current?.click()}
-                         className="w-40 h-40 border-2 border-seller-500 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-seller-50 transition-colors relative overflow-hidden bg-white">
+                         className="w-32 h-32 border-2 border-seller-500 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-seller-50 transition-colors relative overflow-hidden bg-white">
                             {mainImagePreview ? (
                                 <div className="w-full h-full relative group">
                                     <img src={mainImagePreview} className="w-full h-full object-contain" alt="Main" />
@@ -1540,10 +1544,10 @@ export default function SellerAddProduct() {
 
                     {/* Gallery Images */}
                     <div className="flex flex-col items-start w-full">
-                        <span className="text-sm font-semibold text-neutral-700 mb-2">Gallery Images (Max 6)</span>
-                        <div className="flex flex-wrap gap-3">
+                        <span className="text-sm font-semibold text-neutral-700 mb-1">Gallery Images (Max 6)</span>
+                        <div className="flex flex-wrap gap-2">
                             {galleryImagePreviews.map((preview, index) => (
-                                <div key={index} className="w-24 h-24 relative border border-gray-200 rounded-lg overflow-hidden group bg-white">
+                                <div key={index} className="w-20 h-20 relative border border-gray-200 rounded-lg overflow-hidden group bg-white">
                                     <img src={preview} className="w-full h-full object-cover" alt={`Gallery ${index}`} />
                                     <button
                                         type="button"
@@ -1555,8 +1559,8 @@ export default function SellerAddProduct() {
                                 </div>
                             ))}
                              {galleryImagePreviews.length < 6 && (
-                                <label className="w-24 h-24 border-2 border-gray-300 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors text-gray-400 hover:text-seller-600">
-                                    <span className="text-3xl font-light mb-1">+</span>
+                                <label className="w-20 h-20 border-2 border-gray-300 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors text-gray-400 hover:text-seller-600">
+                                    <span className="text-2xl font-light mb-0.5">+</span>
                                     <span className="text-[10px] font-medium uppercase">Add</span>
                                     <input type="file" accept="image/*" multiple onChange={handleGalleryImagesChange} className="hidden" />
                                 </label>
@@ -1568,7 +1572,7 @@ export default function SellerAddProduct() {
 
             {/* 2. Product Name */}
             <div>
-               <label className="block text-sm font-semibold text-neutral-700 mb-2">
+               <label className="block text-sm font-semibold text-neutral-700 mb-1">
                  Name <span className="text-red-500">*</span>
                </label>
                <input
@@ -1576,14 +1580,14 @@ export default function SellerAddProduct() {
                  name="productName"
                  value={formData.productName}
                  onChange={handleChange}
-                 className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                 className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                />
             </div>
 
             {/* 3. Pricing & Stock (Top Level - Matches Admin) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    <label className="block text-sm font-semibold text-neutral-700 mb-1">
                       Selling Price <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -1594,12 +1598,12 @@ export default function SellerAddProduct() {
                            value={formData.discPrice}
                            onChange={handleChange}
                            placeholder="0.00"
-                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                           className="w-full pl-7 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                         />
                     </div>
                 </div>
                 <div>
-                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                   <label className="block text-sm font-semibold text-neutral-700 mb-1">
                      Maximum Retail Price
                    </label>
                    <div className="relative">
@@ -1610,13 +1614,13 @@ export default function SellerAddProduct() {
                           value={formData.price}
                           onChange={handleChange}
                           placeholder="0.00"
-                          className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                          className="w-full pl-7 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                        />
                    </div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    <label className="block text-sm font-semibold text-neutral-700 mb-1">
                       Offer Price (Online)
                     </label>
                     <div className="relative">
@@ -1627,12 +1631,12 @@ export default function SellerAddProduct() {
                            value={formData.offerPrice}
                            onChange={handleChange}
                            placeholder="0.00"
-                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                           className="w-full pl-7 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                         />
                     </div>
                 </div>
                 <div>
-                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                   <label className="block text-sm font-semibold text-neutral-700 mb-1">
                      Wholesale Price
                    </label>
                    <div className="relative">
@@ -1643,7 +1647,7 @@ export default function SellerAddProduct() {
                            value={formData.wholesalePrice}
                            onChange={handleChange}
                            placeholder="0.00"
-                           className="w-full pl-7 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
+                           className="w-full pl-7 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5]"
                         />
                    </div>
                 </div>
@@ -1962,18 +1966,83 @@ export default function SellerAddProduct() {
               )}
             </div>
           </div>
+          {/* Print Barcodes Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
+            <div className="bg-[#f187b5] text-white px-4 py-2.5 rounded-t-xl">
+              <h2 className="text-base font-semibold tracking-wide">Print Barcodes</h2>
+            </div>
+            <div className="p-4 border-x border-b border-neutral-200 rounded-b-xl">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div>
+                   <label className="block text-sm font-semibold text-neutral-700 mb-1">Quantity</label>
+                   <input
+                      type="number"
+                      value={printQuantity}
+                      onChange={(e) => setPrintQuantity(e.target.value)}
+                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 shadow-sm"
+                      placeholder="Enter Quantity"
+                   />
+                </div>
+                <div>
+                    <label className="block text-sm font-semibold text-neutral-700 mb-1">Select Barcode</label>
+                    <div className="relative">
+                         <select
+                            className="w-full px-4 py-2 border border-neutral-300 rounded-lg appearance-none bg-white focus:ring-2 focus:ring-[#f187b5]/20 shadow-sm pr-10 cursor-pointer"
+                            value={selectedPrintBarcode}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                setSelectedPrintBarcode(val);
+                                if(val) {
+                                    // Find variation for name/price
+                                    const v = variations.find(v => (v.barcode || []).includes(val));
+                                    handlePrintBarcode(val, parseInt(printQuantity), formData.productName + (v ? ' - ' + v.title : ''), v?.price, v?.price);
+                                }
+                            }}
+                        >
+                            <option value="">Select a Barcode</option>
+                            {formData.barcode.map(b => (
+                                <option key={b} value={b}>Product: {b}</option>
+                            ))}
+                            {variations.map((v, i) => (v.barcode || []).map(b => (
+                                <option key={`${i}-${b}`} value={b}>Var: {v.title} ({b})</option>
+                            )))}
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+                <div className="text-sm text-neutral-500 italic bg-[#f187b5]/10 p-2 rounded-lg border border-[#f187b5]/20 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-[#f187b5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    * Select barcode to print.
+                </div>
+              </div>
+            </div>
+          </div>
+
 
           {/* SEO Content Section */}
-          {/* SEO Content Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
-              <h2 className="text-lg font-semibold tracking-wide">SEO Configuration</h2>
+            <div
+              className="bg-seller-500 text-white px-4 py-2.5 rounded-t-xl flex justify-between items-center cursor-pointer"
+              onClick={() => setShowSEO(!showSEO)}
+            >
+              <h2 className="text-base font-semibold tracking-wide">SEO Configuration</h2>
+              <svg
+                className={`w-6 h-6 transition-transform duration-300 ${showSEO ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {showSEO && (
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {shouldShowField('seo_title') && (
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">
                     meta Title
                   </label>
                   <input
@@ -1982,7 +2051,7 @@ export default function SellerAddProduct() {
                     value={formData.seoTitle}
                     onChange={handleChange}
                     placeholder="Enter meta Title"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                   />
                 </div>
                 )}
@@ -2018,7 +2087,7 @@ export default function SellerAddProduct() {
                 )}
                 {shouldShowField('seo_description') && (
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                  <label className="block text-sm font-semibold text-neutral-700 mb-1">
                     meta Description
                   </label>
                   <textarea
@@ -2026,20 +2095,33 @@ export default function SellerAddProduct() {
                     value={formData.seoDescription}
                     onChange={handleChange}
                     placeholder="Enter meta Description"
-                    rows={4}
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 resize-none transition-all"
+                    rows={3}
+                    className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 resize-none transition-all"
                   />
                 </div>
                 )}
               </div>
             </div>
+            )}
           </div>
 
-            {/* Product Variations Section */}
             <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-               <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
-                 <h2 className="text-lg font-semibold tracking-wide">Product Variations</h2>
-                 <div className="flex items-center gap-2">
+               <div
+                 className="bg-[#f187b5] text-white px-6 py-4 rounded-t-xl flex justify-between items-center cursor-pointer"
+                 onClick={() => setShowVariations(!showVariations)}
+               >
+                 <div className="flex items-center gap-3">
+                   <h2 className="text-lg font-semibold tracking-wide">Product Variations</h2>
+                   <svg
+                     className={`w-6 h-6 transition-transform duration-300 ${showVariations ? 'rotate-180' : ''}`}
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24"
+                   >
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                   </svg>
+                 </div>
+                 <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                      <span className="text-sm font-medium text-white/90">Enable Attributes</span>
                      <button
                          type="button"
@@ -2050,6 +2132,9 @@ export default function SellerAddProduct() {
                      </button>
                  </div>
                </div>
+
+               {showVariations && (
+                 <>
 
                <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
                  <div>
@@ -2825,17 +2910,29 @@ export default function SellerAddProduct() {
                     </div>
                   )}
                </div>
-
-
+               </>
+               )}
           </div>
 
 
 
           {/* Add Other Details Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
+            <div
+              className="bg-seller-500 text-white px-6 py-4 rounded-t-xl flex justify-between items-center cursor-pointer"
+              onClick={() => setShowAdditionalDetails(!showAdditionalDetails)}
+            >
               <h2 className="text-lg font-semibold tracking-wide">Additional Details</h2>
+              <svg
+                className={`w-6 h-6 transition-transform duration-300 ${showAdditionalDetails ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
+            {showAdditionalDetails && (
             <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {shouldShowField('manufacturer') && (
@@ -3059,61 +3156,9 @@ export default function SellerAddProduct() {
                 </div>
               </div>
             </div>
+            )}
           </div>
 
-          {/* Print Barcodes Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-xl">
-              <h2 className="text-lg font-semibold tracking-wide">Print Barcodes</h2>
-            </div>
-            <div className="p-6 border-x border-b border-neutral-200 rounded-b-xl">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                <div>
-                   <label className="block text-sm font-semibold text-neutral-700 mb-2">Quantity</label>
-                   <input
-                      type="number"
-                      value={printQuantity}
-                      onChange={(e) => setPrintQuantity(e.target.value)}
-                      className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 shadow-sm"
-                      placeholder="Enter Quantity"
-                   />
-                </div>
-                <div>
-                    <label className="block text-sm font-semibold text-neutral-700 mb-2">Select Barcode</label>
-                    <div className="relative">
-                         <select
-                            className="w-full px-4 py-2 border border-neutral-300 rounded-lg appearance-none bg-white focus:ring-2 focus:ring-[#f187b5]/20 shadow-sm pr-10 cursor-pointer"
-                            value={selectedPrintBarcode}
-                            onChange={(e) => {
-                                const val = e.target.value;
-                                setSelectedPrintBarcode(val);
-                                if(val) {
-                                    // Find variation for name/price
-                                    const v = variations.find(v => (v.barcode || []).includes(val));
-                                    handlePrintBarcode(val, parseInt(printQuantity), formData.productName + (v ? ' - ' + v.title : ''), v?.price, v?.price);
-                                }
-                            }}
-                        >
-                            <option value="">Select a Barcode</option>
-                            {formData.barcode.map(b => (
-                                <option key={b} value={b}>Product: {b}</option>
-                            ))}
-                            {variations.map((v, i) => (v.barcode || []).map(b => (
-                                <option key={`${i}-${b}`} value={b}>Var: {v.title} ({b})</option>
-                            )))}
-                        </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                    </div>
-                </div>
-                <div className="text-sm text-neutral-500 italic bg-[#f187b5]/10 p-3 rounded-lg border border-[#f187b5]/20 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-[#f187b5]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    * Select a barcode to immediately open the print preview.
-                </div>
-              </div>
-            </div>
-          </div>
 
 
 
@@ -3122,10 +3167,22 @@ export default function SellerAddProduct() {
           {/* Shop by Store Section */}
           {shouldShowField('shop_by_store_only') && (
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200">
-            <div className="bg-seller-500 text-white px-6 py-4 rounded-t-xl">
+            <div
+              className="bg-seller-500 text-white px-6 py-4 rounded-t-xl flex justify-between items-center cursor-pointer"
+              onClick={() => setShowStoreVisibility(!showStoreVisibility)}
+            >
               <h2 className="text-lg font-semibold tracking-wide">Store Visibility</h2>
+              <svg
+                className={`w-6 h-6 transition-transform duration-300 ${showStoreVisibility ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
-            <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
+            {showStoreVisibility && (
+              <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
               <div className="bg-seller-50 border border-seller-200 rounded-lg p-4 flex gap-3 items-start">
                  <svg className="w-5 h-5 text-seller-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                  <p className="text-sm text-seller-800">
@@ -3164,6 +3221,7 @@ export default function SellerAddProduct() {
                   )}
               </div>
             </div>
+            )}
           </div>
           )}
 
@@ -3173,19 +3231,6 @@ export default function SellerAddProduct() {
              </div>
           )}
 
-          {/* Submit Button */}
-          <div className="flex justify-end pb-6">
-            <button
-              type="submit"
-              disabled={uploading || !isEnabled}
-              className={`px-8 py-3 rounded-lg font-medium text-lg transition-colors shadow-sm ${
-                uploading || !isEnabled
-                  ? "bg-neutral-400 cursor-not-allowed text-white"
-                  : "bg-seller-500 hover:bg-seller-600 text-white"
-              }`}>
-              {uploading ? "Uploading Images..." : id ? "Update Product" : "Add Product"}
-            </button>
-          </div>
         </form>
       </div>
       {/* Scanner Modal */}
@@ -3394,8 +3439,22 @@ export default function SellerAddProduct() {
                 </div>
             </div>
         )}
-
-
+        {/* Fixed Footer Bar */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 p-4 flex justify-end shadow-[0_-4px_10px_rgba(0,0,0,0.05)] z-[40]">
+          <div className="max-w-[1920px] mx-auto w-full flex justify-end px-4 sm:px-6 md:px-8">
+            <button
+              form="seller-product-form"
+              type="submit"
+              disabled={uploading || !isEnabled}
+              className={`px-10 py-3 rounded-xl font-bold text-lg transition-all shadow-lg active:scale-95 ${
+                uploading || !isEnabled
+                  ? "bg-neutral-400 cursor-not-allowed text-white"
+                  : "bg-seller-500 hover:bg-seller-600 text-white shadow-seller-500/30"
+              }`}>
+              {uploading ? "Uploading Images..." : id ? "Update Product" : "Add Product"}
+            </button>
+          </div>
+        </div>
     </div>
   );
 }

@@ -787,7 +787,7 @@ export default function SellerProductList() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-gradient-to-br from-seller-50 to-seller-50">
       {/* Page Content */}
       <div className="flex-1 p-6">
         {/* Main Panel */}

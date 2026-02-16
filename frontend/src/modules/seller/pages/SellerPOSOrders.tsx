@@ -61,6 +61,34 @@ const SellerPOSOrders = () => {
     };
   }, []);
 
+  const [billSettings, setBillSettings] = useState({
+    shopName: "GEETA",
+    address: "Q7WM+92M, Q7WM+92M, , Indore Division,",
+    line2: "Nagda, Madhya Pradesh, India - 454001\n7898111456",
+  });
+
+  useEffect(() => {
+    const saved = localStorage.getItem("seller_bill_settings");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const newSettings = {
+          shopName: parsed.shopName || "GEETA",
+          address: parsed.address ? parsed.address.split('\n')[0] : "Q7WM+92M, Q7WM+92M, , Indore Division,",
+          line2: parsed.address ? (parsed.address.split('\n').slice(1).join(' ') + (parsed.phone ? `\n${parsed.phone}` : '')) : "Nagda, Madhya Pradesh, India - 454001\n7898111456"
+        };
+        setBillSettings(newSettings);
+        document.title = newSettings.shopName;
+      } catch (e) { console.error("Error parsing bill settings", e); }
+    } else {
+        document.title = "Geeta Stores";
+    }
+
+    return () => {
+        document.title = "Geeta Stores";
+    };
+  }, []);
+
   // Multi-Bill State
   const [bills, setBills] = useState<Bill[]>(() => {
     try {
@@ -1055,12 +1083,28 @@ const SellerPOSOrders = () => {
     // --- Header ---
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("GEETA", 14, 20);
+
+    let shopName = "GEETA";
+    let shopAddress = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
+
+    try {
+      const savedSettings = localStorage.getItem("seller_bill_settings");
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        if (settings.shopName) shopName = settings.shopName;
+        if (settings.address || settings.phone) {
+             shopAddress = `${settings.address || ''}\n${settings.phone || ''}`;
+        }
+      }
+    } catch (e) {
+      console.error("Error reading bill settings", e);
+    }
+
+    doc.text(shopName, 14, 20);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    const address = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
-    doc.text(address, 14, 26);
+    doc.text(shopAddress, 14, 26);
 
     doc.line(14, 40, 196, 40);
 
@@ -2875,10 +2919,9 @@ const SellerPOSOrders = () => {
           {/* We use a specific width/style for thermal printing */}
           <div className="w-[80mm] p-2 font-mono text-xs text-black mx-auto">
               <div className="mb-2 text-left">
-                  <h1 className="text-sm font-bold uppercase">GEETA</h1>
-                  <p className="text-[10px] leading-tight">Q7WM+92M, Q7WM+92M, , Indore Division,</p>
-                  <p className="text-[10px] leading-tight">Nagda, Madhya Pradesh, India - 454001</p>
-                  <p className="text-[10px]">7898111456</p>
+                  <h1 className="text-sm font-bold uppercase">{billSettings.shopName}</h1>
+                  <p className="text-[10px] leading-tight whitespace-pre-wrap">{billSettings.address}</p>
+                  <p className="text-[10px] leading-tight whitespace-pre-wrap">{billSettings.line2}</p>
               </div>
 
               <div className="border-b border-black my-2"></div>
