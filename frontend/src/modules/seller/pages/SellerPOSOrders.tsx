@@ -528,14 +528,20 @@ const SellerPOSOrders = () => {
                      ...itemToAdd,
                      variationId: variationMatch._id,
                      _id: `${itemToAdd._id}-${variationMatch._id}`, // Consistent variation ID
-                     isVariation: true
+                     isVariation: true,
+                     stock: variationMatch.stock // Use variation stock
                  };
              } else {
                  itemToAdd.originalProductId = itemToAdd._id;
              }
 
-             if (addToCartRef.current) addToCartRef.current({ ...itemToAdd, qty: 1 } as CartItem);
-             showToast(`Added: ${itemToAdd.productName}`, "success");
+             // Check Stock before adding
+             if (itemToAdd.stock <= 0) {
+                 showToast(`Item "${itemToAdd.productName}" is Out of Stock!`, "error");
+             } else {
+                 if (addToCartRef.current) addToCartRef.current({ ...itemToAdd, qty: 1 } as CartItem);
+                 showToast(`Added: ${itemToAdd.productName}`, "success");
+             }
 
              // Keep scanner open for faster multiple scanning
              // setShowScanner(false);
