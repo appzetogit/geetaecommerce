@@ -3376,24 +3376,22 @@ const SellerPOSOrders = () => {
 
       {/* --- SCANNER MODAL --- */}
       {showScanner && (
-        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden relative">
-                <div className="bg-gray-800 px-4 py-3 text-white flex justify-between items-center">
-                    <h3 className="font-semibold">Scan Barcode</h3>
-                    <button onClick={() => setShowScanner(false)} className="text-white/80 hover:text-white">✕</button>
-                </div>
-                <div className="p-4 bg-black">
-                     <div id="reader" className="w-full h-64 bg-black rounded overflow-hidden"></div>
-                     <p className="text-center text-gray-400 text-xs mt-2">Point camera at a barcode</p>
-                </div>
-                <div className="p-4 bg-white flex justify-center">
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden relative animate-in zoom-in duration-200">
+                <div className="bg-[#f187b5] px-5 py-4 text-white flex justify-between items-center">
+                    <h3 className="font-bold text-lg">Scan Barcode</h3>
                     <button
-                         onClick={() => setScannerKey(prev => prev + 1)}
-                         className="text-sm text-blue-600 hover:underline"
+                        onClick={() => setShowScanner(false)}
+                        className="p-1 hover:bg-white/20 rounded-lg transition-colors"
                     >
-                        Restart Scanner
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
+                <div className="p-4 bg-black">
+                     <div id="reader" className="w-full aspect-square bg-black rounded-xl overflow-hidden shadow-inner"></div>
+                     <p className="text-center text-white/60 text-[11px] font-medium mt-4 tracking-wide uppercase">Point camera at a barcode to scan</p>
+                </div>
+                {/* Removed Restart Scanner footer for compact look */}
             </div>
         </div>
       )}
