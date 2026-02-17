@@ -39,6 +39,24 @@ export default function AdminStoreSettings() {
             facebook: '',
             youtube: '',
             instagram: ''
+        },
+        invoiceSettings: {
+            notes: {
+                text: 'Thank you for your business',
+                enabled: true
+            },
+            terms: {
+                text: 'Goods once sold will not be taken back.',
+                enabled: true
+            },
+            gst: {
+                text: '',
+                enabled: false
+            },
+            fssai: {
+                text: '',
+                enabled: false
+            }
         }
     });
 
@@ -66,6 +84,24 @@ export default function AdminStoreSettings() {
                         facebook: data.socialMediaLinks?.facebook || '',
                         youtube: data.socialMediaLinks?.youtube || '',
                         instagram: data.socialMediaLinks?.instagram || ''
+                    },
+                    invoiceSettings: {
+                        notes: {
+                            text: data.invoiceSettings?.notes?.text || 'Thank you for your business',
+                            enabled: data.invoiceSettings?.notes?.enabled ?? true
+                        },
+                        terms: {
+                            text: data.invoiceSettings?.terms?.text || 'Goods once sold will not be taken back.',
+                            enabled: data.invoiceSettings?.terms?.enabled ?? true
+                        },
+                        gst: {
+                            text: data.invoiceSettings?.gst?.text || '',
+                            enabled: data.invoiceSettings?.gst?.enabled ?? false
+                        },
+                        fssai: {
+                            text: data.invoiceSettings?.fssai?.text || '',
+                            enabled: data.invoiceSettings?.fssai?.enabled ?? false
+                        }
                     }
                 });
             }
@@ -80,17 +116,45 @@ export default function AdminStoreSettings() {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         if (name.includes('.')) {
-            const [parent, child] = name.split('.');
-            setFormData(prev => ({
-                ...prev,
-                [parent]: {
-                    ...(prev[parent as keyof typeof prev] as any),
-                    [child]: value
-                }
-            }));
+            const parts = name.split('.');
+            if (parts.length === 2) {
+                const [parent, child] = parts;
+                setFormData(prev => ({
+                    ...prev,
+                    [parent]: {
+                        ...(prev[parent as keyof typeof prev] as any),
+                        [child]: value
+                    }
+                }));
+            } else if (parts.length === 3) {
+                const [grandParent, parent, child] = parts;
+                setFormData(prev => ({
+                    ...prev,
+                    [grandParent]: {
+                        ...(prev[grandParent as keyof typeof prev] as any),
+                        [parent]: {
+                            ...((prev[grandParent as keyof typeof prev] as any)[parent]),
+                            [child]: value
+                        }
+                    }
+                }));
+            }
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
+    };
+
+    const handleToggleInvoiceSetting = (section: 'notes' | 'terms' | 'gst' | 'fssai') => {
+        setFormData(prev => ({
+            ...prev,
+            invoiceSettings: {
+                ...prev.invoiceSettings,
+                [section]: {
+                    ...prev.invoiceSettings[section],
+                    enabled: !prev.invoiceSettings[section].enabled
+                }
+            }
+        }));
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'favicon') => {
@@ -384,6 +448,140 @@ export default function AdminStoreSettings() {
                             <Plus className="h-3 w-3" />
                             Add More Connections
                         </button>
+                    </div>
+                </div>
+
+                {/* Invoice Settings (Notes & Terms) */}
+                <div className="rounded-3xl bg-white p-8 shadow-sm border border-neutral-100">
+                    <h2 className="text-base font-bold text-neutral-800 mb-6">Notes, Term & Conditions</h2>
+                    <div className="space-y-8">
+                        {/* Notes */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-sm font-bold text-neutral-800">Notes</h3>
+                                    <p className="text-xs text-neutral-500 mt-1">Shown just below invoice total (e.g. "Thank you for shopping with us.")</p>
+                                </div>
+                                <button
+                                    onClick={() => handleToggleInvoiceSetting('notes')}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.notes.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.invoiceSettings.notes.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+
+                            {formData.invoiceSettings.notes.enabled && (
+                                <div className="relative group">
+                                    <input
+                                        type="text"
+                                        name="invoiceSettings.notes.text"
+                                        value={formData.invoiceSettings.notes.text}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter note..."
+                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none"
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400">
+                                        <Save className="h-4 w-4" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Terms & Conditions */}
+                        <div className="space-y-4 pt-4 border-t border-neutral-100">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-sm font-bold text-neutral-800">Terms and Conditions</h3>
+                                    <p className="text-xs text-neutral-500 mt-1">Shown in small text at bottom of invoice.</p>
+                                </div>
+                                <button
+                                    onClick={() => handleToggleInvoiceSetting('terms')}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.terms.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.invoiceSettings.terms.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+
+                            {formData.invoiceSettings.terms.enabled && (
+                                <div className="relative group">
+                                    <textarea
+                                        name="invoiceSettings.terms.text"
+                                        value={formData.invoiceSettings.terms.text}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter terms and conditions..."
+                                        rows={3}
+                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none resize-none"
+                                    />
+                                    <div className="absolute right-4 top-4 text-neutral-400">
+                                        <Save className="h-4 w-4" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* GST Details */}
+                        <div className="space-y-4 pt-4 border-t border-neutral-100">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-sm font-bold text-neutral-800">GST Details (Optional)</h3>
+                                    <p className="text-xs text-neutral-500 mt-1">Shown on invoice if enabled.</p>
+                                </div>
+                                <button
+                                    onClick={() => handleToggleInvoiceSetting('gst')}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.gst?.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.invoiceSettings.gst?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+
+                            {formData.invoiceSettings.gst?.enabled && (
+                                <div className="relative group">
+                                    <input
+                                        type="text"
+                                        name="invoiceSettings.gst.text"
+                                        value={formData.invoiceSettings.gst?.text || ''}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter GST Number"
+                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none"
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400">
+                                        <Save className="h-4 w-4" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* FSSAI Number */}
+                        <div className="space-y-4 pt-4 border-t border-neutral-100">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-sm font-bold text-neutral-800">FSSAI Number (Optional)</h3>
+                                    <p className="text-xs text-neutral-500 mt-1">Shown on invoice if enabled.</p>
+                                </div>
+                                <button
+                                    onClick={() => handleToggleInvoiceSetting('fssai')}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.fssai?.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.invoiceSettings.fssai?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+
+                            {formData.invoiceSettings.fssai?.enabled && (
+                                <div className="relative group">
+                                    <input
+                                        type="text"
+                                        name="invoiceSettings.fssai.text"
+                                        value={formData.invoiceSettings.fssai?.text || ''}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter FSSAI Number"
+                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none"
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400">
+                                        <Save className="h-4 w-4" />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

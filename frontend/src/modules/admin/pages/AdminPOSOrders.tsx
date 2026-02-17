@@ -9,6 +9,7 @@ import { useToast } from '../../../context/ToastContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { jsPDF } from "jspdf";
 import { Html5Qrcode } from "html5-qrcode";
+import { useAppContext } from '../../../context/AppContext';
 
 // Interface for Cart Item extending Product
 interface CartItem extends Product {
@@ -43,6 +44,11 @@ const AdminPOSOrders = () => {
    const editOrderId = searchParams.get('edit');
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { config, refreshConfig } = useAppContext();
+
+  useEffect(() => {
+    refreshConfig();
+  }, []);
 
   const [selectedSeller, setSelectedSeller] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -191,13 +197,23 @@ const AdminPOSOrders = () => {
   const paymentMethod = activeBill.paymentMethod;
 
   const setCart = (action: React.SetStateAction<CartItem[]>) => {
-    let newCart;
-    if (typeof action === 'function') {
-      newCart = action(activeBill.cart);
-    } else {
-      newCart = action;
-    }
-    updateActiveBill({ cart: newCart });
+    setBills(prev => {
+        const index = prev.findIndex(b => b.id === activeBillId);
+        if (index === -1) return prev;
+
+        const currentCart = prev[index].cart;
+        let newCart;
+        if (typeof action === 'function') {
+            newCart = action(currentCart);
+        } else {
+            newCart = action;
+        }
+
+        const updated = [...prev];
+        updated[index] = { ...updated[index], cart: newCart };
+        localStorage.setItem('pos_bills', JSON.stringify(updated));
+        return updated;
+    });
   };
 
   const setPaymentMethod = (method: string) => {
@@ -1056,30 +1072,44 @@ const AdminPOSOrders = () => {
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    const address = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
+    let address = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
+    if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
+        address += `\nGST: ${config.invoiceSettings.gst.text}`;
+    }
+    if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
+        address += `\nFSSAI: ${config.invoiceSettings.fssai.text}`;
+    }
     doc.text(address, 14, 26);
 
-    doc.line(14, 40, 196, 40);
+    // Dynamic Y positioning based on address lines
+    const addressLines = address.split('\n').length;
+    // Base Y (26) + (lines * 5mm spacing)
+    let currentY = 26 + (addressLines * 5) + 2;
+
+    doc.line(14, currentY, 196, currentY);
+    currentY += 8;
 
     // --- Invoice Details ---
     doc.setFont("helvetica", "bold");
-    doc.text("Invoice Number:", 14, 48);
-    doc.text("Invoice Date:", 14, 53);
-    doc.text("Payment Status:", 14, 58);
+    doc.text("Invoice Number:", 14, currentY);
+    doc.text("Invoice Date:", 14, currentY + 5);
+    doc.text("Payment Status:", 14, currentY + 10);
 
     doc.setFont("helvetica", "normal");
-    doc.text(invoiceNum, 196, 48, { align: 'right' });
-    doc.text(`${dateStr} ${timeStr}`, 196, 53, { align: 'right' });
-    doc.text(paymentMethod, 196, 58, { align: 'right' });
+    doc.text(invoiceNum, 196, currentY, { align: 'right' });
+    doc.text(`${dateStr} ${timeStr}`, 196, currentY + 5, { align: 'right' });
+    doc.text(paymentMethod, 196, currentY + 10, { align: 'right' });
 
+    currentY += 15;
     doc.setLineWidth(0.5);
-    doc.line(14, 63, 196, 63);
+    doc.line(14, currentY, 196, currentY);
+    currentY += 5;
 
     // --- Table Header ---
     doc.setFont("helvetica", "bold");
-    doc.text("Estimated Bill", 105, 68, { align: 'center' });
+    doc.text("Estimated Bill", 105, currentY, { align: 'center' });
 
-    let y = 74;
+    let y = currentY + 6;
     doc.setFontSize(10);
     doc.text("Item-name", 14, y);
     doc.text("Qty", 100, y);
@@ -1166,6 +1196,43 @@ const AdminPOSOrders = () => {
     doc.text(totalBillAmount.toString(), 196, y, { align: 'right' });
     y += 2;
     doc.line(14, y + 2, 196, y + 2);
+
+    // --- Notes & Terms (from Admin Settings) ---
+    // Access config from closure (we need to make sure config is available in scope)
+    // Note: Since downloadPDF is inside the component, we can use 'config' from component scope (if we destructure it).
+
+    // We need to fetch config inside AdminPOSOrders component first.
+    // Assuming config is available as 'config' variable.
+
+    y += 10;
+    if (config?.invoiceSettings) {
+        // Notes
+        if (config.invoiceSettings.notes?.enabled && config.invoiceSettings.notes?.text) {
+             if (y > 270) { doc.addPage(); y = 20; }
+             doc.setFontSize(10);
+             doc.setFont("helvetica", "bold");
+             doc.text("Note:", 14, y);
+             y += 5;
+             doc.setFont("helvetica", "normal");
+             doc.setFontSize(9);
+             const splitNotes = doc.splitTextToSize(config.invoiceSettings.notes.text, 180);
+             doc.text(splitNotes, 14, y);
+             y += (splitNotes.length * 4) + 8;
+        }
+
+        // Terms
+        if (config.invoiceSettings.terms?.enabled && config.invoiceSettings.terms?.text) {
+             if (y > 270) { doc.addPage(); y = 20; }
+             doc.setFontSize(10);
+             doc.setFont("helvetica", "bold");
+             doc.text("Terms and Conditions:", 14, y);
+             y += 5;
+             doc.setFont("helvetica", "normal");
+             doc.setFontSize(8);
+             const splitTerms = doc.splitTextToSize(config.invoiceSettings.terms.text, 180);
+             doc.text(splitTerms, 14, y);
+        }
+    }
 
     doc.save(`Invoice_${invoiceNum}.pdf`);
   };
@@ -2712,6 +2779,14 @@ const AdminPOSOrders = () => {
                   <p className="text-[10px] leading-tight">Q7WM+92M, Q7WM+92M, , Indore Division,</p>
                   <p className="text-[10px] leading-tight">Nagda, Madhya Pradesh, India - 454001</p>
                   <p className="text-[10px]">7898111456</p>
+
+                  {/* GST & FSSAI */}
+                  {config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text && (
+                      <p className="text-[10px] font-bold mt-1">GST: {config.invoiceSettings.gst.text}</p>
+                  )}
+                  {config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text && (
+                      <p className="text-[10px] font-bold">FSSAI: {config.invoiceSettings.fssai.text}</p>
+                  )}
               </div>
 
               <div className="border-b border-black my-2"></div>
@@ -2803,8 +2878,21 @@ const AdminPOSOrders = () => {
 
               <div className="border-b border-black border-dashed my-2"></div>
 
-              <div className="text-center mt-4">
-                  <p>Thank You. Come Again!</p>
+              <div className="text-center mt-4 text-[10px]">
+                  {/* Notes */}
+                  {config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text && (
+                      <p className="font-bold mb-2 whitespace-pre-wrap">{config.invoiceSettings.notes.text}</p>
+                  )}
+
+                  {/* Terms & Conditions */}
+                  {config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text && (
+                      <div className="text-left mt-2 border-t border-black border-dashed pt-2">
+                          <p className="font-bold mb-1">Terms & Conditions:</p>
+                          <p className="whitespace-pre-wrap leading-tight">{config.invoiceSettings.terms.text}</p>
+                      </div>
+                  )}
+
+
               </div>
           </div>
       </div>

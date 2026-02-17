@@ -12,6 +12,7 @@ import { jsPDF } from "jspdf";
 import { Html5Qrcode } from "html5-qrcode";
 import { CartItem, Cart } from '@/types/cart';
 import { Product } from '@/types/domain';
+import { useAppContext } from '../../../context/AppContext';
 
 // Extended Product interface for POS to include fields as any to bypass strict checks
 type POSProduct = any;
@@ -36,10 +37,11 @@ interface Bill {
 }
 
 const SellerPOSOrders = () => {
-   const [searchParams] = useSearchParams();
-   const location = useLocation();
-   const editOrderId = searchParams.get('edit');
-  const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const location = useLocation();
+    const { config } = useAppContext();
+    const editOrderId = searchParams.get('edit');
+    const navigate = useNavigate();
   const { showToast } = useToast();
   const [orderItems, setOrderItems] = useState<CartItem[]>([]);
 
@@ -65,6 +67,10 @@ const SellerPOSOrders = () => {
     shopName: "GEETA",
     address: "Q7WM+92M, Q7WM+92M, , Indore Division,",
     line2: "Nagda, Madhya Pradesh, India - 454001\n7898111456",
+    notes: { text: "Thank you for your business", enabled: true },
+    terms: { text: "Goods once sold will not be taken back.", enabled: true },
+    gst: { text: "", enabled: false },
+    fssai: { text: "", enabled: false }
   });
 
   useEffect(() => {
@@ -75,18 +81,15 @@ const SellerPOSOrders = () => {
         const newSettings = {
           shopName: parsed.shopName || "GEETA",
           address: parsed.address ? parsed.address.split('\n')[0] : "Q7WM+92M, Q7WM+92M, , Indore Division,",
-          line2: parsed.address ? (parsed.address.split('\n').slice(1).join(' ') + (parsed.phone ? `\n${parsed.phone}` : '')) : "Nagda, Madhya Pradesh, India - 454001\n7898111456"
+          line2: parsed.address ? (parsed.address.split('\n').slice(1).join(' ') + (parsed.phone ? `\n${parsed.phone}` : '')) : "Nagda, Madhya Pradesh, India - 454001\n7898111456",
+          notes: parsed.notes || { text: "Thank you for your business", enabled: true },
+          terms: parsed.terms || { text: "Goods once sold will not be taken back.", enabled: true },
+          gst: parsed.gst || { text: "", enabled: false },
+          fssai: parsed.fssai || { text: "", enabled: false }
         };
         setBillSettings(newSettings);
-        document.title = newSettings.shopName;
       } catch (e) { console.error("Error parsing bill settings", e); }
-    } else {
-        document.title = "Geeta Stores";
     }
-
-    return () => {
-        document.title = "Geeta Stores";
-    };
   }, []);
 
   // Multi-Bill State
@@ -220,13 +223,23 @@ const SellerPOSOrders = () => {
   const paymentMethod = activeBill.paymentMethod;
 
   const setCart = (action: React.SetStateAction<CartItem[]>) => {
-    let newCart;
-    if (typeof action === 'function') {
-      newCart = action(activeBill.cart);
-    } else {
-      newCart = action;
-    }
-    updateActiveBill({ cart: newCart });
+    setBills(prev => {
+        const index = prev.findIndex(b => b.id === activeBillId);
+        if (index === -1) return prev;
+
+        const currentCart = prev[index].cart;
+        let newCart;
+        if (typeof action === 'function') {
+            newCart = action(currentCart);
+        } else {
+            newCart = action;
+        }
+
+        const updated = [...prev];
+        updated[index] = { ...updated[index], cart: newCart };
+        localStorage.setItem('pos_bills', JSON.stringify(updated));
+        return updated;
+    });
   };
 
   const setPaymentMethod = (method: string) => {
@@ -1087,18 +1100,44 @@ const SellerPOSOrders = () => {
     let shopName = "GEETA";
     let shopAddress = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
 
+    let sellerSettings: any = null;
     try {
       const savedSettings = localStorage.getItem("seller_bill_settings");
       if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        if (settings.shopName) shopName = settings.shopName;
-        if (settings.address || settings.phone) {
-             shopAddress = `${settings.address || ''}\n${settings.phone || ''}`;
+        sellerSettings = JSON.parse(savedSettings);
+        if (sellerSettings.shopName) shopName = sellerSettings.shopName;
+        if (sellerSettings.address || sellerSettings.phone) {
+             shopAddress = `${sellerSettings.address || ''}\n${sellerSettings.phone || ''}`;
         }
       }
     } catch (e) {
       console.error("Error reading bill settings", e);
     }
+
+    // GST & FSSAI
+    let gstText = null;
+    let fssaiText = null;
+
+    if (sellerSettings) {
+        // Seller has settings, strictly use them
+        if (sellerSettings.gst?.enabled && sellerSettings.gst?.text) {
+            gstText = sellerSettings.gst.text;
+        }
+        if (sellerSettings.fssai?.enabled && sellerSettings.fssai?.text) {
+            fssaiText = sellerSettings.fssai.text;
+        }
+    } else {
+        // Only fallback if no seller settings at all
+        if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
+            gstText = config.invoiceSettings.gst.text;
+        }
+        if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
+            fssaiText = config.invoiceSettings.fssai.text;
+        }
+    }
+
+    if (gstText) shopAddress += `\nGST: ${gstText}`;
+    if (fssaiText) shopAddress += `\nFSSAI: ${fssaiText}`;
 
     doc.text(shopName, 14, 20);
 
@@ -1214,6 +1253,95 @@ const SellerPOSOrders = () => {
     doc.text(totalBillAmount.toString(), 196, y, { align: 'right' });
     y += 2;
     doc.line(14, y + 2, 196, y + 2);
+
+    // --- Notes & Terms ---
+    y += 10;
+
+    // Notes (from Seller Settings - localStorage)
+    try {
+        const savedSettings = localStorage.getItem("seller_bill_settings");
+        // If seller settings exist, we use them (or nothing if disabled). We do NOT fallback to admin if seller has explicitly saved settings (even if enabled=false).
+
+        let useSellerSettings = false;
+        let sellerNotes = null;
+
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            useSellerSettings = true;
+            if (settings.notes && settings.notes.enabled && settings.notes.text) {
+                 sellerNotes = settings.notes.text;
+            }
+        } else {
+             // Fallback to Admin only if seller has NO settings at all (e.g. first run)
+             if (config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text) {
+                  sellerNotes = config.invoiceSettings.notes.text;
+             }
+        }
+
+        if (sellerNotes) {
+             if (y > 270) { doc.addPage(); y = 20; }
+             doc.setFontSize(10);
+             doc.setFont("helvetica", "bold");
+             doc.text("Note:", 14, y);
+             y += 5;
+             doc.setFont("helvetica", "normal");
+             doc.setFontSize(9);
+             const splitNotes = doc.splitTextToSize(sellerNotes, 180);
+             doc.text(splitNotes, 14, y);
+             y += (splitNotes.length * 4) + 8;
+        }
+
+    } catch (e) {
+        console.error("Error reading notes settings", e);
+    }
+
+    // Terms (from Seller Settings - localStorage)
+    try {
+        const savedSettings = localStorage.getItem("seller_bill_settings");
+        // If seller settings exist, we use them (or nothing if disabled). We do NOT fallback to admin if seller has explicitly saved settings (even if enabled=false).
+        // Only fallback if seller settings are completely missing (e.g. first run).
+
+        let useSellerSettings = false;
+        let sellerTerms = null;
+
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            useSellerSettings = true; // Seller has settings
+            if (settings.terms && settings.terms.enabled && settings.terms.text) {
+                sellerTerms = settings.terms.text;
+            }
+        }
+
+        if (useSellerSettings) {
+             if (sellerTerms) {
+                 if (y > 270) { doc.addPage(); y = 20; }
+                 doc.setFontSize(10);
+                 doc.setFont("helvetica", "bold");
+                 doc.text("Terms and Conditions:", 14, y);
+                 y += 5;
+                 doc.setFont("helvetica", "normal");
+                 doc.setFontSize(8);
+                 const splitTerms = doc.splitTextToSize(sellerTerms, 180);
+                 doc.text(splitTerms, 14, y);
+             }
+        } else {
+             // Fallback to Admin only if seller has NO settings at all
+             if (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text) {
+                 if (y > 270) { doc.addPage(); y = 20; }
+                 doc.setFontSize(10);
+                 doc.setFont("helvetica", "bold");
+                 doc.text("Terms and Conditions:", 14, y);
+                 y += 5;
+                 doc.setFont("helvetica", "normal");
+                 doc.setFontSize(8);
+                 const splitTerms = doc.splitTextToSize(config.invoiceSettings.terms.text, 180);
+                 doc.text(splitTerms, 14, y);
+             }
+        }
+
+    } catch (e) {
+        console.error("Error reading terms settings", e);
+    }
 
     doc.save(`Invoice_${invoiceNum}.pdf`);
   };
@@ -2922,6 +3050,40 @@ const SellerPOSOrders = () => {
                   <h1 className="text-sm font-bold uppercase">{billSettings.shopName}</h1>
                   <p className="text-[10px] leading-tight whitespace-pre-wrap">{billSettings.address}</p>
                   <p className="text-[10px] leading-tight whitespace-pre-wrap">{billSettings.line2}</p>
+
+                  {/* GST & FSSAI - LocalStorage First (Strict), then Admin Config fallback only if no local settings */}
+                  {(() => {
+                      const savedSettings = localStorage.getItem("seller_bill_settings");
+                      const parsedSettings = savedSettings ? JSON.parse(savedSettings) : null;
+
+                      let gstText = null;
+                      let fssaiText = null;
+
+                      if (parsedSettings) {
+                          // Seller has explicit settings, strictly use them
+                          if (parsedSettings.gst?.enabled && parsedSettings.gst?.text) {
+                               gstText = parsedSettings.gst.text;
+                          }
+                          if (parsedSettings.fssai?.enabled && parsedSettings.fssai?.text) {
+                               fssaiText = parsedSettings.fssai.text;
+                          }
+                      } else {
+                          // No seller settings at all -> Fallback to Admin
+                          if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
+                              gstText = config.invoiceSettings.gst.text;
+                          }
+                          if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
+                              fssaiText = config.invoiceSettings.fssai.text;
+                          }
+                      }
+
+                      return (
+                          <>
+                            {gstText && <p className="text-[10px] font-bold mt-1">GST: {gstText}</p>}
+                            {fssaiText && <p className="text-[10px] font-bold">FSSAI: {fssaiText}</p>}
+                          </>
+                      )
+                  })()}
               </div>
 
               <div className="border-b border-black my-2"></div>
@@ -3014,8 +3176,72 @@ const SellerPOSOrders = () => {
 
               <div className="border-b border-black border-dashed my-2"></div>
 
-              <div className="text-center mt-4">
-                  <p>Thank You. Come Again!</p>
+              <div className="text-center mt-4 text-[10px]">
+                  {/* Notes */}
+                  {/* Notes */}
+                  {(() => {
+                      const savedSettings = localStorage.getItem("seller_bill_settings");
+                      if (savedSettings) {
+                           // Seller has configured settings. Use them.
+                           // If disabled, show nothing.
+                           if (billSettings.notes?.enabled && billSettings.notes?.text) {
+                               return (
+                                   <p className="font-bold mb-2 whitespace-pre-wrap">{billSettings.notes.text}</p>
+                               );
+                           }
+                           return null;
+                      }
+
+                      // Fallback to Admin only if NO seller settings saved
+                      if (config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text) {
+                          return (
+                              <p className="font-bold mb-2 whitespace-pre-wrap">{config.invoiceSettings.notes.text}</p>
+                          );
+                      }
+                      return null;
+                  })()}
+
+                  {/* Terms & Conditions */}
+                  {(() => {
+                      // Check Seller Terms first
+                      // If billSettings exists (it always does in this component due to useState initialization with defaults or localStorage)
+                      // We should check if localStorage had saved settings to imply "Seller has configured".
+                      // However, billSettings is state. We have to check if it matches default/persistence.
+                      // Actually, for consistency, if billSettings.terms.enabled is FALSE, we should show NOTHING.
+                      // We should NOT fallback to Admin if Seller has explicitly disabled it.
+                      // But how do we know if Seller explicitly disabled it vs "it's just default"?
+
+                      // Let's assume if the Seller has ANY settings saved, we prioritize Seller.
+                      // Since we load from localStorage, if localStorage has "seller_bill_settings", we prioritize Seller.
+
+                      const savedSettings = localStorage.getItem("seller_bill_settings");
+                      if (savedSettings) {
+                          // Seller has configured settings. Use them.
+                          if (billSettings.terms?.enabled && billSettings.terms?.text) {
+                              return (
+                                  <div className="text-left mt-2 border-t border-black border-dashed pt-2">
+                                      <p className="font-bold mb-1">Terms & Conditions:</p>
+                                      <p className="whitespace-pre-wrap leading-tight">{billSettings.terms.text}</p>
+                                  </div>
+                              );
+                          }
+                          // If disabled, return null (Show Nothing).
+                          return null;
+                      }
+
+                      // If NO seller settings saved, fallback to Admin.
+                      if (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text) {
+                          return (
+                              <div className="text-left mt-2 border-t border-black border-dashed pt-2">
+                                  <p className="font-bold mb-1">Terms & Conditions:</p>
+                                  <p className="whitespace-pre-wrap leading-tight">{config.invoiceSettings.terms.text}</p>
+                              </div>
+                          );
+                      }
+                      return null;
+                  })()}
+
+
               </div>
           </div>
       </div>

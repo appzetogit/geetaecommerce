@@ -127,6 +127,24 @@ export interface AppSettings {
   };
   maintenanceMode: boolean;
   maintenanceMessage?: string;
+  invoiceSettings?: {
+    notes?: {
+      text: string;
+      enabled: boolean;
+    };
+    terms?: {
+      text: string;
+      enabled: boolean;
+    };
+    gst?: {
+      text: string;
+      enabled: boolean;
+    };
+    fssai?: {
+      text: string;
+      enabled: boolean;
+    };
+  };
   updatedBy?: string;
   createdAt?: string;
   updatedAt?: string;

@@ -47,6 +47,25 @@ export interface IAppSettings extends Document {
     };
   };
 
+  invoiceSettings?: {
+      notes?: {
+          text: string;
+          enabled: boolean;
+      };
+      terms?: {
+          text: string;
+          enabled: boolean;
+      };
+      gst?: {
+          text: string;
+          enabled: boolean;
+      };
+      fssai?: {
+          text: string;
+          enabled: boolean;
+      };
+  };
+
   // SMS Gateway Settings
   smsGateway?: {
     provider: string; // e.g., 'Twilio', 'MSG91', 'TextLocal'
@@ -556,6 +575,26 @@ const AppSettingsSchema = new Schema<IAppSettings>(
         showName: { type: Boolean, default: true },
         mrpLabel: { type: String, default: "MRP" },
         spLabel: { type: String, default: "SP" }
+    },
+
+    // Invoice Settings (Notes & Terms)
+    invoiceSettings: {
+        notes: {
+            text: { type: String, default: "Thank you for your business" },
+            enabled: { type: Boolean, default: true }
+        },
+        terms: {
+            text: { type: String, default: "Goods once sold will not be taken back." },
+            enabled: { type: Boolean, default: true }
+        },
+        gst: {
+            text: { type: String, default: "" },
+            enabled: { type: Boolean, default: false }
+        },
+        fssai: {
+            text: { type: String, default: "" },
+            enabled: { type: Boolean, default: false }
+        }
     },
 
     // Updated By

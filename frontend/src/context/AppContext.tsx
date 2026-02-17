@@ -21,6 +21,24 @@ export interface PublicConfig {
         instagram?: string;
         [key: string]: string | undefined;
     };
+    invoiceSettings?: {
+        notes?: {
+            text: string;
+            enabled: boolean;
+        };
+        terms?: {
+            text: string;
+            enabled: boolean;
+        };
+        gst?: {
+            text: string;
+            enabled: boolean;
+        };
+        fssai?: {
+            text: string;
+            enabled: boolean;
+        };
+    };
 }
 
 interface AppContextType {

@@ -49,7 +49,13 @@ export const getPublicConfig = asyncHandler(
         socialMediaLinks: settings.socialMediaLinks,
         contactPhone: settings.contactPhone,
         contactEmail: settings.contactEmail,
-        onlinePaymentDiscount: settings.onlinePaymentDiscount || { enabled: false, percentage: 0 }
+        onlinePaymentDiscount: settings.onlinePaymentDiscount || { enabled: false, percentage: 0 },
+        invoiceSettings: settings.invoiceSettings || {
+            notes: { text: "Thank you for your business", enabled: true },
+            terms: { text: "Goods once sold will not be taken back.", enabled: true },
+            gst: { text: "", enabled: false },
+            fssai: { text: "", enabled: false }
+        }
       };
 
       return res.status(200).json({
