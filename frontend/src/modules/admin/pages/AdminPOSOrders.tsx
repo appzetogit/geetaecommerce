@@ -535,16 +535,13 @@ const AdminPOSOrders = () => {
             html5QrCodeRef.current = scanner;
 
             const config: any = {
-                fps: 25, // Higher FPS for faster scanning
-                qrbox: { width: 250, height: 150 }, // Rectangular box better for barcodes
-                aspectRatio: 1.0,
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true
-                }
+                fps: 20,
+                qrbox: { width: 250, height: 150 },
+                disableFlip: true
             };
 
             await scanner.start(
-                { facingMode: "environment", focusMode: "continuous" } as any,
+                { facingMode: "environment" },
                 config,
                 onScanSuccess,
                 () => {} // Ignore errors per frame
