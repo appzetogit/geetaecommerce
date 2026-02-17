@@ -408,6 +408,7 @@ const AdminPOSOrders = () => {
   const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const addToCartRef = useRef<any>(null);
 
   // Mobile Search Modal State
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -486,7 +487,9 @@ const AdminPOSOrders = () => {
                  itemToAdd.originalProductId = itemToAdd._id;
              }
 
-             addToCart({ ...itemToAdd, qty: 1 } as CartItem);
+             if (addToCartRef.current) {
+                 addToCartRef.current({ ...itemToAdd, qty: 1 } as CartItem);
+             }
              showToast(`Added: ${itemToAdd.productName}`, "success");
 
              // Keep scanner open for faster multiple scanning
@@ -526,10 +529,13 @@ const AdminPOSOrders = () => {
             const scanner = new Html5Qrcode("reader");
             html5QrCodeRef.current = scanner;
 
-            const config = {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
+            const config: any = {
+                fps: 25, // Higher FPS for faster scanning
+                qrbox: { width: 250, height: 150 }, // Rectangular box better for barcodes
+                aspectRatio: 1.0,
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                }
             };
 
             await scanner.start(
@@ -790,7 +796,7 @@ const AdminPOSOrders = () => {
                 exactMatch = findMatch(expanded);
                 if (exactMatch) {
                     e.preventDefault();
-                    addToCart(exactMatch as CartItem);
+                    if (addToCartRef.current) addToCartRef.current(exactMatch as CartItem);
                     setSearchQuery('');
                 }
             }
@@ -1517,6 +1523,11 @@ const AdminPOSOrders = () => {
           setLoading(false);
       }
   };
+
+  // Sync addToCart ref for scanner
+  useEffect(() => {
+      addToCartRef.current = addToCart;
+  }, [addToCart]);
 
   return (
     <div className="bg-gray-50 h-[100dvh] w-full flex flex-col font-sans overflow-hidden md:min-h-screen md:h-auto md:block md:overflow-visible md:p-4">
