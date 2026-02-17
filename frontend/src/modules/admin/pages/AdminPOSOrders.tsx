@@ -198,7 +198,7 @@ const AdminPOSOrders = () => {
 
   const setCart = (action: React.SetStateAction<CartItem[]>) => {
     setBills(prev => {
-        const index = prev.findIndex(b => b.id === activeBillId);
+        const index = prev.findIndex(b => b.id === activeBillIdRef.current);
         if (index === -1) return prev;
 
         const currentCart = prev[index].cart;
@@ -409,6 +409,11 @@ const AdminPOSOrders = () => {
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const addToCartRef = useRef<any>(null);
+  const activeBillIdRef = useRef<string>(activeBillId);
+
+  useEffect(() => {
+    activeBillIdRef.current = activeBillId;
+  }, [activeBillId]);
 
   // Mobile Search Modal State
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -440,8 +445,8 @@ const AdminPOSOrders = () => {
           // Play beep
           // const audio = new Audio('/assets/beep.mp3'); audio.play().catch(e=>{});
 
-          // Use Search with case-insensitive check
-          const res = await getProducts({ search: decodedText });
+          // Use POS Search for optimized results
+          const res = await getPOSProducts({ search: decodedText });
           if (res.success && res.data && res.data.length > 0) {
              const productsFound = res.data;
              // Try to find exact match on Barcode or SKU
@@ -539,7 +544,7 @@ const AdminPOSOrders = () => {
             };
 
             await scanner.start(
-                { facingMode: "environment" },
+                { facingMode: "environment", focusMode: "continuous" } as any,
                 config,
                 onScanSuccess,
                 () => {} // Ignore errors per frame

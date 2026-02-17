@@ -223,9 +223,13 @@ const SellerPOSOrders = () => {
   const paymentMethod = activeBill.paymentMethod;
 
   const setCart = (action: React.SetStateAction<CartItem[]>) => {
+    // console.log("setCart called with activeBillId:", activeBillId);
     setBills(prev => {
-        const index = prev.findIndex(b => b.id === activeBillId);
-        if (index === -1) return prev;
+        const index = prev.findIndex(b => b.id === activeBillIdRef.current);
+        if (index === -1) {
+            console.error("setCart: Active bill not found!", activeBillId, prev);
+            return prev;
+        }
 
         const currentCart = prev[index].cart;
         let newCart;
@@ -234,6 +238,8 @@ const SellerPOSOrders = () => {
         } else {
             newCart = action;
         }
+
+        // console.log("Updating cart:", newCart);
 
         const updated = [...prev];
         updated[index] = { ...updated[index], cart: newCart };
@@ -445,6 +451,11 @@ const SellerPOSOrders = () => {
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const addToCartRef = useRef<any>(null);
+  const activeBillIdRef = useRef<string>(activeBillId);
+
+  useEffect(() => {
+    activeBillIdRef.current = activeBillId;
+  }, [activeBillId]);
 
   // Mobil Search Modal State
   const [showMobileSearch, setShowMobileSearch] = useState(false);
@@ -573,7 +584,7 @@ const SellerPOSOrders = () => {
             };
 
             await scanner.start(
-                { facingMode: "environment" },
+                { facingMode: "environment", focusMode: "continuous" } as any,
                 config,
                 onScanSuccess,
                 () => {} // Ignore errors per frame
