@@ -1,8 +1,14 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import OrderItem from "../../../models/OrderItem";
-import Order from "../../../models/Order"; // Direct import to ensure model is registered
+import Order from "../../../models/Order";
+import Return from "../../../models/Return";
 import { asyncHandler } from "../../../utils/asyncHandler";
+
+// Helper to escape regex special characters
+const escapeRegex = (string: string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
 
 /**
  * Get seller's sales report with filters, sorting, and pagination
@@ -49,16 +55,17 @@ export const getSalesReport = asyncHandler(
 
         // Search filter
         if (search) {
+            const escapedSearch = escapeRegex(search as string);
             // Find orders that match the search term (orderNumber)
             const matchedOrders = await Order.find({
-                orderNumber: { $regex: search, $options: "i" }
+                orderNumber: { $regex: escapedSearch, $options: "i" }
             }).select("_id");
 
             const matchedOrderIds = matchedOrders.map((o: any) => o._id);
 
             query.$or = [
-                { productName: { $regex: search, $options: "i" } },
-                { variation: { $regex: search, $options: "i" } },
+                { productName: { $regex: escapedSearch, $options: "i" } },
+                { variation: { $regex: escapedSearch, $options: "i" } },
                 { order: { $in: matchedOrderIds } }
             ];
         }
@@ -140,7 +147,7 @@ export const getGSTSalesReport = asyncHandler(
         const limitNum = parseInt(limit as string);
         const skip = (pageNum - 1) * limitNum;
 
-        const searchRegex = search ? new RegExp(search as string, "i") : null;
+        const searchRegex = search ? new RegExp(escapeRegex(search as string), "i") : null;
 
         const matchQuery: any = {
             seller: new mongoose.Types.ObjectId(sellerId)
@@ -167,7 +174,11 @@ export const getGSTSalesReport = asyncHandler(
                 $match: {
                     "orderDoc.orderDate": {
                         ...(dateFrom && { $gte: new Date(dateFrom as string) }),
-                        ...(dateTo && { $lte: new Date(dateTo as string) })
+                        ...(dateTo && { $lte: ((): Date => {
+                            const d = new Date(dateTo as string);
+                            d.setHours(23, 59, 59, 999);
+                            return d;
+                        })() })
                     }
                 }
             }] : []),
@@ -207,16 +218,11 @@ export const getGSTSalesReport = asyncHandler(
                     stock: { $ifNull: ["$productDoc.stock", 0] }, // Current stock of the product
                     price: "$unitPrice", // Selling Price
                     taxPercentage: { $ifNull: ["$taxDoc.percentage", 0] },
-                    // Calculate Tax Amount (Assuming price is exclusive or inclusive? Admin logic assumed derived)
-                    // Let's use simple calculation: (Price * Qty * Tax%) / 100
-                    // Or if Total is stored, and logic is Price + Tax = Total?
-                    // Admin report: taxAmount: "$itemDetails.taxAmount" (didn't exist in my read, was calculated in frontend or projected?)
-                    // Admin `getGSTSalesReport` projected: `taxableAmount: unitPrice * quantity`.
-                    // Let's calculated taxAmount here.
+                    // Calculate Tax Amount (Standard GST extraction from inclusive price: (Price * Rate) / (100 + Rate))
                     taxAmount: {
-                        $multiply: [
-                            { $multiply: ["$unitPrice", "$quantity"] },
-                            { $divide: [{ $ifNull: ["$taxDoc.percentage", 0] }, 100] }
+                        $divide: [
+                            { $multiply: ["$total", { $ifNull: ["$taxDoc.percentage", 0] }] },
+                            { $add: [100, { $ifNull: ["$taxDoc.percentage", 0] }] }
                         ]
                     },
                     totalAmount: "$total"
@@ -289,7 +295,7 @@ export const getPaymentReport = asyncHandler(
         const limitNum = parseInt(limit as string);
         const skip = (pageNum - 1) * limitNum;
 
-        const searchRegex = search ? new RegExp(search as string, "i") : null;
+        const searchRegex = search ? new RegExp(escapeRegex(search as string), "i") : null;
 
         // Base match for OrderItems
         const matchQuery: any = {
@@ -427,7 +433,7 @@ export const getSalesSummaryReport = asyncHandler(
     const limitNum = parseInt(limit as string) || 20;
     const skip = (pageNum - 1) * limitNum;
 
-    const searchRegex = search ? new RegExp(search as string, "i") : null;
+    const searchRegex = search ? new RegExp(escapeRegex(search as string), "i") : null;
 
     const matchQuery: any = {
       seller: new mongoose.Types.ObjectId(sellerId)
@@ -442,8 +448,7 @@ export const getSalesSummaryReport = asyncHandler(
       }
       if (dateTo) {
         const dTo = new Date(dateTo as string);
-        // Set to end of day if only date is provided
-        if (dateTo.length <= 10) dTo.setHours(23, 59, 59, 999);
+        dTo.setHours(23, 59, 59, 999);
         if (!isNaN(dTo.getTime())) matchQuery.createdAt.$lte = dTo;
       }
       if (Object.keys(matchQuery.createdAt).length === 0) delete matchQuery.createdAt;
@@ -612,7 +617,7 @@ export const getReturnExchangeReport = asyncHandler(
     const limitNum = parseInt(limit as string) || 20;
     const skip = (pageNum - 1) * limitNum;
 
-    const searchRegex = search ? new RegExp(search as string, "i") : null;
+    const searchRegex = search ? new RegExp(escapeRegex(search as string), "i") : null;
 
     const matchQuery: any = {};
     if (dateFrom || dateTo) {
@@ -629,12 +634,7 @@ export const getReturnExchangeReport = asyncHandler(
       if (Object.keys(matchQuery.createdAt).length === 0) delete matchQuery.createdAt;
     }
 
-    // Since Return model does not have seller, we filter by joining OrderItem
-
-    // NOTE: We need to import Return model here if not imported.
-    // It seems ReportController only imports OrderItem and Order.
-    // We need to ensure Return is imported or use mongoose.model('Return')
-    const Return = mongoose.model('Return');
+    // Use imported Return model
 
     const pipeline: any[] = [
       { $match: matchQuery },
@@ -788,7 +788,7 @@ export const getStockSalesSummary = asyncHandler(
     const limitNum = parseInt(limit as string) || 20;
     const skip = (pageNum - 1) * limitNum;
 
-    const searchRegex = search ? new RegExp(search as string, "i") : null;
+    const searchRegex = search ? new RegExp(escapeRegex(search as string), "i") : null;
 
     const matchQuery: any = {
       seller: new mongoose.Types.ObjectId(sellerId)
@@ -802,7 +802,7 @@ export const getStockSalesSummary = asyncHandler(
       }
       if (dateTo) {
          const dTo = new Date(dateTo as string);
-         if (dTo.toISOString().length <= 10) dTo.setHours(23, 59, 59, 999);
+         dTo.setHours(23, 59, 59, 999);
          if (!isNaN(dTo.getTime())) matchQuery.createdAt.$lte = dTo;
       }
       if (Object.keys(matchQuery.createdAt).length === 0) delete matchQuery.createdAt;
@@ -954,7 +954,7 @@ export const getDueSummaryReport = asyncHandler(
     const limitNum = parseInt(limit as string) || 20;
     const skip = (pageNum - 1) * limitNum;
 
-    const searchRegex = search ? new RegExp(search as string, "i") : null;
+    const searchRegex = search ? new RegExp(escapeRegex(search as string), "i") : null;
 
     // Filter Items by Seller
     const matchQuery: any = {
@@ -969,7 +969,7 @@ export const getDueSummaryReport = asyncHandler(
        }
        if (dateTo) {
           const dTo = new Date(dateTo as string);
-          if (dTo.toISOString().length <= 10) dTo.setHours(23, 59, 59, 999);
+          dTo.setHours(23, 59, 59, 999);
           if (!isNaN(dTo.getTime())) matchQuery.createdAt.$lte = dTo;
        }
        if (Object.keys(matchQuery.createdAt).length === 0) delete matchQuery.createdAt;
