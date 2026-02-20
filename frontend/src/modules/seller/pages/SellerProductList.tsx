@@ -98,6 +98,10 @@ export default function SellerProductList() {
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
+  // Barcode Selection Modal State
+  const [showBarcodeSelectModal, setShowBarcodeSelectModal] = useState(false);
+  const [barcodeSelectData, setBarcodeSelectData] = useState<{barcodes: string[], name: string, sp: number, mrp: number} | null>(null);
+
   // Fetch products and categories
   const fetchData = async () => {
     try {
@@ -331,11 +335,32 @@ export default function SellerProductList() {
       }
   };
 
+
   const handlePrintBarcode = (barcodeVal: string, name?: string, sp?: number, mrp?: number) => {
       if(!barcodeVal || barcodeVal === "-") {
           alert("No barcode found for this product");
           return;
       }
+
+      // Check for multiple barcodes
+      if (barcodeVal.includes(',')) {
+          const barcodes = barcodeVal.split(',').map(b => b.trim()).filter(b => b);
+          if (barcodes.length > 1) {
+              setBarcodeSelectData({
+                  barcodes,
+                  name: name || '',
+                  sp: sp || 0,
+                  mrp: mrp || 0
+              });
+              setShowBarcodeSelectModal(true);
+              return;
+          }
+      }
+
+      executePrintBarcode(barcodeVal, name, sp, mrp);
+  };
+
+  const executePrintBarcode = (barcodeVal: string, name?: string, sp?: number, mrp?: number) => {
       // Reusing logic from AdminStockManagement
       const qty = 1;
       const savedSize = localStorage.getItem('barcode_print_size') || 'medium';
@@ -1278,6 +1303,50 @@ export default function SellerProductList() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Barcode Selection Modal */}
+      {showBarcodeSelectModal && barcodeSelectData && (
+          <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 backdrop-blur-[2px]">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm animate-in fade-in zoom-in duration-200 overflow-hidden">
+                  <div className="bg-[#f187b5] px-4 py-3 text-white flex justify-between items-center">
+                      <h3 className="font-bold text-lg">Select Barcode to Print</h3>
+                      <button onClick={() => setShowBarcodeSelectModal(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                      </button>
+                  </div>
+                  <div className="p-4 max-h-[60vh] overflow-y-auto">
+                      <p className="text-sm text-gray-600 mb-3 font-medium">This product has multiple barcodes. Please select one to print:</p>
+                      <div className="space-y-2">
+                          {barcodeSelectData.barcodes.map((b, idx) => (
+                              <button
+                                  key={idx}
+                                  onClick={() => {
+                                      setShowBarcodeSelectModal(false);
+                                      executePrintBarcode(b, barcodeSelectData.name, barcodeSelectData.sp, barcodeSelectData.mrp);
+                                  }}
+                                  className="w-full text-left bg-gray-50 hover:bg-[#f187b5]/10 border border-gray-200 hover:border-[#f187b5] p-3 rounded-lg group transition-all"
+                              >
+                                  <div className="flex justify-between items-center">
+                                      <span className="font-mono text-base font-bold text-gray-800 group-hover:text-[#f187b5]">{b}</span>
+                                      <svg className="w-5 h-5 text-gray-400 group-hover:text-[#f187b5] opacity-0 group-hover:opacity-100 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9l-5 5-5-5"></path>
+                                      </svg>
+                                  </div>
+                              </button>
+                          ))}
+                      </div>
+                  </div>
+                  <div className="p-3 bg-gray-50 text-center border-t border-gray-100">
+                      <button
+                          onClick={() => setShowBarcodeSelectModal(false)}
+                          className="px-6 py-2 border border-gray-300 rounded-lg text-gray-600 font-medium hover:bg-gray-100 transition-colors text-sm"
+                      >
+                          Cancel
+                      </button>
+                  </div>
+              </div>
+          </div>
       )}
     </div>
   );
