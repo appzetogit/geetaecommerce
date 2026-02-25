@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
 // Icons (using simple SVGs to avoid dependency issues if lucide-react etc are not installed,
@@ -19,15 +20,28 @@ const tabs = [
     { id: 'notification', label: 'Notification Setting', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> },
 
     { id: 'social', label: 'Social Links', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg> },
-    { id: 'thirdparty', label: '3rd Party API', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> },
+    { id: 'shiprocket', label: 'Shiprocket Integration', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg> },
 
 
     { id: 'other', label: 'Other Setting', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> },
 ];
 
 export default function AdminAppSettings() {
-    const [activeTab, setActiveTab] = useState('mail');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'mail');
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab) {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
+
+    const handleTabChange = (tabId: string) => {
+        setActiveTab(tabId);
+        setSearchParams({ tab: tabId });
+    };
 
     // Mock form states
     const [mailForm, setMailForm] = useState({ mailerName: '', host: '', driver: '', port: '', userName: '', emailId: '', encryption: '', password: '' });
@@ -117,13 +131,58 @@ export default function AdminAppSettings() {
                     </div>
                 </div>
             );
-            case 'thirdparty': return (
-                <div className="space-y-6">
-                     <h3 className="text-xl font-bold text-gray-800 border-b pb-4">3rd Party APIs</h3>
-                     <div className="grid grid-cols-1 gap-6">
-                         <InputGroup label="SMS Gateway Key" type="password" />
-                         <InputGroup label="Payment Gateway Key" type="password" />
-                     </div>
+            case 'shiprocket': return (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-400">
+                    <div className="flex items-center gap-4 border-b pb-4">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-800">Shiprocket Configuration</h3>
+                            <p className="text-sm text-gray-500">Manage your shipping API credentials and settings</p>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="p-5 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
+                            <h4 className="font-bold text-gray-700">Shiprocket API Credentials</h4>
+                            <ToggleSwitch checked={true} onChange={() => {}} />
+                        </div>
+                        <div className="p-6 space-y-5">
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-700 ml-1">Email</label>
+                                <input
+                                    type="email"
+                                    placeholder="Enter your Shiprocket email"
+                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                    defaultValue="deepak@brostartup.com"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-700 ml-1">Password</label>
+                                <input
+                                    type="password"
+                                    placeholder="••••••••"
+                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                    defaultValue="********"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-700 ml-1">Base API URL</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                    defaultValue="https://apiv2.shiprocket.in"
+                                />
+                            </div>
+
+                            <div className="flex justify-end pt-2">
+                                <button className="px-8 py-3 bg-[#f187b5] text-white font-bold rounded-2xl hover:bg-[#db76a3] shadow-lg active:scale-95 transition-all">
+                                    Save Configuration
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             );
 
@@ -162,7 +221,7 @@ export default function AdminAppSettings() {
                     {tabs.map(tab => (
                         <button
                             key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
+                            onClick={() => handleTabChange(tab.id)}
                             className={`w-full flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 border-l-4 ${
                                 activeTab === tab.id
                                 ? 'border-[#f187b5] text-[#f187b5] bg-pink-50'

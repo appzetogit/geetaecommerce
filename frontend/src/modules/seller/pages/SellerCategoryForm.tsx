@@ -1,185 +1,584 @@
-import React, { useState, useEffect } from 'react';
-import { useToast } from '../../../context/ToastContext';
-
-interface Category {
-    _id: string;
-    name: string;
-    image?: string;
-    description?: string;
-    totalSubcategory?: number;
-    createdBy?: string;
-    createdAt?: string;
-}
+import React, { useState, useEffect } from "react";
+import { useToast } from "../../../context/ToastContext";
+import {
+  Category,
+  getCategories,
+} from "../../../services/api/categoryService";
+import { uploadImage } from "../../../services/api/uploadService";
+import {
+  validateImageFile,
+  createImagePreview,
+} from "../../../utils/imageUpload";
+import {
+  getAvailableParents,
+  validateParentChange,
+} from "../../../utils/categoryUtils";
+import {
+  getHeaderCategoriesPublic,
+  HeaderCategory,
+} from "../../../services/api/headerCategoryService";
 
 interface SellerCategoryFormProps {
-    isOpen: boolean;
-    onClose: () => void;
-    editingCategory?: Category | null;
-    onSave: (category: Category) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  editingCategory?: any | null; // Use any to avoid strict type conflicts with different Category interfaces
+  onSave: (category: any) => void;
 }
 
-export default function SellerCategoryForm({ isOpen, onClose, editingCategory, onSave }: SellerCategoryFormProps) {
-    const { showToast } = useToast();
-    const [formData, setFormData] = useState({
-        name: '',
-        image: '',
-        description: ''
+export default function SellerCategoryForm({
+  isOpen,
+  onClose,
+  editingCategory,
+  onSave,
+}: SellerCategoryFormProps) {
+  const { showToast } = useToast();
+  const [formData, setFormData] = useState({
+    name: "",
+    image: "",
+    order: 0,
+    parentId: null as string | null,
+    headerCategoryId: null as string | null,
+    status: "Active" as "Active" | "Inactive",
+    isBestseller: false,
+    hasWarning: false,
+    groupCategory: "",
+    description: "", // Keep description if it was being used, though not in admin
+  });
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [headerCategories, setHeaderCategories] = useState<HeaderCategory[]>([]);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [loadingHeaderCategories, setLoadingHeaderCategories] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Fetch data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchHeaderCategories();
+      fetchAllCategories();
+    }
+  }, [isOpen]);
+
+  const fetchHeaderCategories = async () => {
+    try {
+      setLoadingHeaderCategories(true);
+      const categories = await getHeaderCategoriesPublic();
+      const publishedCategories = categories.filter(
+        (cat) => cat.status === "Published"
+      );
+      setHeaderCategories(publishedCategories);
+    } catch (error) {
+      console.error("Error fetching header categories:", error);
+    } finally {
+      setLoadingHeaderCategories(false);
+    }
+  };
+
+  const fetchAllCategories = async () => {
+    try {
+      const response = await getCategories();
+      if (response.success) {
+        setAllCategories(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      if (editingCategory) {
+        setFormData({
+          name: editingCategory.name || "",
+          image: editingCategory.image || "",
+          order: editingCategory.order || 0,
+          parentId: editingCategory.parentId || null,
+          headerCategoryId: editingCategory.headerCategoryId || null,
+          status: editingCategory.status || "Active",
+          isBestseller: editingCategory.isBestseller || false,
+          hasWarning: editingCategory.hasWarning || false,
+          groupCategory: editingCategory.groupCategory || "",
+          description: (editingCategory as any).description || "",
+        });
+        setImagePreview(editingCategory.image || "");
+      } else {
+        setFormData({
+          name: "",
+          image: "",
+          order: 0,
+          parentId: null,
+          headerCategoryId: null,
+          status: "Active",
+          isBestseller: false,
+          hasWarning: false,
+          groupCategory: "",
+          description: "",
+        });
+        setImagePreview("");
+      }
+      setImageFile(null);
+      setErrors({});
+      setShowAdvanced(false);
+    }
+  }, [isOpen, editingCategory]);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : type === "number"
+          ? parseInt(value) || 0
+          : value,
+    }));
+
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  const processFile = async (file: File) => {
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      setErrors((prev) => ({
+        ...prev,
+        image: validation.error || "Invalid image file",
+      }));
+      return;
+    }
+
+    setImageFile(file);
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors.image;
+      return newErrors;
     });
 
-    const [imagePreview, setImagePreview] = useState('');
-    const [errors, setErrors] = useState<Record<string, string>>({});
+    try {
+      const preview = await createImagePreview(file);
+      setImagePreview(preview);
+    } catch (error) {
+      setErrors((prev) => ({
+        ...prev,
+        image: "Failed to create image preview",
+      }));
+    }
+  };
 
-    useEffect(() => {
-        if (editingCategory) {
-            setFormData({
-                name: editingCategory.name,
-                image: editingCategory.image || '',
-                description: editingCategory.description || ''
-            });
-            setImagePreview(editingCategory.image || '');
-        } else {
-            // Reset form for new category
-            setFormData({
-                name: '',
-                image: '',
-                description: ''
-            });
-            setImagePreview('');
-        }
-        setErrors({});
-    }, [editingCategory, isOpen]);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) await processFile(file);
+  };
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = reader.result as string;
-                setImagePreview(base64String);
-                setFormData(prev => ({ ...prev, image: base64String }));
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
 
-    const validate = () => {
-        const newErrors: Record<string, string> = {};
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
 
-        if (!formData.name.trim()) {
-            newErrors.name = 'Category name is required';
-        }
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
-        if (!formData.image) {
-            newErrors.image = 'Category image is required';
-        }
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) await processFile(file);
+  };
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    if (!formData.name.trim()) {
+      newErrors.name = "Category name is required";
+    }
 
-        if (!validate()) return;
+    if (!formData.headerCategoryId) {
+      newErrors.headerCategoryId = "Header category is required";
+    }
 
-        const newCategory: Category = {
-            _id: editingCategory?._id || `seller_${Date.now()}`,
-            name: formData.name,
-            image: formData.image,
-            description: formData.description,
-            totalSubcategory: editingCategory?.totalSubcategory || 0,
-            createdBy: 'seller',
-            createdAt: editingCategory?.createdAt || new Date().toISOString()
-        };
+    if (editingCategory) {
+      const validation = validateParentChange(
+        editingCategory._id,
+        formData.parentId,
+        allCategories
+      );
+      if (!validation.valid) {
+        newErrors.parentId = validation.error || "Invalid parent selection";
+      }
+    }
 
-        onSave(newCategory);
-        onClose();
-    };
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    if (!isOpen) return null;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
-    return (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-            <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                    <div className="absolute inset-0 bg-gray-500 opacity-75" onClick={onClose}></div>
-                </div>
+    try {
+      setSubmitting(true);
+      let imageUrl = formData.image;
 
-                <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+      if (imageFile) {
+        setUploading(true);
+        const imageResult = await uploadImage(imageFile, "Geeta Stores/categories");
+        imageUrl = imageResult.secureUrl;
+        setUploading(false);
+      }
 
-                <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <div className="sm:flex sm:items-start">
-                            <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                                    {editingCategory ? 'Edit Category' : 'Add New Category'}
-                                </h3>
-                                <div className="mt-4">
-                                    <form onSubmit={handleSubmit} className="space-y-4">
-                                        {/* Name */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Category Name <span className="text-red-500">*</span></label>
-                                            <input
-                                                type="text"
-                                                value={formData.name}
-                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                className={`mt-1 block w-full border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#f187b5] focus:border-[#f187b5] sm:text-sm`}
-                                                placeholder="Enter category name"
-                                            />
-                                            {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
-                                        </div>
+      const categoryData: Category = {
+        _id: editingCategory?._id || `seller_${Date.now()}`,
+        name: formData.name.trim(),
+        image: imageUrl,
+        order: formData.order,
+        parentId: formData.parentId,
+        headerCategoryId: formData.headerCategoryId,
+        status: formData.status,
+        isBestseller: formData.isBestseller,
+        hasWarning: formData.hasWarning,
+        groupCategory: formData.groupCategory,
+        createdAt: editingCategory?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-                                        {/* Image */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Category Image <span className="text-red-500">*</span></label>
-                                            <div className="mt-1 flex items-center gap-4">
-                                                {imagePreview && (
-                                                    <div className="relative w-16 h-16 rounded overflow-hidden border border-gray-200">
-                                                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                                                    </div>
-                                                )}
-                                                <label className="cursor-pointer bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f187b5]">
-                                                    <span>Upload Image</span>
-                                                    <input type="file" className="sr-only" accept="image/*" onChange={handleImageUpload} />
-                                                </label>
-                                            </div>
-                                            {errors.image && <p className="mt-1 text-xs text-red-500">{errors.image}</p>}
-                                        </div>
+      onSave(categoryData);
+      onClose();
+    } catch (error: any) {
+      setErrors({
+        submit: error.message || "Failed to save category",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-                                        {/* Description */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Description</label>
-                                            <textarea
-                                                rows={3}
-                                                value={formData.description}
-                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#f187b5] focus:border-[#f187b5] sm:text-sm"
-                                                placeholder="Enter description (optional)"
-                                            />
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                        <button
-                            type="button"
-                            onClick={handleSubmit}
-                            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-[#f187b5] text-base font-medium text-white hover:bg-[#e076a5] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f187b5] sm:ml-3 sm:w-auto sm:text-sm"
-                        >
-                            {editingCategory ? 'Update' : 'Create'}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                        >
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
+  if (!isOpen) return null;
+
+  const availableParents = getAvailableParents(
+    editingCategory?._id || null,
+    allCategories
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50"
+        onClick={onClose}
+      ></div>
+
+      {/* Modal */}
+      <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
+          <h2 className="text-lg font-semibold text-neutral-900">
+            {editingCategory ? "Edit Category" : "Add New Category"}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-neutral-400 hover:text-neutral-600 transition-colors"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-    );
+
+        {/* Body */}
+        <form onSubmit={handleSubmit} className="px-6 py-4">
+          {errors.submit && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              {errors.submit}
+            </div>
+          )}
+
+          {/* Category Name */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
+              Category Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${
+                errors.name ? "border-red-300" : "border-neutral-300"
+              }`}
+              placeholder="Enter category name"
+            />
+            {errors.name && (
+              <p className="mt-1 text-xs text-red-600">{errors.name}</p>
+            )}
+          </div>
+
+          {/* Header Category */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
+              Header Category <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="headerCategoryId"
+              value={formData.headerCategoryId || ""}
+              onChange={handleInputChange}
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${
+                errors.headerCategoryId ? "border-red-300" : "border-neutral-300"
+              }`}
+            >
+              <option value="">-- Select Header Category --</option>
+              {headerCategories.map((hc) => (
+                <option key={hc._id} value={hc._id}>
+                  {hc.name}
+                </option>
+              ))}
+            </select>
+            {errors.headerCategoryId && (
+              <p className="mt-1 text-xs text-red-600">
+                {errors.headerCategoryId}
+              </p>
+            )}
+          </div>
+
+          {/* Category Image */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
+              Category Image
+            </label>
+            <label
+              className={`block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                isDragging
+                  ? "border-[#f187b5] bg-[#f187b5]/10"
+                  : "border-neutral-300 hover:border-[#f187b5]"
+              }`}
+              onDragEnter={handleDragEnter}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {imagePreview ? (
+                <div className="space-y-2">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="max-h-32 mx-auto rounded-lg object-cover"
+                  />
+                  <p className="text-xs text-neutral-600">
+                    {imageFile?.name || "Current image"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setImagePreview("");
+                      setImageFile(null);
+                      setFormData((prev) => ({ ...prev, image: "" }));
+                    }}
+                    className="text-xs text-red-600 hover:underline"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="py-4">
+                  <svg
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="mx-auto mb-2 text-neutral-400"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  <p className="text-xs text-neutral-600">
+                    {isDragging ? "Drop image here" : "Choose File or Drag & Drop"}
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-1">Max 5MB</p>
+                </div>
+              )}
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileChange}
+              />
+            </label>
+          </div>
+
+          {/* Parent Category */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
+              Parent Category
+            </label>
+            <select
+              name="parentId"
+              value={formData.parentId || ""}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]"
+            >
+              <option value="">None (Root Category)</option>
+              {availableParents.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Display Order */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-neutral-700 mb-2">
+              Display Order
+            </label>
+            <input
+              type="number"
+              name="order"
+              value={formData.order}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]"
+            />
+          </div>
+
+          {/* Active Status */}
+          <div className="mb-4">
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                name="status"
+                checked={formData.status === "Active"}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    status: e.target.checked ? "Active" : "Inactive",
+                  }))
+                }
+                className="w-4 h-4 text-[#f187b5] border-neutral-300 rounded focus:ring-[#f187b5]"
+              />
+              <span className="text-sm font-medium text-neutral-700">
+                Active Status
+              </span>
+            </label>
+          </div>
+
+          {/* Advanced Settings */}
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center justify-between w-full px-4 py-2 bg-neutral-50 rounded-lg text-sm font-medium text-neutral-700 hover:bg-neutral-100 transition-colors"
+            >
+              <span>Advanced Settings</span>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className={`transform transition-transform ${
+                  showAdvanced ? "rotate-180" : ""
+                }`}
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+            {showAdvanced && (
+              <div className="mt-4 p-4 border border-neutral-200 rounded-lg space-y-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="isBestseller"
+                    checked={formData.isBestseller}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 text-[#f187b5] border-neutral-300 rounded focus:ring-[#f187b5]"
+                  />
+                  <span className="text-sm text-neutral-700">Is Bestseller</span>
+                </label>
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="hasWarning"
+                    checked={formData.hasWarning}
+                    onChange={handleInputChange}
+                    className="w-4 h-4 text-[#f187b5] border-neutral-300 rounded focus:ring-[#f187b5]"
+                  />
+                  <span className="text-sm text-neutral-700">Has Warning</span>
+                </label>
+                <div>
+                  <label className="block text-xs font-medium text-neutral-500 mb-1">
+                    Group Category
+                  </label>
+                  <input
+                    type="text"
+                    name="groupCategory"
+                    value={formData.groupCategory}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg text-sm"
+                    placeholder="Enter group category"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Footer Buttons */}
+          <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-100">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-neutral-300 rounded-lg text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting || uploading}
+              className="px-6 py-2 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {submitting ? "Saving..." : editingCategory ? "Update Category" : "Create Category"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
 }

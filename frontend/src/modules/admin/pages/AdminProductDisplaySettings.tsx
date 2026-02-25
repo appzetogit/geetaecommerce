@@ -181,6 +181,18 @@ const DEFAULT_SECTIONS: SettingSection[] = [
         isEnabled: true,
       },
       {
+        id: 'mfg_date',
+        label: 'Mfg Date',
+        description: 'Manufacturing date field',
+        isEnabled: true,
+      },
+      {
+        id: 'expiry_date',
+        label: 'Expiry Date',
+        description: 'Expiry date field',
+        isEnabled: true,
+      },
+      {
          id: 'delivery_time',
          label: 'Delivery Time',
          description: 'Estimated delivery days',

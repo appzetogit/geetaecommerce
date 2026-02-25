@@ -101,6 +101,8 @@ interface EditableProduct {
   hsnCode: string;
   pack: string; // Unit
   purchasePrice: number;
+  mfgDate: string;
+  expiryDate: string;
   deliveryTime: string;
   lowStockQuantity: number;
   subCategoryId?: string; // Add this
@@ -252,6 +254,8 @@ export default function AdminStockBulkEdit({
         hsnCode: (p as any).hsnCode || "",
         pack: (p as any).pack || "",
         purchasePrice: (p as any).purchasePrice || 0,
+        mfgDate: (p as any).mfgDate || "",
+        expiryDate: (p as any).expiryDate || "",
         deliveryTime: (p as any).deliveryTime || "",
         lowStockQuantity: (p as any).lowStockQuantity || 5,
         wholesalePrice: (p as any).wholesalePrice || 0,
@@ -371,6 +375,8 @@ export default function AdminStockBulkEdit({
           hsnCode: p.hsnCode,
           pack: p.pack,
           purchasePrice: p.purchasePrice,
+          mfgDate: p.mfgDate || undefined,
+          expiryDate: p.expiryDate || undefined,
           deliveryTime: p.deliveryTime,
           lowStockQuantity: p.lowStockQuantity,
           discPrice: p.offerPrice,
@@ -426,7 +432,7 @@ export default function AdminStockBulkEdit({
     "index", "image", "productName", "category", "subCategory", "subSubCategory",
     "attributes", "variations", "variationName",
     "sku", "rackNumber", "description", "barcode", "hsnCode", "pack",
-    "size", "color", "attr", "tax", "gst", "purchasePrice", "compareAtPrice",
+    "size", "color", "attr", "tax", "gst", "purchasePrice", "mfgDate", "expiryDate", "compareAtPrice",
     "price", "deliveryTime", "stock", "offerPrice", "wholesalePrice",
     "lowStockQuantity", "brand", "valMrp", "valPur", "unitPrice", "status"
   ]);
@@ -451,17 +457,19 @@ export default function AdminStockBulkEdit({
     tax: "14. Tax Cat",
     gst: "15. GST",
     purchasePrice: "16. Pur. Price",
-    compareAtPrice: "17. MRP",
-    price: "18. Sell Price",
-    deliveryTime: "19. Del. Time",
-    stock: "20. Stock",
-    offerPrice: "21. Offer Price",
-    wholesalePrice: "22. Wholesale Price",
-    lowStockQuantity: "23. Low Stock",
-    brand: "24. Brand",
-    valMrp: "25. Val (MRP)",
-    valPur: "26. Val (Pur)",
-    unitPrice: "27. Unit Pricing Rules", // Rename
+    mfgDate: "17. Mfg Date",
+    expiryDate: "18. Expiry Date",
+    compareAtPrice: "19. MRP",
+    price: "20. Sell Price",
+    deliveryTime: "21. Del. Time",
+    stock: "22. Stock",
+    offerPrice: "23. Offer Price",
+    wholesalePrice: "24. Wholesale Price",
+    lowStockQuantity: "25. Low Stock",
+    brand: "26. Brand",
+    valMrp: "27. Val (MRP)",
+    valPur: "28. Val (Pur)",
+    unitPrice: "29. Unit Pricing Rules", // Rename
     attributes: "Attributes",
     variations: "Variations",
     variationName: "Variation Name",
@@ -607,6 +615,8 @@ export default function AdminStockBulkEdit({
     tax: 80,
     gst: 80,
     purchasePrice: 100,
+    mfgDate: 130,
+    expiryDate: 130,
     compareAtPrice: 100,
     price: 100,
     deliveryTime: 130,
@@ -801,6 +811,10 @@ export default function AdminStockBulkEdit({
         return <td key={key} className="p-2 border-r border-neutral-200 text-sm text-neutral-600">-</td>;
       case "purchasePrice":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm text-right" value={product.purchasePrice} onChange={(e) => handleFieldChange(originalIndex, 'purchasePrice', parseFloat(e.target.value))} /></td>;
+      case "mfgDate":
+        return <td key={key} className="p-0 border-r border-neutral-200"><input type="date" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.mfgDate || ""} onChange={(e) => handleFieldChange(originalIndex, 'mfgDate', e.target.value)} /></td>;
+      case "expiryDate":
+        return <td key={key} className="p-0 border-r border-neutral-200"><input type="date" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.expiryDate || ""} onChange={(e) => handleFieldChange(originalIndex, 'expiryDate', e.target.value)} /></td>;
       case "compareAtPrice":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#f187b5] focus:bg-white text-sm text-right" value={product.compareAtPrice} onChange={(e) => handleFieldChange(originalIndex, "compareAtPrice", parseFloat(e.target.value) || 0)} /></td>;
       case "price":

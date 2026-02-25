@@ -84,6 +84,8 @@ export default function SellerAddProduct() {
     rackNumber: "",
     hsnCode: "",
     purchasePrice: "",
+    mfgDate: "",
+    expiryDate: "",
     lowStockQuantity: "5",
     deliveryTime: "",
     price: "",
@@ -534,6 +536,8 @@ export default function SellerAddProduct() {
       rackNumber: "",
       hsnCode: "",
       purchasePrice: "",
+      mfgDate: "",
+      expiryDate: "",
       lowStockQuantity: "5",
       deliveryTime: "",
       price: "",
@@ -912,6 +916,8 @@ export default function SellerAddProduct() {
               rackNumber: (product as any).rackNumber || "",
               hsnCode: (product as any).hsnCode || "",
               purchasePrice: (product as any).purchasePrice?.toString() || "",
+              mfgDate: (product as any).mfgDate || "",
+              expiryDate: (product as any).expiryDate || "",
               lowStockQuantity: (product as any).lowStockQuantity?.toString() || "5",
               deliveryTime: (product as any).deliveryTime || "",
               price: product.price?.toString() || "",
@@ -1323,6 +1329,8 @@ export default function SellerAddProduct() {
         rackNumber: (formData as any).rackNumber || undefined,
         hsnCode: (formData as any).hsnCode || undefined,
         purchasePrice: (formData as any).purchasePrice ? parseFloat((formData as any).purchasePrice) : undefined,
+        mfgDate: (formData as any).mfgDate || undefined,
+        expiryDate: (formData as any).expiryDate || undefined,
         lowStockQuantity: (formData as any).lowStockQuantity ? parseInt((formData as any).lowStockQuantity) : undefined,
         deliveryTime: (formData as any).deliveryTime || undefined,
       };
@@ -1372,6 +1380,8 @@ export default function SellerAddProduct() {
               rackNumber: "",
               hsnCode: "",
               purchasePrice: "",
+              mfgDate: "",
+              expiryDate: "",
               lowStockQuantity: "5",
               deliveryTime: "",
               price: "",
@@ -3082,6 +3092,36 @@ export default function SellerAddProduct() {
                      placeholder="Enter HSN Code"
                      className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
                    />
+                </div>
+                )}
+
+                {shouldShowField('mfg_date') && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Mfg Date
+                  </label>
+                  <input
+                    type="date"
+                    name="mfgDate"
+                    value={(formData as any).mfgDate}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
+                  />
+                </div>
+                )}
+
+                {shouldShowField('expiry_date') && (
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Expiry Date
+                  </label>
+                  <input
+                    type="date"
+                    name="expiryDate"
+                    value={(formData as any).expiryDate}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
+                  />
                 </div>
                 )}
 

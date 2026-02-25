@@ -218,6 +218,7 @@ import { useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import { AppProvider } from "./context/AppContext";
 
+const AdminManageStaff = lazy(() => import("./modules/admin/pages/AdminManageStaff"));
 const AdminStoreSettings = lazy(() => import("./modules/admin/pages/AdminStoreSettings"));
 const AdminAppSettings = lazy(() => import("./modules/admin/pages/AdminAppSettings"));
 
@@ -535,6 +536,7 @@ function App() {
                             <Route path="barcode-settings" element={<AdminBarcodeSettings />} />
                             <Route path="delivery-settings" element={<AdminDeliverySettings />} />
                             <Route path="sales-summary" element={<AdminSalesSummary />} />
+                            <Route path="manage-staff" element={<AdminManageStaff />} />
                             <Route path="settings/store" element={<AdminStoreSettings />} />
                             <Route path="app-settings" element={<AdminAppSettings />} />
 

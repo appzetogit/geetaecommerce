@@ -5,8 +5,10 @@ import { getCategories, Category } from '../../../services/api/categoryService';
 import ThemedDropdown from '../components/ThemedDropdown';
 import SellerCategoryForm from './SellerCategoryForm';
 import { useToast } from '../../../context/ToastContext';
+import { useAuth } from '../../../context/AuthContext';
 
 export default function SellerCategory() {
+    const { user } = useAuth();
     const { showToast } = useToast();
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
@@ -21,20 +23,22 @@ export default function SellerCategory() {
     // Initial Data Loading
     useEffect(() => {
         // 1. Check Seller Permission
-        const sellerData = localStorage.getItem('seller_category_permission');
-        // Note: In a real app we would get current seller ID, but for demo we assume generic permission
-        // or check 'seller_category_permissions' map if we had seller context
-        // IMPROVED: Let's check the map from Admin side if possible, or fallback
+        // Admin "Category Permission" toggle ON => seller cannot create category
+        // Toggle OFF => seller can create category
         const permissionsMap = localStorage.getItem('seller_category_permissions');
-        if (permissionsMap) {
-            // Since we don't have exact seller context in this specific file easily without Context,
-            // we will check if ANY permission is true for demo,
-            // OR strictly, we should assume the backend would return this flag in user profile.
-            // For this frontend-only demo, let's look for a flag we set in Admin.
-            const parsed = JSON.parse(permissionsMap);
-            // Check if any value is true (assuming single seller for demo flow simplicity)
-            const hasPermission = Object.values(parsed).some(val => val === true);
-            setCanCreateCategories(hasPermission);
+        const currentSellerId = user?.id;
+        if (permissionsMap && currentSellerId) {
+            try {
+                const parsed = JSON.parse(permissionsMap);
+                const isRestrictedByAdmin = parsed[currentSellerId] === true;
+                setCanCreateCategories(!isRestrictedByAdmin);
+            } catch {
+                // Safe fallback: allow creation when permission map is invalid
+                setCanCreateCategories(true);
+            }
+        } else {
+            // If permission is not set, treat it as OFF (seller can create)
+            setCanCreateCategories(true);
         }
 
         // 2. Load Own Categories
@@ -42,7 +46,7 @@ export default function SellerCategory() {
         if (savedCategories) {
             setOwnCategories(JSON.parse(savedCategories));
         }
-    }, []);
+    }, [user?.id]);
 
     // Fetch Admin Categories
     useEffect(() => {
