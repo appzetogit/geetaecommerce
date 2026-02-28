@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+﻿import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Suspense, lazy, startTransition } from "react";
 import { CartProvider } from "./context/CartContext";
 import { OrdersProvider } from "./context/OrdersContext";
@@ -103,6 +103,8 @@ const SellerPOSCustomers = lazy(() => import("./modules/seller/pages/SellerPOSCu
 const SellerPOSCustomerDetail = lazy(() => import("./modules/seller/pages/SellerPOSCustomerDetail"));
 const SellerPOSCustomerOrders = lazy(() => import("./modules/seller/pages/SellerPOSCustomerOrders"));
 const SellerPOSReport = lazy(() => import("./modules/seller/pages/SellerPOSReport"));
+const SellerPurchaseReport = lazy(() => import("./modules/seller/pages/SellerPurchaseReport"));
+const SellerPOSQuotations = lazy(() => import("./modules/seller/pages/SellerPOSQuotations"));
 const SellerSalesSummary = lazy(() => import("./modules/seller/pages/SellerSalesSummary"));
 const SellerAttributeSetup = lazy(() => import("./modules/seller/pages/SellerAttributeSetup"));
 const SellerProductDisplaySettings = lazy(() => import("./modules/seller/pages/SellerProductDisplaySettings"));
@@ -182,6 +184,8 @@ const AdminManageCustomer = lazy(() => import("./modules/admin/pages/AdminManage
 const AdminProfile = lazy(() => import("./modules/admin/pages/AdminProfile"));
 const AdminPOSOrders = lazy(() => import("./modules/admin/pages/AdminPOSOrders"));
 const AdminPOSReport = lazy(() => import("./modules/admin/pages/AdminPOSReport"));
+const AdminPurchaseReport = lazy(() => import("./modules/admin/pages/AdminPurchaseReport"));
+const AdminPOSQuotations = lazy(() => import("./modules/admin/pages/AdminPOSQuotations"));
 const AdminVideoManagement = lazy(() => import("./modules/admin/pages/AdminVideoManagement"));
 const AdminProductDisplaySettings = lazy(() => import("./modules/admin/pages/AdminProductDisplaySettings"));
 const AdminBarcodeSettings = lazy(() => import("./modules/admin/pages/AdminBarcodeSettings"));
@@ -241,7 +245,7 @@ function NotificationHandler() {
 
     // Listen for foreground messages
     const unsubscribe = onMessageListener((payload: any) => {
-      console.log('🔔 [FCM-REALTIME] Foreground Notification:', {
+      console.log('ðŸ”” [FCM-REALTIME] Foreground Notification:', {
         title: payload?.notification?.title,
         body: payload?.notification?.body,
         data: payload?.data
@@ -251,7 +255,7 @@ function NotificationHandler() {
       toast.success((payload?.notification?.title || 'Notification') + ": " + (payload?.notification?.body || ''), {
         duration: 6000,
         position: 'top-right',
-        icon: '🔔'
+        icon: 'ðŸ””'
       });
 
       // 2. Show native browser notification as well for better visibility
@@ -424,6 +428,7 @@ function App() {
                               <Route path="orders/:id" element={<SellerOrderDetail />} />
                               <Route path="return-requests" element={<SellerReturnRequests />} />
                               <Route path="replace-requests" element={<SellerReplaceRequests />} />
+                              <Route path="manage-staff" element={<AdminManageStaff />} />
                               <Route path="category" element={<SellerCategory />} />
                               <Route path="subcategory" element={<SellerSubCategory />} />
                               <Route path="product/add" element={<SellerAddProduct />} />
@@ -446,6 +451,8 @@ function App() {
                               <Route path="pos/customers/:id" element={<SellerPOSCustomerDetail />} />
                               <Route path="pos/customers/:id/orders" element={<SellerPOSCustomerOrders />} />
                               <Route path="pos/report" element={<SellerPOSReport />} />
+                              <Route path="purchase/report" element={<SellerPurchaseReport />} />
+                              <Route path="pos/quotations" element={<SellerPOSQuotations />} />
                               <Route path="product-display-settings" element={<SellerProductDisplaySettings />} />
                               <Route path="bill-settings" element={<SellerBillSettings />} />
                               <Route path="barcode-settings" element={<SellerBarcodeSettings />} />
@@ -480,6 +487,8 @@ function App() {
                              <Route path="pos/customers/:id" element={<AdminPOSCustomerDetail />} />
                              <Route path="pos/customers/:id/orders" element={<AdminPOSCustomerOrders />} />
                              <Route path="pos/report" element={<AdminPOSReport />} />
+                             <Route path="purchase/report" element={<AdminPurchaseReport />} />
+                             <Route path="pos/quotations" element={<AdminPOSQuotations />} />
                              <Route path="" element={<AdminDashboard />} />
                             <Route path="profile" element={<AdminProfile />} />
                             <Route path="category" element={<AdminCategory />} />
@@ -636,3 +645,4 @@ function App() {
 }
 
 export default App;
+

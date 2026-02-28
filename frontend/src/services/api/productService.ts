@@ -84,6 +84,8 @@ export interface Product {
   // Shop by Store fields
   isShopByStoreOnly?: boolean;
   shopId?: string | any;
+  mfgDate?: string;
+  expiryDate?: string;
 }
 
 export interface CreateProductData {
@@ -125,6 +127,8 @@ export interface CreateProductData {
   shopId?: string;
   warrantyType?: 'None' | 'Warranty' | 'Guarantee';
   warrantyDuration?: string;
+  mfgDate?: string;
+  expiryDate?: string;
 }
 
 export interface Shop {

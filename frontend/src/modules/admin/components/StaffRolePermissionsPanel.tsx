@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Shield, ChevronDown, ChevronUp, Save, ShoppingCart, Users, BarChart } from 'lucide-react';
 import { Staff, RoleType } from '../pages/AdminManageStaff';
 import { toast } from 'react-hot-toast';
+import { useLocation } from 'react-router-dom';
 
 interface StaffRolePermissionsPanelProps {
   isOpen: boolean;
@@ -22,97 +23,148 @@ interface PermissionGroup {
   }[];
 }
 
+const BASE_PERMISSION_GROUPS: PermissionGroup[] = [
+  {
+    id: 'inventory',
+    title: 'Inventory',
+    badge: 'PART ACCESS',
+    badgeColor: 'text-orange-500 bg-orange-50',
+    permissions: [
+      { id: 'product_list', label: 'Product List', enabled: true },
+      { id: 'add_product', label: 'Add Product', enabled: true },
+      { id: 'edit_product', label: 'Edit Product', enabled: false },
+      { id: 'category', label: 'Category', enabled: true },
+      { id: 'header_category', label: 'Header Category', enabled: true },
+      { id: 'subcategory', label: 'Sub Category', enabled: true },
+      { id: 'brand', label: 'Brand', enabled: true },
+      { id: 'attribute_setup', label: 'Attribute Setup', enabled: true },
+      { id: 'variation_setup', label: 'Variation Setup', enabled: true },
+      { id: 'taxes', label: 'Taxes', enabled: true },
+      { id: 'barcode_settings', label: 'Barcode Settings', enabled: false },
+      { id: 'product_display_settings', label: 'Product Display Settings', enabled: false },
+    ]
+  },
+  {
+    id: 'orders',
+    title: 'Orders',
+    badge: 'PART ACCESS',
+    badgeColor: 'text-orange-500 bg-orange-50',
+    permissions: [
+      { id: 'all_orders', label: 'All Orders', enabled: true },
+      { id: 'pending_orders', label: 'Pending Orders', enabled: true },
+      { id: 'confirmed_orders', label: 'Confirmed Orders', enabled: true },
+      { id: 'processed_orders', label: 'Processed Orders', enabled: true },
+      { id: 'shipped_orders', label: 'Shipped Orders', enabled: true },
+      { id: 'out_for_delivery', label: 'Out for Delivery', enabled: true },
+      { id: 'delivered_orders', label: 'Delivered Orders', enabled: true },
+      { id: 'cancelled_orders', label: 'Cancelled Orders', enabled: true },
+      { id: 'pos_orders', label: 'POS Orders', enabled: true },
+      { id: 'return_requests', label: 'Return Requests', enabled: true },
+      { id: 'replace_requests', label: 'Replace Requests', enabled: true },
+      { id: 'order_details', label: 'Order Details View', enabled: true },
+    ]
+  },
+  {
+    id: 'customers',
+    title: 'Customers',
+    badge: 'PART ACCESS',
+    badgeColor: 'text-orange-500 bg-orange-50',
+    permissions: [
+      { id: 'my_customers', label: 'My Customers', enabled: true },
+      { id: 'add_customer', label: 'Add Customer', enabled: true },
+      { id: 'edit_customer', label: 'Edit Customer', enabled: false },
+      { id: 'delete_customer', label: 'Delete Customer', enabled: false },
+      { id: 'delete_ledger', label: 'Delete Ledger', enabled: false },
+    ]
+  },
+  {
+    id: 'online_orders',
+    title: 'Online Orders',
+    badge: 'PART ACCESS',
+    badgeColor: 'text-orange-500 bg-orange-50',
+    permissions: [
+      { id: 'review_online_order', label: 'Review Online Order', enabled: true },
+      { id: 'reject_online_order', label: 'Reject Online Order', enabled: false },
+      { id: 'online_shop_edit', label: 'Online Shop Edit', enabled: false },
+    ]
+  },
+  {
+    id: 'reports',
+    title: 'Reports',
+    badge: 'PART ACCESS',
+    badgeColor: 'text-orange-500 bg-orange-50',
+    permissions: [
+      { id: 'sales_summary', label: 'Sales Summary', enabled: false },
+      { id: 'return_exchange_summary', label: 'Return/Exchange Summary', enabled: false },
+      { id: 'stock_sales_summary', label: 'Stock Sales Summary', enabled: false },
+      { id: 'due_summary', label: 'Due Summary', enabled: false },
+      { id: 'stock_summary', label: 'Stock Summary', enabled: false },
+      { id: 'stock_balance_summary', label: 'Stock Balance Summary', enabled: false },
+      { id: 'low_stock_summary', label: 'Low Stock Summary', enabled: true },
+      { id: 'out_of_stock_summary', label: 'Out of Stock Summary', enabled: true },
+      { id: 'loss_summary', label: 'Loss Summary', enabled: false },
+      { id: 'gst_sales', label: 'GST Sales', enabled: false },
+      { id: 'payment_report', label: 'Payment Report', enabled: false },
+      { id: 'online_order_report', label: 'Online Order Report', enabled: false },
+      { id: 'pos_invoice_report', label: 'POS Invoice Report', enabled: false },
+    ]
+  }
+];
+
+const SELLER_ALLOWED_PERMISSION_IDS = new Set([
+  'product_list',
+  'add_product',
+  'edit_product',
+  'category',
+  'subcategory',
+  'attribute_setup',
+  'variation_setup',
+  'taxes',
+  'barcode_settings',
+  'product_display_settings',
+  'all_orders',
+  'pending_orders',
+  'confirmed_orders',
+  'processed_orders',
+  'shipped_orders',
+  'out_for_delivery',
+  'delivered_orders',
+  'cancelled_orders',
+  'pos_orders',
+  'return_requests',
+  'replace_requests',
+  'order_details',
+  'my_customers',
+  'sales_summary',
+  'return_exchange_summary',
+  'stock_sales_summary',
+  'due_summary',
+  'stock_summary',
+  'stock_balance_summary',
+  'low_stock_summary',
+  'out_of_stock_summary',
+  'loss_summary',
+  'gst_sales',
+  'payment_report',
+  'online_order_report'
+]);
+
 const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ isOpen, onClose, staff, roles }) => {
+  const location = useLocation();
+  const isSellerManageStaff = location.pathname.startsWith('/seller/');
   const [selectedRole, setSelectedRole] = useState<string>(staff?.role || roles[0] || 'STAFF');
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['inventory', 'orders']);
 
-  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>([
-    {
-      id: 'inventory',
-      title: 'Inventory',
-      badge: 'PART ACCESS',
-      badgeColor: 'text-orange-500 bg-orange-50',
-      permissions: [
-        { id: 'product_list', label: 'Product List', enabled: true },
-        { id: 'add_product', label: 'Add Product', enabled: true },
-        { id: 'edit_product', label: 'Edit Product', enabled: false },
-        { id: 'category', label: 'Category', enabled: true },
-        { id: 'header_category', label: 'Header Category', enabled: true },
-        { id: 'subcategory', label: 'Sub Category', enabled: true },
-        { id: 'brand', label: 'Brand', enabled: true },
-        { id: 'attribute_setup', label: 'Attribute Setup', enabled: true },
-        { id: 'variation_setup', label: 'Variation Setup', enabled: true },
-        { id: 'taxes', label: 'Taxes', enabled: true },
-        { id: 'barcode_settings', label: 'Barcode Settings', enabled: false },
-        { id: 'product_display_settings', label: 'Product Display Settings', enabled: false },
-      ]
-    },
-    {
-      id: 'orders',
-      title: 'Orders',
-      badge: 'PART ACCESS',
-      badgeColor: 'text-orange-500 bg-orange-50',
-      permissions: [
-        { id: 'all_orders', label: 'All Orders', enabled: true },
-        { id: 'pending_orders', label: 'Pending Orders', enabled: true },
-        { id: 'confirmed_orders', label: 'Confirmed Orders', enabled: true },
-        { id: 'processed_orders', label: 'Processed Orders', enabled: true },
-        { id: 'shipped_orders', label: 'Shipped Orders', enabled: true },
-        { id: 'out_for_delivery', label: 'Out for Delivery', enabled: true },
-        { id: 'delivered_orders', label: 'Delivered Orders', enabled: true },
-        { id: 'cancelled_orders', label: 'Cancelled Orders', enabled: true },
-        { id: 'pos_orders', label: 'POS Orders', enabled: true },
-        { id: 'return_requests', label: 'Return Requests', enabled: true },
-        { id: 'replace_requests', label: 'Replace Requests', enabled: true },
-        { id: 'order_details', label: 'Order Details View', enabled: true },
-      ]
-    },
-    {
-      id: 'customers',
-      title: 'Customers',
-      badge: 'PART ACCESS',
-      badgeColor: 'text-orange-500 bg-orange-50',
-      permissions: [
-        { id: 'my_customers', label: 'My Customers', enabled: true },
-        { id: 'add_customer', label: 'Add Customer', enabled: true },
-        { id: 'edit_customer', label: 'Edit Customer', enabled: false },
-        { id: 'delete_customer', label: 'Delete Customer', enabled: false },
-        { id: 'delete_ledger', label: 'Delete Ledger', enabled: false },
-      ]
-    },
-    {
-      id: 'online_orders',
-      title: 'Online Orders',
-      badge: 'PART ACCESS',
-      badgeColor: 'text-orange-500 bg-orange-50',
-      permissions: [
-        { id: 'review_online_order', label: 'Review Online Order', enabled: true },
-        { id: 'reject_online_order', label: 'Reject Online Order', enabled: false },
-        { id: 'online_shop_edit', label: 'Online Shop Edit', enabled: false },
-      ]
-    },
-    {
-      id: 'reports',
-      title: 'Reports',
-      badge: 'PART ACCESS',
-      badgeColor: 'text-orange-500 bg-orange-50',
-      permissions: [
-        { id: 'sales_summary', label: 'Sales Summary', enabled: false },
-        { id: 'return_exchange_summary', label: 'Return/Exchange Summary', enabled: false },
-        { id: 'stock_sales_summary', label: 'Stock Sales Summary', enabled: false },
-        { id: 'due_summary', label: 'Due Summary', enabled: false },
-        { id: 'stock_summary', label: 'Stock Summary', enabled: false },
-        { id: 'stock_balance_summary', label: 'Stock Balance Summary', enabled: false },
-        { id: 'low_stock_summary', label: 'Low Stock Summary', enabled: true },
-        { id: 'out_of_stock_summary', label: 'Out of Stock Summary', enabled: true },
-        { id: 'loss_summary', label: 'Loss Summary', enabled: false },
-        { id: 'gst_sales', label: 'GST Sales', enabled: false },
-        { id: 'payment_report', label: 'Payment Report', enabled: false },
-        { id: 'online_order_report', label: 'Online Order Report', enabled: false },
-        { id: 'pos_invoice_report', label: 'POS Invoice Report', enabled: false },
-      ]
-    }
-  ]);
+  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>(
+    isSellerManageStaff
+      ? BASE_PERMISSION_GROUPS
+          .map(group => ({
+            ...group,
+            permissions: group.permissions.filter(permission => SELLER_ALLOWED_PERMISSION_IDS.has(permission.id))
+          }))
+          .filter(group => group.permissions.length > 0)
+      : BASE_PERMISSION_GROUPS
+  );
 
   const toggleGroup = (id: string) => {
     setExpandedGroups(prev =>

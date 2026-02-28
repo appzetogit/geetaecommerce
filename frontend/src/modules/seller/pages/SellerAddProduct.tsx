@@ -84,6 +84,7 @@ export default function SellerAddProduct() {
     rackNumber: "",
     hsnCode: "",
     purchasePrice: "",
+    weight: "",
     mfgDate: "",
     expiryDate: "",
     lowStockQuantity: "5",
@@ -536,6 +537,7 @@ export default function SellerAddProduct() {
       rackNumber: "",
       hsnCode: "",
       purchasePrice: "",
+      weight: "",
       mfgDate: "",
       expiryDate: "",
       lowStockQuantity: "5",
@@ -916,6 +918,7 @@ export default function SellerAddProduct() {
               rackNumber: (product as any).rackNumber || "",
               hsnCode: (product as any).hsnCode || "",
               purchasePrice: (product as any).purchasePrice?.toString() || "",
+              weight: (product as any).weight || "",
               mfgDate: (product as any).mfgDate || "",
               expiryDate: (product as any).expiryDate || "",
               lowStockQuantity: (product as any).lowStockQuantity?.toString() || "5",
@@ -1329,6 +1332,7 @@ export default function SellerAddProduct() {
         rackNumber: (formData as any).rackNumber || undefined,
         hsnCode: (formData as any).hsnCode || undefined,
         purchasePrice: (formData as any).purchasePrice ? parseFloat((formData as any).purchasePrice) : undefined,
+        weight: (formData as any).weight || undefined,
         mfgDate: (formData as any).mfgDate || undefined,
         expiryDate: (formData as any).expiryDate || undefined,
         lowStockQuantity: (formData as any).lowStockQuantity ? parseInt((formData as any).lowStockQuantity) : undefined,
@@ -1380,6 +1384,7 @@ export default function SellerAddProduct() {
               rackNumber: "",
               hsnCode: "",
               purchasePrice: "",
+              weight: "",
               mfgDate: "",
               expiryDate: "",
               lowStockQuantity: "5",
@@ -3124,6 +3129,20 @@ export default function SellerAddProduct() {
                   />
                 </div>
                 )}
+
+                <div>
+                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                    Weight
+                  </label>
+                  <input
+                    type="text"
+                    name="weight"
+                    value={(formData as any).weight}
+                    onChange={handleChange}
+                    placeholder="e.g. 500 g, 1 kg"
+                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all"
+                  />
+                </div>
 
                 {shouldShowField('delivery_time') && (
                 <div>

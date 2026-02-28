@@ -167,6 +167,8 @@ export interface Product {
   pack?: string;
   isShopByStoreOnly?: boolean;
   shopId?: string | { _id: string; name: string };
+  mfgDate?: string;
+  expiryDate?: string;
   // Legacy/Alias fields
   headerCategoryId?: string | any;
   categoryId?: string;
@@ -240,6 +242,8 @@ export interface CreateProductData {
   warrantyType?: 'None' | 'Warranty' | 'Guarantee';
   warrantyDuration?: string;
   unitPricing?: { minQty: number; price: number }[];
+  mfgDate?: string;
+  expiryDate?: string;
 }
 
 export interface GetProductsParams {
@@ -625,4 +629,3 @@ export const uploadImage = async (file: File): Promise<ApiResponse<{ url: string
   });
   return response.data;
 };
-

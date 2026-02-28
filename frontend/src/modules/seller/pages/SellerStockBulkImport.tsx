@@ -144,6 +144,9 @@ export default function SellerStockBulkImport({
       // deliveryTime: row['Del. Time'] || row['19. Del. Time'] || "",
       lowStockQuantity: parseInt(row['Low Stock'] || row['23. Low Stock'] || "5"),
       brandId: row['Brand'] || row['24. Brand'] || "",
+      mfgDate: row['Mfg Date'] || row['30. Mfg Date'] || "",
+      expiryDate: row['Expiry Date'] || row['31. Expiry Date'] || "",
+      weight: row['Weight'] || row['32. Weight'] || "",
 
       publish: (row['Status'] || row['Status'] || "").toLowerCase() === 'active' || (row['Status'] || "").toLowerCase() === 'published' ? true : false,
       popular: false,
@@ -200,18 +203,18 @@ export default function SellerStockBulkImport({
             // If we are creating a NEW product, we need at least one variation.
 
             const productPayload: CreateProductData = {
-                productName: rawData.productName,
+                productName: rawData.productName || "Untitled",
                 categoryId: rawData.categoryId,
                 subcategoryId: rawData.subcategoryId,
                 subSubCategoryId: rawData.subSubCategoryId,
                 brandId: rawData.brandId,
-                publish: rawData.publish,
+                publish: !!rawData.publish,
                 popular: false,
                 dealOfDay: false,
                 isReturnable: false,
                 totalAllowedQuantity: 10, // Default
                 mainImageUrl: rawData.mainImageUrl,
-                variations: variations,
+                variations: variations as any,
                 itemCode: rawData.itemCode,
                 rackNumber: rawData.rackNumber,
                 hsnCode: rawData.hsnCode,
@@ -251,11 +254,11 @@ export default function SellerStockBulkImport({
         "22. Wholesale Price", "23. Low Stock", "24. Brand", "25. Val (MRP)", "26. Val (Pur)"
     ];
 
-    // Row 1: Standard Cols + "Unit Pricing Rules" (Merged) + "29. Variations" + "Image"
-    const row1 = [...stdCols, "Unit Pricing Rules", "", "29. Variations", "Image"];
+    // Row 1: Standard Cols + "Unit Pricing Rules" (Merged) + "29. Variations" + "Image" + "30. Mfg Date" + "31. Expiry Date" + "32. Weight"
+    const row1 = [...stdCols, "Unit Pricing Rules", "", "29. Variations", "Image", "30. Mfg Date", "31. Expiry Date", "32. Weight"];
 
-    // Row 2: Standard Cols (Repeated for parsing) + Sub-Headers + "29. Variations" + "Image"
-    const row2 = [...stdCols, "Price (Min Qty 2)", "Price (Min Qty 4)", "29. Variations", "Image"];
+    // Row 2: Standard Cols (Repeated for parsing) + Sub-Headers + "29. Variations" + "Image" + "30. Mfg Date" + "31. Expiry Date" + "32. Weight"
+    const row2 = [...stdCols, "Price (Min Qty 2)", "Price (Min Qty 4)", "29. Variations", "Image", "30. Mfg Date", "31. Expiry Date", "32. Weight"];
 
     const ws = XLSX.utils.aoa_to_sheet([row1, row2]);
 
@@ -271,6 +274,15 @@ export default function SellerStockBulkImport({
 
     // Image Column (Index 29)
     merges.push({ s: { r: 0, c: 29 }, e: { r: 1, c: 29 } });
+
+    // Mfg Date Column (Index 30)
+    merges.push({ s: { r: 0, c: 30 }, e: { r: 1, c: 30 } });
+
+    // Expiry Date Column (Index 31)
+    merges.push({ s: { r: 0, c: 31 }, e: { r: 1, c: 31 } });
+
+    // Weight Column (Index 32)
+    merges.push({ s: { r: 0, c: 32 }, e: { r: 1, c: 32 } });
 
     // Horizontal Merge for Unit Pricing (Index 26-27)
     merges.push({ s: { r: 0, c: 26 }, e: { r: 0, c: 27 } });
@@ -348,6 +360,9 @@ export default function SellerStockBulkImport({
                    <span>28. Unit Price (Min Qty 4)</span>
                    <span>29. Variations</span>
                    <span>Image</span>
+                   <span>30. Mfg Date</span>
+                   <span>31. Expiry Date</span>
+                   <span>32. Weight</span>
                 </div>
               </div>
             </div>

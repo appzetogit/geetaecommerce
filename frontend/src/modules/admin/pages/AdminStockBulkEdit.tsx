@@ -103,6 +103,7 @@ interface EditableProduct {
   purchasePrice: number;
   mfgDate: string;
   expiryDate: string;
+  weight: string;
   deliveryTime: string;
   lowStockQuantity: number;
   subCategoryId?: string; // Add this
@@ -256,6 +257,7 @@ export default function AdminStockBulkEdit({
         purchasePrice: (p as any).purchasePrice || 0,
         mfgDate: (p as any).mfgDate || "",
         expiryDate: (p as any).expiryDate || "",
+        weight: (p as any).weight || "",
         deliveryTime: (p as any).deliveryTime || "",
         lowStockQuantity: (p as any).lowStockQuantity || 5,
         wholesalePrice: (p as any).wholesalePrice || 0,
@@ -377,6 +379,7 @@ export default function AdminStockBulkEdit({
           purchasePrice: p.purchasePrice,
           mfgDate: p.mfgDate || undefined,
           expiryDate: p.expiryDate || undefined,
+          weight: p.weight || undefined,
           deliveryTime: p.deliveryTime,
           lowStockQuantity: p.lowStockQuantity,
           discPrice: p.offerPrice,
@@ -432,7 +435,7 @@ export default function AdminStockBulkEdit({
     "index", "image", "productName", "category", "subCategory", "subSubCategory",
     "attributes", "variations", "variationName",
     "sku", "rackNumber", "description", "barcode", "hsnCode", "pack",
-    "size", "color", "attr", "tax", "gst", "purchasePrice", "mfgDate", "expiryDate", "compareAtPrice",
+    "size", "color", "attr", "tax", "gst", "purchasePrice", "mfgDate", "expiryDate", "weight", "compareAtPrice",
     "price", "deliveryTime", "stock", "offerPrice", "wholesalePrice",
     "lowStockQuantity", "brand", "valMrp", "valPur", "unitPrice", "status"
   ]);
@@ -459,6 +462,7 @@ export default function AdminStockBulkEdit({
     purchasePrice: "16. Pur. Price",
     mfgDate: "17. Mfg Date",
     expiryDate: "18. Expiry Date",
+    weight: "19. Weight",
     compareAtPrice: "19. MRP",
     price: "20. Sell Price",
     deliveryTime: "21. Del. Time",
@@ -617,6 +621,7 @@ export default function AdminStockBulkEdit({
     purchasePrice: 100,
     mfgDate: 130,
     expiryDate: 130,
+    weight: 110,
     compareAtPrice: 100,
     price: 100,
     deliveryTime: 130,
@@ -815,6 +820,8 @@ export default function AdminStockBulkEdit({
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="date" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.mfgDate || ""} onChange={(e) => handleFieldChange(originalIndex, 'mfgDate', e.target.value)} /></td>;
       case "expiryDate":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="date" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.expiryDate || ""} onChange={(e) => handleFieldChange(originalIndex, 'expiryDate', e.target.value)} /></td>;
+      case "weight":
+        return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.weight || ""} onChange={(e) => handleFieldChange(originalIndex, 'weight', e.target.value)} /></td>;
       case "compareAtPrice":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="number" className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#f187b5] focus:bg-white text-sm text-right" value={product.compareAtPrice} onChange={(e) => handleFieldChange(originalIndex, "compareAtPrice", parseFloat(e.target.value) || 0)} /></td>;
       case "price":

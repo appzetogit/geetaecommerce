@@ -1,29 +1,36 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
-import { getProducts, getProductById, updateProduct, createProduct, getSellerPOSProducts } from '../../../services/api/productService';
-import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getSellerOrderById } from '../../../services/api/orderService';
+import { getProducts, getProductById, getSellerPOSProducts as getPOSProducts, Product, updateProduct, createProduct } from '../../../services/api/productService';
+import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getSellerOrderById as getOrderById } from '../../../services/api/orderService';
+import { updateOrderItems } from '../../../services/api/admin/adminOrderService';
 import { getAllCustomers, createCustomer } from '../../../services/api/seller/sellerCustomerService';
-import { getAppSettings } from '../../../services/api/admin/adminSettingsService';
+import { getAppSettings, AppSettings } from '../../../services/api/admin/adminSettingsService';
 import { getCategories } from '../../../services/api/categoryService';
 import { getBrands } from '../../../services/api/brandService';
 import { useToast } from '../../../context/ToastContext';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { jsPDF } from "jspdf";
+import autoTable from 'jspdf-autotable';
 import { Html5Qrcode } from "html5-qrcode";
-import { CartItem, Cart } from '@/types/cart';
-import { Product } from '@/types/domain';
 import { useAppContext } from '../../../context/AppContext';
 
-// Extended Product interface for POS to include fields as any to bypass strict checks
-type POSProduct = any;
-type Customer = any;
-type AppSettings = any;
+// Interface for Cart Item extending Product
+export interface CartItem extends Product {
+  qty: number;
+  customPrice?: number; // For edited selling price
+  variationId?: string;
+  isVariation?: boolean;
+  originalProductId?: string | null;
+  warrantyType?: "None" | "Warranty" | "Guarantee";
+  warrantyDuration?: string;
+}
 
 interface Seller {
   _id: string;
   sellerName: string;
   storeName: string;
 }
+type Customer = any;
 
 interface Bill {
   id: string;
@@ -36,18 +43,72 @@ interface Bill {
   createdAt: number;
 }
 
-const SellerPOSOrders = () => {
-    const [searchParams] = useSearchParams();
-    const location = useLocation();
-    const { config } = useAppContext();
-    const editOrderId = searchParams.get('edit');
-    const navigate = useNavigate();
-  const { showToast } = useToast();
-  const [orderItems, setOrderItems] = useState<CartItem[]>([]);
+interface PurchaseSupplier {
+  name: string;
+  phone: string;
+  address: string;
+  notes: string;
+  gstNumber: string;
+  openingBalance: string;
+  openingBalanceType: "Payment" | "Receive";
+}
 
-  const updateOrderItems = (items: CartItem[]) => {
-    setOrderItems(items);
+export interface PurchaseItem {
+  id: string;
+  productId: string;
+  baseProductId: string;
+  productName: string;
+  isVariant?: boolean;
+  variationId?: string;
+  image?: string;
+  mrp: number;
+  retailPrice: number;
+  wholesalePrice: number;
+  purchasePrice: number;
+  qty: number;
+  currentQty: number;
+  includingGST: boolean;
+  billDiscount: number;
+  billDiscountType: "%" | "₹";
+  gstPercent: number;
+  barcode: string;
+  mfgDate: string;
+  expiry: string;
+  hsn: string;
+  batch: string;
+  packOf: number;
+  additionalOpen: boolean;
+}
+
+export interface PurchaseEntryRecord {
+  id: string;
+  type: 'purchase' | 'quotation';
+  supplier: PurchaseSupplier | null;
+  paymentMode: 'Cash' | 'Credit' | 'Online';
+  date: string;
+  items: PurchaseItem[];
+  totals: {
+    grossAmount: number;
+    discountAmount: number;
+    taxAmount: number;
+    roundOff: number;
+    netAmount: number;
   };
+  createdAt: string;
+}
+
+const SellerPOSOrders = () => {
+   const [searchParams] = useSearchParams();
+   const editOrderId = searchParams.get('edit');
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { config, refreshConfig } = useAppContext();
+
+  useEffect(() => {
+    refreshConfig();
+  }, []);
+
+  const [selectedSeller] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -61,35 +122,6 @@ const SellerPOSOrders = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
-
-  const [billSettings, setBillSettings] = useState({
-    shopName: "GEETA",
-    address: "Q7WM+92M, Q7WM+92M, , Indore Division,",
-    line2: "Nagda, Madhya Pradesh, India - 454001\n7898111456",
-    notes: { text: "Thank you for your business", enabled: true },
-    terms: { text: "Goods once sold will not be taken back.", enabled: true },
-    gst: { text: "", enabled: false },
-    fssai: { text: "", enabled: false }
-  });
-
-  useEffect(() => {
-    const saved = localStorage.getItem("seller_bill_settings");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        const newSettings = {
-          shopName: parsed.shopName || "GEETA",
-          address: parsed.address ? parsed.address.split('\n')[0] : "Q7WM+92M, Q7WM+92M, , Indore Division,",
-          line2: parsed.address ? (parsed.address.split('\n').slice(1).join(' ') + (parsed.phone ? `\n${parsed.phone}` : '')) : "Nagda, Madhya Pradesh, India - 454001\n7898111456",
-          notes: parsed.notes || { text: "Thank you for your business", enabled: true },
-          terms: parsed.terms || { text: "Goods once sold will not be taken back.", enabled: true },
-          gst: parsed.gst || { text: "", enabled: false },
-          fssai: parsed.fssai || { text: "", enabled: false }
-        };
-        setBillSettings(newSettings);
-      } catch (e) { console.error("Error parsing bill settings", e); }
-    }
   }, []);
 
   // Multi-Bill State
@@ -223,13 +255,9 @@ const SellerPOSOrders = () => {
   const paymentMethod = activeBill.paymentMethod;
 
   const setCart = (action: React.SetStateAction<CartItem[]>) => {
-    // console.log("setCart called with activeBillId:", activeBillId);
     setBills(prev => {
         const index = prev.findIndex(b => b.id === activeBillIdRef.current);
-        if (index === -1) {
-            console.error("setCart: Active bill not found!", activeBillId, prev);
-            return prev;
-        }
+        if (index === -1) return prev;
 
         const currentCart = prev[index].cart;
         let newCart;
@@ -238,8 +266,6 @@ const SellerPOSOrders = () => {
         } else {
             newCart = action;
         }
-
-        // console.log("Updating cart:", newCart);
 
         const updated = [...prev];
         updated[index] = { ...updated[index], cart: newCart };
@@ -294,53 +320,43 @@ const SellerPOSOrders = () => {
 
       setLoading(true);
       try {
-        let order = location.state?.order;
-        if (order && order._id !== editOrderId) order = null;
-
-        if (!order) {
-             const res = await getSellerOrderById(editOrderId);
-             if (res.success && res.data) order = res.data;
-        }
-
-        if (order) {
+        const res = await getOrderById(editOrderId);
+        if (res.success && res.data) {
+          const order = res.data;
 
           // Map Order Items to CartItems
-           const mappedCart: any[] = (order.items as any[]).map((item: any) => {
-             // Robustly resolve product details
-             const productId = item.product?._id || item.product;
-             const productObj = typeof item.product === 'object' ? item.product : {};
-
-             return {
-               _id: productId,
-               productName: item.productName || productObj.productName || "Unknown Product",
-               price: item.unitPrice || item.price || 0,
-               customPrice: item.unitPrice || item.price || 0, // Preserve the locked-in price
-               qty: item.quantity || item.qty || 0,
-               mainImage: item.productImage || productObj.mainImage || "",
-               originalProductId: productId, // Assuming no var for now, or resolving below
-               variationId: item.variation,
-               isVariation: !!item.variation,
-               stock: 9999, // Default to available for edit mode as we can't easily check real-time stock without another call
-               description: '',
-               sku: item.sku || productObj.sku || '',
-               compareAtPrice: (item.unitPrice || 0) * 1.2,
-               purchasePrice: 0,
-               wholesalePrice: 0,
-               category: 'uncategorized',
-               seller: '',
-               galleryImages: [],
-               publish: true,
-               popular: false,
-               dealOfDay: false,
-               status: 'Active',
-               isReturnable: true,
-               tags: [],
-               requiresApproval: false,
-               totalAllowedQuantity: 0,
-               galleryImageUrls: [],
-               variations: []
-             };
-          });
+          const mappedCart: CartItem[] = (order.items as any[]).map(item => ({
+             _id: item.product?._id || item.product, // Handle different population levels
+             productName: item.productName || item.product?.productName,
+             // If we have custom unitPrice, use it as customPrice
+             price: item.unitPrice,
+             customPrice: item.unitPrice,
+             qty: item.quantity,
+             mainImage: item.productImage || item.product?.mainImage,
+             originalProductId: item.product?._id || item.product,
+             variationId: item.variation,
+             isVariation: !!item.variation,
+             // Add extra fields as needed by CartItem interface (mocking some defaults if missing)
+             stock: 9999, // Assume available for edit or fetch fresh?
+             description: '',
+             sku: item.sku || '',
+             compareAtPrice: item.unitPrice * 1.2, // Mock if missing
+             purchasePrice: 0,
+             wholesalePrice: 0,
+             category: 'uncategorized', // Mock
+             seller: '', // Mock
+             galleryImages: [],
+             publish: true,
+             popular: false,
+             dealOfDay: false,
+             status: 'Active',
+             isReturnable: true,
+             tags: [],
+             requiresApproval: false,
+             totalAllowedQuantity: 0,
+             galleryImageUrls: [],
+             variations: []
+          }));
 
           const newBill: Bill = {
              id: billId,
@@ -374,12 +390,12 @@ const SellerPOSOrders = () => {
     loadEditOrder();
   }, [editOrderId]);
 
-  // const [sellers, setSellers] = useState<Seller[]>([]);
+  const [sellers, setSellers] = useState<Seller[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedBrand, setSelectedBrand] = useState('');
-  const [products, setProducts] = useState<POSProduct[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -389,11 +405,13 @@ const SellerPOSOrders = () => {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
+  const [editingPurchaseItem, setEditingPurchaseItem] = useState<PurchaseItem | null>(null);
 
   // Quick Add Form
   const [quickForm, setQuickForm] = useState({ barcode: '', name: '', price: '', qty: '1', mrp: '', purchasePrice: '', wholesalePrice: '', categoryId: '', brandId: '', addToInventory: false, warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
   // Edit Item Form
   const [editForm, setEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
+  const [purchaseEditForm, setPurchaseEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
 
   // New UI States
   const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
@@ -411,12 +429,10 @@ const SellerPOSOrders = () => {
       try {
         const [settingsRes, categoriesRes, brandsRes] = await Promise.all([
             getAppSettings(),
-            // getSellers(),
             getCategories(),
             getBrands()
         ]);
         if (settingsRes.success) setSettings(settingsRes.data);
-        // if (sellersRes.success) setSellers(sellersRes.data);
         if (categoriesRes.success) setCategories(categoriesRes.data);
         if (brandsRes.success) setBrands(brandsRes.data);
       } catch (e) {
@@ -429,7 +445,7 @@ const SellerPOSOrders = () => {
   // Success/Print Modal
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showModalBreakdown, setShowModalBreakdown] = useState(false);
-  const [lastBillDetails, setLastBillDetails] = useState<{total: number, invoiceNum: string, date: string, time: string, cart: CartItem[], isPaid: boolean} | null>(null);
+  const [lastBillDetails, setLastBillDetails] = useState<{total: number, invoiceNum: string, date: string, time: string, cart: CartItem[], isPaid: boolean, isQuotation?: boolean, quotationEntry?: PurchaseEntryRecord, paymentMethod?: string} | null>(null);
 
   // Add Customer Modal State
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -457,9 +473,56 @@ const SellerPOSOrders = () => {
     activeBillIdRef.current = activeBillId;
   }, [activeBillId]);
 
-  // Mobil Search Modal State
+  // Mobile Search Modal State
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
+  const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+  const [showPurchaseEntry, setShowPurchaseEntry] = useState(false);
+  const [showPurchaseSearch, setShowPurchaseSearch] = useState(false);
+  const [purchaseSearchQuery, setPurchaseSearchQuery] = useState('');
+  const [purchaseMode, setPurchaseMode] = useState<'Purchase' | 'Quotation'>('Purchase');
+  const [purchasePaymentMethod, setPurchasePaymentMethod] = useState<'Cash' | 'Credit' | 'Online'>('Cash');
+  const [showPurchasePaymentDropdown, setShowPurchasePaymentDropdown] = useState(false);
+  const [showSupplierModal, setShowSupplierModal] = useState(false);
+  const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>([]);
+  const [purchaseSearchLoading, setPurchaseSearchLoading] = useState(false);
+  const [purchaseSearchResults, setPurchaseSearchResults] = useState<Product[]>([]);
+  const [purchaseSupplier, setPurchaseSupplier] = useState<PurchaseSupplier | null>(null);
+  const [purchaseSupplierForm, setPurchaseSupplierForm] = useState<PurchaseSupplier>({
+    name: '',
+    phone: '',
+    address: '',
+    notes: '',
+    gstNumber: '',
+    openingBalance: '',
+    openingBalanceType: 'Payment',
+  });
+  const [purchaseDate, setPurchaseDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [showVariantPicker, setShowVariantPicker] = useState(false);
+  const [variantPickerItem, setVariantPickerItem] = useState<PurchaseItem | null>(null);
+  const [editingQuotationId, setEditingQuotationId] = useState<string | null>(null);
+  const [savedPurchaseEntries, setSavedPurchaseEntries] = useState<PurchaseEntryRecord[]>(() => {
+    try {
+      const raw = localStorage.getItem('admin_pos_purchase_entries');
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map(q => ({
+          ...q,
+          totals: {
+            grossAmount: q.totals?.grossAmount ?? q.totals?.gross ?? 0,
+            discountAmount: q.totals?.discountAmount ?? q.totals?.discount ?? 0,
+            taxAmount: q.totals?.taxAmount ?? q.totals?.tax ?? 0,
+            roundOff: q.totals?.roundOff ?? 0,
+            netAmount: q.totals?.netAmount ?? q.totals?.net ?? 0,
+          }
+        }));
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  });
 
   // Handle Barcode Scan from Camera
   const onScanSuccess = async (decodedText: string, decodedResult: any) => {
@@ -487,8 +550,8 @@ const SellerPOSOrders = () => {
           // Play beep
           // const audio = new Audio('/assets/beep.mp3'); audio.play().catch(e=>{});
 
-          // Use POS Product Search with case-insensitive check
-          const res = await getSellerPOSProducts({ search: decodedText });
+          // Use POS Search for optimized results
+          const res = await getPOSProducts({ search: decodedText });
           if (res.success && res.data && res.data.length > 0) {
              const productsFound = res.data;
              // Try to find exact match on Barcode or SKU
@@ -539,7 +602,9 @@ const SellerPOSOrders = () => {
              if (itemToAdd.stock <= 0) {
                  showToast(`Item "${itemToAdd.productName}" is Out of Stock!`, "error");
              } else {
-                 if (addToCartRef.current) addToCartRef.current({ ...itemToAdd, qty: 1 } as CartItem);
+                 if (addToCartRef.current) {
+                     addToCartRef.current({ ...itemToAdd, qty: 1 } as CartItem);
+                 }
                  showToast(`Added: ${itemToAdd.productName}`, "success");
              }
 
@@ -553,6 +618,92 @@ const SellerPOSOrders = () => {
          showToast("Error processing scan", "error");
       }
   };
+
+  // Handle Quotation Edit/Convert from search params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+
+    if (mode === 'edit_quotation') {
+      const raw = sessionStorage.getItem('edit_quotation_data');
+      if (raw) {
+        try {
+          const quote: PurchaseEntryRecord = JSON.parse(raw);
+          setPurchaseItems(quote.items);
+          setPurchaseSupplier(quote.supplier);
+          setPurchaseMode('Quotation');
+          setEditingQuotationId(quote.id);
+          setPurchaseDate(quote.date);
+          setPurchasePaymentMethod(quote.paymentMode);
+          setShowPurchaseEntry(true);
+          sessionStorage.removeItem('edit_quotation_data');
+        } catch (e) {
+          console.error("Failed to parse edit_quotation_data", e);
+        }
+      }
+    } else if (mode === 'convert_quotation') {
+      const raw = sessionStorage.getItem('convert_quotation_data');
+      if (raw) {
+        try {
+          const quote: PurchaseEntryRecord = JSON.parse(raw);
+          // Convert PurchaseItem to CartItem
+          const cartItems: CartItem[] = quote.items.map(item => ({
+            ...item,
+            _id: item.isVariant ? `${item.productId}-${item.variationId}` : item.productId,
+            productName: item.productName,
+            price: item.retailPrice,
+            mrp: item.mrp || item.retailPrice,
+            qty: item.qty,
+            stock: 999, // Dummy stock for checkout
+            image: item.image,
+            purchasePrice: item.purchasePrice,
+            wholesalePrice: item.wholesalePrice || 0,
+            gstPercent: item.gstPercent || 0,
+            billDiscount: item.billDiscount || 0,
+            originalProductId: item.productId,
+            variationId: item.variationId,
+            isVariation: item.isVariant
+          } as any));
+          setCart(cartItems);
+          if (quote.supplier) {
+            // Try to find matching customer
+            const matchingCustomer = customers.find(c => c.phone === quote.supplier?.phone);
+            if (matchingCustomer) {
+                setSelectedCustomer(matchingCustomer);
+            }
+          }
+          setShowPurchaseEntry(false);
+          sessionStorage.removeItem('convert_quotation_data');
+          showToast("Quotation loaded into cart. Proceed to checkout.", "success");
+        } catch (e) {
+          console.error("Failed to parse convert_quotation_data", e);
+        }
+      }
+    } else if (mode === 'new_quotation') {
+      setPurchaseMode('Quotation');
+      setPurchaseItems([]);
+      setPurchaseSupplier(null);
+      setEditingQuotationId(null);
+      setShowPurchaseEntry(true);
+    } else if (mode === 'edit_purchase') {
+      const raw = sessionStorage.getItem('edit_purchase_data');
+      if (raw) {
+        try {
+          const purchase: any = JSON.parse(raw);
+          setPurchaseItems(purchase.items);
+          setPurchaseSupplier(purchase.supplier);
+          setPurchaseMode('Purchase');
+          setEditingQuotationId(purchase.id);
+          setPurchaseDate(purchase.date);
+          setPurchasePaymentMethod(purchase.paymentMode);
+          setShowPurchaseEntry(true);
+          sessionStorage.removeItem('edit_purchase_data');
+        } catch (e) {
+          console.error("Failed to parse edit_purchase_data", e);
+        }
+      }
+    }
+  }, [customers]);
 
   useEffect(() => {
     const startScanner = async () => {
@@ -667,6 +818,11 @@ const SellerPOSOrders = () => {
           return;
       }
 
+      if (newCustomer.phone.length !== 10) {
+          showToast("Phone number must be 10 digits", "error");
+          return;
+      }
+
       setNewCustomerLoading(true);
       try {
           const res = await createCustomer({
@@ -675,14 +831,21 @@ const SellerPOSOrders = () => {
           });
 
           if (res.success && res.data) {
+              const customer = res.data;
               showToast("Customer added successfully", "success");
-              // setSelectedCustomer(res.data);
-              // setCustomerSearch(`${res.data.name} (${res.data.phone})`);
-              const displayName = `${res.data.name} (${res.data.phone})`;
-              updateActiveBill({ selectedCustomer: res.data, customerSearch: displayName });
 
-              // If the user wants to jump to Credit
-              setPaymentMethod("Credit");
+              const displayName = customer.phone ? `${customer.name} (${customer.phone})` : customer.name;
+
+              // Update bill state atomically
+              updateActiveBill({
+                  selectedCustomer: customer,
+                  customerSearch: displayName,
+                  paymentMethod: "Credit"
+              });
+
+              // Also update the local customers list used for the search dropdown
+              setCustomers([customer]);
+              setShowCustomerDropdown(false);
 
               setShowAddCustomerModal(false);
               setNewCustomer({
@@ -713,48 +876,45 @@ const SellerPOSOrders = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       const activeSearch = (showMobileSearch ? mobileSearchQuery : searchQuery).trim();
-
-      if (!activeSearch && !selectedCategory && !selectedBrand) {
+      if (!activeSearch) {
         setProducts([]);
         setLoading(false);
         return;
       }
-
       setLoading(true);
       try {
-        // Use new POS dedicated endpoint
-        const response = await getSellerPOSProducts({
+        const response = await getProducts({
           search: activeSearch,
-          category: selectedCategory || undefined,
-          brand: selectedBrand || undefined
+          category: !showMobileSearch ? (selectedCategory || undefined) : undefined,
+          brand: !showMobileSearch ? (selectedBrand || undefined) : undefined,
         });
         if (response.success && response.data) {
           // Expand Variations
           const expandedProducts: any[] = []; // Relax type to allow adding originalProductId
 
           response.data.forEach((product: any) => {
-             if ((product as any).variations && (product as any).variations.length > 0) {
-                 (product as any).variations.forEach((variation: any) => {
+             if (product.variations && product.variations.length > 0) {
+                 product.variations.forEach((variation: any) => {
                      expandedProducts.push({
                          ...product,
-                         _id: `${(product as any)._id}-${(variation as any)._id}`, // Consistent ID for variations
-                         originalProductId: (product as any)._id, // Store parent ID
-                         productName: `${(product as any).productName} - ${(variation as any).title || (variation as any).name || (variation as any).variationName || 'Variation'}`,
-                         price: (variation as any).price,
-                         compareAtPrice: (variation as any).compareAtPrice || (product as any).compareAtPrice, // Fallback to product MRP if variation doesn't have one
-                         purchasePrice: (variation as any).purchasePrice || (product as any).purchasePrice, // Fallback to product PP
-                         stock: (variation as any).stock,
-                         sku: (variation as any).sku || (product as any).sku, // Use variation SKU
+                         _id: `${product._id}-${variation._id}`, // Consistent ID for variations
+                         originalProductId: product._id, // Store parent ID
+                         productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || 'Variation'}`,
+                         price: variation.price,
+                         compareAtPrice: variation.compareAtPrice || product.compareAtPrice, // Fallback to product MRP if variation doesn't have one
+                         purchasePrice: variation.purchasePrice || product.purchasePrice, // Fallback to product PP
+                         stock: variation.stock,
+                         sku: variation.sku || product.sku, // Use variation SKU
                          isVariation: true,
-                         variationId: (variation as any)._id,
-                         wholesalePrice: Number((product as any).wholesalePrice || 0)
+                         variationId: variation._id,
+                         wholesalePrice: Number(product.wholesalePrice || 0)
                      });
                  });
              } else {
                  expandedProducts.push({
                      ...product,
-                     originalProductId: (product as any)._id,
-                     wholesalePrice: (product as any).wholesalePrice || 0
+                     originalProductId: product._id,
+                     wholesalePrice: product.wholesalePrice || 0
                  });
              }
           });
@@ -775,6 +935,35 @@ const SellerPOSOrders = () => {
 
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, mobileSearchQuery, selectedCategory, selectedBrand, showMobileSearch]);
+
+  useEffect(() => {
+    if (!showPurchaseSearch) return;
+
+    let isActive = true;
+    const fetchPurchaseProducts = async () => {
+      setPurchaseSearchLoading(true);
+      try {
+        const response = await getPOSProducts(purchaseSearchQuery.trim() ? { search: purchaseSearchQuery.trim() } : {});
+        if (isActive && response.success) {
+          setPurchaseSearchResults(response.data || []);
+        }
+      } catch {
+        if (isActive) {
+          setPurchaseSearchResults([]);
+        }
+      } finally {
+        if (isActive) {
+          setPurchaseSearchLoading(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(fetchPurchaseProducts, 250);
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+    };
+  }, [showPurchaseSearch, purchaseSearchQuery]);
 
   // Barcode Scanner Handler
   const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -798,9 +987,9 @@ const SellerPOSOrders = () => {
             return;
         }
 
-        // If not found in current products (maybe due to debounce), fetch immediately
+        // If not found in current products (maybe due to debounce or filter), fetch immediately
         try {
-            const res = await getSellerPOSProducts({ search: searchQuery.trim() });
+            const res = await getPOSProducts({ search: searchQuery.trim() });
             if (res.success && res.data && res.data.length > 0) {
                 const expanded: any[] = [];
                 res.data.forEach((product: any) => {
@@ -844,27 +1033,27 @@ const SellerPOSOrders = () => {
   };
 
   // --- Cart Logic ---
-  const addToCart = (product: POSProduct | CartItem) => {
+  const addToCart = (product: Product | CartItem) => {
     // Check Stock
-    if ((product as any).stock <= 0) {
-        showToast(`Item "${(product as any).productName}" is Out of Stock!`, "error");
+    if (product.stock <= 0) {
+        showToast(`Item "${product.productName}" is Out of Stock!`, "error");
         return;
     }
 
     setCart(prev => {
-      const existing = prev.find(item => (item as any)._id === (product as any)._id);
+      const existing = prev.find(item => item._id === product._id);
       if (existing) {
-        if (existing.qty >= (product as any).stock) {
+        if (existing.qty >= product.stock) {
             showToast("Cannot add more than available stock", "error");
             return prev;
         }
-        return prev.map(item => (item as any)._id === (product as any)._id ? { ...item, qty: (item as any).qty + 1 } : item);
+        return prev.map(item => item._id === product._id ? { ...item, qty: item.qty + 1 } : item);
       }
 
-      const price = (orderType === 'Wholesale' && (product as any).wholesalePrice) ? (product as any).wholesalePrice : (product as any).price;
+      const price = (orderType === 'Wholesale' && product.wholesalePrice) ? product.wholesalePrice : product.price;
       const newItem = { ...(product as CartItem), qty: 1 };
-      if (orderType === 'Wholesale' && (product as any).wholesalePrice) {
-          newItem.customPrice = (product as any).wholesalePrice;
+      if (orderType === 'Wholesale' && product.wholesalePrice) {
+          newItem.customPrice = product.wholesalePrice;
       }
 
       return [...prev, newItem];
@@ -872,14 +1061,12 @@ const SellerPOSOrders = () => {
   };
 
   const removeFromCart = (id: string) => {
-    setCart(prev => prev.filter(item => (item as any)._id !== id));
+    setCart(prev => prev.filter(item => item._id !== id));
   };
 
   const updateQuantity = (id: string, diff: number) => {
     setCart(prev => prev.map(item => {
-      // @ts-ignore
       if (item._id === id) {
-        // @ts-ignore
         const newQty = Math.max(1, item.qty + diff);
         return { ...item, qty: newQty };
       }
@@ -889,7 +1076,6 @@ const SellerPOSOrders = () => {
 
   const updateItemDetails = (id: string, updates: any) => {
     setCart(prev => prev.map(item => {
-        // @ts-ignore
         if (item._id === id) {
             return { ...item, ...updates };
         }
@@ -899,28 +1085,567 @@ const SellerPOSOrders = () => {
 
   /*
    * Helper to get effective price based on Order Type
-   * Retail -> (item as any).price
-   * Wholesale -> (item as any).wholesalePrice (if > 0) else (item as any).price
+   * Retail -> item.price
+   * Wholesale -> item.wholesalePrice (if > 0) else item.price
    */
-  const getEffectivePrice = (item: CartItem) => {
-      // If manually edited (customPrice), prioritize it?
-      // User request implies automatic switching.
-      // We will allow customPrice to override ONLY if strictly needed,
-      // but for "Billing" tab switching, we usually want the standard rate to apply unless specifically locked.
-      // However, typical behavior: Custom Price > Mode Price.
-      if ((item as any).customPrice !== undefined) return (item as any).customPrice;
+  const getEffectivePrice = (item: CartItem & { isPurchaseItem?: boolean }) => {
+      if (item.isPurchaseItem) return item.price;
+      if (item.customPrice !== undefined) return item.customPrice;
 
-      if (orderType === 'Wholesale' && (item as any).wholesalePrice && (item as any).wholesalePrice > 0) {
-          return (item as any).wholesalePrice;
+      if (orderType === 'Wholesale' && item.wholesalePrice && item.wholesalePrice > 0) {
+          return item.wholesalePrice;
       }
-      return (item as any).price;
+      return item.price;
   };
 
   const calculateTotal = () => {
     return cart.reduce((acc, item) => {
         const price = getEffectivePrice(item);
-        return acc + (price * (item as any).qty);
+        return acc + (price * item.qty);
     }, 0);
+  };
+
+  const calculatePurchaseTotal = () => {
+    return purchaseItems.reduce((sum, item) => {
+      const gross = item.purchasePrice * item.qty;
+      const discount = item.billDiscountType === '%' ? (gross * item.billDiscount) / 100 : item.billDiscount;
+      const taxable = Math.max(gross - discount, 0);
+      const gstAmount = item.includingGST ? 0 : (taxable * item.gstPercent) / 100;
+      return sum + taxable + gstAmount;
+    }, 0);
+  };
+
+  const calculatePurchaseBreakdown = () => {
+    const gross = purchaseItems.reduce((sum, item) => sum + item.purchasePrice * item.qty, 0);
+    const discount = purchaseItems.reduce((sum, item) => {
+      const lineGross = item.purchasePrice * item.qty;
+      return sum + (item.billDiscountType === '%' ? (lineGross * item.billDiscount) / 100 : item.billDiscount);
+    }, 0);
+    const tax = purchaseItems.reduce((sum, item) => {
+      const lineGross = item.purchasePrice * item.qty;
+      const lineDiscount = item.billDiscountType === '%' ? (lineGross * item.billDiscount) / 100 : item.billDiscount;
+      const taxable = Math.max(lineGross - lineDiscount, 0);
+      return sum + (item.includingGST ? 0 : (taxable * item.gstPercent) / 100);
+    }, 0);
+    const preRounded = gross - discount + tax;
+    const net = Math.round(preRounded);
+    const roundOff = Number((net - preRounded).toFixed(2));
+    return {
+      grossAmount: Number(gross.toFixed(2)),
+      discountAmount: Number(discount.toFixed(2)),
+      taxAmount: Number(tax.toFixed(2)),
+      roundOff,
+      netAmount: Number(net.toFixed(2)),
+    };
+  };
+
+  const printPurchaseInvoice = (entry: PurchaseEntryRecord) => {
+    const printWindow = window.open('', '_blank', 'width=980,height=760');
+    if (!printWindow) {
+      showToast('Please allow popups to print invoice.', 'error');
+      return;
+    }
+
+    const billNoPrefix = entry.type === 'quotation' ? 'QTN' : 'BILL';
+    const billNo = `${billNoPrefix}/${new Date(entry.createdAt).getFullYear()}/${entry.id.slice(-5)}`;
+    const supplierName = entry.supplier?.name || 'Walk-in Supplier';
+    const supplierAddress = entry.supplier?.address || '-';
+    const supplierPhone = entry.supplier?.phone || '-';
+    const supplierGst = entry.supplier?.gstNumber || '-';
+    const taxable = (entry.totals.grossAmount - entry.totals.discountAmount).toFixed(2);
+    const cgst = (entry.totals.taxAmount / 2).toFixed(2);
+    const sgst = (entry.totals.taxAmount / 2).toFixed(2);
+
+    const rows = entry.items.map((item, idx) => {
+      const gross = item.purchasePrice * item.qty;
+      const discount = item.billDiscountType === '%' ? (gross * item.billDiscount) / 100 : item.billDiscount;
+      const taxableLine = Math.max(gross - discount, 0);
+      const lineTax = item.includingGST ? 0 : (taxableLine * item.gstPercent) / 100;
+      const lineNet = taxableLine + lineTax;
+      return `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${item.productName}</td>
+          <td>${item.hsn || '-'}</td>
+          <td>${item.mrp.toFixed(2)}</td>
+          <td>${item.qty.toFixed(2)}</td>
+          <td>${item.purchasePrice.toFixed(2)}</td>
+          <td>${item.billDiscount.toFixed(2)}${item.billDiscountType}</td>
+          <td>${(item.gstPercent / 2).toFixed(2)}</td>
+          <td>${(item.gstPercent / 2).toFixed(2)}</td>
+          <td>${lineNet.toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const html = `
+      <html>
+        <head>
+          <title>${entry.type === 'quotation' ? 'Quotation' : 'Retail Invoice'} - ${billNo}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 22px; color: #111; }
+            h1, h2, h3, p { margin: 0; }
+            .top { text-align: center; margin-bottom: 10px; }
+            .top h1 { font-size: 34px; letter-spacing: 1px; }
+            .top p { font-size: 18px; margin-top: 3px; }
+            .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; font-size: 16px; }
+            .meta .box { border: 1px solid #d9d9d9; padding: 10px; min-height: 90px; }
+            .meta .line { display: flex; justify-content: space-between; margin: 2px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+            th, td { border: 1px solid #d9d9d9; padding: 7px 6px; font-size: 14px; text-align: left; }
+            th { background: #f6f6f6; font-weight: 700; }
+            td:last-child, th:last-child { text-align: right; }
+            .summary-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 16px; margin-top: 12px; }
+            .gst-box, .totals-box { border: 1px solid #d9d9d9; padding: 8px; }
+            .totals-row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 15px; }
+            .net { font-size: 20px; font-weight: 800; margin-top: 6px; border-top: 1px dashed #999; padding-top: 6px; }
+            .footer { margin-top: 18px; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="top">
+            <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 4px;">GEETA</h1>
+            <p style="font-size: 14px; line-height: 1.4;">Q7WM+92M, Q7WM+92M, , Indore Division,<br>Nagda, Madhya Pradesh, India - 454001<br>7898111456<br>FSSAI: 583545736</p>
+          </div>
+
+          <div class="meta">
+            <div class="box">
+              <h3 style="margin-bottom:6px;">Supplier Details</h3>
+              <div class="line"><span>Name</span><strong>${supplierName}</strong></div>
+              <div class="line"><span>Address</span><span>${supplierAddress}</span></div>
+              <div class="line"><span>Phone</span><span>${supplierPhone}</span></div>
+              <div class="line"><span>GSTIN</span><span>${supplierGst}</span></div>
+            </div>
+            <div class="box">
+              <h3 style="margin-bottom:6px;">${entry.type === 'quotation' ? 'Quotation' : 'Retail Invoice'}</h3>
+              <div class="line"><span>Type</span><strong>${entry.type.toUpperCase()}</strong></div>
+              <div class="line"><span>Bill No</span><span>${billNo}</span></div>
+              <div class="line"><span>Date</span><span>${entry.date}</span></div>
+              <div class="line"><span>Payment</span><span>${entry.paymentMode}</span></div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>S No</th>
+                <th>Item Name</th>
+                <th>HSN Code</th>
+                <th>MRP</th>
+                <th>Quantity</th>
+                <th>Rate/P</th>
+                <th>Disc</th>
+                <th>CGST %</th>
+                <th>SGST %</th>
+                <th>Net Amt.</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+
+          <div class="summary-wrap">
+            <div class="gst-box">
+              <h3 style="margin-bottom:6px;">GST Summary</h3>
+              <table>
+                <thead>
+                  <tr><th>Type of Tax</th><th>%</th><th>Taxable</th><th>Tax Amount</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>CGST</td><td>-</td><td>${taxable}</td><td>${cgst}</td></tr>
+                  <tr><td>SGST</td><td>-</td><td>${taxable}</td><td>${sgst}</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="totals-box">
+              <div class="totals-row"><span>Gross Amt.</span><strong>${entry.totals.grossAmount.toFixed(2)}</strong></div>
+              <div class="totals-row"><span>Total Deduction</span><strong>${entry.totals.discountAmount.toFixed(2)}</strong></div>
+              <div class="totals-row"><span>GST Amt.</span><strong>${entry.totals.taxAmount.toFixed(2)}</strong></div>
+              <div class="totals-row"><span>Round Off</span><strong>${entry.totals.roundOff.toFixed(2)}</strong></div>
+              <div class="totals-row net-total"><span>Total Amount</span><strong>${entry.totals.netAmount.toFixed(2)}</strong></div>
+            </div>
+          </div>
+
+          <p>Amt in words: ${entry.totals.netAmount.toFixed(2)} only</p>
+          <p>${entry.type === 'quotation' ? 'Quotation is valid for limited period.' : 'Payment must be paid within agreed days.'}</p>
+          <p style="margin-top: 24px; text-align:right;">Authorised Signature</p>
+
+          <script>
+            setTimeout(function() { window.print(); }, 400);
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
+  const handleSavePurchaseEntry = () => {
+    if (!purchaseSupplier) {
+      showToast('Please add/select supplier first.', 'error');
+      return;
+    }
+    if (purchaseItems.length === 0) {
+      showToast('Please add at least one product.', 'error');
+      return;
+    }
+
+    const totals = calculatePurchaseBreakdown();
+    const entry: PurchaseEntryRecord = {
+      id: editingQuotationId || `pur_${Date.now()}`,
+      type: purchaseMode === 'Purchase' ? 'purchase' : 'quotation',
+      supplier: purchaseSupplier,
+      paymentMode: purchasePaymentMethod,
+      date: purchaseDate,
+      items: purchaseItems,
+      totals,
+      createdAt: new Date().toISOString(),
+    };
+    console.log('purchase_payload', entry);
+
+    let nextEntries;
+    if (editingQuotationId) {
+       nextEntries = savedPurchaseEntries.map(e => e.id === editingQuotationId ? entry : e);
+       setEditingQuotationId(null);
+    } else {
+       nextEntries = [entry, ...savedPurchaseEntries];
+    }
+    setSavedPurchaseEntries(nextEntries);
+    localStorage.setItem('admin_pos_purchase_entries', JSON.stringify(nextEntries));
+
+    if (purchaseMode === 'Purchase') {
+      setPurchaseItems((prev) => prev.map((item) => ({ ...item, currentQty: item.currentQty + item.qty })));
+      showToast('Purchase saved & inventory updated', 'success');
+      printPurchaseInvoice(entry);
+    } else {
+      const currentTotals = calculatePurchaseBreakdown();
+      setLastBillDetails({
+        total: currentTotals.netAmount,
+        invoiceNum: entry.id.replace('pur_', '').toUpperCase(),
+        date: new Date().toLocaleDateString('en-IN'),
+        time: new Date().toLocaleTimeString('en-US', { hour12: true }),
+        cart: entry.items.map(it => ({
+          _id: it.id,
+          productName: it.productName,
+          price: it.retailPrice,
+          qty: it.qty,
+          isPurchaseItem: true,
+          retailPrice: it.retailPrice,
+          purchasePrice: it.purchasePrice
+        } as any)),
+        isPaid: false,
+        isQuotation: true,
+        quotationEntry: entry,
+        paymentMethod: purchasePaymentMethod
+      });
+      setShowSuccessModal(true);
+      showToast('Quotation saved successfully', 'success');
+    }
+  };
+
+  const addProductToPurchase = (product: Product) => {
+    setPurchaseItems((prev) => {
+      const existing = prev.find((p) => p.productId === product._id);
+      if (existing) {
+        return prev.map((p) =>
+          p.productId === product._id ? { ...p, qty: p.qty + 1 } : p
+        );
+      }
+      const next: PurchaseItem = {
+        id: `purchase_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
+        productId: product._id,
+        baseProductId: product._id,
+        productName: product.productName,
+        isVariant: false,
+        image: product.mainImage,
+        mrp: Number(product.compareAtPrice || product.price || 0),
+        retailPrice: Number(product.price || 0),
+        wholesalePrice: Number(product.wholesalePrice || 0),
+        purchasePrice: Number(product.purchasePrice || product.price || 0),
+        qty: 1,
+        currentQty: Number(product.stock || 0),
+        includingGST: false,
+        billDiscount: 0,
+        billDiscountType: '%',
+        gstPercent: 18,
+        barcode: Array.isArray(product.barcode) ? String(product.barcode[0] || '') : String(product.barcode || ''),
+        mfgDate: '',
+        expiry: '',
+        hsn: '',
+        batch: '',
+        packOf: 1,
+        additionalOpen: true,
+      };
+      return [next, ...prev];
+    });
+  };
+
+  const updatePurchaseItem = (id: string, updates: Partial<PurchaseItem>) => {
+    setPurchaseItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+  };
+
+  const removePurchaseItem = (id: string) => {
+    setPurchaseItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const decreasePurchaseQtyByProductId = (productId: string) => {
+    setPurchaseItems((prev) => {
+      const match = prev.find((item) => item.productId === productId);
+      if (!match) return prev;
+      if (match.qty <= 1) {
+        return prev.filter((item) => item.productId !== productId);
+      }
+      return prev.map((item) =>
+        item.productId === productId ? { ...item, qty: item.qty - 1 } : item
+      );
+    });
+  };
+
+  const formatPurchaseDate = (value: string) => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const generatePurchaseBarcode = () => {
+    const timestampPart = Date.now().toString().slice(-8);
+    const randomPart = Math.floor(1000 + Math.random() * 9000).toString();
+    return `${timestampPart}${randomPart}`;
+  };
+
+  const handleAutoGeneratePurchaseBarcode = (itemId: string) => {
+    const barcode = generatePurchaseBarcode();
+    updatePurchaseItem(itemId, { barcode });
+    showToast('Barcode generated successfully.', 'success');
+  };
+
+  const openVariantPicker = (item: PurchaseItem) => {
+    setVariantPickerItem(item);
+    setShowVariantPicker(true);
+  };
+
+  const addVariantToPurchase = (baseItem: PurchaseItem, variation: any) => {
+    const variationId = String(variation?._id || variation?.id || variation?.variationId || variation?.title || variation?.name || Date.now());
+    const variantLabel = String(variation?.title || variation?.name || variation?.variationName || 'Variant');
+    const variantProductId = `${baseItem.baseProductId}-${variationId}`;
+
+    setPurchaseItems((prev) => {
+      const existing = prev.find((p) => p.productId === variantProductId);
+      if (existing) {
+        return prev.map((p) => (p.productId === variantProductId ? { ...p, qty: p.qty + 1 } : p));
+      }
+
+      const next: PurchaseItem = {
+        id: `purchase_var_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
+        productId: variantProductId,
+        baseProductId: baseItem.baseProductId,
+        productName: `${baseItem.productName} - ${variantLabel}`,
+        isVariant: true,
+        variationId,
+        image: baseItem.image,
+        mrp: Number(variation?.compareAtPrice ?? baseItem.mrp ?? 0),
+        retailPrice: Number(variation?.price ?? baseItem.retailPrice ?? 0),
+        wholesalePrice: Number(variation?.wholesalePrice ?? baseItem.wholesalePrice ?? 0),
+        purchasePrice: Number(variation?.purchasePrice ?? baseItem.purchasePrice ?? 0),
+        qty: 1,
+        currentQty: Number(variation?.stock ?? 0),
+        includingGST: false,
+        billDiscount: 0,
+        billDiscountType: '%',
+        gstPercent: 18,
+        barcode: Array.isArray(variation?.barcode) ? String(variation.barcode[0] || '') : String(variation?.barcode || ''),
+        mfgDate: '',
+        expiry: '',
+        hsn: '',
+        batch: '',
+        packOf: 1,
+        additionalOpen: true,
+      };
+      return [next, ...prev];
+    });
+
+    setShowVariantPicker(false);
+    setVariantPickerItem(null);
+    showToast('Variant added to purchase entry.', 'success');
+  };
+
+  const handlePrintPurchaseBarcode = (item: PurchaseItem) => {
+    const value = (item.barcode || '').trim();
+    if (!value) {
+      showToast('Please add barcode number first.', 'error');
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Please allow popups to print barcodes");
+      return;
+    }
+
+    const savedSize = localStorage.getItem('barcode_print_size') || 'medium';
+    const customSettingsRaw = localStorage.getItem('barcode_printer_settings');
+    const customSettings = customSettingsRaw ? JSON.parse(customSettingsRaw) : null;
+
+    let containerWidth = 250;
+    let barcodeHeight = 55;
+    let fontSize = 14;
+    let productNameSize = 14;
+    let showName = true;
+    let showPrice = true;
+    let isCustom = false;
+
+    if (customSettings) {
+      isCustom = true;
+      barcodeHeight = customSettings.barcodeHeight;
+      fontSize = customSettings.fontSize;
+      productNameSize = customSettings.productNameSize;
+      showName = customSettings.showName ?? true;
+      showPrice = customSettings.showPrice ?? true;
+    }
+
+    if (!isCustom) {
+      if (savedSize === 'small') {
+        containerWidth = 200;
+        barcodeHeight = 40;
+        fontSize = 12;
+        productNameSize = 12;
+      } else if (savedSize === 'large') {
+        containerWidth = 320;
+        barcodeHeight = 75;
+        fontSize = 16;
+        productNameSize = 16;
+      }
+    }
+
+    let styleContent = '';
+    if (isCustom && customSettings) {
+      styleContent = `
+        @page {
+          size: ${customSettings.width}mm ${customSettings.height}mm;
+          margin: 0;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+          width: ${customSettings.width}mm;
+        }
+        .barcode-container {
+          width: ${customSettings.width}mm;
+          height: ${customSettings.height}mm;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          overflow: hidden;
+          page-break-after: always;
+          box-sizing: border-box;
+          padding: 2px;
+        }
+      `;
+    } else {
+      styleContent = `
+        body { font-family: 'Inter', sans-serif; padding: 20px; }
+        .barcode-grid { display: flex; flex-wrap: wrap; gap: 20px; justify-content: flex-start; }
+        .barcode-container {
+          text-align: center;
+          border: 1px solid #ccc;
+          padding: 10px;
+          page-break-inside: avoid;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: ${containerWidth}px;
+          height: auto;
+          background: white;
+          box-sizing: border-box;
+          border-radius: 8px;
+        }
+      `;
+    }
+
+    const safeName = item.productName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeBarcode = value.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const mrp = Number(item.mrp || 0);
+    const sp = Number(item.retailPrice || 0);
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Print Barcode</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+            body { font-family: 'Inter', sans-serif; }
+            ${styleContent}
+            .product-name {
+              font-size: ${productNameSize}px;
+              font-weight: 600;
+              margin-bottom: 2px;
+              color: #000;
+              line-height: 1.1;
+              text-transform: capitalize;
+              max-width: 100%;
+              word-wrap: break-word;
+              display: ${showName ? 'block' : 'none'};
+            }
+            .price-row {
+              display: ${showPrice ? 'flex' : 'none'};
+              gap: 15px;
+              margin-top: 4px;
+              font-size: ${fontSize}px;
+              font-weight: 800;
+              color: #000;
+              justify-content: center;
+              align-items: center;
+              white-space: nowrap;
+            }
+            svg.barcode {
+              width: 100%;
+              height: ${barcodeHeight}px;
+              max-width: 100%;
+              display: block;
+            }
+          </style>
+          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+        </head>
+        <body>
+          <div class="${isCustom ? '' : 'barcode-grid'}">
+            <div class="barcode-container">
+              <div class="product-name">${safeName}</div>
+              <svg class="barcode"
+                jsbarcode-format="CODE128"
+                jsbarcode-value="${safeBarcode}"
+                jsbarcode-width="2"
+                jsbarcode-height="${barcodeHeight}"
+                jsbarcode-textmargin="0"
+                jsbarcode-fontoptions="bold"
+                jsbarcode-displayValue="true"
+                jsbarcode-fontSize="${fontSize}"
+                jsbarcode-marginBottom="2"
+                jsbarcode-marginTop="2">
+              </svg>
+              <div class="price-row">
+                ${customSettings?.mrpLabel ? `<div class="price-item">${customSettings.mrpLabel}:${mrp}</div>` : mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
+                ${customSettings?.spLabel ? `<div class="price-item">${customSettings.spLabel}:${sp}</div>` : sp ? `<div class="price-item">SP:${sp}</div>` : ''}
+              </div>
+            </div>
+          </div>
+          <script>
+            JsBarcode(".barcode").init();
+            setTimeout(() => {
+              window.print();
+              window.close();
+            }, 800);
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   // --- Handlers ---
@@ -943,11 +1668,10 @@ const SellerPOSOrders = () => {
                 stock: parseInt(quickForm.qty) || 0,
                 category: quickForm.categoryId,
                 brand: quickForm.brandId,
-                warrantyType: quickForm.warrantyType,
+                warrantyType: quickForm.warrantyType as "None" | "Warranty" | "Guarantee",
                 warrantyDuration: quickForm.warrantyDuration,
-                // seller: selectedSeller || undefined, // Will use authenticated seller context
                 publish: true
-            } as any);
+            });
 
             if (res.success && res.data) {
                 productId = res.data._id;
@@ -968,27 +1692,59 @@ const SellerPOSOrders = () => {
         }
     }
 
-    // Quick Add creates a temporary mock product in cart
-    const newItem: any = finalProductData ? {
-        ...finalProductData,
-        qty: parseInt(quickForm.qty) || 1,
-        originalProductId: finalProductData._id
-    } : {
-      _id: productId,
-      productName: quickForm.name,
-      price: parseFloat(quickForm.price) || 0,
-      compareAtPrice: parseFloat(quickForm.mrp) || 0,
-      wholesalePrice: parseFloat(quickForm.wholesalePrice) || 0,
-      purchasePrice: parseFloat(quickForm.purchasePrice) || 0,
-      qty: parseInt(quickForm.qty) || 1,
-      warrantyType: quickForm.warrantyType,
-      warrantyDuration: quickForm.warrantyDuration,
-      mainImage: '', // Placeholder
-      originalProductId: null,
-      addToInventory: quickForm.addToInventory // Store flag
-    };
+    // Quick Add creates a temporary mock product
+    if (showPurchaseEntry) {
+        const newItemPurchase: PurchaseItem = {
+            id: productId,
+            productId: finalProductData?._id || productId,
+            baseProductId: finalProductData?._id || productId,
+            productName: quickForm.name,
+            isVariant: false,
+            variationId: '',
+            image: finalProductData?.mainImage || '',
+            mrp: parseFloat(quickForm.mrp) || 0,
+            retailPrice: parseFloat(quickForm.price) || 0,
+            wholesalePrice: parseFloat(quickForm.wholesalePrice) || 0,
+            purchasePrice: parseFloat(quickForm.purchasePrice) || 0,
+            qty: parseInt(quickForm.qty) || 1,
+            currentQty: finalProductData?.stock || 0,
+            includingGST: true,
+            billDiscount: 0,
+            billDiscountType: '₹',
+            gstPercent: finalProductData?.gstPercent || 0,
+            barcode: quickForm.barcode || '',
+            mfgDate: '',
+            expiry: '',
+            hsn: '',
+            batch: '',
+            packOf: 1,
+            additionalOpen: false
+        };
+        setPurchaseItems(prev => [...prev, newItemPurchase]);
+        showToast(`Added to ${purchaseMode}: ${quickForm.name}`, "success");
+    } else {
+        const newItem: any = finalProductData ? {
+            ...finalProductData,
+            qty: parseInt(quickForm.qty) || 1,
+            originalProductId: finalProductData._id
+        } : {
+          _id: productId,
+          productName: quickForm.name,
+          price: parseFloat(quickForm.price) || 0,
+          compareAtPrice: parseFloat(quickForm.mrp) || 0,
+          wholesalePrice: parseFloat(quickForm.wholesalePrice) || 0,
+          purchasePrice: parseFloat(quickForm.purchasePrice) || 0,
+          qty: parseInt(quickForm.qty) || 1,
+          warrantyType: quickForm.warrantyType,
+          warrantyDuration: quickForm.warrantyDuration,
+          mainImage: '', // Placeholder
+          originalProductId: null,
+          addToInventory: quickForm.addToInventory // Store flag
+        };
+        setCart(prev => [...prev, newItem]);
+        showToast("Added to cart", "success");
+    }
 
-    setCart(prev => [...prev, newItem]);
     setShowQuickAdd(false);
     setQuickForm({
         barcode: '',
@@ -1002,14 +1758,14 @@ const SellerPOSOrders = () => {
 
   const openEditModal = (item: CartItem) => {
     setEditingItem(item);
-    const currentPrice = (item as any).customPrice !== undefined ? (item as any).customPrice : (item as any).price;
+    const currentPrice = item.customPrice !== undefined ? item.customPrice : item.price;
     setEditForm({
-      name: (item as any).productName,
+      name: item.productName,
       price: currentPrice.toString(),
-      qty: (item as any).qty.toString(),
-      mrp: ((item as any).compareAtPrice || 0).toString(),
-      purchasePrice: ((item as any).purchasePrice || 0).toString(),
-      wholesalePrice: ((item as any).wholesalePrice || 0).toString(),
+      qty: item.qty.toString(),
+      mrp: (item.compareAtPrice || 0).toString(),
+      purchasePrice: (item.purchasePrice || 0).toString(),
+      wholesalePrice: (item.wholesalePrice || 0).toString(),
       warrantyType: (item as any).warrantyType || 'None',
       warrantyDuration: (item as any).warrantyDuration || ''
     });
@@ -1024,18 +1780,18 @@ const SellerPOSOrders = () => {
       try {
         const res = await getProductById(editingItem.originalProductId);
         if (res.success && res.data) {
-          const product = res.data as any;
-          let mrp = (product as any).compareAtPrice || 0;
-          let purchasePrice = (product as any).purchasePrice || 0;
-          let wholesalePrice = (product as any).wholesalePrice || 0;
+          const product = res.data;
+          let mrp = product.compareAtPrice || 0;
+          let purchasePrice = product.purchasePrice || 0;
+          let wholesalePrice = product.wholesalePrice || 0;
 
           // If it's a variation, try to find the specific variation's details
           if (editingItem.isVariation && editingItem.variationId) {
-             const variation = (product as any).variations?.find((v: any) => v._id === editingItem.variationId) as any;
+             const variation = product.variations?.find((v: any) => v._id === editingItem.variationId) as any;
              if (variation) {
-                 mrp = (variation as any).compareAtPrice || mrp;
-                 purchasePrice = (variation as any).purchasePrice || purchasePrice;
-                 wholesalePrice = (variation as any).wholesalePrice || wholesalePrice;
+                 mrp = variation.compareAtPrice || mrp;
+                 purchasePrice = variation.purchasePrice || purchasePrice;
+                 wholesalePrice = variation.wholesalePrice || wholesalePrice;
              }
           }
 
@@ -1062,7 +1818,7 @@ const SellerPOSOrders = () => {
     if (!editingItem) return;
 
     setCart(prev => prev.map(item => {
-      if ((item as any)._id === editingItem._id) {
+      if (item._id === editingItem._id) {
         const updatedItem = {
           ...item,
           productName: editForm.name,
@@ -1077,18 +1833,18 @@ const SellerPOSOrders = () => {
         };
 
         // If updateInventory is checked and it's not a quick-add item, update the actual product
-        if (updatedItem.updateInventory && !(item as any)._id.toString().startsWith('quick-')) {
-            const productId = (item as any).originalProductId || (item as any)._id;
+        if (updatedItem.updateInventory && !item._id.toString().startsWith('quick-')) {
+            const productId = item.originalProductId || item._id;
             updateProduct(productId, {
                 price: updatedItem.customPrice,
                 compareAtPrice: updatedItem.compareAtPrice,
                 purchasePrice: updatedItem.purchasePrice,
                 wholesalePrice: updatedItem.wholesalePrice,
-                warrantyType: updatedItem.warrantyType,
+                warrantyType: updatedItem.warrantyType as "None" | "Warranty" | "Guarantee",
                 warrantyDuration: updatedItem.warrantyDuration,
                 // We don't update stock here as stock is handled during checkout,
                 // but we update the display info.
-            } as any).catch(console.error);
+            }).catch(console.error);
         }
 
         return updatedItem;
@@ -1098,11 +1854,171 @@ const SellerPOSOrders = () => {
     setEditingItem(null);
   };
 
+  const openPurchaseEditModal = (item: PurchaseItem) => {
+    setEditingPurchaseItem(item);
+    setPurchaseEditForm({
+      name: item.productName,
+      price: item.retailPrice.toString(),
+      qty: item.qty.toString(),
+      mrp: item.mrp.toString(),
+      purchasePrice: item.purchasePrice.toString(),
+      wholesalePrice: item.wholesalePrice.toString(),
+      warrantyType: 'None',
+      warrantyDuration: ''
+    });
+  };
+
+  const handlePurchaseEditItemSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPurchaseItem) return;
+
+    updatePurchaseItem(editingPurchaseItem.id, {
+      productName: purchaseEditForm.name,
+      retailPrice: parseFloat(purchaseEditForm.price) || 0,
+      mrp: parseFloat(purchaseEditForm.mrp) || 0,
+      purchasePrice: parseFloat(purchaseEditForm.purchasePrice) || 0,
+      wholesalePrice: parseFloat(purchaseEditForm.wholesalePrice) || 0,
+      qty: parseInt(purchaseEditForm.qty) || 1,
+    });
+    setEditingPurchaseItem(null);
+  };
+
   /*
    * PDF Generation (Kept for 'Share' or background use)
    * Renamed from handleGenerateBill to downloadPDF
    */
-  const downloadPDF = () => {
+   const downloadPDF = () => {
+    if (lastBillDetails?.isQuotation && lastBillDetails.quotationEntry) {
+      const entry = lastBillDetails.quotationEntry;
+      const doc = new jsPDF();
+
+      const billNoPrefix = entry.type === 'quotation' ? 'QTN' : 'BILL';
+      const billNo = `${billNoPrefix}/${new Date(entry.createdAt).getFullYear()}/${entry.id.slice(-5)}`;
+      const supplierName = entry.supplier?.name || 'Walk-in Supplier';
+      const supplierAddress = entry.supplier?.address || '-';
+      const supplierPhone = entry.supplier?.phone || '-';
+      const supplierGst = entry.supplier?.gstNumber || '-';
+      const taxable = (entry.totals.grossAmount - entry.totals.discountAmount).toFixed(2);
+      const cgst = (entry.totals.taxAmount / 2).toFixed(2);
+      const sgst = (entry.totals.taxAmount / 2).toFixed(2);
+      const invoiceNum = lastBillDetails?.invoiceNum || entry.id.slice(-5);
+
+      // --- Header (Image 4 Style) ---
+      doc.setFontSize(22);
+      doc.setFont("helvetica", "bold");
+      doc.text("GEETA", 14, 20);
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Q7WM+92M, Q7WM+92M, , Indore Division,", 14, 26);
+      doc.text("Nagda, Madhya Pradesh, India - 454001", 14, 31);
+      doc.text("7898111456", 14, 36);
+      doc.text("FSSAI: 583545736", 14, 41);
+
+      // Meta Boxes (Image 3 Style)
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(14, 48, 90, 35); // Supplier box
+      doc.rect(106, 48, 90, 35); // Information box
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Supplier Details", 18, 54);
+      doc.text(entry.type === 'quotation' ? 'Quotation' : 'Retail Invoice', 110, 54);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      // Supplier info rows
+      doc.text("Name", 18, 60); doc.text(supplierName, 55, 60);
+      doc.text("Address", 18, 65); doc.text(supplierAddress, 55, 65);
+      doc.text("Phone", 18, 70); doc.text(supplierPhone, 55, 70);
+      doc.text("GSTIN", 18, 75); doc.text(supplierGst, 55, 75);
+
+      // Invoice info rows
+      doc.text("Type", 110, 60); doc.text(entry.type.toUpperCase(), 145, 60);
+      doc.text("Bill No", 110, 65); doc.text(billNo, 145, 65);
+      doc.text("Date", 110, 70); doc.text(entry.date, 145, 70);
+      doc.text("Payment", 110, 75); doc.text(entry.paymentMode, 145, 75);
+
+      // Main Table
+      const tableData = entry.items.map((item, idx) => {
+        const gross = item.purchasePrice * item.qty;
+        const discount = item.billDiscountType === '%' ? (gross * item.billDiscount) / 100 : item.billDiscount;
+        const taxableLine = Math.max(gross - discount, 0);
+        const lineTax = item.includingGST ? 0 : (taxableLine * item.gstPercent) / 100;
+        const lineNet = taxableLine + lineTax;
+        return [
+          idx + 1,
+          item.productName,
+          item.hsn || '-',
+          item.mrp.toFixed(2),
+          item.qty.toFixed(2),
+          item.purchasePrice.toFixed(2),
+          `${item.billDiscount.toFixed(2)}${item.billDiscountType}`,
+          (item.gstPercent / 2).toFixed(2),
+          (item.gstPercent / 2).toFixed(2),
+          lineNet.toFixed(2)
+        ];
+      });
+
+      autoTable(doc, {
+        head: [['S No', 'Item Name', 'HSN Code', 'MRP', 'Quantity', 'Rate/P', 'Disc', 'CGST %', 'SGST %', 'Net Amt.']],
+        body: tableData,
+        startY: 88,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0], fontStyle: 'bold', lineWidth: 0.1 },
+        bodyStyles: { lineWidth: 0.1, textColor: [50, 50, 50] }
+      });
+
+      let finalY = (doc as any).lastAutoTable.finalY + 10;
+      if (finalY > 230) { doc.addPage(); finalY = 20; }
+
+      // GST Summary & Totals sections
+      doc.rect(14, finalY, 100, 32);
+      doc.rect(116, finalY, 80, 40);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("GST Summary", 18, finalY + 6);
+
+      autoTable(doc, {
+        head: [['Type of Tax', '%', 'Taxable', 'Tax Amount']],
+        body: [
+          ['CGST', '-', taxable, cgst],
+          ['SGST', '-', taxable, sgst]
+        ],
+        startY: finalY + 8,
+        margin: { left: 16 },
+        tableWidth: 92,
+        styles: { fontSize: 7, cellPadding: 1 },
+        headStyles: { fillColor: [250, 250, 250], textColor: [0, 0, 0], fontStyle: 'bold', lineWidth: 0.1 },
+        bodyStyles: { lineWidth: 0.1 }
+      });
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text("Gross Amt.", 118, finalY + 6); doc.text(entry.totals.grossAmount.toFixed(2), 194, finalY + 6, { align: 'right' });
+      doc.text("Total Deduction", 118, finalY + 12); doc.text(entry.totals.discountAmount.toFixed(2), 194, finalY + 12, { align: 'right' });
+      doc.text("GST Amt.", 118, finalY + 18); doc.text(entry.totals.taxAmount.toFixed(2), 194, finalY + 18, { align: 'right' });
+      doc.text("Round Off", 118, finalY + 24); doc.text(entry.totals.roundOff.toFixed(2), 194, finalY + 24, { align: 'right' });
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.line(116, finalY + 28, 196, finalY + 28);
+      doc.text("Total Amount", 118, finalY + 34); doc.text(entry.totals.netAmount.toFixed(2), 194, finalY + 34, { align: 'right' });
+
+      finalY += 48;
+      if (finalY > 270) { doc.addPage(); finalY = 20; }
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Amt in words: ${entry.totals.netAmount.toFixed(2)} only`, 14, finalY);
+      doc.text(entry.type === 'quotation' ? 'Quotation is valid for limited period.' : 'Payment must be paid within agreed days.', 14, finalY + 5);
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Authorised Signature", 196, finalY + 15, { align: 'right' });
+
+      doc.save(`${entry.type === 'quotation' ? 'Quotation' : 'Invoice'}_${invoiceNum}.pdf`);
+      return;
+    }
+
     const dataToUse = cart.length > 0 ? cart : (lastBillDetails?.cart || []);
     if (dataToUse.length === 0) return;
 
@@ -1114,76 +2030,48 @@ const SellerPOSOrders = () => {
     // --- Header ---
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-
-    let shopName = "GEETA";
-    let shopAddress = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
-
-    let sellerSettings: any = null;
-    try {
-      const savedSettings = localStorage.getItem("seller_bill_settings");
-      if (savedSettings) {
-        sellerSettings = JSON.parse(savedSettings);
-        if (sellerSettings.shopName) shopName = sellerSettings.shopName;
-        if (sellerSettings.address || sellerSettings.phone) {
-             shopAddress = `${sellerSettings.address || ''}\n${sellerSettings.phone || ''}`;
-        }
-      }
-    } catch (e) {
-      console.error("Error reading bill settings", e);
-    }
-
-    // GST & FSSAI
-    let gstText = null;
-    let fssaiText = null;
-
-    if (sellerSettings) {
-        // Seller has settings, strictly use them
-        if (sellerSettings.gst?.enabled && sellerSettings.gst?.text) {
-            gstText = sellerSettings.gst.text;
-        }
-        if (sellerSettings.fssai?.enabled && sellerSettings.fssai?.text) {
-            fssaiText = sellerSettings.fssai.text;
-        }
-    } else {
-        // Only fallback if no seller settings at all
-        if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
-            gstText = config.invoiceSettings.gst.text;
-        }
-        if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
-            fssaiText = config.invoiceSettings.fssai.text;
-        }
-    }
-
-    if (gstText) shopAddress += `\nGST: ${gstText}`;
-    if (fssaiText) shopAddress += `\nFSSAI: ${fssaiText}`;
-
-    doc.text(shopName, 14, 20);
+    doc.text("GEETA", 14, 20);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(shopAddress, 14, 26);
+    let address = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
+    if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
+        address += `\nGST: ${config.invoiceSettings.gst.text}`;
+    }
+    if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
+        address += `\nFSSAI: ${config.invoiceSettings.fssai.text}`;
+    }
+    doc.text(address, 14, 26);
 
-    doc.line(14, 40, 196, 40);
+    // Dynamic Y positioning based on address lines
+    const addressLines = address.split('\n').length;
+    // Base Y (26) + (lines * 5mm spacing)
+    let currentY = 26 + (addressLines * 5) + 2;
+
+    doc.line(14, currentY, 196, currentY);
+    currentY += 8;
 
     // --- Invoice Details ---
     doc.setFont("helvetica", "bold");
-    doc.text("Invoice Number:", 14, 48);
-    doc.text("Invoice Date:", 14, 53);
-    doc.text("Payment Status:", 14, 58);
+    doc.text(lastBillDetails?.isQuotation ? "Quotation Number:" : "Invoice Number:", 14, currentY);
+    doc.text(lastBillDetails?.isQuotation ? "Quotation Date:" : "Invoice Date:", 14, currentY + 5);
+    doc.text("Status:", 14, currentY + 10);
 
     doc.setFont("helvetica", "normal");
-    doc.text(invoiceNum, 196, 48, { align: 'right' });
-    doc.text(`${dateStr} ${timeStr}`, 196, 53, { align: 'right' });
-    doc.text(paymentMethod, 196, 58, { align: 'right' });
+    doc.text(invoiceNum, 196, currentY, { align: 'right' });
+    doc.text(`${dateStr} ${timeStr}`, 196, currentY + 5, { align: 'right' });
+    doc.text(lastBillDetails?.isQuotation ? 'QUOTATION' : (lastBillDetails?.isPaid ? 'PAID' : 'PENDING'), 196, currentY + 10, { align: 'right' });
 
+    currentY += 15;
     doc.setLineWidth(0.5);
-    doc.line(14, 63, 196, 63);
+    doc.line(14, currentY, 196, currentY);
+    currentY += 5;
 
     // --- Table Header ---
     doc.setFont("helvetica", "bold");
-    doc.text("Estimated Bill", 105, 68, { align: 'center' });
+    doc.text("Estimated Bill", 105, currentY, { align: 'center' });
 
-    let y = 74;
+    let y = currentY + 6;
     doc.setFontSize(10);
     doc.text("Item-name", 14, y);
     doc.text("Qty", 100, y);
@@ -1198,13 +2086,12 @@ const SellerPOSOrders = () => {
     let totalMRP = 0;
     let totalBillAmount = 0;
 
-    dataToUse.forEach((item: any, index: number) => {
-        const qty = (item as any).qty;
-        const sp = (item as any).customPrice !== undefined ? (item as any).customPrice : (item as any).price;
-        // @ts-ignore
-        const itemMrp = (item as any).compareAtPrice && (item as any).compareAtPrice > sp ? (item as any).compareAtPrice : sp;
-        const rowTotal = (sp as any) * (qty as any);
-        const rowMrpTotal = (itemMrp as any) * (qty as any);
+    dataToUse.forEach((item, index) => {
+        const qty = item.qty;
+        const sp = item.customPrice !== undefined ? item.customPrice : item.price;
+        const itemMrp = item.compareAtPrice && item.compareAtPrice > sp ? item.compareAtPrice : sp;
+        const rowTotal = sp * qty;
+        const rowMrpTotal = itemMrp * qty;
 
         totalQty += qty;
         totalMRP += rowMrpTotal;
@@ -1213,7 +2100,7 @@ const SellerPOSOrders = () => {
         y += 6;
         if (y > 280) { doc.addPage(); y = 20; }
 
-        const name = `(${index + 1}) ${(item as any).productName}`;
+        const name = `(${index + 1}) ${item.productName}`;
         const truncatedName = name.length > 40 ? name.substring(0, 37) + "..." : name;
 
         doc.text(truncatedName, 14, y);
@@ -1272,31 +2159,17 @@ const SellerPOSOrders = () => {
     y += 2;
     doc.line(14, y + 2, 196, y + 2);
 
-    // --- Notes & Terms ---
+    // --- Notes & Terms (from Admin Settings) ---
+    // Access config from closure (we need to make sure config is available in scope)
+    // Note: Since downloadPDF is inside the component, we can use 'config' from component scope (if we destructure it).
+
+    // We need to fetch config inside AdminPOSOrders component first.
+    // Assuming config is available as 'config' variable.
+
     y += 10;
-
-    // Notes (from Seller Settings - localStorage)
-    try {
-        const savedSettings = localStorage.getItem("seller_bill_settings");
-        // If seller settings exist, we use them (or nothing if disabled). We do NOT fallback to admin if seller has explicitly saved settings (even if enabled=false).
-
-        let useSellerSettings = false;
-        let sellerNotes = null;
-
-        if (savedSettings) {
-            const settings = JSON.parse(savedSettings);
-            useSellerSettings = true;
-            if (settings.notes && settings.notes.enabled && settings.notes.text) {
-                 sellerNotes = settings.notes.text;
-            }
-        } else {
-             // Fallback to Admin only if seller has NO settings at all (e.g. first run)
-             if (config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text) {
-                  sellerNotes = config.invoiceSettings.notes.text;
-             }
-        }
-
-        if (sellerNotes) {
+    if (config?.invoiceSettings) {
+        // Notes
+        if (config.invoiceSettings.notes?.enabled && config.invoiceSettings.notes?.text) {
              if (y > 270) { doc.addPage(); y = 20; }
              doc.setFontSize(10);
              doc.setFont("helvetica", "bold");
@@ -1304,61 +2177,23 @@ const SellerPOSOrders = () => {
              y += 5;
              doc.setFont("helvetica", "normal");
              doc.setFontSize(9);
-             const splitNotes = doc.splitTextToSize(sellerNotes, 180);
+             const splitNotes = doc.splitTextToSize(config.invoiceSettings.notes.text, 180);
              doc.text(splitNotes, 14, y);
              y += (splitNotes.length * 4) + 8;
         }
 
-    } catch (e) {
-        console.error("Error reading notes settings", e);
-    }
-
-    // Terms (from Seller Settings - localStorage)
-    try {
-        const savedSettings = localStorage.getItem("seller_bill_settings");
-        // If seller settings exist, we use them (or nothing if disabled). We do NOT fallback to admin if seller has explicitly saved settings (even if enabled=false).
-        // Only fallback if seller settings are completely missing (e.g. first run).
-
-        let useSellerSettings = false;
-        let sellerTerms = null;
-
-        if (savedSettings) {
-            const settings = JSON.parse(savedSettings);
-            useSellerSettings = true; // Seller has settings
-            if (settings.terms && settings.terms.enabled && settings.terms.text) {
-                sellerTerms = settings.terms.text;
-            }
+        // Terms
+        if (config.invoiceSettings.terms?.enabled && config.invoiceSettings.terms?.text) {
+             if (y > 270) { doc.addPage(); y = 20; }
+             doc.setFontSize(10);
+             doc.setFont("helvetica", "bold");
+             doc.text("Terms and Conditions:", 14, y);
+             y += 5;
+             doc.setFont("helvetica", "normal");
+             doc.setFontSize(8);
+             const splitTerms = doc.splitTextToSize(config.invoiceSettings.terms.text, 180);
+             doc.text(splitTerms, 14, y);
         }
-
-        if (useSellerSettings) {
-             if (sellerTerms) {
-                 if (y > 270) { doc.addPage(); y = 20; }
-                 doc.setFontSize(10);
-                 doc.setFont("helvetica", "bold");
-                 doc.text("Terms and Conditions:", 14, y);
-                 y += 5;
-                 doc.setFont("helvetica", "normal");
-                 doc.setFontSize(8);
-                 const splitTerms = doc.splitTextToSize(sellerTerms, 180);
-                 doc.text(splitTerms, 14, y);
-             }
-        } else {
-             // Fallback to Admin only if seller has NO settings at all
-             if (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text) {
-                 if (y > 270) { doc.addPage(); y = 20; }
-                 doc.setFontSize(10);
-                 doc.setFont("helvetica", "bold");
-                 doc.text("Terms and Conditions:", 14, y);
-                 y += 5;
-                 doc.setFont("helvetica", "normal");
-                 doc.setFontSize(8);
-                 const splitTerms = doc.splitTextToSize(config.invoiceSettings.terms.text, 180);
-                 doc.text(splitTerms, 14, y);
-             }
-        }
-
-    } catch (e) {
-        console.error("Error reading terms settings", e);
     }
 
     doc.save(`Invoice_${invoiceNum}.pdf`);
@@ -1387,7 +2222,8 @@ const SellerPOSOrders = () => {
         date: new Date().toLocaleDateString('en-IN'),
         time: new Date().toLocaleTimeString('en-US', { hour12: false }),
         cart: currentCart,
-        isPaid: isPaid
+        isPaid: isPaid,
+        paymentMethod: paymentMethod
     });
 
     setShowModalBreakdown(false);
@@ -1436,11 +2272,11 @@ const SellerPOSOrders = () => {
         const orderData = {
             customerId: selectedCustomer ? selectedCustomer._id : "walk-in-customer",
             items: cart.map(item => ({
-                productId: (item as any).originalProductId || (item as any)._id, // Send PARENT ID if available
-                name: (item as any).productName,
-                quantity: (item as any).qty,
+                productId: item.originalProductId || item._id, // Send PARENT ID if available
+                name: item.productName,
+                quantity: item.qty,
                 price: getEffectivePrice(item),
-                variationId: (item as any).variationId
+                variationId: item.variationId
             })),
             gateway: method
         };
@@ -1536,11 +2372,11 @@ const SellerPOSOrders = () => {
         const orderData = {
             customerId: selectedCustomer ? selectedCustomer._id : "walk-in-customer",
             items: cart.map(item => ({
-                productId: (item as any).originalProductId || (item as any)._id, // Use valid ID or custom
-                name: (item as any).productName,
-                quantity: (item as any).qty,
+                productId: item.originalProductId || item._id, // Use valid ID or custom
+                name: item.productName,
+                quantity: item.qty,
                 price: getEffectivePrice(item),
-                variationId: (item as any).variationId
+                variationId: item.variationId
             })),
             paymentMethod: 'Cash',
             paymentStatus: "Paid" as const
@@ -1575,11 +2411,11 @@ const SellerPOSOrders = () => {
            const orderData = {
                 customerId: selectedCustomer._id,
                 items: cart.map(item => ({
-                    productId: (item as any).originalProductId || (item as any)._id, // Use valid ID
-                    name: (item as any).productName,
-                    quantity: (item as any).qty,
+                    productId: item.originalProductId || item._id, // Use valid ID
+                    name: item.productName,
+                    quantity: item.qty,
                     price: getEffectivePrice(item),
-                    variationId: (item as any).variationId
+                    variationId: item.variationId
                 })),
                 paymentMethod: 'Credit',
                 paymentStatus: "Pending" as const
@@ -1591,7 +2427,7 @@ const SellerPOSOrders = () => {
                 showToast(`Credit Order Placed! Balance updated for ${selectedCustomer.name}`, "success");
                 setCart([]);
                 // Navigate to REAL customer credit page
-                navigate(`/admin/pos/customers/${selectedCustomer._id}`);
+                navigate(`/seller/pos/customers/${selectedCustomer._id}`);
             } else {
                 showToast(response.message || "Failed to create credit order", "error");
             }
@@ -1608,16 +2444,15 @@ const SellerPOSOrders = () => {
       if (!editOrderId) return;
       setLoading(true);
       try {
-          const items = cart.map((item: any) => ({
-              productId: (item as any).originalProductId || (item as any)._id,
-              variationId: (item as any).variationId,
-              quantity: (item as any).qty,
+          const items = cart.map(item => ({
+              productId: item.originalProductId || item._id,
+              variationId: item.variationId,
+              quantity: item.qty,
               unitPrice: getEffectivePrice(item),
-              sku: (item as any).sku
+              sku: item.sku
           }));
 
-          // @ts-ignore
-          const res = await (updateOrderItems as any)(editOrderId, items);
+          const res = await updateOrderItems(editOrderId, items);
           if (res.success) {
               showToast("Order updated successfully", "success");
 
@@ -1628,7 +2463,7 @@ const SellerPOSOrders = () => {
                   date: new Date().toLocaleDateString('en-IN'),
                   time: new Date().toLocaleTimeString('en-US', { hour12: false }),
                   cart: [...cart],
-                  isPaid: res.data?.paymentStatus === 'Paid' || true
+                  isPaid: res.data?.paymentStatus === 'Paid' || true // Updates usually imply paid or credit handled
               });
 
               setShowSuccessModal(true);
@@ -1646,12 +2481,13 @@ const SellerPOSOrders = () => {
       }
   };
 
+  // Sync addToCart ref for scanner
   useEffect(() => {
       addToCartRef.current = addToCart;
   }, [addToCart]);
 
   return (
-    <div className="bg-gray-50 h-full w-full flex flex-col font-sans overflow-hidden md:min-h-screen md:h-auto md:block md:overflow-visible md:p-4">
+    <div className="bg-gray-50 h-[100dvh] w-full flex flex-col font-sans overflow-hidden md:min-h-screen md:h-auto md:block md:overflow-visible md:p-4">
       {/* Header / Breadcrumb */}
       <div className="flex-none flex justify-between items-center p-4 md:p-0 md:mb-4">
         <div>
@@ -1676,11 +2512,11 @@ const SellerPOSOrders = () => {
               onClick={() => navigate('/seller/pos/customers')}
               className="px-3 py-1.5 bg-[#f187b5] text-white border border-[#f187b5] rounded-lg text-xs font-bold hover:bg-[#e076a5] transition-colors flex items-center gap-1"
             >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          Credit
-        </button>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              Credit
+            </button>
         </div>
       </div>
 
@@ -1701,9 +2537,27 @@ const SellerPOSOrders = () => {
                       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm ${showProfit ? 'translate-x-4.5' : 'translate-x-1'}`} />
                     </button>
                  </div>
+                <button
+                  onClick={() => setShowPurchaseSheet(true)}
+                  className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#f187b5]/30 bg-[#f187b5]/10 text-[#cf6594] text-xs font-bold hover:bg-[#f187b5]/20 transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1 5h12M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
+                  </svg>
+                  Purchase/Returns
+                </button>
              </div>
 
              <div className="flex items-center gap-3 w-full md:w-auto md:hidden">
+                 <button
+                    onClick={() => setShowPurchaseSheet(true)}
+                    className="flex-1 md:flex-none bg-white border border-[#f187b5]/40 text-[#cf6594] text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-[#fce8f1] transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                 >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1 5h12M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
+                    </svg>
+                    Purchase
+                 </button>
                  <button
                     onClick={() => setShowQuickAdd(true)}
                     className="flex-1 md:flex-none bg-[#f187b5] hover:bg-[#e076a5] text-white text-xs px-3 py-1.5 rounded-lg font-bold shadow-lg shadow-[#f187b5]/20 transition-all active:scale-95 flex items-center justify-center gap-1.5"
@@ -1714,6 +2568,7 @@ const SellerPOSOrders = () => {
              </div>
           </div>
 
+          {/* Search Bar Section */}
           {/* Search Bar Section - Visible only on Desktop */}
           <div className="hidden lg:block px-6 py-2 bg-gray-50/50 border-b border-gray-100 relative z-30">
              <div ref={searchRef} className="relative max-w-4xl mx-auto">
@@ -1738,10 +2593,7 @@ const SellerPOSOrders = () => {
                          </button>
                      )}
                      <button
-                        onClick={() => {
-                            setScanTarget('inventory');
-                            setShowScanner(true);
-                        }}
+                        onClick={() => setShowScanner(true)}
                         className="p-2.5 text-gray-500 hover:text-[#f187b5] rounded-xl hover:bg-[#f187b5]/10 transition-colors group"
                         title="Scan Barcode"
                      >
@@ -1760,22 +2612,22 @@ const SellerPOSOrders = () => {
                         ) : products.length > 0 ? (
                              <div className="flex flex-col gap-1">
                                  {products.map((product) => {
-                                     const cartItem = cart.find(c => (c as any)._id === (product as any)._id);
-                                     const qtyInCart = cartItem ? (cartItem as any).qty : 0;
+                                     const cartItem = cart.find(c => c._id === product._id);
+                                     const qtyInCart = cartItem ? cartItem.qty : 0;
                                      return (
                                      <div
-                                         key={(product as any)._id}
+                                         key={product._id}
                                          onClick={(e) => {
                                               e.preventDefault();
                                               e.stopPropagation();
                                               addToCart(product);
-                                              // setSearchQuery(''); // Optional: keep open
+                                              // setSearchQuery(''); // Kept open for multiple selection
                                          }}
                                          className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-all border border-transparent hover:border-[#f187b5]/30 group"
                                      >
                                          <div className="w-14 h-14 bg-white rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-200 shadow-sm group-hover:shadow transition-shadow relative">
-                                             {(product as any).mainImage ? (
-                                                 <img src={(product as any).mainImage} alt="" className="w-full h-full object-cover" />
+                                             {product.mainImage ? (
+                                                 <img src={product.mainImage} alt="" className="w-full h-full object-cover" />
                                              ) : (
                                                  <span className="text-[10px] text-gray-400 font-bold">IMG</span>
                                              )}
@@ -1788,22 +2640,23 @@ const SellerPOSOrders = () => {
                                          <div className="flex-1 min-w-0">
                                              <div className="flex justify-between items-start mb-1">
                                                  <div className="flex items-center gap-2 pr-2">
-                                                     <h4 className="text-sm font-bold text-gray-800 truncate group-hover:text-[#f187b5] transition-colors">{(product as any).productName}</h4>
+                                                     <h4 className="text-sm font-bold text-gray-800 truncate group-hover:text-[#f187b5] transition-colors">{product.productName}</h4>
                                                      {qtyInCart > 0 && <span className="text-[10px] bg-[#f187b5] text-white px-1.5 py-0.5 rounded-full font-bold">In Cart</span>}
                                                  </div>
                                                  <div className="text-right flex-shrink-0">
-                                                     <span className="block text-sm font-bold text-[#f187b5]">₹{orderType === 'Wholesale' && (product as any).wholesalePrice ? (product as any).wholesalePrice : (product as any).price}</span>
-                                                     {(product as any).compareAtPrice > (orderType === 'Wholesale' && (product as any).wholesalePrice ? (product as any).wholesalePrice : (product as any).price) && (
-                                                         <span className="block text-[10px] text-gray-400 line-through">₹{(product as any).compareAtPrice}</span>
+                                                     <span className="block text-sm font-bold text-[#f187b5]">₹{orderType === 'Wholesale' && product.wholesalePrice ? product.wholesalePrice : product.price}</span>
+                                                     {(product.compareAtPrice || 0) > (orderType === 'Wholesale' && product.wholesalePrice ? product.wholesalePrice : product.price) && (
+                                                         <span className="block text-[10px] text-gray-400 line-through">₹{product.compareAtPrice}</span>
                                                      )}
                                                  </div>
                                              </div>
                                              <div className="flex justify-between items-center">
                                                  <div className="flex items-center gap-3 text-xs text-gray-500">
-                                                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${(product as any).stock > 0 ? 'bg-teal-50 text-teal-700 border border-teal-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
-                                                         {(product as any).stock > 0 ? `Stock: ${(product as any).stock}` : 'Out of Stock'}
+                                                     <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${product.stock > 0 ? 'bg-teal-50 text-teal-700 border border-teal-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                                                         {product.stock > 0 ? `Stock: ${product.stock}` : 'Out of Stock'}
                                                      </span>
-                                                     {(product as any).sku && <span className="hidden sm:inline bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">SKU: ${(product as any).sku}</span>}
+                                                     {product.sku && <span className="hidden sm:inline bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">SKU: {product.sku}</span>}
+                                                     {orderType === 'Wholesale' && product.wholesalePrice && <span className="text-xs text-blue-600 font-medium">Wholesale</span>}
                                                  </div>
                                                  <button className="text-xs bg-[#f187b5] hover:bg-[#e076a5] text-white px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all font-bold shadow-sm transform translate-x-2 group-hover:translate-x-0">
                                                      Add +
@@ -1827,9 +2680,8 @@ const SellerPOSOrders = () => {
              </div>
           </div>
 
+          {/* Bill Tabs */}
 
-
-            {/* Bill Tabs */}
             <div className="flex-none flex items-center gap-2 px-2 pt-2 overflow-x-auto border-b border-gray-200 bg-gray-50">
               {bills.map(bill => (
                 <div
@@ -1870,7 +2722,7 @@ const SellerPOSOrders = () => {
                    <div className="relative mb-2">
                        <button
                            onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
-                           className="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#f187b5]"
+                           className="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#E91E63]"
                        >
                            <span className="font-medium">{paymentMethod || 'Cash'}</span>
                            <svg className={`w-4 h-4 text-gray-400 transition-transform ${showPaymentDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -1965,10 +2817,15 @@ const SellerPOSOrders = () => {
                       )}
                   </div>
                   <button
-                    onClick={() => {
-                        setScanTarget('inventory');
-                        setShowScanner(true);
-                    }}
+                    onClick={() => setShowAddCustomerModal(true)}
+                    className="bg-[#f187b5] text-white px-2.5 rounded hover:bg-[#e076a5] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
+                    title="Add New Customer"
+                  >
+                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                  </button>
+
+                  <button
+                    onClick={() => setShowScanner(true)}
                     className="bg-[#f187b5] text-white px-2.5 rounded hover:bg-[#e076a5] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
                     title="Scan Product"
                   >
@@ -2002,98 +2859,85 @@ const SellerPOSOrders = () => {
                           <span className="text-sm">Cart is empty</span>
                       </div>
                   ) : (
-                      cart.map((item: any, index) => {
+                      cart.map((item, index) => {
                           const sp = getEffectivePrice(item);
-                          // @ts-ignore
-                          const mrp = (item as any).compareAtPrice || sp; // Default to SP if no MRP
-                          const purchasePrice = (item as any).purchasePrice || 0;
+                          const mrp = item.compareAtPrice || sp;
+                          const purchasePrice = item.purchasePrice || 0;
                           const profit = sp - purchasePrice;
                           const profitPercent = purchasePrice > 0 ? ((profit / purchasePrice) * 100).toFixed(2) : '0.00';
 
                           return (
-
                           <React.Fragment key={index}>
                               {/* --- MOBILE VIEW (Card Style) --- */}
                               <div className="block md:hidden bg-white border border-gray-200 rounded-xl p-3 shadow-sm mb-3 relative overflow-hidden group shrink-0">
-                                  {/* Top Row: Rank, Title, Total */}
+                                  {/* Top Row: Rank, Title, Price */}
                                   <div className="flex justify-between items-start mb-2">
-                                       <div className="flex items-start gap-2 max-w-[70%]">
+                                      <div className="flex items-start gap-2 max-w-[70%]">
                                            <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">#{index + 1}</span>
                                            <div>
-                                                <h4 className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">{(item as any).productName}</h4>
+                                                <h4 className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">{item.productName}</h4>
                                                 {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
                                                     <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
                                                         {(item as any).warrantyType}: {(item as any).warrantyDuration}
                                                     </div>
                                                 )}
                                             </div>
-                                       </div>
-                                       <div className="text-right">
-                                           <div className="font-bold text-gray-900 text-base">₹{sp * (item as any).qty}</div>
-                                           {mrp > sp && <div className="text-[10px] text-gray-400 line-through">₹{mrp * (item as any).qty}</div>}
-                                       </div>
+                                      </div>
+                                      <div className="font-bold text-gray-900 text-base">₹{sp * item.qty}</div>
                                   </div>
 
-                                  {/* Middle Row: Image & Details */}
+                                  {/* Middle Row: Image & Pricing Details */}
                                   <div className="flex items-center gap-3 mb-3">
-                                       <div className="w-12 h-12 flex-shrink-0 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-center p-1 overflow-hidden">
-                                           {(item as any).mainImage ? (
-                                               <img src={(item as any).mainImage} alt="" className="w-full h-full object-contain" />
+                                      <div className="w-12 h-12 flex-shrink-0 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-1 overflow-hidden">
+                                           {item.mainImage ? (
+                                               <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
                                            ) : (
                                                <span className="text-xs text-gray-300">Img</span>
                                            )}
-                                       </div>
-                                       <div className="flex-1">
-                                           <div className="flex items-center gap-2 text-xs mb-1">
-                                               <span className="text-gray-500">MRP: <span className="line-through decoration-gray-400">₹{mrp}</span></span>
-                                                 <span className="font-bold text-[#f187b5]">
-                                                   {orderType === 'Wholesale' && ((item as any).wholesalePrice || 0) > 0 ? 'WSP' : 'SP'}: ₹{sp}
-                                               </span>
-                                           </div>
+                                      </div>
+                                      <div className="flex flex-col text-xs">
+                                           <span className="text-gray-500 mb-0.5">MRP: <span className="line-through decoration-gray-400">₹{mrp}</span> <span className="font-bold text-[#f187b5] ml-1">SP: ₹{sp}</span></span>
+
                                            {showProfit && (
-                                               purchasePrice > 0 ? (
-                                                     <div className={`text-xs font-medium ${parseFloat(profitPercent) >= 0 ? 'text-[#f187b5]' : 'text-red-500'}`}>
-                                                       Profit: {profitPercent}%
-                                                   </div>
-                                               ) : (
-                                                  <div className="text-xs text-gray-400">Profit: -</div>
-                                               )
+                                                <span className={`${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'} font-medium`}>
+                                                    Profit: {profitPercent}%
+                                                </span>
                                            )}
-                                       </div>
+                                      </div>
                                   </div>
 
-                                  {/* Bottom Row: Actions */}
-                                  <div className="flex items-center justify-between gap-2">
-                                       <div className="flex items-center gap-2">
-                                           <button
-                                              onClick={() => removeFromCart((item as any)._id)}
-                                              className="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
-                                              title="Remove"
-                                           >
-                                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                           </button>
-                                           <button
-                                              onClick={() => openEditModal(item)}
-                                              className="px-3 py-1.5 flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
-                                           >
-                                               <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                               Edit
-                                           </button>
-                                       </div>
+                                  {/* Bottom Row: Actions & Quantity */}
+                                  <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                          <button
+                                             onClick={() => removeFromCart(item._id)}
+                                             className="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
+                                          >
+                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                          </button>
+                                          <button
+                                             onClick={() => openEditModal(item)}
+                                             className="px-3 py-1.5 flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                                          >
+                                              <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                              Edit
+                                          </button>
+                                      </div>
 
-                                       <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
-                                            <button
-                                              onClick={() => updateQuantity((item as any)._id, -1)}
-                                              className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold"
-                                            >−</button>
-                                            <div className="w-8 flex items-center justify-center text-sm font-bold text-gray-800">
-                                                {(item as any).qty}
-                                            </div>
-                                            <button
-                                              onClick={() => updateQuantity((item as any)._id, 1)}
-                                               className="w-7 h-7 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold"
-                                            >+</button>
-                                       </div>
+                                      {/* Quantity Control */}
+                                      <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+                                           <button
+                                             onClick={() => updateQuantity(item._id, -1)}
+                                             className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
+                                           >−</button>
+                                           <div className="w-8 flex items-center justify-center text-sm font-bold text-gray-800">
+                                               {item.qty}
+                                           </div>
+                                           <button
+                                             onClick={() => updateQuantity(item._id, 1)}
+                                             className="w-7 h-7 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
+                                           >+</button>
+                                      </div>
                                   </div>
                               </div>
 
@@ -2117,8 +2961,8 @@ const SellerPOSOrders = () => {
                                    {/* Image */}
                                    <div className="col-span-1 flex justify-center">
                                        <div className="w-10 h-10 bg-white rounded border border-gray-200 flex items-center justify-center p-0.5 overflow-hidden shadow-sm">
-                                           {(item as any).mainImage ? (
-                                               <img src={(item as any).mainImage} alt="" className="w-full h-full object-contain" />
+                                           {item.mainImage ? (
+                                               <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
                                            ) : (
                                                <span className="text-[8px] text-gray-300 font-bold">IMG</span>
                                            )}
@@ -2127,12 +2971,12 @@ const SellerPOSOrders = () => {
 
                                    {/* Name */}
                                    <div className="col-span-3 min-w-0">
-                                       <h4 className="text-xs font-semibold text-gray-800 truncate" title={(item as any).productName}>{(item as any).productName}</h4>
-                                        {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
-                                            <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
-                                                {(item as any).warrantyType}: {(item as any).warrantyDuration}
-                                            </div>
-                                        )}
+                                       <h4 className="text-xs font-semibold text-gray-800 truncate" title={item.productName}>{item.productName}</h4>
+                                       {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
+                                           <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
+                                               {(item as any).warrantyType}: {(item as any).warrantyDuration}
+                                           </div>
+                                       )}
                                        {showProfit && (
                                            <span className={`text-[10px] ${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                                                Profit: {profitPercent}%
@@ -2145,7 +2989,7 @@ const SellerPOSOrders = () => {
                                         <input
                                             type="number"
                                             value={mrp}
-                                            onChange={(e) => updateItemDetails((item as any)._id, { compareAtPrice: parseFloat(e.target.value) || 0 })}
+                                            onChange={(e) => updateItemDetails(item._id, { compareAtPrice: parseFloat(e.target.value) || 0 })}
                                             className="w-full text-center text-xs border border-transparent hover:border-gray-200 focus:border-[#f187b5] bg-transparent focus:bg-white rounded px-1 py-1 outline-none transition-all"
                                         />
                                    </div>
@@ -2154,14 +2998,14 @@ const SellerPOSOrders = () => {
                                    <div className="col-span-2 flex justify-center">
                                        <div className="flex items-center bg-white border border-gray-200 rounded h-7 w-20 shadow-sm">
                                             <button
-                                              onClick={() => updateQuantity((item as any)._id, -1)}
+                                              onClick={() => updateQuantity(item._id, -1)}
                                               className="w-6 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors"
                                             >−</button>
                                             <div className="flex-1 h-full flex items-center justify-center text-xs font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
-                                                {(item as any).qty}
+                                                {item.qty}
                                             </div>
                                             <button
-                                              onClick={() => updateQuantity((item as any)._id, 1)}
+                                              onClick={() => updateQuantity(item._id, 1)}
                                               className="w-6 h-full flex items-center justify-center text-[#f187b5] hover:bg-gray-50 rounded-r transition-colors font-bold"
                                             >+</button>
                                        </div>
@@ -2172,20 +3016,20 @@ const SellerPOSOrders = () => {
                                        <input
                                             type="number"
                                             value={sp}
-                                            onChange={(e) => updateItemDetails((item as any)._id, { customPrice: parseFloat(e.target.value) || 0 })}
+                                            onChange={(e) => updateItemDetails(item._id, { customPrice: parseFloat(e.target.value) || 0 })}
                                             className="w-full text-center text-xs font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all"
                                         />
                                    </div>
 
                                    {/* Sub Total */}
                                    <div className="col-span-1 text-center font-bold text-gray-900 text-sm">
-                                       ₹{sp * (item as any).qty}
+                                       ₹{sp * item.qty}
                                    </div>
 
                                    {/* Delete */}
                                    <div className="col-span-1 text-center">
                                        <button
-                                          onClick={() => removeFromCart((item as any)._id)}
+                                          onClick={() => removeFromCart(item._id)}
                                           className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex"
                                           title="Remove Item"
                                        >
@@ -2194,13 +3038,13 @@ const SellerPOSOrders = () => {
                                    </div>
                               </div>
                           </React.Fragment>
-                          )})
+                      )})
                   )}
               </div>
 
               {/* Footer Summary */}
 
-                    {/* Desktop Sidebar (New Two-Column Layout) */}
+                   {/* Desktop Sidebar (New Two-Column Layout) */}
                   <div className="hidden md:flex w-[320px] bg-gray-50 border-l border-gray-200 flex-col p-4 shadow-[inset_4px_0_24px_-12px_rgba(0,0,0,0.1)] z-20 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
 
                       {/* --- QUICK ACTIONS --- */}
@@ -2333,7 +3177,7 @@ const SellerPOSOrders = () => {
                               </div>
                               <div className="flex justify-between items-center mb-2">
                                  <span className="text-gray-400 text-[10px] uppercase tracking-widest">Qty. Items</span>
-                                 <span className="font-bold text-sm">{cart.reduce((a, c) => a + ((c as any).qty || 0), 0)}</span>
+                                 <span className="font-bold text-sm">{cart.reduce((a, c) => a + c.qty, 0)}</span>
                               </div>
                               <div className="border-t border-white/10 pt-3 flex justify-between items-center">
                                  <div className="flex flex-col">
@@ -2377,11 +3221,9 @@ const SellerPOSOrders = () => {
                   </div>
               </div>
 
-              </div>
-
               {/* Mobile Footer */}
-              <div className="md:hidden bg-gray-50/80 p-4 border-t border-gray-100 backdrop-blur-sm mt-auto rounded-b-2xl">
-                   {/* Desktop Footer Row */}
+              <div className="flex-none md:hidden bg-gray-50/80 p-4 border-t border-gray-100 backdrop-blur-sm mt-auto md:rounded-b-2xl">
+                  {/* Desktop Footer Row */}
                   <div className="hidden md:flex flex-row items-center justify-between gap-4">
                       {/* Left Side: Total */}
                       <div className="flex items-center gap-4">
@@ -2419,7 +3261,7 @@ const SellerPOSOrders = () => {
                                  </>
                               )}
                            </button>
-                      </div>
+                       </div>
                   </div>
 
                   {/* Mobile Search and Scan Buttons - Only visible on mobile/tablet */}
@@ -2447,6 +3289,7 @@ const SellerPOSOrders = () => {
                     </button>
                   </div>
 
+                  {/* Mobile Mobile Actions - Subtotal, Generate Bill, Access Payment */}
                   <div className="lg:hidden flex flex-col gap-3 mt-2">
                        <div className="flex justify-between items-center px-1">
                           <span className="text-gray-600 font-medium text-sm">Subtotal</span>
@@ -2465,7 +3308,7 @@ const SellerPOSOrders = () => {
 
                       <button
                         onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
-                        disabled={loading}
+                        disabled={loading || cart.length === 0}
                         className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#f187b5] hover:bg-[#e076a5]' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold py-3 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                       >
                          {loading ? (
@@ -2482,166 +3325,656 @@ const SellerPOSOrders = () => {
                       </button>
                   </div>
               </div>
+            </div>
+        </div>
+      </div>
 
+      {/* --- PURCHASE ACTION SHEET --- */}
+      {showPurchaseSheet && (
+        <div className="fixed inset-0 bg-black/40 z-[70] flex items-end md:items-center justify-center p-0 md:p-4" onClick={() => setShowPurchaseSheet(false)}>
+          <div
+            className="bg-white w-full max-w-xl rounded-t-3xl md:rounded-2xl p-5 md:p-6 space-y-3 shadow-2xl border border-transparent md:border-gray-100"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-1"></div>
+            <div className="text-center pb-1">
+              <h3 className="text-base md:text-lg font-bold text-gray-800">Purchase Options</h3>
+              <p className="text-xs text-gray-500 mt-1">Start a new purchase entry</p>
+            </div>
+            <button
+              onClick={() => {
+                setShowPurchaseSheet(false);
+                setShowPurchaseEntry(true);
+              }}
+              className="w-full text-left px-3 py-3.5 rounded-xl hover:bg-gray-50 border border-gray-200/80 hover:border-[#f3c7dc] flex items-center gap-3 text-gray-800 transition-colors"
+            >
+              <svg className="w-5 h-5 text-[#f187b5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1 5h12M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
+              </svg>
+              <span className="font-semibold">Create purchase entry</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* --- PURCHASE ENTRY UI (FRONTEND ONLY) --- */}
+      {showPurchaseEntry && (
+        <div className="fixed inset-0 z-[75] bg-[#fff7fb] flex flex-col overflow-hidden md:p-3 md:bg-gray-50">
+          <div className="px-4 py-3 bg-white border-b border-[#f3c7dc] md:max-w-[1450px] md:mx-auto md:w-full md:rounded-xl md:border md:shadow-sm md:mb-2 md:py-2.5">
+            <div className="flex items-center gap-2 mb-2">
+              <button
+                onClick={() => {
+                  setShowPurchaseEntry(false);
+                  setEditingQuotationId(null);
+                  setPurchaseItems([]);
+                  setPurchaseSupplier(null);
+                }}
+                className="w-9 h-9 rounded-full border border-[#f3c7dc] bg-white flex items-center justify-center"
+              >
+                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <h2 className="text-lg md:text-base font-bold text-gray-800">
+                {purchaseMode === 'Quotation' ? 'Billing & POS' : 'Create Purchase Entry'}
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              <button
+                onClick={() => setPurchaseMode('Purchase')}
+                className={`rounded-xl py-2 text-sm font-bold border ${
+                  purchaseMode === 'Purchase'
+                    ? 'bg-[#f187b5] text-white border-[#f187b5]'
+                    : 'bg-white text-gray-700 border-gray-300'
+                }`}
+              >
+                Purchase
+              </button>
+              <button
+                onClick={() => setPurchaseMode('Quotation')}
+                className={`rounded-xl py-2 text-sm font-bold border ${
+                  purchaseMode === 'Quotation'
+                    ? 'bg-[#f187b5] text-white border-[#f187b5]'
+                    : 'bg-white text-gray-700 border-gray-300'
+                }`}
+              >
+                Quotation
+              </button>
+            </div>
+            <div className="mb-2">
+              <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                purchaseMode === 'Purchase' ? 'bg-[#fce5f0] text-[#c95288]' : 'bg-[#fdeff6] text-[#c95288]'
+              }`}>
+                {purchaseMode === 'Purchase' ? 'PURCHASE MODE' : 'QUOTATION MODE'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setShowSupplierModal(true)}
+                className="flex items-center gap-2 justify-center rounded-xl border border-[#f187b5]/30 text-[#cf6594] bg-[#f187b5]/10 py-2.5 text-sm font-semibold md:py-2 md:text-[13px]"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3M4 11h16M5 21h14a1 1 0 001-1V8a1 1 0 00-1-1H5a1 1 0 00-1 1v12a1 1 0 001 1z" />
+                </svg>
+                {purchaseSupplier ? purchaseSupplier.name : 'Add Supplier'}
+              </button>
+              <button className="rounded-xl bg-[#f187b5] hover:bg-[#e076a5] text-white py-2.5 text-sm font-semibold transition-colors md:py-2 md:text-[13px]">+Attach Bills</button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="relative">
+                <button
+                  onClick={() => setShowPurchasePaymentDropdown((v) => !v)}
+                  className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2.5 flex items-center justify-between text-sm md:h-10 md:py-2 md:text-[13px]"
+                >
+                  <span>{purchasePaymentMethod}</span>
+                  <svg className={`w-4 h-4 transition-transform ${showPurchasePaymentDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {showPurchasePaymentDropdown && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10">
+                    {(['Cash', 'Credit', 'Online'] as const).map((method) => (
+                      <button
+                        key={method}
+                        onClick={() => {
+                          setPurchasePaymentMethod(method);
+                          setShowPurchasePaymentDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2.5 hover:bg-gray-50 text-sm md:py-2 md:text-[13px]"
+                      >
+                        {method}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <input
+                type="date"
+                value={purchaseDate}
+                onChange={(e) => setPurchaseDate(e.target.value)}
+                className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2.5 text-sm md:h-10 md:py-2 md:text-[13px]"
+              />
+            </div>
+
+            <div className="hidden md:flex items-center gap-2 mt-2">
+              <button
+                onClick={() => setShowPurchaseSearch(true)}
+                className="flex-1 flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 h-10 text-left text-gray-500 hover:border-[#f187b5]/40 transition-colors"
+              >
+                <svg className="w-5 h-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                </svg>
+                <span className="text-[15px]">Search products by name, barcode...</span>
+              </button>
+              <button
+                onClick={() => setShowPurchaseSearch(true)}
+                className="w-12 h-10 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[#f187b5] hover:border-[#f187b5]/40 transition-colors flex items-center justify-center"
+                title="Scan"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"/>
+                </svg>
+              </button>
             </div>
           </div>
 
-      {/* --- MOBILE SEARCH MODAL --- */}
-      {showMobileSearch && (
-        <div className="fixed inset-0 bg-white z-[70] flex flex-col md:hidden">
-          {/* Header */}
-          <div className="bg-[#f187b5] px-4 py-3 flex items-center gap-3 shadow-md">
-            <button
-              onClick={() => {
-                setShowMobileSearch(false);
-                setMobileSearchQuery('');
-              }}
-              className="text-white"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
-              </svg>
-            </button>
-            <input
-              type="text"
-              value={mobileSearchQuery}
-              onChange={(e) => setMobileSearchQuery(e.target.value)}
-              placeholder="Search products..."
-              className="flex-1 px-4 py-2 rounded-lg border-none outline-none text-gray-800"
-               autoFocus
-            />
-            <button
-              onClick={() => {
-                setScanTarget('inventory');
-                setShowScanner(true);
-              }}
-              className="text-white p-1"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"></path>
-              </svg>
-            </button>
-          </div>
+          <div className="flex-1 overflow-y-auto p-4 pb-5 md:max-w-[1450px] md:mx-auto md:w-full md:p-2">
+            {purchaseMode === 'Purchase' && (
+              <div className="bg-gradient-to-r from-[#f187b5] to-[#e076a5] text-white rounded-xl p-3 md:p-3 mb-3 md:mb-2 md:shadow-sm">
+                <div className="text-xs text-white/80">Tap to add discount.</div>
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-sm text-white/80">Total</span>
+                  <span className="text-2xl md:text-xl font-black">₹{calculatePurchaseTotal().toFixed(2)}</span>
+                </div>
+                <div className="text-[11px] text-white/70 mt-1">Date: {formatPurchaseDate(purchaseDate)}</div>
+              </div>
+            )}
 
-          {/* Product List */}
-          <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-            {loading ? (
-              <div className="flex justify-center items-center h-40">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f187b5]"></div>
+            {purchaseItems.length === 0 ? (
+              <div className="min-h-[45vh] flex flex-col items-center justify-center text-center bg-white rounded-2xl border border-[#f3c7dc]">
+                <div className="w-16 h-16 rounded-2xl bg-gray-200 flex items-center justify-center mb-3">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-1 5h12" />
+                  </svg>
+                </div>
+                <p className="text-2xl md:text-2xl font-semibold text-gray-700">No items added yet</p>
+                <p className="text-gray-500 mt-2">Search and add products to start your purchase entry</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {products
-                  .filter(product => {
-                    if (!mobileSearchQuery) return true;
-                    const query = mobileSearchQuery.toLowerCase();
-                    return (
-                      product.productName.toLowerCase().includes(query) ||
-                      (Array.isArray((product as any).barcode) ? (product as any).barcode.some((b: string) => String(b).toLowerCase().includes(query)) : ((product as any).barcode && String((product as any).barcode).toLowerCase().includes(query)))
-                    );
-                  })
-                  .slice(0, 20)
-                  .map(product => {
-                    const cartItem = cart.find(c => (c as any)._id === (product as any)._id);
-                    const inCart = !!cartItem;
+              <div className="space-y-4 md:space-y-3">
+                {purchaseItems.map((item, index) => {
+                  const subtotal = item.purchasePrice * item.qty;
+                  const afterPurchaseQty = item.currentQty + item.qty;
+                  const discountAmount = item.billDiscountType === '%' ? (subtotal * item.billDiscount) / 100 : item.billDiscount;
 
+                  if (purchaseMode === 'Quotation') {
                     return (
-                      <div
-                        key={(product as any)._id}
-                        className={`bg-white p-4 rounded-lg border shadow-sm ${
-                          (product as any).stock <= 0 ? 'opacity-60 grayscale' : ''
-                        }`}
-                      >
-                        <div className="flex gap-3">
-                          {/* Product Image */}
-                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {(product as any).mainImage ? (
-                              <img src={(product as any).mainImage} alt="" className="w-full h-full object-contain" />
+                      <div key={item.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm mb-3 relative overflow-hidden group shrink-0">
+                        {/* Top Row: Rank, Title, Price */}
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-start gap-2 max-w-[70%]">
+                            <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">#{index + 1}</span>
+                            <div>
+                              <h4 className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">{item.productName}</h4>
+                            </div>
+                          </div>
+                          <div className="font-bold text-gray-900 text-base">₹{Math.max(subtotal - discountAmount, 0).toFixed(2)}</div>
+                        </div>
+
+                        {/* Middle Row: Image & Pricing Details */}
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-12 h-12 flex-shrink-0 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-1 overflow-hidden">
+                            {item.image ? (
+                              <img src={item.image} alt={item.productName} className="w-full h-full object-contain" />
                             ) : (
-                              <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                              <span className="text-xs text-gray-300">Img</span>
+                            )}
+                          </div>
+                          <div className="flex flex-col text-xs">
+                            <span className="text-gray-500">
+                              MRP: <span className="line-through decoration-gray-400">₹{item.mrp}</span>{' '}
+                              <span className="font-bold text-[#f187b5] ml-1">SP: ₹{item.retailPrice}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Row: Actions & Quantity */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => removePurchaseItem(item.id)}
+                              className="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
-                            )}
+                            </button>
+                            <button
+                              onClick={() => openPurchaseEditModal(item)}
+                              className="px-3 py-1.5 flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                              <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                              Edit
+                            </button>
                           </div>
 
-                          {/* Product Info */}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-gray-800 text-sm line-clamp-2 mb-1">
-                              {(product as any).productName}
-                            </h4>
-                            <div className="flex items-center gap-2 text-xs mb-2">
-                              <span className="text-gray-500">
-                                MRP: <span className="line-through">₹{(product as any).compareAtPrice || 0}</span>
-                              </span>
-                              <span className="font-bold text-[#f187b5]">
-                                {orderType === 'Wholesale' && ((product as any).wholesalePrice || 0) > 0
-                                  ? `WSP: ₹${(product as any).wholesalePrice}`
-                                  : `SP: ₹${(product as any).price}`}
-                              </span>
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              Quantity: {(product as any).stock} Piece
-                            </div>
-                          </div>
-
-                          {/* Add Button */}
-                          <div className="flex items-center">
-                            {inCart ? (
-                              <div className="flex items-center gap-2 bg-[#f187b5]/10 rounded-lg px-2 py-1">
-                                <button
-                                  onClick={() => updateQuantity((product as any)._id, -1)}
-                                  className="w-7 h-7 flex items-center justify-center bg-white text-[#f187b5] rounded hover:bg-[#f187b5] hover:text-white transition-colors border border-[#f187b5]"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"></path>
-                                  </svg>
-                                </button>
-                                <span className="font-bold text-[#f187b5] min-w-[20px] text-center">
-                                  {(cartItem as any)?.qty || 0}
-                                </span>
-                                <button
-                                  onClick={() => updateQuantity((product as any)._id, 1)}
-                                  className="w-7 h-7 flex items-center justify-center bg-[#f187b5] text-white rounded hover:bg-[#e076a5] transition-colors"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
-                                  </svg>
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  addToCart(product);
-                                }}
-                                disabled={(product as any).stock <= 0}
-                                className="px-4 py-2 bg-[#f187b5] text-white rounded-lg hover:bg-[#e076a5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-                              >
-                                Add
-                              </button>
-                            )}
+                          {/* Quantity Control */}
+                          <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+                            <button
+                              onClick={() => updatePurchaseItem(item.id, { qty: Math.max(1, item.qty - 1) })}
+                              className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
+                            >
+                              -
+                            </button>
+                            <div className="w-8 flex items-center justify-center text-sm font-bold text-gray-800">{item.qty}</div>
+                            <button
+                              onClick={() => updatePurchaseItem(item.id, { qty: item.qty + 1 })}
+                              className="w-7 h-7 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
+                            >
+                              +
+                            </button>
                           </div>
                         </div>
                       </div>
                     );
-                  })}
+                  }
 
-                {mobileSearchQuery && products.filter(p => {
-                  const query = mobileSearchQuery.toLowerCase();
-                  return (p as any).productName.toLowerCase().includes(query) || (Array.isArray((p as any).barcode) ? ((p as any).barcode as string[]).some(b => String(b).toLowerCase().includes(query)) : ((p as any).barcode && String((p as any).barcode).toLowerCase().includes(query)));
-                }).length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No products found
-                  </div>
-                )}
+                  return (
+                    <div key={item.id} className="bg-white rounded-2xl border border-[#f3c7dc] shadow-sm p-3 md:p-3">
+                      <div className="flex gap-3 items-start">
+                        <div className="text-xl font-bold text-gray-600">#{index + 1}</div>
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
+                          {item.image ? <img src={item.image} alt={item.productName} className="w-full h-full object-contain" /> : <span className="text-xs text-gray-400">IMG</span>}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500">MRP: ₹{item.mrp} | Sp.: ₹{item.retailPrice}</p>
+                          {purchaseMode === 'Purchase' && (
+                            <p className="text-xs text-gray-500">Current Quantity: {item.currentQty} Piece</p>
+                          )}
+                          <h3 className="text-xl md:text-3xl font-bold text-gray-800 leading-tight">{item.productName}</h3>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-500">Subtotal</div>
+                          <div className="font-bold text-gray-800">₹{Math.max(subtotal - discountAmount, 0).toFixed(2)}</div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex gap-2 flex-wrap">
+                        <button
+                          onClick={() => openVariantPicker(item)}
+                          className="px-3 py-1.5 rounded-full border border-gray-300 text-sm font-medium md:py-1 md:text-[13px]"
+                        >
+                          + Add Variant
+                        </button>
+                        <button className="px-3 py-1.5 rounded-full border border-[#f187b5] text-[#cf6594] text-sm font-medium md:py-1 md:text-[13px]">Edit</button>
+                        <button onClick={() => removePurchaseItem(item.id)} className="px-3 py-1.5 rounded-full border border-red-200 text-red-500 text-sm font-medium md:py-1 md:text-[13px]">Remove</button>
+                        <label className="ml-auto inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                          <input type="checkbox" checked={item.includingGST} onChange={(e) => updatePurchaseItem(item.id, { includingGST: e.target.checked })} />
+                          Including GST
+                        </label>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 mt-3">
+                        <label className="text-xs text-gray-500">Total Price
+                          <input type="number" value={subtotal.toFixed(2)} readOnly className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 md:h-10 md:py-1.5 md:text-sm" />
+                        </label>
+                        <label className="text-xs text-gray-500">Qty
+                          <input type="number" min={1} value={item.qty} onChange={(e) => updatePurchaseItem(item.id, { qty: Math.max(1, Number(e.target.value || 1)) })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 md:h-10 md:py-1.5 md:text-sm" />
+                        </label>
+                        <label className="text-xs text-gray-500">Purchase Price
+                          <input type="number" value={item.purchasePrice} onChange={(e) => updatePurchaseItem(item.id, { purchasePrice: Number(e.target.value || 0) })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 md:h-10 md:py-1.5 md:text-sm" />
+                        </label>
+                      </div>
+
+                      {purchaseMode === 'Purchase' && (
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          <label className="text-xs text-gray-500">Current Quantity
+                            <input type="number" readOnly value={item.currentQty} className="mt-1 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 md:h-10 md:py-1.5 md:text-sm" />
+                          </label>
+                          <label className="text-xs text-gray-500">Qty
+                            <input type="number" min={1} value={item.qty} onChange={(e) => updatePurchaseItem(item.id, { qty: Math.max(1, Number(e.target.value || 1)) })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 md:h-10 md:py-1.5 md:text-sm" />
+                          </label>
+                          <label className="text-xs text-gray-500">After Purchase
+                            <input type="number" readOnly value={afterPurchaseQty} className="mt-1 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 md:h-10 md:py-1.5 md:text-sm" />
+                          </label>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="grid grid-cols-[1fr_72px] gap-2 items-end">
+                          <label className="text-xs text-gray-500">Bill Discount
+                            <input type="number" value={item.billDiscount} onChange={(e) => updatePurchaseItem(item.id, { billDiscount: Number(e.target.value || 0) })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 md:h-10 md:py-1.5 md:text-sm" />
+                          </label>
+                          <select value={item.billDiscountType} onChange={(e) => updatePurchaseItem(item.id, { billDiscountType: e.target.value as '%' | '₹' })} className="rounded-xl border border-gray-300 px-2 py-2 h-[42px] md:h-10 md:py-1.5 md:text-sm">
+                            <option value="%">%</option>
+                            <option value="₹">₹</option>
+                          </select>
+                        </div>
+                        <label className="text-xs text-gray-500">GST
+                          <input type="number" value={item.gstPercent} onChange={(e) => updatePurchaseItem(item.id, { gstPercent: Number(e.target.value || 0) })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 md:h-10 md:py-1.5 md:text-sm" />
+                        </label>
+                      </div>
+
+                      <button
+                        onClick={() => updatePurchaseItem(item.id, { additionalOpen: !item.additionalOpen })}
+                        className="w-full mt-3 text-left px-1 py-2 font-semibold text-gray-800 flex items-center justify-between"
+                      >
+                        <span>Additional Details</span>
+                        <span>{item.additionalOpen ? '▴' : '▾'}</span>
+                      </button>
+                      {item.additionalOpen && (
+                        <div className="space-y-2">
+                          <label className="text-xs text-gray-500 block">Enter Barcode Number
+                            <input type="text" value={item.barcode} onChange={(e) => updatePurchaseItem(item.id, { barcode: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+                          </label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => handlePrintPurchaseBarcode(item)}
+                              className="rounded-lg bg-[#f187b5] text-white py-2 text-sm font-semibold"
+                            >
+                              Print Barcode
+                            </button>
+                            <button
+                              onClick={() => handleAutoGeneratePurchaseBarcode(item.id)}
+                              className="rounded-lg bg-gray-100 text-gray-800 py-2 text-sm font-semibold"
+                            >
+                              Auto Generate Barcode
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="text-xs text-gray-500">MRP
+                              <input type="number" value={item.mrp} onChange={(e) => updatePurchaseItem(item.id, { mrp: Number(e.target.value || 0) })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+                            </label>
+                            <label className="text-xs text-gray-500">Retail Price
+                              <input type="number" value={item.retailPrice} onChange={(e) => updatePurchaseItem(item.id, { retailPrice: Number(e.target.value || 0) })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+                            </label>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <label className="text-xs text-gray-500">Wholesale
+                              <input type="number" value={item.wholesalePrice} onChange={(e) => updatePurchaseItem(item.id, { wholesalePrice: Number(e.target.value || 0) })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+                            </label>
+                            <label className="text-xs text-gray-500">Mfg Date
+                              <input type="date" value={item.mfgDate} onChange={(e) => updatePurchaseItem(item.id, { mfgDate: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+                            </label>
+                            <label className="text-xs text-gray-500">Expiry
+                              <input type="date" value={item.expiry} onChange={(e) => updatePurchaseItem(item.id, { expiry: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+                            </label>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <label className="text-xs text-gray-500">Hsn
+                              <input type="text" value={item.hsn} onChange={(e) => updatePurchaseItem(item.id, { hsn: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+                            </label>
+                            <label className="text-xs text-gray-500">Batch
+                              <input type="text" value={item.batch} onChange={(e) => updatePurchaseItem(item.id, { batch: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+                            </label>
+                            <label className="text-xs text-gray-500">Pack of
+                              <input type="number" min={1} value={item.packOf} onChange={(e) => updatePurchaseItem(item.id, { packOf: Math.max(1, Number(e.target.value || 1)) })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white border-t border-[#f3c7dc] p-3 space-y-2 pb-4 md:pb-2.5 md:rounded-xl md:border md:shadow-sm md:max-w-[1450px] md:mx-auto md:w-full md:pt-2.5">
+            {purchaseMode === 'Quotation' && (
+               <div className="flex justify-between items-center px-1 mb-2">
+                  <span className="text-gray-600 font-medium text-sm">Subtotal</span>
+                  <span className="text-xl font-bold text-gray-900">₹{calculatePurchaseTotal().toLocaleString()}</span>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowQuickAdd(true);
+                }}
+                className="rounded-2xl bg-[#f7d8e7] text-[#b34f7e] py-3 font-semibold border border-[#f3c7dc] md:py-2.5 md:text-[15px]"
+              >
+                Quick add +
+              </button>
+              <button
+                onClick={handleSavePurchaseEntry}
+                className="rounded-2xl bg-[#f187b5] hover:bg-[#e076a5] text-white py-3 font-semibold transition-colors md:py-2.5 md:text-[15px]"
+              >
+                {purchaseMode === 'Purchase'
+                  ? `Total (${purchaseItems.length}) Purchase`
+                  : `Create Quotation (${purchaseItems.length})`}
+              </button>
+            </div>
+            <div className="grid grid-cols-[1fr_110px] gap-2 md:hidden">
+              <button
+                onClick={() => setShowPurchaseSearch(true)}
+                className="w-full rounded-xl border border-[#f3c7dc] px-4 py-3.5 text-left text-gray-500 bg-[#fffafd] flex items-center gap-2"
+              >
+                <svg className="w-5 h-5 text-[#f187b5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <span className="font-semibold text-sm">Search Items</span>
+              </button>
+              <button
+                onClick={() => setShowPurchaseSearch(true)}
+                className="rounded-xl border border-[#f3c7dc] px-3 py-3 font-semibold text-gray-700 bg-white flex items-center justify-center gap-2"
+              >
+                <span className="font-semibold text-sm">Scan</span>
+                <svg className="w-5 h-5 text-[#f187b5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- PURCHASE SUPPLIER MODAL --- */}
+      {showSupplierModal && (
+        <div className="fixed inset-0 bg-black/40 z-[80] flex items-end justify-center" onClick={() => setShowSupplierModal(false)}>
+          <div className="w-full max-w-xl bg-white rounded-t-3xl p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-3"></div>
+            <h3 className="text-3xl font-semibold text-gray-800 mb-4">Add Supplier</h3>
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-gray-700">Supplier Name *
+                <input value={purchaseSupplierForm.name} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, name: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5" placeholder="Enter supplier name" />
+              </label>
+              <label className="block text-sm font-semibold text-gray-700">Phone Number *
+                <input value={purchaseSupplierForm.phone} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, phone: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5" placeholder="Enter phone number" />
+              </label>
+              <label className="block text-sm font-semibold text-gray-700">Address (optional)
+                <textarea value={purchaseSupplierForm.address} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, address: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5" rows={2} placeholder="Enter supplier address" />
+              </label>
+              <label className="block text-sm font-semibold text-gray-700">Notes (optional)
+                <textarea value={purchaseSupplierForm.notes} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, notes: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5" rows={2} placeholder="Enter notes or remarks" />
+              </label>
+              <label className="block text-sm font-semibold text-gray-700">GST Number (optional)
+                <input value={purchaseSupplierForm.gstNumber} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, gstNumber: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5" placeholder="Enter GST number" />
+              </label>
+              <label className="block text-sm font-semibold text-gray-700">Opening Balance (optional)
+                <div className="grid grid-cols-[1fr_120px] gap-2 mt-1">
+                  <input value={purchaseSupplierForm.openingBalance} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, openingBalance: e.target.value }))} className="w-full rounded-xl border border-gray-300 px-3 py-2.5" placeholder="0.00" />
+                  <select value={purchaseSupplierForm.openingBalanceType} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, openingBalanceType: e.target.value as "Payment" | "Receive" }))} className="rounded-xl border border-gray-300 px-2 py-2.5">
+                    <option value="Payment">PAYMENT</option>
+                    <option value="Receive">RECEIVE</option>
+                  </select>
+                </div>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <button onClick={() => setShowSupplierModal(false)} className="rounded-xl border border-gray-300 py-3 font-semibold text-gray-700">Cancel</button>
+              <button
+                onClick={() => {
+                  if (!purchaseSupplierForm.name.trim() || !purchaseSupplierForm.phone.trim()) {
+                    showToast('Supplier name and phone are required.', 'error');
+                    return;
+                  }
+                  setPurchaseSupplier(purchaseSupplierForm);
+                  setShowSupplierModal(false);
+                  showToast('Supplier added in purchase entry.', 'success');
+                }}
+                className="rounded-xl bg-[#142d57] text-white py-3 font-semibold"
+              >
+                Add Supplier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- PURCHASE SEARCH MODAL --- */}
+      {showPurchaseSearch && (
+        <div className="fixed inset-0 bg-white z-[85] flex flex-col">
+          <div className="px-3 py-2 border-b border-gray-200 flex items-center gap-2">
+            <button onClick={() => setShowPurchaseSearch(false)} className="p-2">
+              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <input
+              value={purchaseSearchQuery}
+              onChange={(e) => setPurchaseSearchQuery(e.target.value)}
+              placeholder="Search by name or barcode"
+              className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5"
+              autoFocus
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto bg-gray-50 p-3">
+            <div className="bg-white rounded-xl border border-gray-200 px-3 py-2 flex items-center justify-between mb-3">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" defaultChecked />
+                Include Products from BF Inventory
+              </label>
+              <button className="rounded-full px-3 py-1 text-sm bg-[#f3ecff] text-[#7a6ea4]">More</button>
+            </div>
+
+            {purchaseSearchLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-8 h-8 border-2 border-[#f187b5]/30 border-t-[#f187b5] rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {purchaseSearchResults
+                  .filter((product) => {
+                    const q = purchaseSearchQuery.trim().toLowerCase();
+                    if (!q) return true;
+                    const barcodeMatch = Array.isArray(product.barcode)
+                      ? product.barcode.some((b: string) => String(b).toLowerCase().includes(q))
+                      : String(product.barcode || '').toLowerCase().includes(q);
+                    return product.productName.toLowerCase().includes(q) || barcodeMatch;
+                  })
+                  .slice(0, 25)
+                  .map((product) => {
+                    const purchaseItem = purchaseItems.find((item) => item.productId === product._id);
+                    const purchaseQty = purchaseItem?.qty || 0;
+
+                    return (
+                      <div key={product._id} className="bg-white border border-gray-200 rounded-2xl p-3">
+                        <div className="flex gap-3">
+                          <div className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
+                            {product.mainImage ? <img src={product.mainImage} alt="" className="w-full h-full object-contain" /> : <span className="text-xs text-gray-400">IMG</span>}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-gray-800 leading-tight">{product.productName}</h4>
+                            <p className="text-sm text-gray-500">MRP: ₹{product.compareAtPrice || product.price} | Retail Price: ₹{product.price}</p>
+                            <p className="text-sm text-gray-500">Quantity: {product.stock} Piece</p>
+                          </div>
+                          {purchaseQty > 0 ? (
+                            <div className="self-center flex items-center gap-2 bg-[#fdf0f6] border border-[#f3c7dc] rounded-xl px-2 py-1">
+                              <button
+                                onClick={() => decreasePurchaseQtyByProductId(product._id)}
+                                className="w-7 h-7 rounded-md border border-[#f3c7dc] text-[#cf6594] bg-white font-bold text-lg leading-none"
+                              >
+                                -
+                              </button>
+                              <span className="min-w-[20px] text-center text-sm font-bold text-[#cf6594]">{purchaseQty}</span>
+                              <button
+                                onClick={() => addProductToPurchase(product)}
+                                className="w-7 h-7 rounded-md bg-[#f187b5] text-white font-bold text-lg leading-none"
+                              >
+                                +
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => addProductToPurchase(product)}
+                              className="self-center rounded-xl border border-gray-300 px-5 py-2 font-semibold hover:bg-gray-50"
+                            >
+                              Add
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             )}
           </div>
         </div>
       )}
 
+      {/* --- PURCHASE VARIANT PICKER --- */}
+      {showVariantPicker && variantPickerItem && (
+        <div className="fixed inset-0 bg-black/40 z-[86] flex items-center justify-center p-4" onClick={() => { setShowVariantPicker(false); setVariantPickerItem(null); }}>
+          <div className="w-full max-w-xl bg-white rounded-2xl border border-[#f3c7dc] shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b border-[#f3c7dc] bg-[#fff7fb] flex items-center justify-between">
+              <h3 className="text-base font-bold text-gray-800">Select Variant</h3>
+              <button onClick={() => { setShowVariantPicker(false); setVariantPickerItem(null); }} className="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+
+            <div className="max-h-[55vh] overflow-y-auto p-3 space-y-2">
+              {(() => {
+                const sourceProduct: any =
+                  purchaseSearchResults.find((p: any) => p._id === variantPickerItem.baseProductId) ||
+                  products.find((p: any) => p._id === variantPickerItem.baseProductId);
+                const variations: any[] = Array.isArray(sourceProduct?.variations) ? sourceProduct.variations : [];
+
+                if (!variations.length) {
+                  return (
+                    <div className="text-center py-10 text-gray-500">
+                      No variants available for this product.
+                    </div>
+                  );
+                }
+
+                return variations.map((variation: any) => {
+                  const variationId = String(variation?._id || variation?.id || variation?.variationId || variation?.title || variation?.name);
+                  const variantLabel = String(variation?.title || variation?.name || variation?.variationName || 'Variant');
+                  const variantProductId = `${variantPickerItem.baseProductId}-${variationId}`;
+                  const inPurchase = purchaseItems.some((p) => p.productId === variantProductId);
+
+                  return (
+                    <div key={variationId} className="border border-gray-200 rounded-xl p-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-800 truncate">{variantLabel}</p>
+                        <p className="text-xs text-gray-500">
+                          MRP: ₹{variation?.compareAtPrice ?? variantPickerItem.mrp} | Price: ₹{variation?.price ?? variantPickerItem.retailPrice} | Qty: {variation?.stock ?? 0}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => addVariantToPurchase(variantPickerItem, variation)}
+                        className={`px-4 py-2 rounded-lg text-sm font-semibold border ${inPurchase ? 'bg-[#f187b5] text-white border-[#f187b5]' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                      >
+                        {inPurchase ? 'Add More' : 'Add'}
+                      </button>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- QUICK ADD MODAL --- */}
       {showQuickAdd && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
                 <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center">
                     <h3 className="font-semibold text-lg">Quick Add Item</h3>
@@ -2679,7 +4012,9 @@ const SellerPOSOrders = () => {
                            value={quickForm.name} onChange={e => setQuickForm({...quickForm, name: e.target.value})}
                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                            placeholder="Enter item name"
-                           // autoFocus // Prio for Barcode/Name handled by user clicking
+                           // autoFocus // Removed autoFocus to prioritize Barcode if needed, or keep it on Name?
+                           // User screenshot shows Barcode first. I'll let user decide focus or default to Name if they want, but typically Barcode is first.
+                           // Actually I'll remove autoFocus from Name.
                         />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -2697,7 +4032,7 @@ const SellerPOSOrders = () => {
                             <input
                                type="number" required min="0" step="0.01"
                                value={quickForm.price} onChange={e => setQuickForm({...quickForm, price: e.target.value})}
-                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#E91E63] focus:outline-none"
                                placeholder="0.00"
                             />
                         </div>
@@ -2731,7 +4066,7 @@ const SellerPOSOrders = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Warranty / Guarantee</label>
                             <select
                                 value={quickForm.warrantyType}
-                                onChange={e => setQuickForm({...quickForm, warrantyType: e.target.value})}
+                                onChange={e => setQuickForm({...quickForm, warrantyType: e.target.value as any})}
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
                             >
                                 <option value="None">None</option>
@@ -2783,7 +4118,7 @@ const SellerPOSOrders = () => {
       {editingItem && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
-                <div className="bg-[#1e293b] px-6 py-4 text-white flex justify-between items-center">
+                <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center">
                     <h3 className="font-semibold text-lg">Edit Item</h3>
                     <button onClick={() => setEditingItem(null)} className="text-white/80 hover:text-white">✕</button>
                 </div>
@@ -2846,7 +4181,7 @@ const SellerPOSOrders = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">Warranty / Guarantee</label>
                             <select
                                 value={editForm.warrantyType}
-                                onChange={e => setEditForm({...editForm, warrantyType: e.target.value})}
+                                onChange={e => setEditForm({...editForm, warrantyType: e.target.value as any})}
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
                             >
                                 <option value="None">None</option>
@@ -2875,7 +4210,91 @@ const SellerPOSOrders = () => {
                         />
                         <label htmlFor="updateInventory" className="text-sm text-gray-700 font-medium cursor-pointer">Update product details in inventory</label>
                     </div>
-                    <button type="submit" className="w-full bg-[#1e293b] hover:bg-slate-800 text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
+                    <button type="submit" className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
+                        Update Item
+                    </button>
+                </form>
+            </div>
+        </div>
+      )}
+
+      {/* --- EDIT PURCHASE ITEM MODAL --- */}
+      {editingPurchaseItem && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center">
+                    <h3 className="font-semibold text-lg">Edit Item</h3>
+                    <button onClick={() => setEditingPurchaseItem(null)} className="text-white/80 hover:text-white">✕</button>
+                </div>
+                <form onSubmit={handlePurchaseEditItemSubmit} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                        <input
+                           type="text" required
+                           value={purchaseEditForm.name} onChange={e => setPurchaseEditForm({...purchaseEditForm, name: e.target.value})}
+                           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                           placeholder="Enter item name"
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">New MRP/Piece</label>
+                            <input
+                               type="number" min="0" step="0.01"
+                               value={purchaseEditForm.mrp} onChange={e => setPurchaseEditForm({...purchaseEditForm, mrp: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                               placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">New Price/Piece</label>
+                            <input
+                               type="number" required min="0" step="0.01"
+                               value={purchaseEditForm.price} onChange={e => setPurchaseEditForm({...purchaseEditForm, price: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                               placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">New Purchase Price/Piece</label>
+                            <input
+                               type="number" min="0" step="0.01"
+                               value={purchaseEditForm.purchasePrice} onChange={e => setPurchaseEditForm({...purchaseEditForm, purchasePrice: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                               placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">New Wholesale Price/Piece</label>
+                            <input
+                               type="number" min="0" step="0.01"
+                               value={purchaseEditForm.wholesalePrice} onChange={e => setPurchaseEditForm({...purchaseEditForm, wholesalePrice: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                               placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                            <input
+                               type="number" required min="1"
+                               value={purchaseEditForm.qty} onChange={e => setPurchaseEditForm({...purchaseEditForm, qty: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Warranty / Guarantee</label>
+                            <select
+                                value={purchaseEditForm.warrantyType}
+                                onChange={e => setPurchaseEditForm({...purchaseEditForm, warrantyType: e.target.value as any})}
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#f187b5] focus:outline-none"
+                            >
+                                <option value="None">None</option>
+                                <option value="Warranty">Warranty</option>
+                                <option value="Guarantee">Guarantee</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
                         Update Item
                     </button>
                 </form>
@@ -2929,10 +4348,10 @@ const SellerPOSOrders = () => {
 
                          <button
                           onClick={() => handlePaymentSelection('Cash')}
-                          className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[#f187b5] hover:bg-[#f187b5]/10 transition-all"
+                          className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[#E91E63] hover:bg-[#FCE4EC] transition-all"
                         >
-                            <span className="font-semibold text-gray-700 group-hover:text-[#e076a5]">Cash</span>
-                            <span className="text-gray-300 group-hover:text-[#f187b5]">→</span>
+                            <span className="font-semibold text-gray-700 group-hover:text-[#D81B60]">Cash</span>
+                            <span className="text-gray-300 group-hover:text-[#E91E63]">→</span>
                         </button>
                      </div>
                 </div>
@@ -2951,14 +4370,14 @@ const SellerPOSOrders = () => {
                    </div>
 
                    <div className="flex justify-center mb-4">
-                       <div className="bg-[#f187b5] rounded-full p-1.5">
+                        <div className="bg-[#E91E63] rounded-full p-1.5">
                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                        </div>
                    </div>
 
                    <div className="text-center mb-5">
                        <h3 className="font-bold text-slate-800 tracking-wider mb-1 text-sm">
-                           {lastBillDetails.isPaid ? 'ORDER COMPLETED' : 'BILL ESTIMATE'}
+                           {lastBillDetails.isQuotation ? 'QUOTATION COMPLETED' : (lastBillDetails.isPaid ? 'ORDER COMPLETED' : 'BILL ESTIMATE')}
                        </h3>
                        <p className="text-gray-400 text-[10px]">{new Date().toLocaleString()}</p>
                    </div>
@@ -2987,27 +4406,27 @@ const SellerPOSOrders = () => {
                             <div className="text-right">Price</div>
                         </div>
                         <div className="space-y-1">
-                            {(lastBillDetails?.cart || cart).map((item: any, idx) => {
+                            {(lastBillDetails?.cart || cart).map((item, idx) => {
                                 const sp = getEffectivePrice(item);
                                 return (
                                     <div key={idx} className="grid grid-cols-4 gap-2 text-[10px] text-gray-700">
-                                        <div className="col-span-2 truncate font-medium">{(item as any).productName}</div>
-                                        <div className="text-right text-gray-500">{(item as any).qty}</div>
-                                        <div className="text-right font-bold">₹{sp * (item as any).qty}</div>
+                                        <div className="col-span-2 truncate font-medium">{item.productName}</div>
+                                        <div className="text-right text-gray-500">{item.qty}</div>
+                                        <div className="text-right font-bold">₹{sp * item.qty}</div>
                                     </div>
                                 )
                             })}
                         </div>
                         <div className="border-t border-gray-100 mt-2 pt-2 flex justify-between text-xs font-bold text-slate-800">
                             <span>Total</span>
-                            <span>₹{lastBillDetails?.total || 0}</span>
+                            <span>₹{lastBillDetails.total}</span>
                         </div>
                      </div>
                    )}
 
                    <div className="text-center mb-4">
                         <button className="bg-[#f3f4f6] border border-gray-300 rounded-full px-4 py-1.5 text-[9px] font-bold text-gray-500 tracking-wider shadow-sm uppercase">
-                           [ STATUS: {lastBillDetails?.isPaid ? 'PAID' : 'PENDING'} - {paymentMethod} ]
+                           [ STATUS: {lastBillDetails.isQuotation ? 'QUOTATION' : (lastBillDetails.isPaid ? 'PAID' : 'PENDING')} - {lastBillDetails.paymentMethod || paymentMethod} ]
                        </button>
                    </div>
                 </div>
@@ -3018,12 +4437,21 @@ const SellerPOSOrders = () => {
                         <button onClick={downloadPDF} className="bg-white border border-black text-black font-bold py-2 text-[10px] tracking-widest hover:bg-gray-50 uppercase rounded">
                             [ Share ]
                         </button>
-                        <button onClick={handlePrintBill} className="bg-black text-white font-bold py-2 text-[10px] tracking-widest hover:bg-gray-900 uppercase rounded">
+                        <button
+                            onClick={() => {
+                                if (lastBillDetails.isQuotation && lastBillDetails.quotationEntry) {
+                                    printPurchaseInvoice(lastBillDetails.quotationEntry);
+                                } else {
+                                    handlePrintBill();
+                                }
+                            }}
+                            className="bg-black text-white font-bold py-2 text-[10px] tracking-widest hover:bg-gray-900 uppercase rounded"
+                        >
                             [ Print ]
                         </button>
                     </div>
 
-                    {lastBillDetails && !lastBillDetails.isPaid && (
+                    {!lastBillDetails.isPaid && !lastBillDetails.isQuotation && (
                          <div className="w-full">
                             <button
                                 onClick={() => {
@@ -3040,7 +4468,12 @@ const SellerPOSOrders = () => {
                     <div className="grid grid-cols-2 gap-2">
                          <button
                             onClick={() => {
-                                if (lastBillDetails?.cart) {
+                                if (lastBillDetails.isQuotation && lastBillDetails.quotationEntry) {
+                                    setPurchaseItems(lastBillDetails.quotationEntry.items);
+                                    setPurchaseSupplier(lastBillDetails.quotationEntry.supplier);
+                                    setEditingQuotationId(lastBillDetails.quotationEntry.id);
+                                    setShowPurchaseEntry(true);
+                                } else if (lastBillDetails?.cart) {
                                     setCart(lastBillDetails.cart);
                                 }
                                 setShowSuccessModal(false);
@@ -3049,13 +4482,36 @@ const SellerPOSOrders = () => {
                          >
                             [ Edit ]
                         </button>
-                        <button onClick={() => setShowSuccessModal(false)} className="bg-white border border-gray-200 text-gray-500 font-bold py-2 text-[10px] tracking-widest uppercase rounded">
+                        <button
+                            onClick={() => {
+                                setShowSuccessModal(false);
+                                if (lastBillDetails.isQuotation) {
+                                    setShowPurchaseEntry(false);
+                                    setPurchaseItems([]);
+                                    setPurchaseSupplier(null);
+                                    setEditingQuotationId(null);
+                                }
+                            }}
+                            className="bg-white border border-gray-200 text-gray-500 font-bold py-2 text-[10px] tracking-widest uppercase rounded"
+                        >
                             [ Home ]
                         </button>
                     </div>
 
-                    {lastBillDetails?.isPaid && (
-                        <button onClick={() => { createNewBill(true); setShowSuccessModal(false); }} className="w-full bg-black text-white font-bold py-3 text-[10px] tracking-widest hover:bg-gray-900 uppercase mt-1 rounded">
+                    {(lastBillDetails.isPaid || lastBillDetails.isQuotation) && (
+                        <button
+                            onClick={() => {
+                                if (lastBillDetails.isQuotation) {
+                                    setPurchaseItems([]);
+                                    setPurchaseSupplier(null);
+                                    setEditingQuotationId(null);
+                                } else {
+                                    createNewBill(true);
+                                }
+                                setShowSuccessModal(false);
+                            }}
+                            className="w-full bg-black text-white font-bold py-3 text-[10px] tracking-widest hover:bg-gray-900 uppercase mt-1 rounded"
+                        >
                             [ + NEW BILL ]
                         </button>
                     )}
@@ -3069,54 +4525,29 @@ const SellerPOSOrders = () => {
           {/* We use a specific width/style for thermal printing */}
           <div className="w-[80mm] p-2 font-mono text-xs text-black mx-auto">
               <div className="mb-2 text-left">
-                  <h1 className="text-sm font-bold uppercase">{billSettings.shopName}</h1>
-                  <p className="text-[10px] leading-tight whitespace-pre-wrap">{billSettings.address}</p>
-                  <p className="text-[10px] leading-tight whitespace-pre-wrap">{billSettings.line2}</p>
+                  <h1 className="text-sm font-bold uppercase">GEETA</h1>
+                  <p className="text-[10px] leading-tight">Q7WM+92M, Q7WM+92M, , Indore Division,</p>
+                  <p className="text-[10px] leading-tight">Nagda, Madhya Pradesh, India - 454001</p>
+                  <p className="text-[10px]">7898111456</p>
 
-                  {/* GST & FSSAI - LocalStorage First (Strict), then Admin Config fallback only if no local settings */}
-                  {(() => {
-                      const savedSettings = localStorage.getItem("seller_bill_settings");
-                      const parsedSettings = savedSettings ? JSON.parse(savedSettings) : null;
-
-                      let gstText = null;
-                      let fssaiText = null;
-
-                      if (parsedSettings) {
-                          // Seller has explicit settings, strictly use them
-                          if (parsedSettings.gst?.enabled && parsedSettings.gst?.text) {
-                               gstText = parsedSettings.gst.text;
-                          }
-                          if (parsedSettings.fssai?.enabled && parsedSettings.fssai?.text) {
-                               fssaiText = parsedSettings.fssai.text;
-                          }
-                      } else {
-                          // No seller settings at all -> Fallback to Admin
-                          if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
-                              gstText = config.invoiceSettings.gst.text;
-                          }
-                          if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
-                              fssaiText = config.invoiceSettings.fssai.text;
-                          }
-                      }
-
-                      return (
-                          <>
-                            {gstText && <p className="text-[10px] font-bold mt-1">GST: {gstText}</p>}
-                            {fssaiText && <p className="text-[10px] font-bold">FSSAI: {fssaiText}</p>}
-                          </>
-                      )
-                  })()}
+                  {/* GST & FSSAI */}
+                  {config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text && (
+                      <p className="text-[10px] font-bold mt-1">GST: {config.invoiceSettings.gst.text}</p>
+                  )}
+                  {config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text && (
+                      <p className="text-[10px] font-bold">FSSAI: {config.invoiceSettings.fssai.text}</p>
+                  )}
               </div>
 
               <div className="border-b border-black my-2"></div>
 
               <div className="flex justify-between mb-1">
                   <span>MEMO</span>
-                  <span>{lastBillDetails?.time || ''}</span>
+                  <span>{lastBillDetails?.time}</span>
               </div>
               <div className="flex justify-between mb-1">
-                  <span>{lastBillDetails?.date || ''}</span>
-                  <span>Bill No: {lastBillDetails?.invoiceNum || ''}</span>
+                  <span>{lastBillDetails?.date}</span>
+                  <span>Bill No: {lastBillDetails?.invoiceNum}</span>
               </div>
 
               <div className="border-b border-black border-dashed my-2"></div>
@@ -3132,13 +4563,12 @@ const SellerPOSOrders = () => {
               <div className="border-b border-black border-dashed my-2"></div>
 
               <div className="space-y-1">
-                  {(lastBillDetails?.cart || cart).map((item: any, idx) => {
+                  {(lastBillDetails?.cart || cart).map((item, idx) => {
                       const sp = getEffectivePrice(item);
-                      // @ts-ignore
-                      const mrp = (item as any).compareAtPrice || sp;
+                      const mrp = item.compareAtPrice || sp;
                       return (
                        <div key={idx}>
-                           <div>{idx + 1}. {(item as any).productName}</div>
+                           <div>{idx + 1}. {item.productName}</div>
                            {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
                                <div className="text-[10px] bg-gray-100 px-2 py-0.5 border-l-2 border-black font-bold mt-1 ml-4" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                    {(item as any).warrantyType}: {(item as any).warrantyDuration}
@@ -3146,10 +4576,10 @@ const SellerPOSOrders = () => {
                            )}
                            <div className="grid grid-cols-12 gap-1">
                                <div className="col-span-12"></div> {/* Spacer for name line */}
-                               <div className="col-span-3 text-right">{(item as any).qty}PC</div>
-                               <div className="col-span-3 text-right">{((item as any).compareAtPrice || sp).toFixed(2)}</div>
+                               <div className="col-span-3 text-right">{item.qty}PC</div>
+                               <div className="col-span-3 text-right">{mrp.toFixed(2)}</div>
                                <div className="col-span-3 text-right">{sp.toFixed(2)}</div>
-                               <div className="col-span-3 text-right">{(sp * (item as any).qty).toFixed(2)}</div>
+                               <div className="col-span-3 text-right">{(sp * item.qty).toFixed(2)}</div>
                            </div>
                        </div>
                    )})}
@@ -3161,11 +4591,11 @@ const SellerPOSOrders = () => {
                   const items = lastBillDetails?.cart || cart;
                   let tQty = 0;
                   let tMRP = 0;
-                  items.forEach((item: any) => {
-                      tQty += (item as any).qty;
+                  items.forEach(item => {
+                      tQty += item.qty;
                       const sp = getEffectivePrice(item);
-                      const itemMrp = (item as any).compareAtPrice && (item as any).compareAtPrice > sp ? (item as any).compareAtPrice : sp;
-                      tMRP += (itemMrp as any) * (item as any).qty;
+                      const itemMrp = item.compareAtPrice && item.compareAtPrice > sp ? item.compareAtPrice : sp;
+                      tMRP += itemMrp * item.qty;
                   });
                   const tBill = lastBillDetails?.total || calculateTotal();
                   const tSavings = tMRP - tBill;
@@ -3189,187 +4619,142 @@ const SellerPOSOrders = () => {
 
               <div className="flex justify-between font-bold text-sm">
                   <span>Total Payable Amount</span>
-                  <span>{(lastBillDetails?.total || 0).toFixed(2)}</span>
+                  <span>{lastBillDetails?.total.toFixed(2)}</span>
               </div>
                <div className="flex justify-between mt-1">
                   <span>Cash Paid</span>
-                  <span>{(lastBillDetails?.total || 0).toFixed(2)}</span>
+                  <span>{lastBillDetails?.total.toFixed(2)}</span>
               </div>
 
               <div className="border-b border-black border-dashed my-2"></div>
 
               <div className="text-center mt-4 text-[10px]">
                   {/* Notes */}
-                  {/* Notes */}
-                  {(() => {
-                      const savedSettings = localStorage.getItem("seller_bill_settings");
-                      if (savedSettings) {
-                           // Seller has configured settings. Use them.
-                           // If disabled, show nothing.
-                           if (billSettings.notes?.enabled && billSettings.notes?.text) {
-                               return (
-                                   <p className="font-bold mb-2 whitespace-pre-wrap">{billSettings.notes.text}</p>
-                               );
-                           }
-                           return null;
-                      }
-
-                      // Fallback to Admin only if NO seller settings saved
-                      if (config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text) {
-                          return (
-                              <p className="font-bold mb-2 whitespace-pre-wrap">{config.invoiceSettings.notes.text}</p>
-                          );
-                      }
-                      return null;
-                  })()}
+                  {config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text && (
+                      <p className="font-bold mb-2 whitespace-pre-wrap">{config.invoiceSettings.notes.text}</p>
+                  )}
 
                   {/* Terms & Conditions */}
-                  {(() => {
-                      // Check Seller Terms first
-                      // If billSettings exists (it always does in this component due to useState initialization with defaults or localStorage)
-                      // We should check if localStorage had saved settings to imply "Seller has configured".
-                      // However, billSettings is state. We have to check if it matches default/persistence.
-                      // Actually, for consistency, if billSettings.terms.enabled is FALSE, we should show NOTHING.
-                      // We should NOT fallback to Admin if Seller has explicitly disabled it.
-                      // But how do we know if Seller explicitly disabled it vs "it's just default"?
-
-                      // Let's assume if the Seller has ANY settings saved, we prioritize Seller.
-                      // Since we load from localStorage, if localStorage has "seller_bill_settings", we prioritize Seller.
-
-                      const savedSettings = localStorage.getItem("seller_bill_settings");
-                      if (savedSettings) {
-                          // Seller has configured settings. Use them.
-                          if (billSettings.terms?.enabled && billSettings.terms?.text) {
-                              return (
-                                  <div className="text-left mt-2 border-t border-black border-dashed pt-2">
-                                      <p className="font-bold mb-1">Terms & Conditions:</p>
-                                      <p className="whitespace-pre-wrap leading-tight">{billSettings.terms.text}</p>
-                                  </div>
-                              );
-                          }
-                          // If disabled, return null (Show Nothing).
-                          return null;
-                      }
-
-                      // If NO seller settings saved, fallback to Admin.
-                      if (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text) {
-                          return (
-                              <div className="text-left mt-2 border-t border-black border-dashed pt-2">
-                                  <p className="font-bold mb-1">Terms & Conditions:</p>
-                                  <p className="whitespace-pre-wrap leading-tight">{config.invoiceSettings.terms.text}</p>
-                              </div>
-                          );
-                      }
-                      return null;
-                  })()}
+                  {config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text && (
+                      <div className="text-left mt-2 border-t border-black border-dashed pt-2">
+                          <p className="font-bold mb-1">Terms & Conditions:</p>
+                          <p className="whitespace-pre-wrap leading-tight">{config.invoiceSettings.terms.text}</p>
+                      </div>
+                  )}
 
 
               </div>
           </div>
       </div>
 
-  {/* --- ADD CUSTOMER MODAL --- */}
+      {/* --- ADD CUSTOMER MODAL --- */}
       {showAddCustomerModal && (
         <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="bg-[#f472b6] px-6 py-4 text-white flex justify-between items-center">
-                    <h3 className="text-xl font-bold">Register New Customer</h3>
-                    <button onClick={() => setShowAddCustomerModal(false)} className="text-white hover:text-white/80 transition-colors">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center">
+                    <h3 className="text-lg font-bold">Register New Customer</h3>
+                    <button onClick={() => setShowAddCustomerModal(false)} className="text-white/80 hover:text-white transition-colors">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
 
-                <form onSubmit={submitAddCustomer} className="p-7">
-                    <div className="space-y-5">
+                <form onSubmit={submitAddCustomer} className="p-6">
+                    <div className="space-y-4">
                         <div>
-                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Full Name *</label>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Full Name *</label>
                             <input
                                 type="text"
                                 required
                                 value={newCustomer.name}
                                 onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
-                                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all placeholder:text-gray-300"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                                 placeholder="Enter customer name"
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Phone Number *</label>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Phone Number *</label>
                                 <input
                                     type="tel"
                                     required
+                                    maxLength={10}
                                     pattern="[0-9]{10}"
                                     value={newCustomer.phone}
-                                    onChange={(e) => setNewCustomer({...newCustomer, phone: e.target.value})}
-                                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all placeholder:text-gray-300"
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, "");
+                                        if (val.length <= 10) {
+                                            setNewCustomer({...newCustomer, phone: val});
+                                        }
+                                    }}
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-mono"
                                     placeholder="10 digit mobile"
                                 />
                             </div>
                             <div>
-                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Email (Optional)</label>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email (Optional)</label>
                                 <input
                                     type="email"
                                     value={newCustomer.email}
                                     onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
-                                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all placeholder:text-gray-300"
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                                     placeholder="customer@email.com"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Address</label>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Address</label>
                             <textarea
                                 value={newCustomer.address}
                                 onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
-                                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all h-24 resize-none placeholder:text-gray-300"
+                                className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all h-20 resize-none"
                                 placeholder="Street address, building, etc."
                             />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">City</label>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">City</label>
                                 <input
                                     type="text"
                                     value={newCustomer.city}
                                     onChange={(e) => setNewCustomer({...newCustomer, city: e.target.value})}
-                                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all placeholder:text-gray-300"
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                                     placeholder="City"
                                 />
                             </div>
                             <div>
-                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Pincode</label>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Pincode</label>
                                 <input
                                     type="text"
                                     value={newCustomer.pincode}
                                     onChange={(e) => setNewCustomer({...newCustomer, pincode: e.target.value})}
-                                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f472b6]/20 focus:border-[#f472b6] transition-all placeholder:text-gray-300"
+                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
                                     placeholder="6 digit PIN"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-10 flex gap-4">
+                    <div className="mt-8 flex gap-3">
                         <button
                             type="button"
                             onClick={() => setShowAddCustomerModal(false)}
-                            className="flex-1 py-4 border border-gray-200 text-gray-500 rounded-2xl font-bold hover:bg-gray-50 transition-all text-sm"
+                            className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={newCustomerLoading}
-                            className="flex-1 py-4 bg-[#f472b6] text-white rounded-2xl font-bold hover:bg-[#ec4899] transition-all shadow-lg shadow-[#f472b6]/30 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                            className="flex-1 py-3 bg-[#f187b5] text-white rounded-xl font-semibold hover:bg-[#e076a5] transition-all shadow-lg shadow-[#f187b5]/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {newCustomerLoading ? (
                               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                             ) : (
                                 <>
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                                     Save Customer
                                 </>
                             )}
@@ -3382,7 +4767,7 @@ const SellerPOSOrders = () => {
 
       {/* --- SCANNER MODAL --- */}
       {showScanner && (
-        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/80 z-[1100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden relative animate-in zoom-in duration-200">
                 <div className="bg-[#f187b5] px-5 py-4 text-white flex justify-between items-center">
                     <h3 className="font-bold text-lg">Scan Barcode</h3>
@@ -3402,8 +4787,164 @@ const SellerPOSOrders = () => {
         </div>
       )}
 
+      {/* --- MOBILE SEARCH MODAL --- */}
+      {showMobileSearch && (
+        <div className="fixed inset-0 bg-white z-50 flex flex-col md:hidden">
+          {/* Header */}
+          <div className="bg-[#f187b5] px-4 py-3 flex items-center gap-3 shadow-md">
+            <button
+              onClick={() => {
+                setShowMobileSearch(false);
+                setMobileSearchQuery('');
+              }}
+              className="text-white"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+            </button>
+            <input
+              type="text"
+              value={mobileSearchQuery}
+              onChange={(e) => setMobileSearchQuery(e.target.value)}
+              placeholder="Search products..."
+              className="flex-1 px-4 py-2 rounded-lg border-none outline-none text-gray-800"
+              autoFocus
+            />
+            <button
+                onClick={() => {
+                    setScanTarget('inventory');
+                    setShowScanner(true);
+                }}
+                className="text-white p-1"
+            >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5v2a2 2 0 002 2h2m10 0h2a2 2 0 002-2V5M3 19v-2a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m-6-13h-4m4 4h-4m4 4h-4m4 4h-4"></path>
+                </svg>
+            </button>
+          </div>
+
+          {/* Product List */}
+          <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+            {loading ? (
+              <div className="flex justify-center items-center h-40">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f187b5]"></div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {products
+                  .filter(product => {
+                    if (!mobileSearchQuery) return true;
+                    const query = mobileSearchQuery.toLowerCase();
+                    return (
+                      product.productName.toLowerCase().includes(query) ||
+                      (Array.isArray(product.barcode) ? product.barcode.some((b: string) => String(b).toLowerCase().includes(query)) : (product.barcode && String(product.barcode).toLowerCase().includes(query)))
+                    );
+                  })
+                  .slice(0, 20)
+                  .map(product => {
+                    const cartItem = cart.find(item => item._id === product._id);
+                    const inCart = !!cartItem;
+
+                    return (
+                      <div
+                        key={product._id}
+                        className={`bg-white p-4 rounded-lg border shadow-sm ${
+                          product.stock <= 0 ? 'opacity-60 grayscale' : ''
+                        }`}
+                      >
+                        <div className="flex gap-3">
+                          {/* Product Image */}
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {product.mainImage ? (
+                              <img src={product.mainImage} alt="" className="w-full h-full object-contain" />
+                            ) : (
+                              <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                              </svg>
+                            )}
+                          </div>
+
+                          {/* Product Info */}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-gray-800 text-sm line-clamp-2 mb-1">
+                              {product.productName}
+                            </h4>
+                            <div className="flex items-center gap-2 text-xs mb-2">
+                              <span className="text-gray-500">
+                                MRP: <span className="line-through">₹{product.compareAtPrice || 0}</span>
+                              </span>
+                              <span className="font-bold text-[#f187b5]">
+                                {orderType === 'Wholesale' && (product.wholesalePrice || 0) > 0
+                                  ? `WSP: ₹${product.wholesalePrice}`
+                                  : `SP: ₹${product.price}`}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Quantity: {product.stock} Piece
+                            </div>
+                          </div>
+
+                          {/* Add Button */}
+                          <div className="flex items-center">
+                            {inCart ? (
+                              <div className="flex items-center gap-2 bg-[#f187b5]/10 rounded-lg px-2 py-1">
+                                <button
+                                  onClick={() => updateQuantity(product._id, -1)}
+                                  className="w-7 h-7 flex items-center justify-center bg-white text-[#f187b5] rounded hover:bg-[#f187b5] hover:text-white transition-colors border border-[#f187b5]"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"></path>
+                                  </svg>
+                                </button>
+                                <span className="font-bold text-[#f187b5] min-w-[20px] text-center">
+                                  {cartItem?.qty || 0}
+                                </span>
+                                <button
+                                  onClick={() => updateQuantity(product._id, 1)}
+                                  className="w-7 h-7 flex items-center justify-center bg-[#f187b5] text-white rounded hover:bg-[#e076a5] transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                                  </svg>
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  addToCart(product);
+                                }}
+                                disabled={product.stock <= 0}
+                                className="px-4 py-2 bg-[#f187b5] text-white rounded-lg hover:bg-[#e076a5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                              >
+                                Add
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                {mobileSearchQuery && products.filter(p => {
+                  const query = mobileSearchQuery.toLowerCase();
+                  return p.productName.toLowerCase().includes(query) || (Array.isArray(p.barcode) ? (p.barcode as string[]).some(b => String(b).toLowerCase().includes(query)) : (p.barcode && String(p.barcode).toLowerCase().includes(query)));
+                }).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No products found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
 
 export default SellerPOSOrders;
+
+
+
