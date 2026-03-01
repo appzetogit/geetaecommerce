@@ -16,6 +16,7 @@ interface CustomerData {
     _id: string;
     name: string;
     phone: string;
+    gst?: string;
     creditBalance: number;
     transactions: CreditTransaction[];
     orders: any[]; // Order summary
@@ -65,6 +66,7 @@ const AdminPOSCustomerDetail = () => {
                 _id: data.customer._id,
                 name: data.customer.name,
                 phone: data.customer.phone,
+                gst: data.customer.gst,
                 creditBalance: data.customer.creditBalance,
                 transactions: data.transactions,
                 orders: data.orders || [],
@@ -386,9 +388,17 @@ const AdminPOSCustomerDetail = () => {
                             <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                         </button>
                         <div>
-                            <h1 className="text-xl font-bold text-gray-900">{customerData.name}</h1>
-                            <p className="text-sm text-gray-500 font-medium tracking-tight font-mono">{customerData.phone}</p>
-                        </div>
+                             <h1 className="text-xl font-bold text-gray-900">{customerData.name}</h1>
+                             <div className="flex items-center gap-3">
+                                 <p className="text-sm text-gray-500 font-medium tracking-tight font-mono">{customerData.phone}</p>
+                                 {customerData.gst && (
+                                     <>
+                                         <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                                         <p className="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-wider">GST: {customerData.gst}</p>
+                                     </>
+                                 )}
+                             </div>
+                         </div>
                         <button
                             onClick={handleExportPDF}
                             className="ml-auto flex items-center gap-2 bg-gray-50 text-gray-700 font-bold px-4 py-2 rounded-lg text-xs hover:bg-gray-100 transition-colors border border-gray-200"

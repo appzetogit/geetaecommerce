@@ -21,7 +21,8 @@ const AdminPOSCustomers = () => {
         address: '',
         city: '',
         state: '',
-        pincode: ''
+        pincode: '',
+        gst: ''
     });
 
     // Debounce search
@@ -67,7 +68,7 @@ const AdminPOSCustomers = () => {
                 showToast("Customer added successfully", "success");
                 setShowAddModal(false);
                 setNewCustomer({
-                    name: '', phone: '', email: '', address: '', city: '', state: '', pincode: ''
+                    name: '', phone: '', email: '', address: '', city: '', state: '', pincode: '', gst: ''
                 });
                 loadCustomers(); // Refresh the list
             } else {
@@ -229,6 +230,17 @@ const AdminPOSCustomers = () => {
                                         onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
                                         className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all h-20 resize-none"
                                         placeholder="Street address, building, etc."
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">GST Number (Optional)</label>
+                                    <input
+                                        type="text"
+                                        value={newCustomer.gst}
+                                        onChange={(e) => setNewCustomer({...newCustomer, gst: e.target.value.toUpperCase()})}
+                                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                        placeholder="Enter GSTIN"
                                     />
                                 </div>
                             </div>

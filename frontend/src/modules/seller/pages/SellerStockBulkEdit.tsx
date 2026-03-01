@@ -450,7 +450,7 @@ export default function SellerStockBulkEdit({
     "index", "image", "productName", "category", "subCategory", "subSubCategory",
     "attributes", "variations", "variationName", // Added variations and variationName
     "sku", "rackNumber", "description", "barcode", "hsnCode", "pack",
-    "size", "color", "attr", "tax", "gst", "purchasePrice", "mfgDate", "expiryDate", "weight", "compareAtPrice",
+    "size", "color", "tax", "gst", "purchasePrice", "mfgDate", "expiryDate", "weight", "compareAtPrice",
     "price", "deliveryTime", "stock", "offerPrice", "wholesalePrice",
     "lowStockQuantity", "brand", "valMrp", "valPur", "unitPrice", "status"
   ]);
@@ -471,13 +471,12 @@ export default function SellerStockBulkEdit({
     pack: "10. Unit",
     size: "11. Size",
     color: "12. Color",
-    attr: "13. Attr",
-    tax: "14. Tax Cat",
-    gst: "15. GST",
-    purchasePrice: "16. Pur. Price",
-    mfgDate: "17. Mfg Date",
-    expiryDate: "18. Expiry Date",
-    weight: "19. Weight",
+    tax: "13. Tax Cat",
+    gst: "14. GST",
+    purchasePrice: "15. Pur. Price",
+    mfgDate: "16. Mfg Date",
+    expiryDate: "17. Expiry Date",
+    weight: "18. Weight",
     compareAtPrice: "19. MRP",
     price: "20. Sell Price",
     deliveryTime: "21. Del. Time",
@@ -620,7 +619,6 @@ export default function SellerStockBulkEdit({
     pack: 100,
     size: 80,
     color: 80,
-    attr: 80,
     tax: 80,
     gst: 80,
     purchasePrice: 100,
@@ -822,8 +820,7 @@ export default function SellerStockBulkEdit({
         return <td key={key} className="p-2 border-r border-neutral-200 text-sm text-neutral-600">-</td>;
       case "color":
         return <td key={key} className="p-2 border-r border-neutral-200 text-sm text-neutral-600">-</td>;
-      case "attr":
-        return <td key={key} className="p-2 border-r border-neutral-200 text-sm text-neutral-600">-</td>;
+
       case "tax":
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.tax} onChange={(e) => handleFieldChange(originalIndex, 'tax', e.target.value)} /></td>;
       case "gst":

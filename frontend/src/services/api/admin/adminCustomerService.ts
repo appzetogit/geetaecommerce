@@ -23,6 +23,7 @@ export interface Customer {
   state?: string;
   pincode?: string;
   locationUpdatedAt?: string;
+  gst?: string;
   createdAt?: string;
   updatedAt?: string;
 }

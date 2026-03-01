@@ -417,7 +417,6 @@ export default function SellerProductList() {
               }
               .barcode-container {
                   width: ${customSettings.width}mm;
-                  height: ${customSettings.height}mm;
                   display: flex;
                   flex-direction: column;
                   align-items: center;
@@ -564,7 +563,7 @@ export default function SellerProductList() {
         name: product.productName,
         seller: sellerName,
         sellerId: sellerId,
-        image: product.mainImage || product.galleryImages[0] || "",
+        image: product.mainImage || (product.galleryImageUrls && product.galleryImageUrls[0]) || "",
         category: categoryName,
         categoryId: categoryId,
         subCategory: subCategoryName,
@@ -735,7 +734,6 @@ export default function SellerProductList() {
       "Unit",
       "Size",
       "Color",
-      "Attr",
       "Tax Cat",
       "GST",
       "Pur. Price",
@@ -778,7 +776,6 @@ export default function SellerProductList() {
           escapeCsv(product.unit),
           escapeCsv(product.sizeName),
           escapeCsv(product.colorName),
-          escapeCsv(product.attributeName),
           escapeCsv(product.taxCategory),
           escapeCsv(product.gst),
           escapeCsv(product.purchasePrice),
@@ -1012,21 +1009,20 @@ export default function SellerProductList() {
                   <th className="p-4 whitespace-nowrap">10. Unit</th>
                   <th className="p-4 whitespace-nowrap">11. Size</th>
                   <th className="p-4 whitespace-nowrap">12. Color</th>
-                  <th className="p-4 whitespace-nowrap">13. Attr</th>
                   <th className="p-4 whitespace-nowrap">Variations</th>
-                  <th className="p-4 whitespace-nowrap">14. Tax Cat</th>
-                  <th className="p-4 whitespace-nowrap">15. GST</th>
-                  <th className="p-4 whitespace-nowrap">16. Pur. Price</th>
-                  <th className="p-4 whitespace-nowrap">17. MRP</th>
-                  <th className="p-4 whitespace-nowrap">18. Sell Price</th>
-                  <th className="p-4 whitespace-nowrap">19. Del. Time</th>
-                  <th className="p-4 whitespace-nowrap">20. Stock</th>
-                  <th className="p-4 whitespace-nowrap">21. Offer Price</th>
+                  <th className="p-4 whitespace-nowrap">13. Tax Cat</th>
+                  <th className="p-4 whitespace-nowrap">14. GST</th>
+                  <th className="p-4 whitespace-nowrap">15. Pur. Price</th>
+                  <th className="p-4 whitespace-nowrap">16. MRP</th>
+                  <th className="p-4 whitespace-nowrap">17. Sell Price</th>
+                  <th className="p-4 whitespace-nowrap">18. Del. Time</th>
+                  <th className="p-4 whitespace-nowrap">19. Stock</th>
+                  <th className="p-4 whitespace-nowrap">20. Offer Price</th>
                   <th className="p-4 whitespace-nowrap">Wholesale Price</th>
-                  <th className="p-4 whitespace-nowrap">22. Low Stock</th>
-                  <th className="p-4 whitespace-nowrap">23. Brand</th>
-                  <th className="p-4 whitespace-nowrap">24. Val (MRP)</th>
-                  <th className="p-4 whitespace-nowrap">25. Val (Pur)</th>
+                  <th className="p-4 whitespace-nowrap">21. Low Stock</th>
+                  <th className="p-4 whitespace-nowrap">22. Brand</th>
+                  <th className="p-4 whitespace-nowrap">23. Val (MRP)</th>
+                  <th className="p-4 whitespace-nowrap">24. Val (Pur)</th>
                   <th className="p-4 whitespace-nowrap">Status</th>
                   <th className="p-4 whitespace-nowrap">Action</th>
                 </tr>
@@ -1106,7 +1102,6 @@ export default function SellerProductList() {
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.unit}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.sizeName}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.colorName}</td>
-                      <td className="p-4 align-middle text-sm text-neutral-600">{product.attributeName}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600 min-w-[150px]">
                         {product.allVariations && product.allVariations.length > 0 ? (
                            <VariationDropdown variations={product.allVariations} />

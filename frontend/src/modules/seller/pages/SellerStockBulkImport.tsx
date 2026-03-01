@@ -72,9 +72,7 @@ export default function SellerStockBulkImport({
     if (row['Color'] || row['12. Color']) {
        variations.push({ name: "Color", value: String(row['Color'] || row['12. Color']) });
     }
-    if (row['Attr'] || row['13. Attr']) {
-       variations.push({ name: "Attribute", value: String(row['Attr'] || row['13. Attr']) });
-    }
+
     // New Generic Variations Column
     const rawVars = row['Variations'] || row['29. Variations'];
     if (rawVars) {
@@ -136,7 +134,7 @@ export default function SellerStockBulkImport({
       hsnCode: row['HSN'] || row['9. HSN'] || "",
       // pack: row['Unit'] || row['10. Unit'] || "", // unit
       variations: variations.length > 0 ? variations : [], // Provide empty array if none
-      taxId: row['Tax Cat'] || row['14. Tax Cat'] || "", // Assuming Tax Cat maps to taxId
+      taxId: row['Tax Cat'] || row['13. Tax Cat'] || "", // Assuming Tax Cat maps to taxId
       purchasePrice: parseFloat(row['Pur. Price'] || row['16. Pur. Price'] || "0"),
       // compareAtPrice: parseFloat(row['MRP'] || row['17. MRP'] || "0"), // Product interface has compareAtPrice, CreateProductData has variations which have compareAtPrice.
       // Note: createProduct in productService creates a product structure. Some fields might be top level, others in variations.
@@ -144,9 +142,8 @@ export default function SellerStockBulkImport({
       // deliveryTime: row['Del. Time'] || row['19. Del. Time'] || "",
       lowStockQuantity: parseInt(row['Low Stock'] || row['23. Low Stock'] || "5"),
       brandId: row['Brand'] || row['24. Brand'] || "",
-      mfgDate: row['Mfg Date'] || row['30. Mfg Date'] || "",
-      expiryDate: row['Expiry Date'] || row['31. Expiry Date'] || "",
-      weight: row['Weight'] || row['32. Weight'] || "",
+      mfgDate: row['Mfg Date'] || row['29. Mfg Date'] || "",
+      expiryDate: row['Expiry Date'] || row['30. Expiry Date'] || "",
 
       publish: (row['Status'] || row['Status'] || "").toLowerCase() === 'active' || (row['Status'] || "").toLowerCase() === 'published' ? true : false,
       popular: false,
@@ -249,16 +246,16 @@ export default function SellerStockBulkImport({
     // Standard Columns (0-25)
     const stdCols = [
         "1. Category", "2. Sub Cat", "3. Sub Sub Cat", "4. Product Name", "5. SKU", "6. Rack", "7. Desc",
-        "8. Barcode", "9. HSN", "10. Unit", "11. Size", "12. Color", "13. Attr", "14. Tax Cat", "15. GST",
-        "16. Pur. Price", "17. MRP", "18. Sell Price", "19. Del. Time", "20. Stock", "21. Offer Price",
-        "22. Wholesale Price", "23. Low Stock", "24. Brand", "25. Val (MRP)", "26. Val (Pur)"
+        "8. Barcode", "9. HSN", "10. Unit", "11. Size", "12. Color", "13. Tax Cat", "14. GST",
+        "15. Pur. Price", "16. MRP", "17. Sell Price", "18. Del. Time", "19. Stock", "20. Offer Price",
+        "21. Wholesale Price", "22. Low Stock", "23. Brand", "24. Val (MRP)", "25. Val (Pur)"
     ];
 
-    // Row 1: Standard Cols + "Unit Pricing Rules" (Merged) + "29. Variations" + "Image" + "30. Mfg Date" + "31. Expiry Date" + "32. Weight"
-    const row1 = [...stdCols, "Unit Pricing Rules", "", "29. Variations", "Image", "30. Mfg Date", "31. Expiry Date", "32. Weight"];
+    // Row 1: Standard Cols + "Unit Pricing Rules" (Merged) + "28. Variations" + "Image" + "29. Mfg Date" + "30. Expiry Date"
+    const row1 = [...stdCols, "Unit Pricing Rules", "", "28. Variations", "Image", "29. Mfg Date", "30. Expiry Date"];
 
-    // Row 2: Standard Cols (Repeated for parsing) + Sub-Headers + "29. Variations" + "Image" + "30. Mfg Date" + "31. Expiry Date" + "32. Weight"
-    const row2 = [...stdCols, "Price (Min Qty 2)", "Price (Min Qty 4)", "29. Variations", "Image", "30. Mfg Date", "31. Expiry Date", "32. Weight"];
+    // Row 2: Standard Cols (Repeated for parsing) + Sub-Headers + "28. Variations" + "Image" + "29. Mfg Date" + "30. Expiry Date"
+    const row2 = [...stdCols, "Price (Min Qty 2)", "Price (Min Qty 4)", "28. Variations", "Image", "29. Mfg Date", "30. Expiry Date"];
 
     const ws = XLSX.utils.aoa_to_sheet([row1, row2]);
 
@@ -269,23 +266,20 @@ export default function SellerStockBulkImport({
     for (let i = 0; i < stdCols.length; i++) {
         merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
     }
-    // Variations Column (Index 28)
+    // Variations Column (Index 27)
+    merges.push({ s: { r: 0, c: 27 }, e: { r: 1, c: 27 } });
+
+    // Image Column (Index 28)
     merges.push({ s: { r: 0, c: 28 }, e: { r: 1, c: 28 } });
 
-    // Image Column (Index 29)
+    // Mfg Date Column (Index 29)
     merges.push({ s: { r: 0, c: 29 }, e: { r: 1, c: 29 } });
 
-    // Mfg Date Column (Index 30)
+    // Expiry Date Column (Index 30)
     merges.push({ s: { r: 0, c: 30 }, e: { r: 1, c: 30 } });
 
-    // Expiry Date Column (Index 31)
-    merges.push({ s: { r: 0, c: 31 }, e: { r: 1, c: 31 } });
-
-    // Weight Column (Index 32)
-    merges.push({ s: { r: 0, c: 32 }, e: { r: 1, c: 32 } });
-
-    // Horizontal Merge for Unit Pricing (Index 26-27)
-    merges.push({ s: { r: 0, c: 26 }, e: { r: 0, c: 27 } });
+    // Horizontal Merge for Unit Pricing (Index 25-26)
+    merges.push({ s: { r: 0, c: 25 }, e: { r: 0, c: 26 } });
 
     ws['!merges'] = merges;
 
@@ -342,27 +336,25 @@ export default function SellerStockBulkImport({
                    <span>10. Unit</span>
                    <span>11. Size</span>
                    <span>12. Color</span>
-                   <span>13. Attr</span>
-                   <span>14. Tax Cat</span>
-                   <span>15. GST</span>
-                   <span>16. Pur. Price</span>
-                   <span>17. MRP</span>
-                   <span>18. Sell Price</span>
-                   <span>19. Del. Time</span>
-                   <span>20. Stock</span>
-                   <span>21. Offer Price</span>
-                   <span>22. Wholesale Price</span>
-                   <span>23. Low Stock</span>
-                   <span>24. Brand</span>
-                   <span>25. Val (MRP)</span>
-                   <span>26. Val (Pur)</span>
-                   <span>27. Unit Price (Min Qty 2)</span>
-                   <span>28. Unit Price (Min Qty 4)</span>
-                   <span>29. Variations</span>
+                   <span>13. Tax Cat</span>
+                   <span>14. GST</span>
+                   <span>15. Pur. Price</span>
+                   <span>16. MRP</span>
+                   <span>17. Sell Price</span>
+                   <span>18. Del. Time</span>
+                   <span>19. Stock</span>
+                   <span>20. Offer Price</span>
+                   <span>21. Wholesale Price</span>
+                   <span>22. Low Stock</span>
+                   <span>23. Brand</span>
+                   <span>24. Val (MRP)</span>
+                   <span>25. Val (Pur)</span>
+                   <span>26. Unit Price (Min Qty 2)</span>
+                   <span>27. Unit Price (Min Qty 4)</span>
+                   <span>28. Variations</span>
                    <span>Image</span>
-                   <span>30. Mfg Date</span>
-                   <span>31. Expiry Date</span>
-                   <span>32. Weight</span>
+                   <span>29. Mfg Date</span>
+                   <span>30. Expiry Date</span>
                 </div>
               </div>
             </div>

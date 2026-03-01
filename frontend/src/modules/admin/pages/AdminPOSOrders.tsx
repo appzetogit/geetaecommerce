@@ -92,6 +92,7 @@ export interface PurchaseEntryRecord {
     netAmount: number;
   };
   createdAt: string;
+  billAttachment?: string;
 }
 
 const AdminPOSOrders = () => {
@@ -456,7 +457,8 @@ const AdminPOSOrders = () => {
     address: '',
     city: '',
     state: '',
-    pincode: ''
+    pincode: '',
+    gst: ''
   });
 
   // Scanner State
@@ -480,6 +482,7 @@ const AdminPOSOrders = () => {
   const [showPurchaseSearch, setShowPurchaseSearch] = useState(false);
   const [purchaseSearchQuery, setPurchaseSearchQuery] = useState('');
   const [purchaseMode, setPurchaseMode] = useState<'Purchase' | 'Quotation'>('Purchase');
+  const [reduceStockOnQuotation, setReduceStockOnQuotation] = useState(false);
   const [purchasePaymentMethod, setPurchasePaymentMethod] = useState<'Cash' | 'Credit' | 'Online'>('Cash');
   const [showPurchasePaymentDropdown, setShowPurchasePaymentDropdown] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
@@ -499,6 +502,8 @@ const AdminPOSOrders = () => {
   const [purchaseDate, setPurchaseDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [showVariantPicker, setShowVariantPicker] = useState(false);
   const [variantPickerItem, setVariantPickerItem] = useState<PurchaseItem | null>(null);
+  const [billAttachment, setBillAttachment] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<string | null>(null);
   const [savedPurchaseEntries, setSavedPurchaseEntries] = useState<PurchaseEntryRecord[]>(() => {
     try {
@@ -854,7 +859,8 @@ const AdminPOSOrders = () => {
                   address: '',
                   city: '',
                   state: '',
-                  pincode: ''
+                  pincode: '',
+                  gst: ''
               });
           } else {
               showToast(res.message || "Failed to add customer", "error");
@@ -1116,6 +1122,18 @@ const AdminPOSOrders = () => {
     }, 0);
   };
 
+  const handleAttachBill = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBillAttachment(reader.result as string);
+        showToast('Bill attached successfully', 'success');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const calculatePurchaseBreakdown = () => {
     const gross = purchaseItems.reduce((sum, item) => sum + item.purchasePrice * item.qty, 0);
     const discount = purchaseItems.reduce((sum, item) => {
@@ -1283,7 +1301,7 @@ const AdminPOSOrders = () => {
     printWindow.document.close();
   };
 
-  const handleSavePurchaseEntry = () => {
+  const handleSavePurchaseEntry = async () => {
     if (!purchaseSupplier) {
       showToast('Please add/select supplier first.', 'error');
       return;
@@ -1303,6 +1321,7 @@ const AdminPOSOrders = () => {
       items: purchaseItems,
       totals,
       createdAt: new Date().toISOString(),
+      billAttachment: billAttachment || undefined,
     };
     console.log('purchase_payload', entry);
 
@@ -1321,6 +1340,36 @@ const AdminPOSOrders = () => {
       showToast('Purchase saved & inventory updated', 'success');
       printPurchaseInvoice(entry);
     } else {
+      // Stock deduction logic if toggled
+      if (reduceStockOnQuotation) {
+        for (const item of purchaseItems) {
+            try {
+                const productId = item.baseProductId || item.productId;
+                if (item.isVariant && item.variationId) {
+                    const res = await getProductById(productId);
+                    if (res.success && res.data) {
+                        const product = res.data;
+                        const updatedVariations = product.variations?.map((v: any) => {
+                            if (v._id === item.variationId) {
+                                return { ...v, stock: Math.max(0, (v.stock || 0) - item.qty) };
+                            }
+                            return v;
+                        });
+                        await updateProduct(productId, { variations: updatedVariations });
+                    }
+                } else {
+                    const res = await getProductById(productId);
+                    if (res.success && res.data) {
+                        const product = res.data;
+                        await updateProduct(productId, { stock: Math.max(0, (product.stock || 0) - item.qty) });
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to deduct stock for quotation:", err);
+            }
+        }
+      }
+
       const currentTotals = calculatePurchaseBreakdown();
       setLastBillDetails({
         total: currentTotals.netAmount,
@@ -3370,6 +3419,7 @@ const AdminPOSOrders = () => {
                   setEditingQuotationId(null);
                   setPurchaseItems([]);
                   setPurchaseSupplier(null);
+                  setBillAttachment(null);
                 }}
                 className="w-9 h-9 rounded-full border border-[#f3c7dc] bg-white flex items-center justify-center"
               >
@@ -3420,7 +3470,23 @@ const AdminPOSOrders = () => {
                 </svg>
                 {purchaseSupplier ? purchaseSupplier.name : 'Add Supplier'}
               </button>
-              <button className="rounded-xl bg-[#f187b5] hover:bg-[#e076a5] text-white py-2.5 text-sm font-semibold transition-colors md:py-2 md:text-[13px]">+Attach Bills</button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*"
+                onChange={handleAttachBill}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className={`rounded-xl py-2.5 text-sm font-semibold transition-colors md:py-2 md:text-[13px] border ${
+                  billAttachment
+                    ? 'bg-green-500 text-white border-green-500'
+                    : 'bg-[#f187b5] text-white border-[#f187b5] hover:bg-[#e076a5]'
+                }`}
+              >
+                {billAttachment ? '✓ Bill Attached' : '+Attach Bills'}
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-2 mt-2">
@@ -3727,9 +3793,21 @@ const AdminPOSOrders = () => {
 
           <div className="bg-white border-t border-[#f3c7dc] p-3 space-y-2 pb-4 md:pb-2.5 md:rounded-xl md:border md:shadow-sm md:max-w-[1450px] md:mx-auto md:w-full md:pt-2.5">
             {purchaseMode === 'Quotation' && (
-               <div className="flex justify-between items-center px-1 mb-2">
-                  <span className="text-gray-600 font-medium text-sm">Subtotal</span>
-                  <span className="text-xl font-bold text-gray-900">₹{calculatePurchaseTotal().toLocaleString()}</span>
+               <div className="flex flex-col gap-2 px-1 mb-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 font-medium text-sm">Subtotal</span>
+                    <span className="text-xl font-bold text-gray-900">₹{calculatePurchaseTotal().toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="reduceStockToggle"
+                      className="w-4 h-4 text-[#f187b5] border-gray-300 rounded focus:ring-[#f187b5] cursor-pointer"
+                      checked={reduceStockOnQuotation}
+                      onChange={(e) => setReduceStockOnQuotation(e.target.checked)}
+                    />
+                    <label htmlFor="reduceStockToggle" className="text-sm font-semibold text-gray-700 cursor-pointer select-none">Deduct from inventory</label>
+                  </div>
               </div>
             )}
             <div className="grid grid-cols-2 gap-2">
@@ -3784,24 +3862,24 @@ const AdminPOSOrders = () => {
             <h3 className="text-3xl font-semibold text-gray-800 mb-4">Add Supplier</h3>
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700">Supplier Name *
-                <input value={purchaseSupplierForm.name} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, name: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5" placeholder="Enter supplier name" />
+                <input value={purchaseSupplierForm.name} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, name: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" placeholder="Enter supplier name" />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Phone Number *
-                <input value={purchaseSupplierForm.phone} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, phone: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5" placeholder="Enter phone number" />
+                <input value={purchaseSupplierForm.phone} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, phone: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" placeholder="Enter phone number" />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Address (optional)
-                <textarea value={purchaseSupplierForm.address} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, address: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5" rows={2} placeholder="Enter supplier address" />
+                <textarea value={purchaseSupplierForm.address} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, address: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" rows={2} placeholder="Enter supplier address" />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Notes (optional)
-                <textarea value={purchaseSupplierForm.notes} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, notes: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5" rows={2} placeholder="Enter notes or remarks" />
+                <textarea value={purchaseSupplierForm.notes} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, notes: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" rows={2} placeholder="Enter notes or remarks" />
               </label>
               <label className="block text-sm font-semibold text-gray-700">GST Number (optional)
-                <input value={purchaseSupplierForm.gstNumber} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, gstNumber: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5" placeholder="Enter GST number" />
+                <input value={purchaseSupplierForm.gstNumber} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, gstNumber: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" placeholder="Enter GST number" />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Opening Balance (optional)
                 <div className="grid grid-cols-[1fr_120px] gap-2 mt-1">
-                  <input value={purchaseSupplierForm.openingBalance} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, openingBalance: e.target.value }))} className="w-full rounded-xl border border-gray-300 px-3 py-2.5" placeholder="0.00" />
-                  <select value={purchaseSupplierForm.openingBalanceType} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, openingBalanceType: e.target.value as "Payment" | "Receive" }))} className="rounded-xl border border-gray-300 px-2 py-2.5">
+                  <input value={purchaseSupplierForm.openingBalance} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, openingBalance: e.target.value }))} className="w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" placeholder="0.00" />
+                  <select value={purchaseSupplierForm.openingBalanceType} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, openingBalanceType: e.target.value as "Payment" | "Receive" }))} className="rounded-xl border border-gray-300 px-2 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all">
                     <option value="Payment">PAYMENT</option>
                     <option value="Receive">RECEIVE</option>
                   </select>
@@ -3821,7 +3899,7 @@ const AdminPOSOrders = () => {
                   setShowSupplierModal(false);
                   showToast('Supplier added in purchase entry.', 'success');
                 }}
-                className="rounded-xl bg-[#142d57] text-white py-3 font-semibold"
+                className="rounded-xl bg-[#f187b5] hover:bg-[#e076a5] text-white py-3 font-semibold transition-all"
               >
                 Add Supplier
               </button>
@@ -4736,6 +4814,17 @@ const AdminPOSOrders = () => {
                                     placeholder="6 digit PIN"
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">GST Number (Optional)</label>
+                            <input
+                                type="text"
+                                value={newCustomer.gst}
+                                onChange={(e) => setNewCustomer({...newCustomer, gst: e.target.value.toUpperCase()})}
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                placeholder="Enter GSTIN"
+                            />
                         </div>
                     </div>
 

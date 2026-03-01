@@ -170,7 +170,7 @@ export const getCustomerOrders = asyncHandler(
  */
 export const createCustomer = asyncHandler(
   async (req: Request, res: Response) => {
-    const { name, email, phone, address, city, state, pincode } = req.body;
+    const { name, email, phone, address, city, state, pincode, gst } = req.body;
 
     // Check if customer already exists within this context
     const existingCustomer = await Customer.findOne({
@@ -195,6 +195,7 @@ export const createCustomer = asyncHandler(
       city,
       state,
       pincode,
+      gst,
       registrationDate: new Date(),
       status: 'Active',
       sellerId: req.user && req.user.userType === 'Seller' ? req.user.userId : null,

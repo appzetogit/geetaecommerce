@@ -23,19 +23,21 @@ import {
 
 export default function AdminDashboard() {
   const { isAuthenticated, token } = useAuth();
+
+  const getSharingText = (link: string) => `प्रिय ग्राहकों, अब 🛍️ अपने पसंदीदा स्टोर गीता स्टोर्स सरपंच साहब की दुकान से सीधे अपने 📱 मोबाइल से खरीदारी करें। अपने प्रोडक्ट घर पर पाएं। 🚚 एक्सप्रेस कॉन्टैक्ट-लेस डिलीवरी, 💳 ऑनलाइन भुगतान और बहुत कुछ। ऑर्डर करने के लिए 👉 https://${link} पर जाएं`;
+
+  // State hooks - All placed at the very top
+  const [storeLink, setStoreLink] = useState("geeta-82938.store.shoopy.in");
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [sharingText, setSharingText] = useState(getSharingText("geeta-82938.store.shoopy.in"));
+
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [newOrders, setNewOrders] = useState<RecentOrder[]>([]);
   const [topSellers, setTopSellers] = useState<TopSeller[]>([]);
   const [salesByLocation, setSalesByLocation] = useState<SalesByLocation[]>([]);
-  const [salesAnalytics, setSalesAnalytics] = useState<SalesAnalytics | null>(
-    null
-  );
-  const [orderAnalytics, setOrderAnalytics] = useState<SalesAnalytics | null>(
-    null
-  );
-  const [orderAnalyticsDaily, setOrderAnalyticsDaily] = useState<SalesAnalytics | null>(
-    null
-  );
+  const [salesAnalytics, setSalesAnalytics] = useState<SalesAnalytics | null>(null);
+  const [orderAnalytics, setOrderAnalytics] = useState<SalesAnalytics | null>(null);
+  const [orderAnalyticsDaily, setOrderAnalyticsDaily] = useState<SalesAnalytics | null>(null);
   const [todaySales, setTodaySales] = useState<TodaySales | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -455,15 +457,78 @@ export default function AdminDashboard() {
     );
   }
 
+
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 relative">
+      {/* Sharing Modal Overlay */}
+      {showShareModal && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="w-12 h-1.5 bg-neutral-200 rounded-full mx-auto mb-6 sm:hidden" />
+
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-neutral-800">Sharing text</h3>
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="relative group mb-8">
+              <textarea
+                value={sharingText}
+                onChange={(e) => setSharingText(e.target.value)}
+                rows={6}
+                className="w-full bg-neutral-50 border border-neutral-100 rounded-3xl p-5 text-sm text-neutral-700 leading-relaxed outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all resize-none shadow-inner"
+              />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(sharingText);
+                  alert('Copied to clipboard!');
+                }}
+                className="absolute right-4 top-4 p-2 bg-white rounded-xl shadow-sm border border-neutral-100 text-neutral-400 hover:text-[#f187b5] transition-colors"
+                title="Copy to clipboard"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({
+                    title: 'Geeta Stores',
+                    text: sharingText,
+                    url: `https://${storeLink}`
+                  }).catch(err => console.log('Error sharing', err));
+                } else {
+                  navigator.clipboard.writeText(sharingText);
+                  alert('Sharing text copied to clipboard!');
+                }
+                setShowShareModal(false);
+              }}
+              className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white py-4 rounded-3xl font-bold text-lg shadow-lg shadow-[#f187b5]/20 transition-all active:scale-[0.98]"
+            >
+              Share Now
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* KPI Cards Grid - 2 columns on mobile, 4 on desktop */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
         <DashboardCard
           icon={userIcon}
           title="Total User"
           value={stats.totalUser}
-          accentColor="#3b82f6"
+          accentColor="#f187b5"
         />
         <DashboardCard
           icon={categoryIcon}
@@ -487,7 +552,7 @@ export default function AdminDashboard() {
           icon={ordersIcon}
           title="Total Orders"
           value={stats.totalOrders}
-          accentColor="#3b82f6"
+          accentColor="#f187b5"
         />
         <DashboardCard
           icon={completedOrdersIcon}
@@ -525,6 +590,54 @@ export default function AdminDashboard() {
           value={JSON.parse(localStorage.getItem('abandoned_carts') || '[]').length || 3}
           accentColor="#f187b5"
         />
+      </div>
+
+      {/* Online Store Link Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 p-4 sm:p-6 mt-4">
+        <div className="flex flex-col space-y-4">
+          <div>
+            <h3 className="text-lg font-bold text-neutral-900">Your online store link</h3>
+            <p className="text-sm text-neutral-500">Share with customers to start getting orders.</p>
+          </div>
+
+          <div className="flex items-center">
+            <div className="flex-1 bg-white border border-neutral-200 rounded-full px-5 py-3 flex items-center justify-between shadow-sm focus-within:ring-2 focus-within:ring-[#f187b5]/20 focus-within:border-[#f187b5] transition-all">
+              <input
+                type="text"
+                value={storeLink}
+                onChange={(e) => setStoreLink(e.target.value)}
+                className="flex-1 text-[#f187b5] font-medium outline-none bg-transparent mr-2 min-w-0"
+              />
+              <button
+                onClick={() => {
+                  setSharingText(getSharingText(storeLink));
+                  setShowShareModal(true);
+                }}
+                className="p-2 rounded-full border border-[#f187b5] text-[#f187b5] hover:bg-[#f187b5]/5 transition-colors flex-shrink-0"
+                aria-label="Share"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="18" cy="5" r="3" />
+                  <circle cx="6" cy="12" r="3" />
+                  <circle cx="18" cy="19" r="3" />
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+            <div>
+              <p className="text-sm font-semibold text-neutral-900">
+                <span className="font-bold">www.geeta.com</span> URL is available
+              </p>
+            </div>
+            <button className="px-6 py-2 rounded-full border-2 border-[#f187b5] text-[#f187b5] text-sm font-bold hover:bg-[#f187b5]/5 transition-colors whitespace-nowrap">
+              Connect domain
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Sales Section - Top Right */}
