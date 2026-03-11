@@ -3,6 +3,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import {
   Product,
   updateProduct,
+  deleteProduct as deleteSellerProduct,
 } from "../../../services/api/productService";
 import { uploadImage } from "../../../services/api/uploadService";
 import { getBrands, Brand } from "../../../services/api/brandService";
@@ -125,7 +126,9 @@ export default function SellerStockBulkEdit({
 }: SellerStockBulkEditProps) {
   const [editableProducts, setEditableProducts] = useState<EditableProduct[]>([]);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [productNameSearch, setProductNameSearch] = useState("");
   const [activePricingModalIndex, setActivePricingModalIndex] = useState<number | null>(null); // For modal
 
@@ -604,6 +607,74 @@ export default function SellerStockBulkEdit({
     );
   };
 
+  const allFilteredSelected =
+    filteredProducts.length > 0 &&
+    filteredProducts.every((p) => selectedProductIds.has(p.id));
+
+  const toggleSelectProduct = (productId: string) => {
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
+
+  const toggleSelectAllFiltered = () => {
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        filteredProducts.forEach((p) => next.delete(p.id));
+      } else {
+        filteredProducts.forEach((p) => next.add(p.id));
+      }
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    const selectedIds = Array.from(selectedProductIds);
+    if (selectedIds.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Delete ${selectedIds.length} selected product(s)? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      const results = await Promise.allSettled(
+        selectedIds.map((id) => deleteSellerProduct(id))
+      );
+
+      const failedIds = selectedIds.filter((id, idx) => {
+        const result = results[idx];
+        if (result.status === "rejected") return true;
+        return !result.value?.success;
+      });
+
+      const deletedIds = selectedIds.filter((id) => !failedIds.includes(id));
+
+      if (deletedIds.length > 0) {
+        setEditableProducts((prev) => prev.filter((p) => !deletedIds.includes(p.id)));
+        setSelectedProductIds((prev) => {
+          const next = new Set(prev);
+          deletedIds.forEach((id) => next.delete(id));
+          return next;
+        });
+        onSave();
+      }
+
+      if (failedIds.length > 0) {
+        alert(`Failed to delete ${failedIds.length} product(s).`);
+      }
+    } catch (error: any) {
+      alert(`Failed to delete products: ${error?.message || "Unknown error"}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
     index: 50,
     image: 140,
@@ -944,6 +1015,14 @@ export default function SellerStockBulkEdit({
           <table className="w-full text-left border-collapse table-fixed">
             <thead className="bg-neutral-100 sticky top-0 z-10 shadow-sm">
               <tr>
+                <th className="w-12 p-2 border-r border-neutral-200 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredSelected}
+                    onChange={toggleSelectAllFiltered}
+                    aria-label="Select all filtered products"
+                  />
+                </th>
                 {columnOrder.map((key) => renderHeader(key))}
               </tr>
             </thead>
@@ -955,6 +1034,14 @@ export default function SellerStockBulkEdit({
                     key={product.id}
                     className={`border-b border-neutral-200 hover:bg-neutral-50 ${product.isChanged ? "bg-yellow-50" : ""}`}
                   >
+                    <td className="p-2 border-r border-neutral-200 text-center align-top">
+                      <input
+                        type="checkbox"
+                        checked={selectedProductIds.has(product.id)}
+                        onChange={() => toggleSelectProduct(product.id)}
+                        aria-label={`Select ${product.productName}`}
+                      />
+                    </td>
                     {columnOrder.map((key) => renderBodyCell(key, product, originalIndex, index))}
                   </tr>
                 );
@@ -970,6 +1057,17 @@ export default function SellerStockBulkEdit({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-neutral-200 flex justify-end gap-3 bg-neutral-50 rounded-b-lg">
+          <button
+            onClick={handleDeleteSelected}
+            disabled={deleting || saving || selectedProductIds.size === 0}
+            className={`px-4 py-2 rounded text-sm text-white ${
+              deleting || saving || selectedProductIds.size === 0
+                ? "bg-red-300 cursor-not-allowed"
+                : "bg-red-500 hover:bg-red-600"
+            }`}
+          >
+            {deleting ? "Deleting..." : `Delete Selected (${selectedProductIds.size})`}
+          </button>
           <button
             onClick={onClose}
             className="px-4 py-2 border border-neutral-300 rounded hover:bg-neutral-100 transition-colors"

@@ -478,6 +478,7 @@ const SellerPOSOrders = () => {
   // Mobile Search Modal State
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
+  const [mobileCartView, setMobileCartView] = useState<'list' | 'grid'>('list');
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
   const [showPurchaseEntry, setShowPurchaseEntry] = useState(false);
   const [showPurchaseSearch, setShowPurchaseSearch] = useState(false);
@@ -2931,212 +2932,290 @@ const SellerPOSOrders = () => {
                 </div>
               </div>
 
-              {/* Cart Items List */}
-              <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
-                  {/* Cart Items List */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-2 flex flex-col relative w-full md:min-h-[50vh] md:overflow-visible md:h-auto">
-                  {/* Desktop Header Row */}
-                  <div className="hidden md:grid grid-cols-12 gap-2 text-xs font-bold text-gray-400 pb-2 border-b border-gray-100 px-2 sticky top-0 bg-white z-10">
-                      <div className="col-span-1 text-center">Sr.no</div>
-                      <div className="col-span-1 text-center">Edit</div>
-                      <div className="col-span-1 text-center">Image</div>
-                      <div className="col-span-3">Name</div>
-                      <div className="col-span-1 text-center">MRP</div>
-                      <div className="col-span-2 text-center">Quantity</div>
-                      <div className="col-span-1 text-center">Retail Price</div>
-                      <div className="col-span-1 text-center">Sub Total</div>
-                      <div className="col-span-1 text-center">Delete</div>
-                  </div>
-
-                  {cart.length === 0 ? (
-                      <div className="flex-1 flex flex-col items-center justify-center text-gray-400 min-h-[200px]">
-                          <svg className="w-12 h-12 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                          <span className="text-sm">Cart is empty</span>
+              {/* Cart Items */}
+              <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
+                  {/* Cart Items List Wrapper */}
+                  <div className="flex-1 min-h-0 overflow-hidden w-full flex flex-col">
+                      {/* Mobile View Toggles */}
+                      <div className="md:hidden px-4 pt-4 flex items-center justify-end bg-white">
+                          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
+                              <button
+                                onClick={() => setMobileCartView('list')}
+                                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                                  mobileCartView === 'list' ? 'bg-[#f187b5] text-white' : 'text-gray-600'
+                                }`}
+                              >
+                                List
+                              </button>
+                              <button
+                                onClick={() => setMobileCartView('grid')}
+                                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                                  mobileCartView === 'grid' ? 'bg-[#f187b5] text-white' : 'text-gray-600'
+                                }`}
+                              >
+                                Grid
+                              </button>
+                          </div>
                       </div>
-                  ) : (
-                      cart.map((item, index) => {
-                          const sp = getEffectivePrice(item);
-                          const mrp = item.compareAtPrice || sp;
-                          const purchasePrice = item.purchasePrice || 0;
-                          const profit = sp - purchasePrice;
-                          const profitPercent = purchasePrice > 0 ? ((profit / purchasePrice) * 100).toFixed(2) : '0.00';
 
-                          return (
-                          <React.Fragment key={index}>
-                              {/* --- MOBILE VIEW (Card Style) --- */}
-                              <div className="block md:hidden bg-white border border-gray-200 rounded-xl p-3 shadow-sm mb-3 relative overflow-hidden group shrink-0">
-                                  {/* Top Row: Rank, Title, Price */}
-                                  <div className="flex justify-between items-start mb-2">
-                                      <div className="flex items-start gap-2 max-w-[70%]">
-                                           <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">#{index + 1}</span>
-                                           <div>
-                                                <h4 className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">{item.productName}</h4>
-                                                {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
-                                                    <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
-                                                        {(item as any).warrantyType}: {(item as any).warrantyDuration}
-                                                    </div>
-                                                )}
-                                            </div>
-                                      </div>
-                                      <div className="font-bold text-gray-900 text-base">₹{sp * item.qty}</div>
-                                  </div>
-
-                                  {/* Middle Row: Image & Pricing Details */}
-                                  <div className="flex items-center gap-3 mb-3">
-                                      <div className="w-12 h-12 flex-shrink-0 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-1 overflow-hidden">
-                                           {item.mainImage ? (
-                                               <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
-                                           ) : (
-                                               <span className="text-xs text-gray-300">Img</span>
-                                           )}
-                                      </div>
-                                      <div className="flex flex-col text-xs">
-                                           <span className="text-gray-500 mb-0.5">MRP: <span className="line-through decoration-gray-400">₹{mrp}</span> <span className="font-bold text-[#f187b5] ml-1">SP: ₹{sp}</span></span>
-
-                                           {showProfit && (
-                                                <span className={`${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'} font-medium`}>
-                                                    Profit: {profitPercent}%
-                                                </span>
-                                           )}
-                                      </div>
-                                  </div>
-
-                                  {/* Bottom Row: Actions & Quantity */}
-                                  <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-2">
-                                          <button
-                                             onClick={() => removeFromCart(item._id)}
-                                             className="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
-                                          >
-                                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                          </button>
-                                          <button
-                                             onClick={() => openEditModal(item)}
-                                             className="px-3 py-1.5 flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
-                                          >
-                                              <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                              Edit
-                                          </button>
-                                      </div>
-
-                                      {/* Quantity Control */}
-                                      <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
-                                           <button
-                                             onClick={() => updateQuantity(item._id, -1)}
-                                             className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
-                                           >−</button>
-                                           <div className="w-8 flex items-center justify-center text-sm font-bold text-gray-800">
-                                               {item.qty}
-                                           </div>
-                                           <button
-                                             onClick={() => updateQuantity(item._id, 1)}
-                                             className="w-7 h-7 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
-                                           >+</button>
-                                      </div>
-                                  </div>
+                      {/* Scrollable Product Container */}
+                      <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-0 md:overflow-visible custom-pos-scroll">
+                          <div className={mobileCartView === 'grid' 
+                              ? 'grid grid-cols-2 gap-2 md:flex md:flex-col' 
+                              : 'space-y-2 flex flex-col'
+                          }>
+                              {/* Desktop Header Row */}
+                              <div className="hidden md:grid grid-cols-12 gap-2 text-xs font-bold text-gray-400 pb-2 border-b border-gray-100 px-2 sticky top-0 bg-white z-10">
+                                  <div className="col-span-1 text-center">Sr.no</div>
+                                  <div className="col-span-1 text-center">Edit</div>
+                                  <div className="col-span-1 text-center">Image</div>
+                                  <div className="col-span-3">Name</div>
+                                  <div className="col-span-1 text-center">MRP</div>
+                                  <div className="col-span-2 text-center">Quantity</div>
+                                  <div className="col-span-1 text-center">Retail Price</div>
+                                  <div className="col-span-1 text-center">Sub Total</div>
+                                  <div className="col-span-1 text-center">Delete</div>
                               </div>
 
-                              {/* --- DESKTOP VIEW (Table Row Style) --- */}
-                              <div className="hidden md:grid grid-cols-12 gap-2 items-center p-2 border-b border-gray-50 hover:bg-gray-50/80 transition-all even:bg-gray-50/20">
-                                   {/* Sr No */}
-                                   <div className="col-span-1 text-center text-gray-400 text-xs font-bold">
-                                       {index + 1}
-                                   </div>
+                              {cart.length === 0 ? (
+                                  <div className="flex-1 flex flex-col items-center justify-center text-gray-400 min-h-[200px]">
+                                      <svg className="w-12 h-12 mb-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                      <span className="text-sm">Cart is empty</span>
+                                  </div>
+                              ) : (
+                                  cart.map((item, index) => {
+                                      const sp = getEffectivePrice(item);
+                                      const mrp = item.compareAtPrice || sp;
+                                      const purchasePrice = item.purchasePrice || 0;
+                                      const profit = sp - purchasePrice;
+                                      const profitPercent = purchasePrice > 0 ? ((profit / purchasePrice) * 100).toFixed(2) : '0.00';
 
-                                   {/* Edit Button */}
-                                   <div className="col-span-1 text-center">
-                                       <button
-                                          onClick={() => openEditModal(item)}
-                                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex"
-                                       >
-                                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                       </button>
-                                   </div>
+                                      return (
+                                      <React.Fragment key={index}>
+                                          {/* --- MOBILE VIEW (Card Style) --- */}
+                                          <div className={`${mobileCartView === 'list' ? 'block' : 'hidden'} md:hidden bg-white border border-gray-200 rounded-xl p-3 shadow-sm mb-3 relative overflow-hidden group shrink-0`}>
+                                              {/* Top Row: Rank, Title, Price */}
+                                              <div className="flex justify-between items-start mb-2">
+                                                  <div className="flex items-start gap-2 max-w-[70%]">
+                                                       <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5">#{index + 1}</span>
+                                                       <div>
+                                                            <h4 className="text-sm font-semibold text-gray-800 leading-tight line-clamp-2">{item.productName}</h4>
+                                                            {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
+                                                                <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
+                                                                    {(item as any).warrantyType}: {(item as any).warrantyDuration}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                  </div>
+                                                  <div className="font-bold text-gray-900 text-base">₹{sp * item.qty}</div>
+                                              </div>
 
-                                   {/* Image */}
-                                   <div className="col-span-1 flex justify-center">
-                                       <div className="w-10 h-10 bg-white rounded border border-gray-200 flex items-center justify-center p-0.5 overflow-hidden shadow-sm">
-                                           {item.mainImage ? (
-                                               <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
-                                           ) : (
-                                               <span className="text-[8px] text-gray-300 font-bold">IMG</span>
-                                           )}
-                                       </div>
-                                   </div>
+                                              {/* Middle Row: Image & Pricing Details */}
+                                              <div className="flex items-center gap-3 mb-3">
+                                                  <div className="w-12 h-12 flex-shrink-0 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-1 overflow-hidden">
+                                                       {item.mainImage ? (
+                                                           <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
+                                                       ) : (
+                                                           <span className="text-xs text-gray-300">Img</span>
+                                                       )}
+                                                  </div>
+                                                  <div className="flex flex-col text-xs">
+                                                       <span className="text-gray-500 mb-0.5">MRP: <span className="line-through decoration-gray-400">₹{mrp}</span> <span className="font-bold text-[#f187b5] ml-1">SP: ₹{sp}</span></span>
 
-                                   {/* Name */}
-                                   <div className="col-span-3 min-w-0">
-                                       <h4 className="text-xs font-semibold text-gray-800 truncate" title={item.productName}>{item.productName}</h4>
-                                       {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
-                                           <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
-                                               {(item as any).warrantyType}: {(item as any).warrantyDuration}
-                                           </div>
-                                       )}
-                                       {showProfit && (
-                                           <span className={`text-[10px] ${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                               Profit: {profitPercent}%
-                                           </span>
-                                       )}
-                                   </div>
+                                                       {showProfit && (
+                                                            <span className={`${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'} font-medium`}>
+                                                                Profit: {profitPercent}%
+                                                            </span>
+                                                       )}
+                                                  </div>
+                                              </div>
 
-                                   {/* MRP Input */}
-                                   <div className="col-span-1">
-                                        <input
-                                            type="number"
-                                            value={mrp}
-                                            onChange={(e) => updateItemDetails(item._id, { compareAtPrice: parseFloat(e.target.value) || 0 })}
-                                            className="w-full text-center text-xs border border-transparent hover:border-gray-200 focus:border-[#f187b5] bg-transparent focus:bg-white rounded px-1 py-1 outline-none transition-all"
-                                        />
-                                   </div>
+                                              {/* Bottom Row: Actions & Quantity */}
+                                              <div className="flex items-center justify-between">
+                                                  <div className="flex items-center gap-2">
+                                                      <button
+                                                         onClick={() => removeFromCart(item._id)}
+                                                         className="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
+                                                      >
+                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                      </button>
+                                                      <button
+                                                         onClick={() => openEditModal(item)}
+                                                         className="px-3 py-1.5 flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                                                      >
+                                                          <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                          Edit
+                                                      </button>
+                                                  </div>
 
-                                   {/* Quantity */}
-                                   <div className="col-span-2 flex justify-center">
-                                       <div className="flex items-center bg-white border border-gray-200 rounded h-7 w-20 shadow-sm">
-                                            <button
-                                              onClick={() => updateQuantity(item._id, -1)}
-                                              className="w-6 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors"
-                                            >−</button>
-                                            <div className="flex-1 h-full flex items-center justify-center text-xs font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
-                                                {item.qty}
-                                            </div>
-                                            <button
-                                              onClick={() => updateQuantity(item._id, 1)}
-                                              className="w-6 h-full flex items-center justify-center text-[#f187b5] hover:bg-gray-50 rounded-r transition-colors font-bold"
-                                            >+</button>
-                                       </div>
-                                   </div>
+                                                  {/* Quantity Control */}
+                                                  <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+                                                       <button
+                                                         onClick={() => updateQuantity(item._id, -1)}
+                                                         className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
+                                                       >−</button>
+                                                       <div className="w-8 flex items-center justify-center text-sm font-bold text-gray-800">
+                                                           {item.qty}
+                                                       </div>
+                                                       <button
+                                                         onClick={() => updateQuantity(item._id, 1)}
+                                                         className="w-7 h-7 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
+                                                       >+</button>
+                                                  </div>
+                                              </div>
+                                          </div>
 
-                                   {/* Retail Price (SP) Input */}
-                                   <div className="col-span-1">
-                                       <input
-                                            type="number"
-                                            value={sp}
-                                            onChange={(e) => updateItemDetails(item._id, { customPrice: parseFloat(e.target.value) || 0 })}
-                                            className="w-full text-center text-xs font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all"
-                                        />
-                                   </div>
+                                          {mobileCartView === 'grid' && (
+                                              <div className="block md:hidden bg-white border border-gray-200 rounded-xl p-2 shadow-sm relative overflow-hidden">
+                                                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                                                      <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0">#{index + 1}</span>
+                                                      <div className="text-xs font-bold text-gray-900">₹{sp * item.qty}</div>
+                                                  </div>
 
-                                   {/* Sub Total */}
-                                   <div className="col-span-1 text-center font-bold text-gray-900 text-sm">
-                                       ₹{sp * item.qty}
-                                   </div>
+                                                  <div className="flex items-center gap-2 mb-2">
+                                                      <div className="w-10 h-10 flex-shrink-0 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-1 overflow-hidden">
+                                                          {item.mainImage ? (
+                                                              <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
+                                                          ) : (
+                                                              <span className="text-[10px] text-gray-300">Img</span>
+                                                          )}
+                                                      </div>
+                                                      <h4 className="text-xs font-semibold text-gray-800 leading-tight line-clamp-2">{item.productName}</h4>
+                                                  </div>
 
-                                   {/* Delete */}
-                                   <div className="col-span-1 text-center">
-                                       <button
-                                          onClick={() => removeFromCart(item._id)}
-                                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex"
-                                          title="Remove Item"
-                                       >
-                                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                       </button>
-                                   </div>
-                              </div>
-                          </React.Fragment>
-                      )})
-                  )}
-              </div>
+                                                  <div className="flex items-center justify-between gap-1.5">
+                                                      <button
+                                                        onClick={() => removeFromCart(item._id)}
+                                                        className="w-7 h-7 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
+                                                      >
+                                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                      </button>
+                                                      <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+                                                          <button
+                                                            onClick={() => updateQuantity(item._id, -1)}
+                                                            className="w-6 h-6 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-base"
+                                                          >−</button>
+                                                          <div className="w-6 flex items-center justify-center text-xs font-bold text-gray-800">
+                                                              {item.qty}
+                                                          </div>
+                                                          <button
+                                                            onClick={() => updateQuantity(item._id, 1)}
+                                                            className="w-6 h-6 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-base"
+                                                          >+</button>
+                                                      </div>
+                                                      <button
+                                                        onClick={() => openEditModal(item)}
+                                                        className="px-2 py-1 flex items-center gap-1 bg-white border border-gray-300 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                                                      >
+                                                        Edit
+                                                      </button>
+                                                  </div>
+                                              </div>
+                                          )}
 
+                                          {/* --- DESKTOP VIEW (Table Row Style) --- */}
+                                          <div className="hidden md:grid grid-cols-12 gap-2 items-center p-2 border-b border-gray-50 hover:bg-gray-50/80 transition-all even:bg-gray-50/20">
+                                               {/* Sr No */}
+                                               <div className="col-span-1 text-center text-gray-400 text-xs font-bold">
+                                                   {index + 1}
+                                               </div>
+
+                                               {/* Edit Button */}
+                                               <div className="col-span-1 text-center">
+                                                   <button
+                                                      onClick={() => openEditModal(item)}
+                                                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex"
+                                                   >
+                                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                   </button>
+                                               </div>
+
+                                               {/* Image */}
+                                               <div className="col-span-1 flex justify-center">
+                                                   <div className="w-10 h-10 bg-white rounded border border-gray-200 flex items-center justify-center p-0.5 overflow-hidden shadow-sm">
+                                                       {item.mainImage ? (
+                                                           <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
+                                                       ) : (
+                                                           <span className="text-[8px] text-gray-300 font-bold">IMG</span>
+                                                       )}
+                                                   </div>
+                                               </div>
+
+                                               {/* Name */}
+                                               <div className="col-span-3 min-w-0">
+                                                   <h4 className="text-xs font-semibold text-gray-800 truncate" title={item.productName}>{item.productName}</h4>
+                                                   {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
+                                                       <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
+                                                           {(item as any).warrantyType}: {(item as any).warrantyDuration}
+                                                       </div>
+                                                   )}
+                                                   {showProfit && (
+                                                       <span className={`text-[10px] ${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                                           Profit: {profitPercent}%
+                                                       </span>
+                                                   )}
+                                               </div>
+
+                                               {/* MRP Input */}
+                                               <div className="col-span-1">
+                                                    <input
+                                                        type="number"
+                                                        value={mrp}
+                                                        onChange={(e) => updateItemDetails(item._id, { compareAtPrice: parseFloat(e.target.value) || 0 })}
+                                                        className="w-full text-center text-xs border border-transparent hover:border-gray-200 focus:border-[#f187b5] bg-transparent focus:bg-white rounded px-1 py-1 outline-none transition-all"
+                                                    />
+                                               </div>
+
+                                               {/* Quantity */}
+                                               <div className="col-span-2 flex justify-center">
+                                                   <div className="flex items-center bg-white border border-gray-200 rounded h-7 w-20 shadow-sm">
+                                                        <button
+                                                          onClick={() => updateQuantity(item._id, -1)}
+                                                          className="w-6 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors"
+                                                        >−</button>
+                                                        <div className="flex-1 h-full flex items-center justify-center text-xs font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
+                                                            {item.qty}
+                                                        </div>
+                                                        <button
+                                                          onClick={() => updateQuantity(item._id, 1)}
+                                                          className="w-6 h-full flex items-center justify-center text-[#f187b5] hover:bg-gray-50 rounded-r transition-colors font-bold"
+                                                        >+</button>
+                                                   </div>
+                                               </div>
+
+                                               {/* Retail Price (SP) Input */}
+                                               <div className="col-span-1">
+                                                   <input
+                                                        type="number"
+                                                        value={sp}
+                                                        onChange={(e) => updateItemDetails(item._id, { customPrice: parseFloat(e.target.value) || 0 })}
+                                                        className="w-full text-center text-xs font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all"
+                                                    />
+                                               </div>
+
+                                               {/* Sub Total */}
+                                               <div className="col-span-1 text-center font-bold text-gray-900 text-sm">
+                                                   ₹{sp * item.qty}
+                                               </div>
+
+                                               {/* Delete */}
+                                               <div className="col-span-1 text-center">
+                                                   <button
+                                                      onClick={() => removeFromCart(item._id)}
+                                                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex"
+                                                      title="Remove Item"
+                                                   >
+                                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                   </button>
+                                               </div>
+                                          </div>
+                                      </React.Fragment>
+                                  );
+                              })
+                          )}
+                          </div>
+                      </div>
+                  </div>
               {/* Footer Summary */}
 
                    {/* Desktop Sidebar (New Two-Column Layout) */}
@@ -5080,6 +5159,3 @@ const SellerPOSOrders = () => {
 };
 
 export default SellerPOSOrders;
-
-
-
