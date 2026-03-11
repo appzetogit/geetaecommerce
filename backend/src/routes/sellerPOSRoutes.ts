@@ -39,4 +39,15 @@ router.post("/credit/payment", creditController.acceptPayment);
 router.post("/credit/payment/initiate", creditController.initiateCreditPayment);
 router.post("/credit/payment/verify", creditController.verifyCreditPayment);
 
+// ==================== POS Supplier Ledger Routes ====================
+import * as sellerSupplierController from "../modules/seller/controllers/sellerSupplierController";
+router.get("/suppliers", sellerSupplierController.getAllSuppliers);
+router.get("/suppliers/:id", sellerSupplierController.getSupplierById);
+router.post("/suppliers", sellerSupplierController.createSupplier);
+router.put("/suppliers/:id", sellerSupplierController.updateSupplier);
+router.delete("/suppliers/:id", sellerSupplierController.deleteSupplier);
+router.post("/suppliers/:id/debt", sellerSupplierController.addDebt);
+router.post("/suppliers/:id/pay", sellerSupplierController.paySupplier);
+
+
 export default router;

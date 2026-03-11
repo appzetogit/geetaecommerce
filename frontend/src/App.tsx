@@ -102,6 +102,8 @@ const SellerPOSOrders = lazy(() => import("./modules/seller/pages/SellerPOSOrder
 const SellerPOSCustomers = lazy(() => import("./modules/seller/pages/SellerPOSCustomers"));
 const SellerPOSCustomerDetail = lazy(() => import("./modules/seller/pages/SellerPOSCustomerDetail"));
 const SellerPOSCustomerOrders = lazy(() => import("./modules/seller/pages/SellerPOSCustomerOrders"));
+const SellerPOSSuppliers = lazy(() => import("./modules/seller/pages/SellerPOSSuppliers"));
+const SellerPOSSupplierDetail = lazy(() => import("./modules/seller/pages/SellerPOSSupplierDetail"));
 const SellerPOSReport = lazy(() => import("./modules/seller/pages/SellerPOSReport"));
 const SellerPurchaseReport = lazy(() => import("./modules/seller/pages/SellerPurchaseReport"));
 const SellerPOSQuotations = lazy(() => import("./modules/seller/pages/SellerPOSQuotations"));
@@ -194,6 +196,8 @@ const AdminSalesSummary = lazy(() => import("./modules/admin/pages/AdminSalesSum
 const AdminPOSCustomers = lazy(() => import("./modules/admin/pages/AdminPOSCustomers"));
 const AdminPOSCustomerDetail = lazy(() => import("./modules/admin/pages/AdminPOSCustomerDetail"));
 const AdminPOSCustomerOrders = lazy(() => import("./modules/admin/pages/AdminPOSCustomerOrders"));
+const AdminPOSSuppliers = lazy(() => import("./modules/admin/pages/AdminPOSSuppliers"));
+const AdminPOSSupplierDetail = lazy(() => import("./modules/admin/pages/AdminPOSSupplierDetail"));
 const AdminBannerSetup = lazy(() => import("./modules/admin/pages/AdminBannerSetup"));
 const AdminFlashDeal = lazy(() => import("./modules/admin/pages/AdminFlashDeal"));
 const AdminDealOfTheDay = lazy(() => import("./modules/admin/pages/AdminDealOfTheDay"));
@@ -217,6 +221,7 @@ const AdminPaymentReport = lazy(() => import("./modules/admin/pages/AdminPayment
 const AdminOnlineOrderReport = lazy(() => import("./modules/admin/pages/AdminOnlineOrderReport"));
 const AdminPOSInvoiceReport = lazy(() => import("./modules/admin/pages/AdminPOSInvoiceReport"));
 const AdminAbandonedCarts = lazy(() => import("./modules/admin/pages/AdminAbandonedCarts"));
+const AdminPOSBillSettings = lazy(() => import("./modules/admin/pages/AdminPOSBillSettings"));
 
 import { useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
@@ -450,6 +455,8 @@ function App() {
                               <Route path="pos/customers" element={<SellerPOSCustomers />} />
                               <Route path="pos/customers/:id" element={<SellerPOSCustomerDetail />} />
                               <Route path="pos/customers/:id/orders" element={<SellerPOSCustomerOrders />} />
+                               <Route path="pos/suppliers" element={<SellerPOSSuppliers />} />
+                               <Route path="pos/suppliers/:id" element={<SellerPOSSupplierDetail />} />
                               <Route path="pos/report" element={<SellerPOSReport />} />
                               <Route path="purchase/report" element={<SellerPurchaseReport />} />
                               <Route path="pos/quotations" element={<SellerPOSQuotations />} />
@@ -486,9 +493,12 @@ function App() {
                              <Route path="pos/customers" element={<AdminPOSCustomers />} />
                              <Route path="pos/customers/:id" element={<AdminPOSCustomerDetail />} />
                              <Route path="pos/customers/:id/orders" element={<AdminPOSCustomerOrders />} />
+                             <Route path="pos/suppliers" element={<AdminPOSSuppliers />} />
+                             <Route path="pos/suppliers/:id" element={<AdminPOSSupplierDetail />} />
                              <Route path="pos/report" element={<AdminPOSReport />} />
                              <Route path="purchase/report" element={<AdminPurchaseReport />} />
                              <Route path="pos/quotations" element={<AdminPOSQuotations />} />
+                             <Route path="pos/bill-settings" element={<AdminPOSBillSettings />} />
                              <Route path="" element={<AdminDashboard />} />
                             <Route path="profile" element={<AdminProfile />} />
                             <Route path="category" element={<AdminCategory />} />

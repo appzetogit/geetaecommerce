@@ -464,7 +464,7 @@ const SellerPOSOrders = () => {
 
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
-  const [scanTarget, setScanTarget] = useState<'inventory' | 'quick-add'>('inventory');
+  const [scanTarget, setScanTarget] = useState<'inventory' | 'quick-add' | 'purchase'>('inventory');
   const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
@@ -586,6 +586,52 @@ const SellerPOSOrders = () => {
               }
 
              if (!match) match = productsFound[0];
+
+             if (scanTarget === 'purchase') {
+                 if (variationMatch) {
+                     const variationId = String(variationMatch?._id || variationMatch?.id || variationMatch?.variationId || variationMatch?.title || variationMatch?.name || Date.now());
+                     const variantLabel = String(variationMatch?.title || variationMatch?.name || variationMatch?.variationName || 'Variant');
+                     const variantProductId = `${match._id}-${variationId}`;
+
+                     setPurchaseItems((prev) => {
+                         const existing = prev.find((p) => p.productId === variantProductId);
+                         if (existing) {
+                             return prev.map((p) => (p.productId === variantProductId ? { ...p, qty: p.qty + 1 } : p));
+                         }
+                         const next: PurchaseItem = {
+                             id: `purchase_var_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
+                             productId: variantProductId,
+                             baseProductId: match._id,
+                             productName: `${match.productName} - ${variantLabel}`,
+                             isVariant: true,
+                             variationId,
+                             image: match.mainImage,
+                             mrp: Number(variationMatch?.compareAtPrice ?? match.compareAtPrice ?? match.price ?? 0),
+                             retailPrice: Number(variationMatch?.price ?? match.price ?? 0),
+                             wholesalePrice: Number(variationMatch?.wholesalePrice ?? match.wholesalePrice ?? 0),
+                             purchasePrice: Number(variationMatch?.purchasePrice ?? match.purchasePrice ?? match.price ?? 0),
+                             qty: 1,
+                             currentQty: Number(variationMatch?.stock ?? 0),
+                             includingGST: false,
+                             billDiscount: 0,
+                             billDiscountType: '%',
+                             gstPercent: 18,
+                             barcode: Array.isArray(variationMatch?.barcode) ? String(variationMatch.barcode[0] || '') : String(variationMatch?.barcode || ''),
+                             mfgDate: '',
+                             expiry: '',
+                             hsn: '',
+                             batch: '',
+                             packOf: 1,
+                             additionalOpen: true,
+                         };
+                         return [next, ...prev];
+                     });
+                 } else {
+                     addProductToPurchase(match);
+                 }
+                 showToast(`Added to ${purchaseMode}: ${match.productName}`, "success");
+                 return;
+             }
 
              // Prepare Cart Item
              let itemToAdd: any = { ...match };
@@ -3534,7 +3580,7 @@ const SellerPOSOrders = () => {
                 <span className="text-[15px]">Search products by name, barcode...</span>
               </button>
               <button
-                onClick={() => setShowPurchaseSearch(true)}
+                onClick={() => { setScanTarget('purchase'); setShowScanner(true); }}
                 className="w-12 h-10 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[#f187b5] hover:border-[#f187b5]/40 transition-colors flex items-center justify-center"
                 title="Scan"
               >
@@ -3839,7 +3885,7 @@ const SellerPOSOrders = () => {
                 <span className="font-semibold text-sm">Search Items</span>
               </button>
               <button
-                onClick={() => setShowPurchaseSearch(true)}
+                onClick={() => { setScanTarget('purchase'); setShowScanner(true); }}
                 className="rounded-xl border border-[#f3c7dc] px-3 py-3 font-semibold text-gray-700 bg-white flex items-center justify-center gap-2"
               >
                 <span className="font-semibold text-sm">Scan</span>

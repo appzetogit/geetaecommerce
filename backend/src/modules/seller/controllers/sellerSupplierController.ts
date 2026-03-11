@@ -1,0 +1,185 @@
+import { Request, Response } from 'express';
+import SupplierLedger from '../../../models/SupplierLedger';
+import SupplierTransaction, { SupplierTransactionType } from '../../../models/SupplierTransaction';
+import mongoose from 'mongoose';
+
+export const getAllSuppliers = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const sellerId = (req as any).user?._id;
+        const suppliers = await SupplierLedger.find({ sellerId, isAdmin: false }).sort({ name: 1 });
+        res.status(200).json({ success: true, data: suppliers });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getSupplierById = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const sellerId = (req as any).user?._id;
+        const supplier = await SupplierLedger.findOne({ _id: req.params.id, sellerId });
+        if (!supplier) {
+            res.status(404).json({ success: false, message: "Supplier not found" });
+            return;
+        }
+
+        const transactions = await SupplierTransaction.find({ supplier: req.params.id })
+            .sort({ date: -1, createdAt: -1 })
+            .limit(100);
+
+        res.status(200).json({ success: true, data: { supplier, transactions } });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const createSupplier = async (req: Request, res: Response): Promise<void> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const sellerId = (req as any).user?._id;
+        const { name, phone, address, gstNumber, openingBalance, notes } = req.body;
+
+        const supplier = new SupplierLedger({
+            name,
+            phone,
+            address,
+            gstNumber,
+            openingBalance: openingBalance || 0,
+            currentBalance: openingBalance || 0,
+            notes,
+            sellerId,
+            isAdmin: false
+        });
+
+        await supplier.save({ session });
+
+        if (openingBalance && openingBalance !== 0) {
+            const transaction = new SupplierTransaction({
+                supplier: supplier._id,
+                type: SupplierTransactionType.MANUAL,
+                amount: openingBalance,
+                balanceAfter: openingBalance,
+                description: 'Opening Balance',
+                date: new Date()
+            });
+            await transaction.save({ session });
+        }
+
+        await session.commitTransaction();
+        res.status(201).json({ success: true, data: supplier });
+    } catch (error: any) {
+        await session.abortTransaction();
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        session.endSession();
+    }
+};
+
+export const updateSupplier = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const sellerId = (req as any).user?._id;
+        const supplier = await SupplierLedger.findOneAndUpdate(
+            { _id: req.params.id, sellerId },
+            req.body,
+            { new: true }
+        );
+        if (!supplier) {
+            res.status(404).json({ success: false, message: "Supplier not found" });
+            return;
+        }
+        res.status(200).json({ success: true, data: supplier });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const deleteSupplier = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const sellerId = (req as any).user?._id;
+        const supplier = await SupplierLedger.findOneAndDelete({ _id: req.params.id, sellerId });
+        if (!supplier) {
+            res.status(404).json({ success: false, message: "Supplier not found" });
+            return;
+        }
+        await SupplierTransaction.deleteMany({ supplier: req.params.id });
+        res.status(200).json({ success: true, message: "Supplier deleted" });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const addDebt = async (req: Request, res: Response): Promise<void> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const sellerId = (req as any).user?._id;
+        const { amount, description, date } = req.body;
+        const supplier = await SupplierLedger.findOne({ _id: req.params.id, sellerId });
+        if (!supplier) {
+            res.status(404).json({ success: false, message: "Supplier not found" });
+            return;
+        }
+
+        const newBalance = supplier.currentBalance + parseFloat(amount);
+
+        const transaction = new SupplierTransaction({
+            supplier: supplier._id,
+            type: SupplierTransactionType.MANUAL,
+            amount: parseFloat(amount),
+            balanceAfter: newBalance,
+            description: description || 'Purchase Debt Added',
+            date: date || new Date()
+        });
+
+        await transaction.save({ session });
+
+        supplier.currentBalance = newBalance;
+        await supplier.save({ session });
+
+        await session.commitTransaction();
+        res.status(200).json({ success: true, data: { supplier, transaction } });
+    } catch (error: any) {
+        await session.abortTransaction();
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        session.endSession();
+    }
+};
+
+export const paySupplier = async (req: Request, res: Response): Promise<void> => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        const sellerId = (req as any).user?._id;
+        const { amount, description, date } = req.body;
+        const supplier = await SupplierLedger.findOne({ _id: req.params.id, sellerId });
+        if (!supplier) {
+            res.status(404).json({ success: false, message: "Supplier not found" });
+            return;
+        }
+
+        const newBalance = supplier.currentBalance - parseFloat(amount);
+
+        const transaction = new SupplierTransaction({
+            supplier: supplier._id,
+            type: SupplierTransactionType.PAYMENT,
+            amount: -parseFloat(amount),
+            balanceAfter: newBalance,
+            description: description || 'Payment Made',
+            date: date || new Date()
+        });
+
+        await transaction.save({ session });
+
+        supplier.currentBalance = newBalance;
+        await supplier.save({ session });
+
+        await session.commitTransaction();
+        res.status(200).json({ success: true, data: { supplier, transaction } });
+    } catch (error: any) {
+        await session.abortTransaction();
+        res.status(500).json({ success: false, message: error.message });
+    } finally {
+        session.endSession();
+    }
+};

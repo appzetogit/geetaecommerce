@@ -101,9 +101,14 @@ const AdminPOSOrders = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { config, refreshConfig } = useAppContext();
+  const [posBillSettings, setPosBillSettings] = useState<any>(null);
 
   useEffect(() => {
     refreshConfig();
+    const saved = localStorage.getItem('admin_pos_bill_settings');
+    if (saved) {
+      setPosBillSettings(JSON.parse(saved));
+    }
   }, []);
 
   const [selectedSeller, setSelectedSeller] = useState('');
@@ -463,7 +468,7 @@ const AdminPOSOrders = () => {
 
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
-  const [scanTarget, setScanTarget] = useState<'inventory' | 'quick-add'>('inventory');
+  const [scanTarget, setScanTarget] = useState<'inventory' | 'quick-add' | 'purchase'>('inventory');
   const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
@@ -585,6 +590,52 @@ const AdminPOSOrders = () => {
               }
 
              if (!match) match = productsFound[0];
+
+             if (scanTarget === 'purchase') {
+                 if (variationMatch) {
+                     const variationId = String(variationMatch?._id || variationMatch?.id || variationMatch?.variationId || variationMatch?.title || variationMatch?.name || Date.now());
+                     const variantLabel = String(variationMatch?.title || variationMatch?.name || variationMatch?.variationName || 'Variant');
+                     const variantProductId = `${match._id}-${variationId}`;
+
+                     setPurchaseItems((prev) => {
+                         const existing = prev.find((p) => p.productId === variantProductId);
+                         if (existing) {
+                             return prev.map((p) => (p.productId === variantProductId ? { ...p, qty: p.qty + 1 } : p));
+                         }
+                         const next: PurchaseItem = {
+                             id: `purchase_var_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
+                             productId: variantProductId,
+                             baseProductId: match._id,
+                             productName: `${match.productName} - ${variantLabel}`,
+                             isVariant: true,
+                             variationId,
+                             image: match.mainImage,
+                             mrp: Number(variationMatch?.compareAtPrice ?? match.compareAtPrice ?? match.price ?? 0),
+                             retailPrice: Number(variationMatch?.price ?? match.price ?? 0),
+                             wholesalePrice: Number(variationMatch?.wholesalePrice ?? match.wholesalePrice ?? 0),
+                             purchasePrice: Number(variationMatch?.purchasePrice ?? match.purchasePrice ?? match.price ?? 0),
+                             qty: 1,
+                             currentQty: Number(variationMatch?.stock ?? 0),
+                             includingGST: false,
+                             billDiscount: 0,
+                             billDiscountType: '%',
+                             gstPercent: 18,
+                             barcode: Array.isArray(variationMatch?.barcode) ? String(variationMatch.barcode[0] || '') : String(variationMatch?.barcode || ''),
+                             mfgDate: '',
+                             expiry: '',
+                             hsn: '',
+                             batch: '',
+                             packOf: 1,
+                             additionalOpen: true,
+                         };
+                         return [next, ...prev];
+                     });
+                 } else {
+                     addProductToPurchase(match);
+                 }
+                 showToast(`Added to ${purchaseMode}: ${match.productName}`, "success");
+                 return;
+             }
 
              // Prepare Cart Item
              let itemToAdd: any = { ...match };
@@ -1957,14 +2008,21 @@ const AdminPOSOrders = () => {
       // --- Header (Image 4 Style) ---
       doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
-      doc.text("GEETA", 14, 20);
+      doc.text(posBillSettings?.shopName || "GEETA", 14, 20);
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text("Q7WM+92M, Q7WM+92M, , Indore Division,", 14, 26);
-      doc.text("Nagda, Madhya Pradesh, India - 454001", 14, 31);
-      doc.text("7898111456", 14, 36);
-      doc.text("FSSAI: 583545736", 14, 41);
+      const qAddress = posBillSettings?.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001";
+      const qLines = doc.splitTextToSize(qAddress, 180);
+      doc.text(qLines, 14, 26);
+      let qY = 26 + (qLines.length * 5);
+      doc.text(posBillSettings?.phone || "7898111456", 14, qY);
+      qY += 5;
+      if (posBillSettings?.fssai?.enabled && posBillSettings?.fssai?.text) {
+        doc.text(`FSSAI: ${posBillSettings.fssai.text}`, 14, qY);
+      } else {
+        doc.text("FSSAI: 583545736", 14, qY);
+      }
 
       // Meta Boxes (Image 3 Style)
       doc.setDrawColor(200, 200, 200);
@@ -2081,17 +2139,24 @@ const AdminPOSOrders = () => {
     // --- Header ---
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("GEETA", 14, 20);
+    doc.text(posBillSettings?.shopName || "GEETA", 14, 20);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    let address = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
-    if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
+    let address = posBillSettings?.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
+
+    if (posBillSettings?.gst?.enabled && posBillSettings?.gst?.text) {
+        address += `\nGST: ${posBillSettings.gst.text}`;
+    } else if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
         address += `\nGST: ${config.invoiceSettings.gst.text}`;
     }
-    if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
+
+    if (posBillSettings?.fssai?.enabled && posBillSettings?.fssai?.text) {
+        address += `\nFSSAI: ${posBillSettings.fssai.text}`;
+    } else if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
         address += `\nFSSAI: ${config.invoiceSettings.fssai.text}`;
     }
+
     doc.text(address, 14, 26);
 
     // Dynamic Y positioning based on address lines
@@ -2220,7 +2285,7 @@ const AdminPOSOrders = () => {
     y += 10;
     if (config?.invoiceSettings) {
         // Notes
-        if (config.invoiceSettings.notes?.enabled && config.invoiceSettings.notes?.text) {
+        if ((posBillSettings?.notes?.enabled && posBillSettings?.notes?.text) || (config.invoiceSettings.notes?.enabled && config.invoiceSettings.notes?.text)) {
              if (y > 270) { doc.addPage(); y = 20; }
              doc.setFontSize(10);
              doc.setFont("helvetica", "bold");
@@ -2228,13 +2293,14 @@ const AdminPOSOrders = () => {
              y += 5;
              doc.setFont("helvetica", "normal");
              doc.setFontSize(9);
-             const splitNotes = doc.splitTextToSize(config.invoiceSettings.notes.text, 180);
+             const noteText = posBillSettings?.notes?.enabled ? posBillSettings?.notes?.text : config.invoiceSettings.notes.text;
+             const splitNotes = doc.splitTextToSize(noteText, 180);
              doc.text(splitNotes, 14, y);
              y += (splitNotes.length * 4) + 8;
         }
 
         // Terms
-        if (config.invoiceSettings.terms?.enabled && config.invoiceSettings.terms?.text) {
+        if ((posBillSettings?.terms?.enabled && posBillSettings?.terms?.text) || (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text)) {
              if (y > 270) { doc.addPage(); y = 20; }
              doc.setFontSize(10);
              doc.setFont("helvetica", "bold");
@@ -2242,8 +2308,16 @@ const AdminPOSOrders = () => {
              y += 5;
              doc.setFont("helvetica", "normal");
              doc.setFontSize(8);
-             const splitTerms = doc.splitTextToSize(config.invoiceSettings.terms.text, 180);
+             const termText = posBillSettings?.terms?.enabled ? posBillSettings?.terms?.text : config?.invoiceSettings?.terms?.text;
+             const splitTerms = doc.splitTextToSize(termText, 180);
              doc.text(splitTerms, 14, y);
+             y += (splitTerms.length * 4) + 5;
+        }
+
+        // QR Code
+        if (posBillSettings?.qrCode) {
+            if (y > 240) { doc.addPage(); y = 20; }
+            doc.addImage(posBillSettings.qrCode, 'PNG', 14, y, 30, 30);
         }
     }
 
@@ -3536,7 +3610,7 @@ const AdminPOSOrders = () => {
                 <span className="text-[15px]">Search products by name, barcode...</span>
               </button>
               <button
-                onClick={() => setShowPurchaseSearch(true)}
+                onClick={() => { setScanTarget('purchase'); setShowScanner(true); }}
                 className="w-12 h-10 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[#f187b5] hover:border-[#f187b5]/40 transition-colors flex items-center justify-center"
                 title="Scan"
               >
@@ -3841,7 +3915,7 @@ const AdminPOSOrders = () => {
                 <span className="font-semibold text-sm">Search Items</span>
               </button>
               <button
-                onClick={() => setShowPurchaseSearch(true)}
+                onClick={() => { setScanTarget('purchase'); setShowScanner(true); }}
                 className="rounded-xl border border-[#f3c7dc] px-3 py-3 font-semibold text-gray-700 bg-white flex items-center justify-center gap-2"
               >
                 <span className="font-semibold text-sm">Scan</span>
@@ -4445,7 +4519,7 @@ const AdminPOSOrders = () => {
                 {/* Header */}
                 <div className="bg-[#f3f4f6] px-5 pt-5 pb-2">
                    <div className="flex justify-between items-center mb-4">
-                       <h2 className="text-lg font-bold tracking-widest text-slate-800">Geeta Store</h2>
+                       <h2 className="text-lg font-bold tracking-widest text-slate-800 uppercase">{posBillSettings?.shopName || 'Geeta Store'}</h2>
                        <button onClick={() => setShowSuccessModal(false)} className="bg-black text-white px-3 py-1 rounded-full text-[10px] font-bold">Close</button>
                    </div>
 
@@ -4605,10 +4679,9 @@ const AdminPOSOrders = () => {
           {/* We use a specific width/style for thermal printing */}
           <div className="w-[80mm] p-2 font-mono text-xs text-black mx-auto">
               <div className="mb-2 text-left">
-                  <h1 className="text-sm font-bold uppercase">GEETA</h1>
-                  <p className="text-[10px] leading-tight">Q7WM+92M, Q7WM+92M, , Indore Division,</p>
-                  <p className="text-[10px] leading-tight">Nagda, Madhya Pradesh, India - 454001</p>
-                  <p className="text-[10px]">7898111456</p>
+                  <h1 className="text-sm font-bold uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
+                  <p className="text-[10px] leading-tight whitespace-pre-wrap">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
+                  <p className="text-[10px]">{posBillSettings?.phone || '7898111456'}</p>
 
                   {/* GST & FSSAI */}
                   {config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text && (
@@ -4710,15 +4783,34 @@ const AdminPOSOrders = () => {
 
               <div className="text-center mt-4 text-[10px]">
                   {/* Notes */}
-                  {config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text && (
-                      <p className="font-bold mb-2 whitespace-pre-wrap">{config.invoiceSettings.notes.text}</p>
+                  {((posBillSettings?.notes?.enabled && posBillSettings?.notes?.text) || (config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text)) && (
+                      <p className="font-bold mb-2 whitespace-pre-wrap">{posBillSettings?.notes?.enabled ? posBillSettings?.notes?.text : config?.invoiceSettings?.notes?.text}</p>
                   )}
 
                   {/* Terms & Conditions */}
-                  {config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text && (
+                  {((posBillSettings?.terms?.enabled && posBillSettings?.terms?.text) || (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text)) && (
                       <div className="text-left mt-2 border-t border-black border-dashed pt-2">
                           <p className="font-bold mb-1">Terms & Conditions:</p>
-                          <p className="whitespace-pre-wrap leading-tight">{config.invoiceSettings.terms.text}</p>
+                          <p className="whitespace-pre-wrap leading-tight">{posBillSettings?.terms?.enabled ? posBillSettings?.terms?.text : config?.invoiceSettings?.terms?.text}</p>
+                      </div>
+                  )}
+
+                  {/* GST & FSSAI (POS Specific) */}
+                  {posBillSettings?.gst?.enabled && posBillSettings?.gst?.text && (
+                      <p className="text-[10px] font-bold mt-2">GST: {posBillSettings.gst.text}</p>
+                  )}
+                  {posBillSettings?.fssai?.enabled && posBillSettings?.fssai?.text && (
+                      <p className="text-[10px] font-bold">FSSAI: {posBillSettings.fssai.text}</p>
+                  )}
+
+                  {posBillSettings?.qrCode && (
+                      <div className="mt-4 flex justify-center">
+                          <img
+                            src={posBillSettings.qrCode}
+                            alt="Payment QR"
+                            className="w-32 h-32 object-contain"
+                            style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+                          />
                       </div>
                   )}
 
