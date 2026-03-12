@@ -9,7 +9,7 @@ import { useToast } from '../../../context/ToastContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { useAppContext } from '../../../context/AppContext';
 import { appendPOSStaffBill, getStaffSession } from '../../../utils/staffSession';
 
@@ -787,12 +787,28 @@ const AdminPOSOrders = () => {
             }
 
             // Create new instance
-            const scanner = new Html5Qrcode("reader");
+            const scanner = new Html5Qrcode("reader", {
+                formatsToSupport: [
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.CODE_93,
+                    Html5QrcodeSupportedFormats.ITF,
+                    Html5QrcodeSupportedFormats.CODABAR,
+                    Html5QrcodeSupportedFormats.QR_CODE,
+                ],
+                useBarCodeDetectorIfSupported: true,
+            });
             html5QrCodeRef.current = scanner;
 
+            const boxWidth = Math.min(Math.max(element.clientWidth - 24, 220), 420);
+            const boxHeight = Math.max(200, Math.floor(boxWidth * 0.45));
             const config: any = {
                 fps: 20,
-                qrbox: { width: 250, height: 150 },
+                qrbox: { width: boxWidth, height: boxHeight },
                 disableFlip: true
             };
 
@@ -5099,7 +5115,7 @@ const AdminPOSOrders = () => {
                     </button>
                 </div>
                 <div className="p-4 bg-black">
-                     <div id="reader" className="w-full aspect-square bg-black rounded-xl overflow-hidden shadow-inner"></div>
+                     <div id="reader" className="w-full h-[260px] sm:h-[320px] md:h-[360px] bg-black rounded-xl overflow-hidden shadow-inner"></div>
                      <p className="text-center text-white/60 text-[11px] font-medium mt-4 tracking-wide uppercase">Point camera at a barcode to scan</p>
                 </div>
                 {/* Removed Restart Scanner footer for compact look */}
