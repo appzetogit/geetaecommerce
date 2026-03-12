@@ -15,6 +15,8 @@ import AddStaffModal from '../components/AddStaffModal';
 import StaffRolePermissionsPanel from '../components/StaffRolePermissionsPanel';
 import { detectModuleFromPath } from '../../../utils/moduleAuth';
 import { getStoredStaffList, setStoredStaffList, normalizeStaffMember, StaffModule } from '../../../utils/staffSession';
+import { createStaff as apiCreateStaff, deleteStaff as apiDeleteStaff, getStaff as apiGetStaff, updateStaff as apiUpdateStaff } from '../../../services/api/admin/adminStaffService';
+import { createRole as apiCreateRole, getRoles as apiGetRoles } from '../../../services/api/admin/adminRoleService';
 
 export type RoleType = string;
 
@@ -33,12 +35,9 @@ const AdminManageStaff: React.FC = () => {
   const [staffList, setStaffList] = useState<Staff[]>(() => {
     const stored = getStoredStaffList(moduleType);
     if (stored.length > 0) {
-      return stored;
+      return stored as Staff[];
     }
-    return [
-      { id: '1', name: 'Alaxendra', phone: '0123456789', role: 'STOREMANAGER', commission: 5, permissions: ['pos', 'orders', 'customers'] },
-      { id: '2', name: 'James Wilson', phone: '9876543210', role: 'STAFF', commission: 0, permissions: ['pos', 'orders', 'customers'] },
-    ];
+    return [];
   });
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,24 +50,77 @@ const AdminManageStaff: React.FC = () => {
   const [selectedStaffForPermissions, setSelectedStaffForPermissions] = useState<Staff | null>(null);
 
   useEffect(() => {
+    // Initial fetch from backend
+    const fetchStaffAndRoles = async () => {
+      try {
+        const [staffResponse, rolesResponse] = await Promise.all([
+          apiGetStaff(),
+          apiGetRoles({ page: 1, limit: 100, sortBy: 'createdAt', sortOrder: 'asc' }),
+        ]);
+
+        if (staffResponse.success && Array.isArray(staffResponse.data)) {
+          const mapped: Staff[] = staffResponse.data.map((item: any) => ({
+            id: item._id || item.id,
+            name: item.name,
+            phone: item.phone,
+            role: item.role,
+            commission: item.commission ?? 0,
+            permissions: item.permissions,
+          }));
+          setStaffList(mapped);
+          setStoredStaffList(
+            moduleType,
+            mapped.map((staff) => normalizeStaffMember(staff))
+          );
+        }
+
+        if (rolesResponse.success && Array.isArray(rolesResponse.data)) {
+          const apiRoleNames = rolesResponse.data
+            .map((r: any) => (r.name || '').toString().toUpperCase().replace(/\s+/g, ''))
+            .filter((name: string) => !!name);
+          const defaultRoles = ['STAFF', 'STOREMANAGER', 'BILLINGAGENT', 'STOCKHANDLER'];
+          const merged = Array.from(new Set([...defaultRoles, ...apiRoleNames]));
+          setRoles(merged);
+        }
+      } catch {
+        // fall back to local storage data and default roles if API fails
+      }
+    };
+
+    fetchStaffAndRoles();
+  }, [moduleType]);
+
+  useEffect(() => {
     setStoredStaffList(
       moduleType,
       staffList.map((staff) => normalizeStaffMember(staff))
     );
   }, [moduleType, staffList]);
 
-  const handleAddRole = (e: React.FormEvent) => {
+  const handleAddRole = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRoleName.trim()) return;
+
     const formattedRole = newRoleName.trim().toUpperCase().replace(/\s+/g, '');
+
     if (roles.includes(formattedRole)) {
       toast.error('Role already exists');
       return;
     }
-    setRoles([...roles, formattedRole]);
+
+    try {
+      const response = await apiCreateRole({ name: formattedRole });
+      if (response.success && response.data) {
+        setRoles(prev => [...prev, formattedRole]);
     setNewRoleName('');
     setIsAddRoleModalOpen(false);
     toast.success('New role added successfully');
+      } else {
+        toast.error(response.message || 'Failed to create role');
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Error creating role');
+    }
   };
 
   const filteredStaff = staffList.filter(s =>
@@ -76,25 +128,61 @@ const AdminManageStaff: React.FC = () => {
     s.phone.includes(searchQuery)
   );
 
-  const handleAddStaff = (newStaff: Omit<Staff, 'id'>) => {
-    const staffWithId = { ...newStaff, id: Date.now().toString() };
+  const handleAddStaff = async (newStaff: Omit<Staff, 'id'>) => {
+    try {
+      const response = await apiCreateStaff({
+        name: newStaff.name,
+        phone: newStaff.phone,
+        role: newStaff.role,
+        commission: newStaff.commission,
+        permissions: newStaff.permissions,
+      });
+      if (response.success && response.data) {
+        const created = response.data as any;
+        const staffWithId: Staff = {
+          id: created._id || created.id,
+          name: created.name,
+          phone: created.phone,
+          role: created.role,
+          commission: created.commission ?? 0,
+          permissions: created.permissions,
+        };
     setStaffList([...staffList, staffWithId]);
     setIsAddModalOpen(false);
     toast.success('Staff added successfully');
+      } else {
+        toast.error(response.message || 'Failed to add staff');
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Error adding staff');
+    }
   };
 
-  const handleUpdateStaff = (updatedStaff: Staff) => {
+  const handleUpdateStaff = async (updatedStaff: Staff) => {
+    try {
+      const response = await apiUpdateStaff(updatedStaff.id, {
+        name: updatedStaff.name,
+        phone: updatedStaff.phone,
+        role: updatedStaff.role,
+        commission: updatedStaff.commission,
+        permissions: updatedStaff.permissions,
+      });
+      if (response.success && response.data) {
     setStaffList(staffList.map(s => s.id === updatedStaff.id ? updatedStaff : s));
     setEditingStaff(null);
     setIsAddModalOpen(false);
     toast.success('Staff updated successfully');
+      } else {
+        toast.error(response.message || 'Failed to update staff');
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Error updating staff');
+    }
   };
 
-  const handleDeleteStaff = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this staff member?')) {
-      setStaffList(staffList.filter(s => s.id !== id));
-      toast.success('Staff deleted successfully');
-    }
+  const handleDeleteStaff = async (id: string) => {
+    setStaffToDelete(id);
+    setIsDeleteConfirmOpen(true);
   };
 
   const handleLogoutAll = () => {
@@ -109,6 +197,27 @@ const AdminManageStaff: React.FC = () => {
   const openStaffPermissions = (staff: Staff) => {
     setSelectedStaffForPermissions(staff);
     setIsPermissionsPanelOpen(true);
+  };
+
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState<string | null>(null);
+
+  const confirmDeleteStaff = async () => {
+    if (!staffToDelete) return;
+    try {
+      const response = await apiDeleteStaff(staffToDelete);
+      if (response.success) {
+        setStaffList(staffList.filter(s => s.id !== staffToDelete));
+        toast.success('Staff deleted successfully');
+      } else {
+        toast.error(response.message || 'Failed to delete staff');
+      }
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Error deleting staff');
+    } finally {
+      setIsDeleteConfirmOpen(false);
+      setStaffToDelete(null);
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -285,6 +394,50 @@ const AdminManageStaff: React.FC = () => {
           onSave={editingStaff ? handleUpdateStaff : handleAddStaff}
           staff={editingStaff || undefined}
         />
+      )}
+
+      {/* Delete confirmation modal */}
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-red-50 to-transparent">
+              <h2 className="text-lg font-bold text-gray-800">Delete Staff Member</h2>
+              <button
+                onClick={() => {
+                  setIsDeleteConfirmOpen(false);
+                  setStaffToDelete(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Are you sure you want to delete this staff member? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteConfirmOpen(false);
+                    setStaffToDelete(null);
+                  }}
+                  className="flex-1 px-4 py-3 border border-gray-200 text-gray-600 font-semibold rounded-2xl hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteStaff}
+                  className="flex-1 px-4 py-3 bg-red-500 text-white font-semibold rounded-2xl hover:bg-red-600 transition-all shadow-lg active:scale-95"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {isPermissionsPanelOpen && (

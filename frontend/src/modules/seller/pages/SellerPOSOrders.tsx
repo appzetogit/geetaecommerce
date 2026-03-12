@@ -3020,8 +3020,8 @@ const SellerPOSOrders = () => {
 
                       {/* Scrollable Product Container */}
                       <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-0 md:overflow-visible custom-pos-scroll">
-                          <div className={mobileCartView === 'grid' 
-                              ? 'grid grid-cols-2 gap-2 md:flex md:flex-col' 
+                          <div className={mobileCartView === 'grid'
+                              ? 'grid grid-cols-2 gap-2 md:flex md:flex-col'
                               : 'space-y-2 flex flex-col'
                           }>
                               {/* Desktop Header Row */}
@@ -5004,7 +5004,14 @@ const SellerPOSOrders = () => {
                             <input
                                 type="text"
                                 value={newCustomer.gst}
-                                onChange={(e) => setNewCustomer({...newCustomer, gst: e.target.value.toUpperCase()})}
+                                maxLength={15}
+                                onChange={(e) => {
+                                    const gstValue = e.target.value
+                                      .toUpperCase()
+                                      .replace(/[^0-9A-Z]/g, '')
+                                      .slice(0, 15);
+                                    setNewCustomer({...newCustomer, gst: gstValue});
+                                }}
                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                                 placeholder="Enter GSTIN"
                             />

@@ -497,7 +497,19 @@ const AdminPOSOrders = () => {
   const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>([]);
   const [purchaseSearchLoading, setPurchaseSearchLoading] = useState(false);
   const [purchaseSearchResults, setPurchaseSearchResults] = useState<Product[]>([]);
-  const [purchaseSupplier, setPurchaseSupplier] = useState<PurchaseSupplier | null>(null);
+  const [purchaseSupplier, setPurchaseSupplier] = useState<PurchaseSupplier | null>(() => {
+    try {
+      const raw = localStorage.getItem('admin_pos_last_purchase_supplier');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return parsed as PurchaseSupplier;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
   const [purchaseSupplierForm, setPurchaseSupplierForm] = useState<PurchaseSupplier>({
     name: '',
     phone: '',
@@ -690,6 +702,9 @@ const AdminPOSOrders = () => {
           const quote: PurchaseEntryRecord = JSON.parse(raw);
           setPurchaseItems(quote.items);
           setPurchaseSupplier(quote.supplier);
+          try {
+            localStorage.setItem('admin_pos_last_purchase_supplier', JSON.stringify(quote.supplier));
+          } catch {}
           setPurchaseMode('Quotation');
           setEditingQuotationId(quote.id);
           setPurchaseDate(quote.date);
@@ -742,6 +757,9 @@ const AdminPOSOrders = () => {
       setPurchaseMode('Quotation');
       setPurchaseItems([]);
       setPurchaseSupplier(null);
+      try {
+        localStorage.removeItem('admin_pos_last_purchase_supplier');
+      } catch {}
       setEditingQuotationId(null);
       setShowPurchaseEntry(true);
     } else if (mode === 'edit_purchase') {
@@ -751,6 +769,9 @@ const AdminPOSOrders = () => {
           const purchase: any = JSON.parse(raw);
           setPurchaseItems(purchase.items);
           setPurchaseSupplier(purchase.supplier);
+          try {
+            localStorage.setItem('admin_pos_last_purchase_supplier', JSON.stringify(purchase.supplier));
+          } catch {}
           setPurchaseMode('Purchase');
           setEditingQuotationId(purchase.id);
           setPurchaseDate(purchase.date);
@@ -3047,8 +3068,8 @@ const AdminPOSOrders = () => {
                       </div>
                   </div>
                   <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-0 md:overflow-visible custom-pos-scroll">
-                      <div className={mobileCartView === 'grid' 
-                          ? 'grid grid-cols-2 gap-2 md:flex md:flex-col' 
+                      <div className={mobileCartView === 'grid'
+                          ? 'grid grid-cols-2 gap-2 md:flex md:flex-col'
                           : 'space-y-2 flex flex-col'
                       }>
                   {/* Desktop Header Row */}
@@ -3630,6 +3651,9 @@ const AdminPOSOrders = () => {
                   setEditingQuotationId(null);
                   setPurchaseItems([]);
                   setPurchaseSupplier(null);
+                  try {
+                    localStorage.removeItem('admin_pos_last_purchase_supplier');
+                  } catch {}
                   setBillAttachment(null);
                 }}
                 className="w-9 h-9 rounded-full border border-[#f3c7dc] bg-white flex items-center justify-center"
@@ -3888,7 +3912,12 @@ const AdminPOSOrders = () => {
                         >
                           + Add Variant
                         </button>
-                        <button className="px-3 py-1.5 rounded-full border border-[#f187b5] text-[#cf6594] text-sm font-medium md:py-1 md:text-[13px]">Edit</button>
+                        <button
+                          onClick={() => openPurchaseEditModal(item)}
+                          className="px-3 py-1.5 rounded-full border border-[#f187b5] text-[#cf6594] text-sm font-medium md:py-1 md:text-[13px]"
+                        >
+                          Edit
+                        </button>
                         <button onClick={() => removePurchaseItem(item.id)} className="px-3 py-1.5 rounded-full border border-red-200 text-red-500 text-sm font-medium md:py-1 md:text-[13px]">Remove</button>
                         <label className="ml-auto inline-flex items-center gap-2 text-sm font-medium text-gray-700">
                           <input type="checkbox" checked={item.includingGST} onChange={(e) => updatePurchaseItem(item.id, { includingGST: e.target.checked })} />
@@ -4076,7 +4105,19 @@ const AdminPOSOrders = () => {
                 <input value={purchaseSupplierForm.name} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, name: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" placeholder="Enter supplier name" />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Phone Number *
-                <input value={purchaseSupplierForm.phone} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, phone: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" placeholder="Enter phone number" />
+                <input
+                  type="tel"
+                  value={purchaseSupplierForm.phone}
+                  maxLength={10}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    if (val.length <= 10) {
+                      setPurchaseSupplierForm((p) => ({ ...p, phone: val }));
+                    }
+                  }}
+                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all font-mono"
+                  placeholder="Enter 10 digit phone number"
+                />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Address (optional)
                 <textarea value={purchaseSupplierForm.address} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, address: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" rows={2} placeholder="Enter supplier address" />
@@ -4085,7 +4126,16 @@ const AdminPOSOrders = () => {
                 <textarea value={purchaseSupplierForm.notes} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, notes: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" rows={2} placeholder="Enter notes or remarks" />
               </label>
               <label className="block text-sm font-semibold text-gray-700">GST Number (optional)
-                <input value={purchaseSupplierForm.gstNumber} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, gstNumber: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" placeholder="Enter GST number" />
+                <input
+                  type="text"
+                  value={purchaseSupplierForm.gstNumber}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    setPurchaseSupplierForm((p) => ({ ...p, gstNumber: val }));
+                  }}
+                  className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all font-mono"
+                  placeholder="Enter GST number (digits only)"
+                />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Opening Balance (optional)
                 <div className="grid grid-cols-[1fr_120px] gap-2 mt-1">
@@ -4101,14 +4151,51 @@ const AdminPOSOrders = () => {
             <div className="grid grid-cols-2 gap-3 mt-6">
               <button onClick={() => setShowSupplierModal(false)} className="rounded-xl border border-gray-300 py-3 font-semibold text-gray-700">Cancel</button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!purchaseSupplierForm.name.trim() || !purchaseSupplierForm.phone.trim()) {
                     showToast('Supplier name and phone are required.', 'error');
                     return;
                   }
+
+                  // Always keep existing behaviour for the current purchase entry
                   setPurchaseSupplier(purchaseSupplierForm);
+                  try {
+                    localStorage.setItem('admin_pos_last_purchase_supplier', JSON.stringify(purchaseSupplierForm));
+                  } catch {}
                   setShowSupplierModal(false);
                   showToast('Supplier added in purchase entry.', 'success');
+
+                  // Additionally, try to persist supplier in Admin POS Supplier Ledger (DB).
+                  // This is best-effort only; failures won't affect current flow.
+                  try {
+                    const openingBalance = parseFloat(purchaseSupplierForm.openingBalance || '0') || 0;
+                    const openingBalanceType =
+                      purchaseSupplierForm.openingBalanceType === 'Receive' ||
+                      purchaseSupplierForm.openingBalanceType === 'Payment'
+                        ? purchaseSupplierForm.openingBalanceType
+                        : 'Receive';
+
+                    const payload: Partial<import('../../../services/api/admin/supplierService').Supplier> = {
+                      name: purchaseSupplierForm.name.trim(),
+                      phone: purchaseSupplierForm.phone.trim(),
+                      address: purchaseSupplierForm.address || undefined,
+                      gstNumber: purchaseSupplierForm.gstNumber || undefined,
+                      notes: purchaseSupplierForm.notes || undefined,
+                      openingBalance,
+                      openingBalanceType,
+                    };
+
+                    const res = await import('../../../services/api/admin/supplierService').then(m =>
+                      m.createSupplier(payload)
+                    );
+
+                    if (!res?.success) {
+                      console.warn('Failed to persist supplier to ledger:', res?.message);
+                    }
+                  } catch (err) {
+                    // Silently ignore DB errors to avoid breaking existing purchase-entry flow
+                    console.error('Error creating supplier in ledger (non-blocking):', err);
+                  }
                 }}
                 className="rounded-xl bg-[#f187b5] hover:bg-[#e076a5] text-white py-3 font-semibold transition-all"
               >
@@ -5050,7 +5137,14 @@ const AdminPOSOrders = () => {
                             <input
                                 type="text"
                                 value={newCustomer.gst}
-                                onChange={(e) => setNewCustomer({...newCustomer, gst: e.target.value.toUpperCase()})}
+                                maxLength={15}
+                                onChange={(e) => {
+                                    const gstValue = e.target.value
+                                      .toUpperCase()
+                                      .replace(/[^0-9A-Z]/g, '')
+                                      .slice(0, 15);
+                                    setNewCustomer({...newCustomer, gst: gstValue});
+                                }}
                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                                 placeholder="Enter GSTIN"
                             />

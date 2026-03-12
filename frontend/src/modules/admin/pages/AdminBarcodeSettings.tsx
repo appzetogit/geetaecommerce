@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '../../../context/ToastContext';
 import * as adminSettingsService from '../../../services/api/admin/adminSettingsService';
+import { getStaffSession, StaffModule } from '../../../utils/staffSession';
 
 interface BarcodeSettings {
     width: number;
@@ -32,6 +33,23 @@ export default function AdminBarcodeSettings() {
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    // Determine whether current user (if staff) is allowed to edit barcode settings
+    const canEdit = useMemo(() => {
+        // For admin module
+        const session = getStaffSession('admin' as StaffModule);
+        if (!session) {
+            // If not logged in as POS staff, keep existing behavior (full access)
+            return true;
+        }
+
+        const perms = session.permissions || [];
+        // UI-level permission is stored as "ui:barcode_settings"
+        return (
+            perms.includes('ui:barcode_settings') ||
+            perms.includes('barcode_settings')
+        );
+    }, []);
+
     useEffect(() => {
         fetchSettings();
     }, []);
@@ -57,6 +75,7 @@ export default function AdminBarcodeSettings() {
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!canEdit) return;
         const { name, value, type, checked } = e.target;
         setSettings(prev => ({
             ...prev,
@@ -65,6 +84,7 @@ export default function AdminBarcodeSettings() {
     };
 
     const handleSave = async () => {
+        if (!canEdit) return;
         setSaving(true);
         try {
             const response = await adminSettingsService.updateAppSettings({
@@ -100,7 +120,7 @@ export default function AdminBarcodeSettings() {
                 </div>
                 <button
                     onClick={handleSave}
-                    disabled={saving}
+                    disabled={saving || !canEdit}
                     className="bg-[#f187b5] hover:bg-[#e076a5] text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-colors text-sm flex items-center gap-2"
                 >
                     {saving ? 'Saving...' : 'Save Settings'}
@@ -125,6 +145,7 @@ export default function AdminBarcodeSettings() {
                                     name="width"
                                     value={settings.width}
                                     onChange={handleChange}
+                                        disabled={!canEdit}
                                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                 />
                                 <p className="text-xs text-neutral-400 mt-1">e.g. 38</p>
@@ -136,6 +157,7 @@ export default function AdminBarcodeSettings() {
                                     name="height"
                                     value={settings.height}
                                     onChange={handleChange}
+                                        disabled={!canEdit}
                                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                 />
                                 <p className="text-xs text-neutral-400 mt-1">e.g. 25</p>
@@ -157,6 +179,7 @@ export default function AdminBarcodeSettings() {
                                     name="productNameSize"
                                     value={settings.productNameSize}
                                     onChange={handleChange}
+                                    disabled={!canEdit}
                                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                 />
                             </div>
@@ -167,6 +190,7 @@ export default function AdminBarcodeSettings() {
                                     name="fontSize"
                                     value={settings.fontSize}
                                     onChange={handleChange}
+                                    disabled={!canEdit}
                                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                 />
                             </div>
@@ -177,6 +201,7 @@ export default function AdminBarcodeSettings() {
                                     name="barcodeHeight"
                                     value={settings.barcodeHeight}
                                     onChange={handleChange}
+                                    disabled={!canEdit}
                                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                 />
                             </div>
@@ -197,6 +222,7 @@ export default function AdminBarcodeSettings() {
                                         name="showName"
                                         checked={settings.showName}
                                         onChange={handleChange}
+                                        disabled={!canEdit}
                                         className="w-5 h-5 text-[#f187b5] rounded focus:ring-[#f187b5] border-neutral-300"
                                     />
                                     <span className="text-neutral-700 font-medium">Show Product Name</span>
@@ -207,6 +233,7 @@ export default function AdminBarcodeSettings() {
                                         name="showPrice"
                                         checked={settings.showPrice}
                                         onChange={handleChange}
+                                        disabled={!canEdit}
                                         className="w-5 h-5 text-[#f187b5] rounded focus:ring-[#f187b5] border-neutral-300"
                                     />
                                     <span className="text-neutral-700 font-medium">Show Price (MRP/SP)</span>
@@ -221,6 +248,7 @@ export default function AdminBarcodeSettings() {
                                         name="mrpLabel"
                                         value={settings.mrpLabel}
                                         onChange={handleChange}
+                                        disabled={!canEdit}
                                         placeholder="e.g. MRP"
                                         className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                     />
@@ -232,6 +260,7 @@ export default function AdminBarcodeSettings() {
                                         name="spLabel"
                                         value={settings.spLabel}
                                         onChange={handleChange}
+                                        disabled={!canEdit}
                                         placeholder="e.g. SP"
                                         className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
                                     />

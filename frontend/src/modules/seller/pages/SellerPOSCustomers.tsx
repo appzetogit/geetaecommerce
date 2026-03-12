@@ -238,7 +238,14 @@ const SellerPOSCustomers = () => {
                                     <input
                                         type="text"
                                         value={newCustomer.gst}
-                                        onChange={(e) => setNewCustomer({...newCustomer, gst: e.target.value.toUpperCase()})}
+                                        maxLength={15}
+                                        onChange={(e) => {
+                                            const gstValue = e.target.value
+                                              .toUpperCase()
+                                              .replace(/[^0-9A-Z]/g, '')
+                                              .slice(0, 15);
+                                            setNewCustomer({...newCustomer, gst: gstValue});
+                                        }}
                                         className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                                         placeholder="Enter GSTIN"
                                     />

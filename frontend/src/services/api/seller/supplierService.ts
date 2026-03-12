@@ -83,7 +83,7 @@ export const deleteSupplier = async (id: string) => {
 
 export const addDebt = async (id: string, data: { amount: number, description: string, date?: string }) => {
     try {
-        const response = await api.post(`${BASE_PATH}/${id}/add-debt`, data);
+        const response = await api.post(`${BASE_PATH}/${id}/debt`, data);
         return response.data;
     } catch (error) {
         throw error;

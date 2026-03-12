@@ -844,6 +844,27 @@ export const createProduct = asyncHandler(
         }
       }
 
+      // Normalize optional ObjectId fields that might come as empty strings from POS quick-add
+      if (!productData.brand) {
+        delete productData.brand;
+      }
+      if (!productData.subcategory) {
+        delete productData.subcategory;
+      }
+      if (!productData.headerCategoryId) {
+        delete productData.headerCategoryId;
+      }
+
+      // Fallback: if category is missing (e.g. quick-add from POS), assign first active category
+      if (!productData.category) {
+        const defaultCategory = await Category.findOne({ status: "Active" })
+          .sort({ createdAt: 1 })
+          .select("_id");
+        if (defaultCategory) {
+          productData.category = defaultCategory._id.toString();
+        }
+      }
+
       if (
         !productData.productName ||
         !productData.category ||

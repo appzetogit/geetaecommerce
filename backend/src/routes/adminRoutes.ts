@@ -42,8 +42,8 @@ import * as cashCollectionController from "../modules/admin/controllers/adminCas
 // FAQ Controllers
 import * as faqController from "../modules/admin/controllers/adminFAQController";
 
-// Role Controllers - Manage Roles functionality removed
-// import * as roleController from "../modules/admin/controllers/adminRoleController";
+// Role Controllers
+import * as roleController from "../modules/admin/controllers/adminRoleController";
 
 import * as paymentController from "../modules/admin/controllers/adminPaymentController";
 import * as policyController from "../modules/admin/controllers/adminPolicyController";
@@ -75,6 +75,9 @@ import * as lowestPricesController from "../modules/admin/controllers/adminLowes
 
 // PromoStrip Controllers
 import * as promoStripController from "../modules/admin/controllers/adminPromoStripController";
+
+// Staff Controllers
+import * as staffController from "../modules/admin/controllers/adminStaffController";
 
 const router = Router();
 
@@ -344,6 +347,13 @@ router.patch("/faqs/:id/status", faqController.updateFAQStatus);
 router.delete("/faqs/:id", faqController.deleteFAQ);
 router.put("/faqs/order", faqController.updateFAQOrder);
 
+// ==================== Role Routes ====================
+router.get("/roles", roleController.getRoles);
+router.get("/roles/:id", roleController.getRoleById);
+router.post("/roles", roleController.createRole);
+router.put("/roles/:id", roleController.updateRole);
+router.delete("/roles/:id", roleController.deleteRole);
+
 // ==================== Policy Routes ====================
 router.post("/policies", policyController.createPolicy);
 router.get("/policies", policyController.getPolicies);
@@ -384,6 +394,12 @@ router.get("/system-users/:id", systemUserController.getSystemUserById);
 router.post("/system-users", systemUserController.createSystemUser);
 router.put("/system-users/:id", systemUserController.updateSystemUser);
 router.delete("/system-users/:id", systemUserController.deleteSystemUser);
+
+// ==================== Staff Routes ====================
+router.get("/staff", staffController.getStaffList);
+router.post("/staff", staffController.createStaff);
+router.put("/staff/:id", staffController.updateStaff);
+router.delete("/staff/:id", staffController.deleteStaff);
 
 // ==================== Home Section Routes ====================
 router.get("/home-sections", homeSectionController.getHomeSections);
