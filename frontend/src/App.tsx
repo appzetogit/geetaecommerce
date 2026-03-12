@@ -151,6 +151,7 @@ const AdminAddProduct = lazy(() => import("./modules/admin/pages/AdminAddProduct
 const AdminSubcategoryOrder = lazy(() => import("./modules/admin/pages/AdminSubcategoryOrder"));
 const AdminManageSellerList = lazy(() => import("./modules/admin/pages/AdminManageSellerList"));
 const AdminAddSeller = lazy(() => import("./modules/admin/pages/AdminAddSeller"));
+const AdminSellerUserLimit = lazy(() => import("./modules/admin/pages/AdminSellerUserLimit"));
 const AdminCoupon = lazy(() => import("./modules/admin/pages/AdminCoupon"));
 const AdminNotification = lazy(() => import("./modules/admin/pages/AdminNotification"));
 const AdminSellerLocation = lazy(() => import("./modules/admin/pages/AdminSellerLocation"));
@@ -534,6 +535,7 @@ function App() {
                             <Route path="manage-seller/add" element={<AdminAddSeller />} />
                             <Route path="manage-seller/list" element={<AdminManageSellerList />} />
                             <Route path="manage-seller/transaction" element={<AdminSellerTransaction />} />
+                            <Route path="manage-seller/user-limit" element={<AdminSellerUserLimit />} />
                             <Route path="delivery-boy/add" element={<AdminAddDeliveryBoy />} />
                             <Route path="delivery-boy/manage" element={<AdminManageDeliveryBoy />} />
                             <Route path="delivery-boy/fund-transfer" element={<AdminFundTransfer />} />
