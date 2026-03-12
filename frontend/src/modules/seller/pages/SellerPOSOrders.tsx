@@ -633,8 +633,9 @@ const SellerPOSOrders = () => {
                      addProductToPurchase(match);
                  }
                  showToast(`Added to ${purchaseMode}: ${match.productName}`, "success");
+                 setShowScanner(false);
                  return;
-             }
+              }
 
              // Prepare Cart Item
              let itemToAdd: any = { ...match };
@@ -662,8 +663,8 @@ const SellerPOSOrders = () => {
                  showToast(`Added: ${itemToAdd.productName}`, "success");
              }
 
-             // Keep scanner open for faster multiple scanning
-             // setShowScanner(false);
+             // Close scanner after successful add
+             setShowScanner(false);
           } else {
              showToast(`Product not found: ${decodedText}`, "error");
           }
