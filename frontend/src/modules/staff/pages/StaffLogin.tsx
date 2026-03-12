@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { detectModuleFromPath, getModuleAuthToken, getModuleUserData } from "../../../utils/moduleAuth";
-import { getStoredStaffList, setStaffSession, StaffModule } from "../../../utils/staffSession";
+import { getStoredStaffList, normalizeStaffMember, setStaffSession, setStoredStaffList, StaffModule } from "../../../utils/staffSession";
 import { useAuth } from "../../../context/AuthContext";
+import { getStaff as apiGetStaff } from "../../../services/api/admin/adminStaffService";
 
 export default function StaffLogin() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export default function StaffLogin() {
     []
   );
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (phone.length !== 10) {
       setError("Phone number must be 10 digits.");
       return;
@@ -25,13 +26,6 @@ export default function StaffLogin() {
     setLoading(true);
     setError("");
     try {
-      const staffList = getStoredStaffList(moduleType);
-      const matchedStaff = staffList.find((staff) => staff.phone === phone);
-      if (!matchedStaff) {
-        setError("No staff found with this phone number.");
-        return;
-      }
-
       const moduleToken = getModuleAuthToken(moduleType);
       const moduleUser = getModuleUserData(moduleType);
       if (!moduleToken || !moduleUser) {
@@ -49,6 +43,32 @@ export default function StaffLogin() {
           setError(`Please login once using ${moduleType} account on this browser before staff login.`);
           return;
         }
+      }
+
+      let staffList = getStoredStaffList(moduleType);
+      try {
+        const response = await apiGetStaff();
+        if (response.success && Array.isArray(response.data)) {
+          staffList = response.data.map((item: any) =>
+            normalizeStaffMember({
+              id: item._id || item.id,
+              name: item.name,
+              phone: item.phone,
+              role: item.role,
+              commission: item.commission ?? 0,
+              permissions: item.permissions,
+            })
+          );
+          setStoredStaffList(moduleType, staffList);
+        }
+      } catch {
+        // Keep existing behavior as fallback if API is temporarily unavailable.
+      }
+
+      const matchedStaff = staffList.find((staff) => staff.phone === phone);
+      if (!matchedStaff) {
+        setError("No staff found with this phone number.");
+        return;
       }
 
       setStaffSession(moduleType, matchedStaff);

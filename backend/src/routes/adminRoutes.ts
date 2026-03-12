@@ -88,6 +88,12 @@ router.use(authenticate);
 router.get("/settings", settingsController.getAppSettings);
 router.put("/settings", requireUserType("Admin", "Seller"), settingsController.updateAppSettings);
 
+// Staff routes are required for both Admin and Seller modules (e.g. seller staff-login flow)
+router.get("/staff", requireUserType("Admin", "Seller"), staffController.getStaffList);
+router.post("/staff", requireUserType("Admin", "Seller"), staffController.createStaff);
+router.put("/staff/:id", requireUserType("Admin", "Seller"), staffController.updateStaff);
+router.delete("/staff/:id", requireUserType("Admin", "Seller"), staffController.deleteStaff);
+
 router.use(requireUserType("Admin"));
 
 // ==================== Profile Routes ====================
@@ -394,12 +400,6 @@ router.get("/system-users/:id", systemUserController.getSystemUserById);
 router.post("/system-users", systemUserController.createSystemUser);
 router.put("/system-users/:id", systemUserController.updateSystemUser);
 router.delete("/system-users/:id", systemUserController.deleteSystemUser);
-
-// ==================== Staff Routes ====================
-router.get("/staff", staffController.getStaffList);
-router.post("/staff", staffController.createStaff);
-router.put("/staff/:id", staffController.updateStaff);
-router.delete("/staff/:id", staffController.deleteStaff);
 
 // ==================== Home Section Routes ====================
 router.get("/home-sections", homeSectionController.getHomeSections);

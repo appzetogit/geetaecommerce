@@ -68,6 +68,7 @@ export interface ISeller extends Document {
   categories: string[];
   logo?: string;
   isEnabled: boolean;
+  canCreateCategories: boolean;
 
   createdAt: Date;
   updatedAt: Date;
@@ -286,6 +287,10 @@ const SellerSchema = new Schema<ISeller>(
       trim: true,
     },
     isEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    canCreateCategories: {
       type: Boolean,
       default: true,
     },

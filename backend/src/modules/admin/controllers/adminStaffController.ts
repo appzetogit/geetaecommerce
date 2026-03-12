@@ -2,13 +2,22 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Staff from "../../../models/Staff";
 
+const getModuleScopeQuery = (req: Request) => {
+  if (req.user?.userType === "Seller") {
+    // Seller module can use both seller-created and admin-created staff phones for login.
+    return { module: { $in: ["seller", "admin"] as const } };
+  }
+  return { module: "admin" as const };
+};
+
+const getWritableModule = (req: Request): "admin" | "seller" =>
+  req.user?.userType === "Seller" ? "seller" : "admin";
+
 /**
  * Get all staff for current module (admin side)
  */
 export const getStaffList = asyncHandler(async (req: Request, res: Response) => {
-  const module: "admin" | "seller" = req.user?.userType === "Seller" ? "seller" : "admin";
-
-  const staff = await Staff.find({ module }).sort({ createdAt: -1 }).lean();
+  const staff = await Staff.find(getModuleScopeQuery(req)).sort({ createdAt: -1 }).lean();
 
   return res.status(200).json({
     success: true,
@@ -21,7 +30,7 @@ export const getStaffList = asyncHandler(async (req: Request, res: Response) => 
  * Create staff
  */
 export const createStaff = asyncHandler(async (req: Request, res: Response) => {
-  const module: "admin" | "seller" = req.user?.userType === "Seller" ? "seller" : "admin";
+  const module = getWritableModule(req);
   const { name, phone, role, commission, permissions } = req.body;
 
   if (!name || !phone || !role) {
@@ -38,11 +47,11 @@ export const createStaff = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  const existing = await Staff.findOne({ phone, module });
+  const existing = await Staff.findOne({ phone });
   if (existing) {
     return res.status(409).json({
       success: false,
-      message: "Staff with this phone already exists",
+      message: "This phone number is already assigned to another staff. Please create staff with a new number.",
     });
   }
 
@@ -66,11 +75,10 @@ export const createStaff = asyncHandler(async (req: Request, res: Response) => {
  * Update staff
  */
 export const updateStaff = asyncHandler(async (req: Request, res: Response) => {
-  const module: "admin" | "seller" = req.user?.userType === "Seller" ? "seller" : "admin";
   const { id } = req.params;
   const { name, phone, role, commission, permissions } = req.body;
 
-  const staff = await Staff.findOne({ _id: id, module });
+  const staff = await Staff.findOne({ _id: id, ...getModuleScopeQuery(req) });
 
   if (!staff) {
     return res.status(404).json({
@@ -87,11 +95,11 @@ export const updateStaff = asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (phone && phone !== staff.phone) {
-    const existing = await Staff.findOne({ phone, module, _id: { $ne: id } });
+    const existing = await Staff.findOne({ phone, _id: { $ne: id } });
     if (existing) {
       return res.status(409).json({
         success: false,
-        message: "Another staff member already exists with this phone",
+        message: "This phone number is already assigned to another staff. Please use a different number.",
       });
     }
   }
@@ -115,10 +123,9 @@ export const updateStaff = asyncHandler(async (req: Request, res: Response) => {
  * Delete staff
  */
 export const deleteStaff = asyncHandler(async (req: Request, res: Response) => {
-  const module: "admin" | "seller" = req.user?.userType === "Seller" ? "seller" : "admin";
   const { id } = req.params;
 
-  const staff = await Staff.findOneAndDelete({ _id: id, module });
+  const staff = await Staff.findOneAndDelete({ _id: id, ...getModuleScopeQuery(req) });
 
   if (!staff) {
     return res.status(404).json({

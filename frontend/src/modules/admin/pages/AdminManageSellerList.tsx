@@ -84,6 +84,7 @@ const mapSellerToFrontend = (seller: SellerType): Seller => {
         requireProductApproval: seller.requireProductApproval,
         viewCustomerDetails: seller.viewCustomerDetails,
         isEnabled: seller.isEnabled ?? true, // Use backend state or default to true
+        canCreateCategories: seller.canCreateCategories ?? true,
     };
 };
 
@@ -143,20 +144,6 @@ export default function AdminManageSellerList() {
         };
 
         fetchSellers();
-
-        // Load category permissions from localStorage
-        const savedPermissions = localStorage.getItem('seller_category_permissions');
-        if (savedPermissions) {
-            try {
-                const permissions = JSON.parse(savedPermissions);
-                setSellers(prev => prev.map(s => ({
-                    ...s,
-                    canCreateCategories: permissions[s._id] || false
-                })));
-            } catch (e) {
-                console.error("Error loading permissions", e);
-            }
-        }
     }, []);
 
     const handleSort = (column: string) => {
@@ -434,27 +421,29 @@ export default function AdminManageSellerList() {
         }
     };
 
-    const handleToggleCategoryPermission = (id: string) => {
+    const handleToggleCategoryPermission = async (id: string) => {
         const seller = sellers.find(s => s._id === id);
         if (!seller) return;
 
         const newPermission = !seller.canCreateCategories;
 
-        // Update local state
-        const updatedSellers = sellers.map(s =>
-            s._id === id ? { ...s, canCreateCategories: newPermission } : s
-        );
-        setSellers(updatedSellers);
-
-        // Update localStorage
-        const permissions: Record<string, boolean> = {};
-        updatedSellers.forEach(s => {
-            if (s.canCreateCategories) permissions[s._id] = true;
-        });
-        localStorage.setItem('seller_category_permissions', JSON.stringify(permissions));
-
-        setSuccessMessage(`Category creation ${newPermission ? 'enabled' : 'disabled'} for ${seller.storeName}`);
-        setTimeout(() => setSuccessMessage(''), 3000);
+        try {
+            const response = await updateSeller(id, { canCreateCategories: newPermission });
+            if (response.success) {
+                setSellers(prev =>
+                    prev.map(s =>
+                        s._id === id ? { ...s, canCreateCategories: newPermission } : s
+                    )
+                );
+                setSuccessMessage(`Category creation ${newPermission ? 'enabled' : 'disabled'} for ${seller.storeName}`);
+                setTimeout(() => setSuccessMessage(''), 3000);
+            } else {
+                setError('Failed to update category permission.');
+            }
+        } catch (err: any) {
+            console.error('Error toggling category permission:', err);
+            setError(err.response?.data?.message || 'Failed to update category permission.');
+        }
     };
 
     return (
