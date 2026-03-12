@@ -84,6 +84,10 @@ export default function SellerLogin() {
     navigate('/admin/login');
   };
 
+  const handleStaffLogin = () => {
+    navigate('/seller/staff-login');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-seller-50 to-seller-50 flex flex-col items-center justify-center px-4 py-8">
       {/* Back Button */}
@@ -220,6 +224,13 @@ export default function SellerLogin() {
 
 
 
+
+          <button
+            onClick={handleStaffLogin}
+            className="w-full py-2.5 rounded-lg font-semibold text-sm bg-white border border-[#f187b5]/40 text-[#f187b5] hover:bg-[#f187b5]/5 transition-colors"
+          >
+            Staff Login
+          </button>
 
           {/* Sign Up Link */}
           <div className="text-center pt-4 border-t border-neutral-200">

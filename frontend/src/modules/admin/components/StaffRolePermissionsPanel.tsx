@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Shield, ChevronDown, ChevronUp, Save, ShoppingCart, Users, BarChart } from 'lucide-react';
 import { Staff, RoleType } from '../pages/AdminManageStaff';
 import { toast } from 'react-hot-toast';
 import { useLocation } from 'react-router-dom';
+import { getStoredStaffList, setStoredStaffList, StaffModule, getStaffSession, setStaffSession } from '../../../utils/staffSession';
 
 interface StaffRolePermissionsPanelProps {
   isOpen: boolean;
@@ -24,6 +25,15 @@ interface PermissionGroup {
 }
 
 const BASE_PERMISSION_GROUPS: PermissionGroup[] = [
+  {
+    id: 'access',
+    title: 'POS Access',
+    badge: 'ACCESS CONTROL',
+    badgeColor: 'text-teal-600 bg-teal-50',
+    permissions: [
+      { id: 'pos_access', label: 'Allow POS Module', enabled: true },
+    ]
+  },
   {
     id: 'inventory',
     title: 'Inventory',
@@ -112,6 +122,7 @@ const BASE_PERMISSION_GROUPS: PermissionGroup[] = [
 ];
 
 const SELLER_ALLOWED_PERMISSION_IDS = new Set([
+  'pos_access',
   'product_list',
   'add_product',
   'edit_product',
@@ -152,8 +163,9 @@ const SELLER_ALLOWED_PERMISSION_IDS = new Set([
 const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ isOpen, onClose, staff, roles }) => {
   const location = useLocation();
   const isSellerManageStaff = location.pathname.startsWith('/seller/');
+  const moduleType: StaffModule = isSellerManageStaff ? 'seller' : 'admin';
   const [selectedRole, setSelectedRole] = useState<string>(staff?.role || roles[0] || 'STAFF');
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['inventory', 'orders']);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['access', 'inventory', 'orders']);
 
   const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>(
     isSellerManageStaff
@@ -165,6 +177,31 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
           .filter(group => group.permissions.length > 0)
       : BASE_PERMISSION_GROUPS
   );
+
+  useEffect(() => {
+    if (!staff) return;
+    const hasPOSPermission = (staff.permissions || ['pos', 'orders', 'customers']).includes('pos');
+    setPermissionGroups(prev =>
+      prev.map(group =>
+        group.id === 'access'
+          ? {
+              ...group,
+              permissions: group.permissions.map(permission =>
+                permission.id === 'pos_access'
+                  ? { ...permission, enabled: hasPOSPermission }
+                  : permission
+              ),
+            }
+          : group
+      )
+    );
+  }, [staff]);
+
+  const getPermissionEnabled = (groupId: string, permissionId: string): boolean => {
+    const group = permissionGroups.find(g => g.id === groupId);
+    const permission = group?.permissions.find(p => p.id === permissionId);
+    return !!permission?.enabled;
+  };
 
   const toggleGroup = (id: string) => {
     setExpandedGroups(prev =>
@@ -187,6 +224,33 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
   };
 
   const handleSave = () => {
+    if (staff) {
+      const staffList = getStoredStaffList(moduleType);
+      const allowPOS = getPermissionEnabled('access', 'pos_access');
+      const updatedStaffList = staffList.map((member) => {
+        if (member.id !== staff.id) return member;
+        const basePermissions = Array.isArray(member.permissions) && member.permissions.length > 0
+          ? member.permissions
+          : ['pos', 'orders', 'customers'];
+        const nextPermissions = allowPOS
+          ? Array.from(new Set([...basePermissions, 'pos']))
+          : basePermissions.filter((permission) => permission !== 'pos');
+        return {
+          ...member,
+          permissions: nextPermissions,
+        };
+      });
+      setStoredStaffList(moduleType, updatedStaffList);
+
+      const activeSession = getStaffSession(moduleType);
+      if (activeSession && activeSession.id === staff.id) {
+        const refreshedStaff = updatedStaffList.find(member => member.id === staff.id);
+        if (refreshedStaff) {
+          setStaffSession(moduleType, refreshedStaff);
+        }
+      }
+    }
+
     const roleStr = selectedRole.replace('_', ' ');
     const target = staff ? `staff ${staff.name}` : `all ${roleStr} members`;
     toast.success(`Permissions updated for ${target}`);
@@ -258,6 +322,7 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
+                      {group.id === 'access' && <Shield size={20} />}
                       {group.id === 'inventory' && <Shield size={20} />}
                       {group.id === 'orders' && <ShoppingCart size={20} />}
                       {group.id === 'customers' && <Users size={20} />}

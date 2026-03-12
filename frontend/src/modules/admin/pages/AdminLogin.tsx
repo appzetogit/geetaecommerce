@@ -61,6 +61,10 @@ export default function AdminLogin() {
     navigate("/seller/login");
   };
 
+  const handleStaffLogin = () => {
+    navigate("/admin/staff-login");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-seller-50 to-seller-50 flex flex-col items-center justify-center px-4 py-8">
       {/* Back Button */}
@@ -191,6 +195,13 @@ export default function AdminLogin() {
 
 
 
+
+          <button
+            onClick={handleStaffLogin}
+            className="w-full py-2.5 rounded-lg font-semibold text-sm bg-white border border-[#f187b5]/40 text-[#f187b5] hover:bg-[#f187b5]/5 transition-colors"
+          >
+            Staff Login
+          </button>
 
         </div>
       </div>

@@ -17,6 +17,7 @@ import {
   getModuleAuthToken,
   getModuleUserData,
 } from "../utils/moduleAuth";
+import { clearStaffSession } from "../utils/staffSession";
 
 export interface User {
   id: string;
@@ -73,6 +74,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Explicitly set token in localStorage immediately to avoid race conditions
     // where navigation happens before the useEffect runs
     setAuthToken(newToken);
+
+    // Keep a last-known module auth snapshot for frontend-only staff mode.
+    if (module === "admin" || module === "seller") {
+      localStorage.setItem(`${module}_staff_base_token`, newToken);
+      localStorage.setItem(`${module}_staff_base_user`, JSON.stringify(userData));
+      clearStaffSession(module);
+    }
   };
 
   const logout = () => {
@@ -81,6 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setIsAuthenticated(false);
     removeModuleAuthToken(module);
+    if (module === "admin" || module === "seller") {
+      clearStaffSession(module);
+    }
     // setAuthToken handled by effect
   };
 

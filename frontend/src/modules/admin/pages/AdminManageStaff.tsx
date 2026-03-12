@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Users,
   Plus,
@@ -13,6 +13,8 @@ import {
 import { toast } from 'react-hot-toast';
 import AddStaffModal from '../components/AddStaffModal';
 import StaffRolePermissionsPanel from '../components/StaffRolePermissionsPanel';
+import { detectModuleFromPath } from '../../../utils/moduleAuth';
+import { getStoredStaffList, setStoredStaffList, normalizeStaffMember, StaffModule } from '../../../utils/staffSession';
 
 export type RoleType = string;
 
@@ -21,14 +23,23 @@ export interface Staff {
   name: string;
   phone: string;
   role: RoleType;
+  commission: number;
+  permissions?: string[];
   avatar?: string;
 }
 
 const AdminManageStaff: React.FC = () => {
-  const [staffList, setStaffList] = useState<Staff[]>([
-    { id: '1', name: 'Alaxendra', phone: '0123456789', role: 'STOREMANAGER' },
-    { id: '2', name: 'James Wilson', phone: '9876543210', role: 'STAFF' },
-  ]);
+  const moduleType = (detectModuleFromPath() === 'seller' ? 'seller' : 'admin') as StaffModule;
+  const [staffList, setStaffList] = useState<Staff[]>(() => {
+    const stored = getStoredStaffList(moduleType);
+    if (stored.length > 0) {
+      return stored;
+    }
+    return [
+      { id: '1', name: 'Alaxendra', phone: '0123456789', role: 'STOREMANAGER', commission: 5, permissions: ['pos', 'orders', 'customers'] },
+      { id: '2', name: 'James Wilson', phone: '9876543210', role: 'STAFF', commission: 0, permissions: ['pos', 'orders', 'customers'] },
+    ];
+  });
 
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -38,6 +49,13 @@ const AdminManageStaff: React.FC = () => {
   const [newRoleName, setNewRoleName] = useState('');
   const [isPermissionsPanelOpen, setIsPermissionsPanelOpen] = useState(false);
   const [selectedStaffForPermissions, setSelectedStaffForPermissions] = useState<Staff | null>(null);
+
+  useEffect(() => {
+    setStoredStaffList(
+      moduleType,
+      staffList.map((staff) => normalizeStaffMember(staff))
+    );
+  }, [moduleType, staffList]);
 
   const handleAddRole = (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,6 +220,9 @@ const AdminManageStaff: React.FC = () => {
                     <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getRoleBadgeColor(staff.role)}`}>
                       {staff.role.replace(/_/g, ' ')}
                     </span>
+                  </div>
+                  <div className="mt-2 text-xs font-semibold text-gray-600">
+                    Commission: {staff.commission}%
                   </div>
                 </div>
               </div>

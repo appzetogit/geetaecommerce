@@ -230,6 +230,8 @@ import { AppProvider } from "./context/AppContext";
 const AdminManageStaff = lazy(() => import("./modules/admin/pages/AdminManageStaff"));
 const AdminStoreSettings = lazy(() => import("./modules/admin/pages/AdminStoreSettings"));
 const AdminAppSettings = lazy(() => import("./modules/admin/pages/AdminAppSettings"));
+const StaffLogin = lazy(() => import("./modules/staff/pages/StaffLogin"));
+const StaffBillReport = lazy(() => import("./modules/staff/pages/StaffBillReport"));
 
 function NotificationHandler() {
   const { user, token: authToken } = useAuth();
@@ -382,6 +384,22 @@ function App() {
                       </PublicRoute>
                     }
                   />
+                  <Route
+                    path="/admin/staff-login"
+                    element={
+                      <Suspense fallback={<IconLoader forceShow />}>
+                        <StaffLogin />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/seller/staff-login"
+                    element={
+                      <Suspense fallback={<IconLoader forceShow />}>
+                        <StaffLogin />
+                      </Suspense>
+                    }
+                  />
 
                   {/* Delivery App Routes */}
                   <Route
@@ -434,6 +452,7 @@ function App() {
                               <Route path="return-requests" element={<SellerReturnRequests />} />
                               <Route path="replace-requests" element={<SellerReplaceRequests />} />
                               <Route path="manage-staff" element={<AdminManageStaff />} />
+                              <Route path="staff-bill-report" element={<StaffBillReport />} />
                               <Route path="category" element={<SellerCategory />} />
                               <Route path="subcategory" element={<SellerSubCategory />} />
                               <Route path="product/add" element={<SellerAddProduct />} />
@@ -555,7 +574,8 @@ function App() {
                             <Route path="barcode-settings" element={<AdminBarcodeSettings />} />
                             <Route path="delivery-settings" element={<AdminDeliverySettings />} />
                             <Route path="sales-summary" element={<AdminSalesSummary />} />
-                            <Route path="manage-staff" element={<AdminManageStaff />} />
+                              <Route path="manage-staff" element={<AdminManageStaff />} />
+                              <Route path="staff-bill-report" element={<StaffBillReport />} />
                             <Route path="settings/store" element={<AdminStoreSettings />} />
                             <Route path="app-settings" element={<AdminAppSettings />} />
 
@@ -655,4 +675,3 @@ function App() {
 }
 
 export default App;
-

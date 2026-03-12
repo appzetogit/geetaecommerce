@@ -1,5 +1,6 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { canStaffAccessPath, getStaffSession } from "../../../utils/staffSession";
 
 interface SubMenuItem {
   label: string;
@@ -166,6 +167,26 @@ const menuItems: MenuItem[] = [
         <circle cx="9" cy="7" r="4"></circle>
         <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13"></path>
         <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88"></path>
+      </svg>
+    ),
+  },
+  {
+    label: "Staff Bill Report",
+    path: "/seller/staff-bill-report",
+    icon: (
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="8" y1="13" x2="16" y2="13"></line>
+        <line x1="8" y1="17" x2="13" y2="17"></line>
       </svg>
     ),
   },
@@ -386,6 +407,8 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
+  const staffSession = getStaffSession("seller");
+  const isStaffMode = !!staffSession;
 
   const isActive = (path: string) => {
     if (path === "/seller") {
@@ -433,10 +456,16 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
     return (
       expandedMenus.has(path) ||
       isSubmenuActive(
-        menuItems.find((item) => item.path === path)?.submenuItems
+        visibleMenuItems.find((item) => item.path === path)?.submenuItems
       )
     );
   };
+
+  const visibleMenuItems = isStaffMode
+    ? menuItems.filter((item) =>
+        canStaffAccessPath("seller", item.path, staffSession?.permissions)
+      )
+    : menuItems;
 
   return (
     <aside className="w-64 bg-[#f187b5] h-screen flex flex-col">
@@ -464,7 +493,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
       </div>
       <nav className="flex-1 py-4 sm:py-6 overflow-y-auto">
         <ul className="space-y-1 px-2 sm:px-4">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const expanded = isExpanded(item.path);
             const active =
               isActive(item.path) || isSubmenuActive(item.submenuItems);
@@ -621,4 +650,3 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
     </aside>
   );
 }
-

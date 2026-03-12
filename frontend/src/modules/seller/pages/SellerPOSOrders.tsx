@@ -13,6 +13,7 @@ import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { Html5Qrcode } from "html5-qrcode";
 import { useAppContext } from '../../../context/AppContext';
+import { appendPOSStaffBill, getStaffSession } from '../../../utils/staffSession';
 
 // Interface for Cart Item extending Product
 export interface CartItem extends Product {
@@ -104,6 +105,7 @@ const SellerPOSOrders = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { config, refreshConfig } = useAppContext();
+  const activeStaffSession = getStaffSession('seller');
 
   useEffect(() => {
     refreshConfig();
@@ -2374,7 +2376,9 @@ const SellerPOSOrders = () => {
                 price: getEffectivePrice(item),
                 variationId: item.variationId
             })),
-            gateway: method
+            gateway: method,
+            createdBy: activeStaffSession?.id,
+            staffName: activeStaffSession?.name
         };
 
         const response = await initiatePOSOnlineOrder(orderData);
@@ -2449,6 +2453,23 @@ const SellerPOSOrders = () => {
       try {
           const response = await verifyPOSPayment({ orderId, paymentId, status: 'success' });
           if (response.success) {
+              if (activeStaffSession) {
+                appendPOSStaffBill('seller', {
+                  billNumber: response?.data?.orderNumber || `POS-${Date.now()}`,
+                  orderId: response?.data?._id || response?.data?.id || orderId,
+                  createdBy: activeStaffSession.id,
+                  staffName: activeStaffSession.name,
+                  paymentMode: 'Online',
+                  totalAmount: calculateTotal(),
+                  numberOfProducts: cart.reduce((sum, item) => sum + (item.qty || 0), 0),
+                  createdAt: new Date().toISOString(),
+                  items: cart.map((item) => ({
+                    productName: item.productName,
+                    qty: item.qty,
+                    price: getEffectivePrice(item),
+                  })),
+                });
+              }
               showToast("Payment Successful & Order Placed!", "success");
               setCart([]);
           } else {
@@ -2475,11 +2496,30 @@ const SellerPOSOrders = () => {
                 variationId: item.variationId
             })),
             paymentMethod: 'Cash',
-            paymentStatus: "Paid" as const
+            paymentStatus: "Paid" as const,
+            createdBy: activeStaffSession?.id,
+            staffName: activeStaffSession?.name
         };
 
         const response = await createPOSOrder(orderData);
         if (response.success) {
+            if (activeStaffSession) {
+              appendPOSStaffBill('seller', {
+                billNumber: response?.data?.orderNumber || `POS-${Date.now()}`,
+                orderId: response?.data?._id || response?.data?.id,
+                createdBy: activeStaffSession.id,
+                staffName: activeStaffSession.name,
+                paymentMode: 'Cash',
+                totalAmount: calculateTotal(),
+                numberOfProducts: cart.reduce((sum, item) => sum + (item.qty || 0), 0),
+                createdAt: new Date().toISOString(),
+                items: cart.map((item) => ({
+                  productName: item.productName,
+                  qty: item.qty,
+                  price: getEffectivePrice(item),
+                })),
+              });
+            }
             showToast("Order placed successfully!", "success");
             setCart([]);
             return true;
@@ -2514,12 +2554,31 @@ const SellerPOSOrders = () => {
                     variationId: item.variationId
                 })),
                 paymentMethod: 'Credit',
-                paymentStatus: "Pending" as const
+                paymentStatus: "Pending" as const,
+                createdBy: activeStaffSession?.id,
+                staffName: activeStaffSession?.name
             };
 
             const response = await createPOSOrder(orderData);
 
             if (response.success) {
+                if (activeStaffSession) {
+                  appendPOSStaffBill('seller', {
+                    billNumber: response?.data?.orderNumber || `POS-${Date.now()}`,
+                    orderId: response?.data?._id || response?.data?.id,
+                    createdBy: activeStaffSession.id,
+                    staffName: activeStaffSession.name,
+                    paymentMode: 'Credit',
+                    totalAmount: calculateTotal(),
+                    numberOfProducts: cart.reduce((sum, item) => sum + (item.qty || 0), 0),
+                    createdAt: new Date().toISOString(),
+                    items: cart.map((item) => ({
+                      productName: item.productName,
+                      qty: item.qty,
+                      price: getEffectivePrice(item),
+                    })),
+                  });
+                }
                 showToast(`Credit Order Placed! Balance updated for ${selectedCustomer.name}`, "success");
                 setCart([]);
                 // Navigate to REAL customer credit page

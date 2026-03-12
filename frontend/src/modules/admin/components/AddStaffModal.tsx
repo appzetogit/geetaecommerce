@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Phone, Shield, ArrowRight } from 'lucide-react';
+import { X, User, Phone, Shield, ArrowRight, Percent } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Staff, RoleType } from '../pages/AdminManageStaff';
 
@@ -15,7 +15,8 @@ const AddStaffModal: React.FC<AddStaffModalProps> = ({ isOpen, onClose, onSave, 
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    role: (staff?.role || roles[0] || 'STAFF') as string
+    role: (staff?.role || roles[0] || 'STAFF') as string,
+    commission: String(staff?.commission ?? 0)
   });
 
   useEffect(() => {
@@ -23,13 +24,15 @@ const AddStaffModal: React.FC<AddStaffModalProps> = ({ isOpen, onClose, onSave, 
       setFormData({
         name: staff.name,
         phone: staff.phone,
-        role: staff.role
+        role: staff.role,
+        commission: String(staff.commission ?? 0)
       });
     } else {
       setFormData({
         name: '',
         phone: '',
-        role: 'STAFF'
+        role: 'STAFF',
+        commission: '0'
       });
     }
   }, [staff]);
@@ -40,10 +43,16 @@ const AddStaffModal: React.FC<AddStaffModalProps> = ({ isOpen, onClose, onSave, 
       toast.error('Phone number must be exactly 10 digits');
       return;
     }
+    const commissionValue = Number(formData.commission);
+    if (Number.isNaN(commissionValue) || commissionValue < 0) {
+      toast.error('Commission must be a valid non-negative number');
+      return;
+    }
+    const payload = { ...formData, commission: commissionValue };
     if (staff) {
-      onSave({ ...staff, ...formData });
+      onSave({ ...staff, ...payload });
     } else {
-      onSave(formData);
+      onSave(payload);
     }
   };
 
@@ -122,6 +131,23 @@ const AddStaffModal: React.FC<AddStaffModalProps> = ({ isOpen, onClose, onSave, 
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                 <ArrowRight size={16} className="rotate-90" />
               </div>
+            </div>
+          </div>
+
+          {/* Commission Field */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-gray-700 ml-1">Commission (%)</label>
+            <div className="relative">
+              <Percent className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Ex. 5"
+                value={formData.commission}
+                onChange={(e) => setFormData({ ...formData, commission: e.target.value })}
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+              />
             </div>
           </div>
 
