@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { getProducts, getProductById, getPOSProducts, Product, getSellers, updateProduct, createProduct } from '../../../services/api/admin/adminProductService';
 import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getOrderById, updateOrderItems } from '../../../services/api/admin/adminOrderService';
 import { getAllCustomers, createCustomer, Customer } from '../../../services/api/admin/adminCustomerService';
@@ -2689,12 +2689,12 @@ const AdminPOSOrders = () => {
   }, [addToCart]);
 
   return (
-    <div className="bg-gray-50 h-[100dvh] w-full flex flex-col font-sans overflow-hidden md:min-h-screen md:h-auto md:block md:overflow-visible md:p-4">
+      <div className="bg-gray-50 h-[100dvh] w-full flex flex-col font-sans overflow-hidden md:min-h-screen md:h-auto md:block md:overflow-visible md:px-4 md:pb-2 md:pt-0">
       {/* Header / Breadcrumb */}
-      <div className="flex-none flex justify-between items-center px-3 pt-3 pb-2 md:p-0 md:mb-4">
+        <div className="flex-none flex justify-between items-center px-3 pt-1 pb-1 md:hidden">
         <div>
-           <h1 className="text-lg md:text-xl font-bold text-gray-800">POS System</h1>
-           <div className="text-xs md:text-sm text-gray-500">
+           <h1 className="text-sm md:text-base font-bold text-gray-800">POS System</h1>
+           <div className="text-[10px] md:text-[11px] text-gray-500">
             <span className="text-blue-600">Dashboard</span> / POS
            </div>
         </div>
@@ -3323,60 +3323,61 @@ const AdminPOSOrders = () => {
               {/* Footer Summary */}
 
                    {/* Desktop Sidebar (New Two-Column Layout) */}
-                  <div className="hidden md:flex w-[320px] bg-gray-50 border-l border-gray-200 flex-col p-4 shadow-[inset_4px_0_24px_-12px_rgba(0,0,0,0.1)] z-20 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
+                    <div className="hidden md:flex w-[320px] bg-gray-50 border-l border-gray-200 flex-col p-3 shadow-[inset_4px_0_24px_-12px_rgba(0,0,0,0.1)] z-20 overflow-hidden">
+                        <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 pr-1">
 
                       {/* --- QUICK ACTIONS --- */}
-                      <div className="mb-4">
-                          <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-3">Quick Actions</h3>
-                          <div className="grid grid-cols-2 gap-2">
-                              <button
-                                onClick={() => setShowQuickAdd(true)}
-                                className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-xl hover:border-[#f187b5] hover:shadow-md transition-all group"
-                              >
-                                  <div className="w-8 h-8 bg-[#f187b5]/10 text-[#f187b5] rounded-lg flex items-center justify-center group-hover:bg-[#f187b5] group-hover:text-white transition-colors">
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
-                                  </div>
-                                  <div className="text-left">
-                                      <p className="text-[11px] font-bold text-gray-800">Quick Add</p>
-                                  </div>
-                              </button>
+                        <div className="mb-3">
+                            <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Quick Actions</h3>
+                            <div className="grid grid-cols-2 gap-1.5">
+                                <button
+                                  onClick={() => setShowQuickAdd(true)}
+                                  className="flex items-center gap-2 p-1.5 bg-white border border-gray-200 rounded-xl hover:border-[#f187b5] hover:shadow-md transition-all group"
+                                >
+                                    <div className="w-7 h-7 bg-[#f187b5]/10 text-[#f187b5] rounded-lg flex items-center justify-center group-hover:bg-[#f187b5] group-hover:text-white transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-[11px] font-bold text-gray-800">Quick Add</p>
+                                    </div>
+                                </button>
 
-                              <button
-                                onClick={() => setShowAddCustomerModal(true)}
-                                className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-xl hover:border-teal-500 hover:shadow-md transition-all group"
-                              >
-                                  <div className="w-8 h-8 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center group-hover:bg-teal-500 group-hover:text-white transition-colors">
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
-                                  </div>
-                                  <div className="text-left">
-                                      <p className="text-[11px] font-bold text-gray-800">Add Cust.</p>
-                                  </div>
-                              </button>
+                                <button
+                                  onClick={() => setShowAddCustomerModal(true)}
+                                  className="flex items-center gap-2 p-1.5 bg-white border border-gray-200 rounded-xl hover:border-teal-500 hover:shadow-md transition-all group"
+                                >
+                                    <div className="w-7 h-7 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center group-hover:bg-teal-500 group-hover:text-white transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-[11px] font-bold text-gray-800">Add Cust.</p>
+                                    </div>
+                                </button>
 
-                              <button
-                                onClick={() => navigate('/admin/pos/customers')}
-                                className="flex items-center gap-2 p-2 bg-white border border-gray-200 rounded-xl hover:border-indigo-500 hover:shadow-md transition-all group col-span-2"
-                              >
-                                  <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                                  </div>
-                                  <div className="text-left">
-                                      <p className="text-[11px] font-bold text-gray-800">Customer Credit (Udhaar)</p>
-                                  </div>
-                              </button>
-                          </div>
-                      </div>
+                                <button
+                                  onClick={() => navigate('/admin/pos/customers')}
+                                  className="flex items-center gap-2 p-1.5 bg-white border border-gray-200 rounded-xl hover:border-indigo-500 hover:shadow-md transition-all group col-span-2"
+                                >
+                                    <div className="w-7 h-7 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-colors">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-[11px] font-bold text-gray-800">Customer Credit (Udhaar)</p>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
 
                       {/* --- CUSTOMER SELECTION --- */}
-                      <div className="mb-4 p-3 bg-white border border-gray-200 rounded-2xl shadow-sm">
-                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Customer Selection</label>
-                          <div className="relative">
-                              <input
-                                  type="text"
-                                  placeholder="Search Customer..."
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
-                                  value={customerSearch}
-                                  onChange={(e) => {
+                        <div className="mb-3 p-2.5 bg-white border border-gray-200 rounded-2xl shadow-sm">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1.5">Customer Selection</label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search Customer..."
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                    value={customerSearch}
+                                    onChange={(e) => {
                                       setCustomerSearch(e.target.value);
                                       if (selectedCustomer) {
                                           const expected = selectedCustomer.phone ? `${selectedCustomer.name} (${selectedCustomer.phone})` : selectedCustomer.name;
@@ -3407,9 +3408,9 @@ const AdminPOSOrders = () => {
                       </div>
 
                       {/* --- ORDER TYPE --- */}
-                      <div className="mb-4">
-                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Order Type</label>
-                          <div className="bg-gray-200 p-1 rounded-xl flex relative h-9">
+                        <div className="mb-3">
+                           <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1.5">Order Type</label>
+                            <div className="bg-gray-200 p-1 rounded-xl flex relative h-8">
                               <div
                                   className={`absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#f187b5] rounded-lg transition-all duration-300 ease-in-out shadow-sm ${orderType === 'Wholesale' ? 'left-[calc(50%+2px)]' : 'left-1'}`}
                               ></div>
@@ -3419,12 +3420,12 @@ const AdminPOSOrders = () => {
                       </div>
 
                       {/* --- PAYMENT METHOD --- */}
-                      <div className="mb-4">
-                          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">Payment Method</label>
-                          <div className="relative">
-                              <button
-                                  onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
-                                  className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-gray-700 hover:border-[#f187b5] transition-all shadow-sm"
+                        <div className="mb-3">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1.5">Payment Method</label>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
+                                    className="w-full flex items-center justify-between bg-white border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 hover:border-[#f187b5] transition-all shadow-sm"
                               >
                                   <span>{paymentMethod || 'Cash'}</span>
                                   <svg className={`w-3 h-3 text-gray-400 transition-transform ${showPaymentDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -3446,21 +3447,23 @@ const AdminPOSOrders = () => {
                           </div>
                       </div>
 
-                      {/* --- SUMMARY & ACTIONS --- */}
-                      <div className="mt-auto space-y-3">
-                          <div className="bg-gray-900 text-white p-4 rounded-[1.5rem] shadow-lg">
+                        </div>
+
+                        {/* --- SUMMARY & ACTIONS --- */}
+                        <div className="flex-none space-y-2 pt-3 border-t border-gray-200 bg-gray-50">
+                            <div className="bg-gray-900 text-white p-2 rounded-[1rem] shadow-lg">
+                              <div className="flex justify-between items-center mb-0.5">
+                                 <span className="text-gray-400 text-[8px] uppercase tracking-widest">Subtotal</span>
+                                 <span className="font-bold text-[12px]">₹{calculateTotal().toLocaleString()}</span>
+                              </div>
                               <div className="flex justify-between items-center mb-1">
-                                 <span className="text-gray-400 text-[10px] uppercase tracking-widest">Subtotal</span>
-                                 <span className="font-bold text-sm">₹{calculateTotal().toLocaleString()}</span>
+                                 <span className="text-gray-400 text-[8px] uppercase tracking-widest">Qty. Items</span>
+                                 <span className="font-bold text-[12px]">{cart.reduce((a, c) => a + c.qty, 0)}</span>
                               </div>
-                              <div className="flex justify-between items-center mb-2">
-                                 <span className="text-gray-400 text-[10px] uppercase tracking-widest">Qty. Items</span>
-                                 <span className="font-bold text-sm">{cart.reduce((a, c) => a + c.qty, 0)}</span>
-                              </div>
-                              <div className="border-t border-white/10 pt-3 flex justify-between items-center">
+                              <div className="border-t border-white/10 pt-2 flex justify-between items-center">
                                  <div className="flex flex-col">
-                                     <span className="text-[#f187b5] text-[9px] font-bold uppercase tracking-widest">Total Payable</span>
-                                     <span className="text-xl font-black">₹{calculateTotal().toLocaleString()}</span>
+                                     <span className="text-[#f187b5] text-[7px] font-bold uppercase tracking-widest">Total Payable</span>
+                                     <span className="text-base font-black">₹{calculateTotal().toLocaleString()}</span>
                                  </div>
                               </div>
                           </div>
@@ -3470,7 +3473,7 @@ const AdminPOSOrders = () => {
                                  <button
                                    onClick={handleGenerateBill}
                                    disabled={cart.length === 0}
-                                   className="w-full bg-white border-2 border-[#f187b5] text-[#f187b5] hover:bg-[#f187b5] hover:text-white font-black py-2.5 px-4 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group text-xs"
+                                   className="w-full bg-white border-2 border-[#f187b5] text-[#f187b5] hover:bg-[#f187b5] hover:text-white font-black py-2 px-4 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group text-xs"
                                  >
                                     <svg className="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                     <span>GENERATE BILL</span>
@@ -3480,7 +3483,7 @@ const AdminPOSOrders = () => {
                                <button
                                  onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
                                  disabled={loading || cart.length === 0}
-                                 className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#f187b5] hover:bg-[#e076a5]' : 'bg-[#f187b5] hover:bg-[#e076a5]'} text-white font-black py-3 px-4 rounded-xl shadow-lg shadow-[#f187b5]/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-xs`}
+                                   className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#f187b5] hover:bg-[#e076a5]' : 'bg-[#f187b5] hover:bg-[#e076a5]'} text-white font-black py-2.5 px-4 rounded-xl shadow-lg shadow-[#f187b5]/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-xs`}
                                >
                                   {loading ? (
                                      <>
@@ -5281,3 +5284,6 @@ const AdminPOSOrders = () => {
 };
 
 export default AdminPOSOrders;
+
+
+
