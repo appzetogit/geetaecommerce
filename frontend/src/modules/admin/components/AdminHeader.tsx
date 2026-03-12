@@ -27,6 +27,7 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
   const socketRef = useRef<Socket | null>(null);
 
   const isActive = (path: string) => location.pathname.includes(path);
+  const isPosOrdersPage = location.pathname.startsWith('/admin/pos/orders');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -151,9 +152,11 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
 
   return (
     <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-30">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 gap-3 sm:gap-0">
+      <div
+        className={`flex ${isPosOrdersPage ? 'flex-row items-center' : 'flex-col sm:flex-row items-start sm:items-center'} justify-between px-3 sm:px-4 md:px-6 ${isPosOrdersPage ? 'py-2 sm:py-4 gap-2 sm:gap-0' : 'py-3 sm:py-4 gap-3 sm:gap-0'}`}
+      >
         {/* Logo and Hamburger Menu */}
-        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+        <div className={`flex items-center gap-2 sm:gap-4 ${isPosOrdersPage ? 'w-auto' : 'w-full sm:w-auto'}`}>
           {/* Hamburger Menu Button */}
           <button
             onClick={onMenuClick}
@@ -400,4 +403,3 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
     </header>
   );
 }
-
