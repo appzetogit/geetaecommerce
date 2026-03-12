@@ -23,15 +23,15 @@ export default function SellerCategory() {
     // Initial Data Loading
     useEffect(() => {
         // 1. Check Seller Permission
-        // Admin "Category Permission" toggle ON => seller cannot create category
-        // Toggle OFF => seller can create category
+        // Admin "Category Permission" toggle ON => seller can create category
+        // Toggle OFF => seller cannot create category
         const permissionsMap = localStorage.getItem('seller_category_permissions');
         const currentSellerId = user?.id;
         if (permissionsMap && currentSellerId) {
             try {
                 const parsed = JSON.parse(permissionsMap);
-                const isRestrictedByAdmin = parsed[currentSellerId] === true;
-                setCanCreateCategories(!isRestrictedByAdmin);
+                const isAllowedByAdmin = parsed[currentSellerId] === true;
+                setCanCreateCategories(isAllowedByAdmin);
             } catch {
                 // Safe fallback: allow creation when permission map is invalid
                 setCanCreateCategories(true);

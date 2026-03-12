@@ -1,11 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { getAllSubcategories, SubCategory } from '../../../services/api/categoryService';
+import { getAllSubcategories, SubCategory, Category } from '../../../services/api/categoryService';
 import ThemedDropdown from '../components/ThemedDropdown';
+import { useAuth } from '../../../context/AuthContext';
+import { uploadImage } from "../../../services/api/uploadService";
+import { validateImageFile, createImagePreview } from "../../../utils/imageUpload";
 
 export default function SellerSubCategory() {
+    const { user } = useAuth();
     const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
+    const [ownSubcategories, setOwnSubcategories] = useState<SubCategory[]>([]);
+    const [ownCategories, setOwnCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string>('');
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -13,6 +19,21 @@ export default function SellerSubCategory() {
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [totalPages, setTotalPages] = useState(1);
+    const [canCreateSubcategories, setCanCreateSubcategories] = useState(false);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [formData, setFormData] = useState({
+        parentId: '',
+        name: '',
+        image: '',
+        order: 0,
+        status: 'Active' as 'Active' | 'Inactive',
+    });
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string>('');
+    const [uploading, setUploading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    const [isDragging, setIsDragging] = useState(false);
 
     // Fetch subcategories from API
     useEffect(() => {
@@ -47,8 +68,55 @@ export default function SellerSubCategory() {
         fetchSubcategories();
     }, [currentPage, rowsPerPage, sortColumn, sortDirection]);
 
+    useEffect(() => {
+        const permissionsMap = localStorage.getItem('seller_category_permissions');
+        const currentSellerId = user?.id;
+        if (permissionsMap && currentSellerId) {
+            try {
+                const parsed = JSON.parse(permissionsMap);
+                const isAllowedByAdmin = parsed[currentSellerId] === true;
+                setCanCreateSubcategories(isAllowedByAdmin);
+            } catch {
+                setCanCreateSubcategories(true);
+            }
+        } else {
+            setCanCreateSubcategories(true);
+        }
+
+        const savedCategories = localStorage.getItem('seller_own_categories');
+        if (savedCategories) {
+            setOwnCategories(JSON.parse(savedCategories));
+        }
+
+        const savedSubcategories = localStorage.getItem('seller_own_subcategories');
+        if (savedSubcategories) {
+            setOwnSubcategories(JSON.parse(savedSubcategories));
+        }
+    }, [user?.id]);
+
+    useEffect(() => {
+        if (!isAddModalOpen) {
+            setFormData({
+                parentId: '',
+                name: '',
+                image: '',
+                order: 0,
+                status: 'Active',
+            });
+            setImageFile(null);
+            setImagePreview('');
+            setFormErrors({});
+            setIsDragging(false);
+        }
+    }, [isAddModalOpen]);
+
+    const mergedSubcategories = useMemo(
+        () => [...subcategories, ...ownSubcategories],
+        [subcategories, ownSubcategories]
+    );
+
     // Client-side sorting (if API doesn't handle it)
-    const sortedSubcategories = [...subcategories];
+    const sortedSubcategories = [...mergedSubcategories];
     if (sortColumn && !sortColumn.includes('.')) {
         sortedSubcategories.sort((a, b) => {
             let aVal: any = a[sortColumn as keyof typeof a];
@@ -77,6 +145,80 @@ export default function SellerSubCategory() {
         } else {
             setSortColumn(column);
             setSortDirection('asc');
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        await processFile(file);
+    };
+
+    const processFile = async (file: File) => {
+        const validation = validateImageFile(file);
+        if (!validation.valid) {
+            setFormErrors((prev) => ({
+                ...prev,
+                image: validation.error || "Invalid image file",
+            }));
+            return;
+        }
+
+        setImageFile(file);
+        setFormErrors((prev) => {
+            const next = { ...prev };
+            delete next.image;
+            return next;
+        });
+
+        try {
+            const preview = await createImagePreview(file);
+            setImagePreview(preview);
+        } catch {
+            setFormErrors((prev) => ({
+                ...prev,
+                image: "Failed to create image preview",
+            }));
+        }
+    };
+
+    const handleSaveSubcategory = async () => {
+        const errors: Record<string, string> = {};
+        if (!formData.parentId) errors.parentId = "Parent category is required";
+        if (!formData.name.trim()) errors.name = "Subcategory name is required";
+        setFormErrors(errors);
+        if (Object.keys(errors).length > 0) return;
+
+        try {
+            setSubmitting(true);
+            let imageUrl = formData.image;
+
+            if (imageFile) {
+                setUploading(true);
+                const imageResult = await uploadImage(imageFile, "Geeta Stores/subcategories");
+                imageUrl = imageResult.secureUrl;
+                setUploading(false);
+            }
+
+            const parent = ownCategories.find(c => c._id === formData.parentId);
+            const newSubcategory: SubCategory = {
+                _id: `seller_sub_${Date.now()}`,
+                categoryName: parent?.name || "Unknown",
+                subcategoryName: formData.name.trim(),
+                subcategoryImage: imageUrl,
+                totalProduct: 0,
+                parentId: formData.parentId,
+            };
+
+            const updated = [newSubcategory, ...ownSubcategories];
+            setOwnSubcategories(updated);
+            localStorage.setItem('seller_own_subcategories', JSON.stringify(updated));
+            setIsAddModalOpen(false);
+        } catch (err: any) {
+            setFormErrors({ submit: err?.message || "Failed to save subcategory" });
+        } finally {
+            setSubmitting(false);
+            setUploading(false);
         }
     };
 
@@ -131,6 +273,14 @@ export default function SellerSubCategory() {
 
                     {/* Controls */}
                     <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                        {canCreateSubcategories && ownCategories.length > 0 && (
+                            <button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="w-full sm:w-auto bg-[#f187b5] hover:bg-[#e076a5] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
+                            >
+                                + Add Subcategory
+                            </button>
+                        )}
                         <div className="w-full sm:w-32">
                              <ThemedDropdown
                                 options={[
@@ -323,6 +473,141 @@ export default function SellerSubCategory() {
                 </Link>
                 </p>
             </footer>
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsAddModalOpen(false)}></div>
+                    <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
+                            <h2 className="text-lg font-semibold text-neutral-900">Create Subcategory</h2>
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="text-neutral-400 hover:text-neutral-600 transition-colors"
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 6L6 18M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="px-6 py-4">
+                            {formErrors.submit && (
+                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                                    {formErrors.submit}
+                                </div>
+                            )}
+
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                    Parent Category <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={formData.parentId}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, parentId: e.target.value }))}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${formErrors.parentId ? "border-red-300" : "border-neutral-300"}`}
+                                >
+                                    <option value="">Select parent category</option>
+                                    {ownCategories.map((cat) => (
+                                        <option key={cat._id} value={cat._id}>
+                                            {cat.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {formErrors.parentId && (
+                                    <p className="mt-1 text-xs text-red-600">{formErrors.parentId}</p>
+                                )}
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                    Subcategory Name <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${formErrors.name ? "border-red-300" : "border-neutral-300"}`}
+                                    placeholder="Enter subcategory name"
+                                />
+                                {formErrors.name && (
+                                    <p className="mt-1 text-xs text-red-600">{formErrors.name}</p>
+                                )}
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                    Subcategory Image
+                                </label>
+                                <label
+                                    className={`block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                                        isDragging ? "border-[#f187b5] bg-[#f187b5]/10" : "border-neutral-300 hover:border-[#f187b5]"
+                                    }`}
+                                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
+                                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
+                                    onDrop={async (e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setIsDragging(false);
+                                        const file = e.dataTransfer.files?.[0];
+                                        if (file) await processFile(file);
+                                    }}
+                                >
+                                    {imagePreview ? (
+                                        <div className="space-y-2">
+                                            <img src={imagePreview} alt="Preview" className="max-h-32 mx-auto rounded-lg object-cover" />
+                                            <p className="text-xs text-neutral-600">{imageFile?.name || "Selected image"}</p>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setImagePreview('');
+                                                    setImageFile(null);
+                                                    setFormData(prev => ({ ...prev, image: '' }));
+                                                }}
+                                                className="text-xs text-red-600 hover:underline"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="py-4">
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mx-auto mb-2 text-neutral-400">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                <polyline points="17 8 12 3 7 8" />
+                                                <line x1="12" y1="3" x2="12" y2="15" />
+                                            </svg>
+                                            <p className="text-xs text-neutral-600">{isDragging ? "Drop image here" : "Choose File or Drag & Drop"}</p>
+                                            <p className="text-xs text-neutral-500 mt-1">Max 5MB</p>
+                                        </div>
+                                    )}
+                                    <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                                </label>
+                                {formErrors.image && (
+                                    <p className="mt-1 text-xs text-red-600">{formErrors.image}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-neutral-200">
+                            <button
+                                onClick={() => setIsAddModalOpen(false)}
+                                className="px-4 py-2 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveSubcategory}
+                                disabled={submitting || uploading}
+                                className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+                                    submitting || uploading ? "bg-neutral-400 cursor-not-allowed" : "bg-[#f187b5] hover:bg-[#e076a5]"
+                                }`}
+                            >
+                                {submitting ? "Saving..." : uploading ? "Uploading..." : "Create Subcategory"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </motion.div>
     );
 }

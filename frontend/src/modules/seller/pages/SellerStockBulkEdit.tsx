@@ -3,6 +3,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import {
   Product,
   updateProduct,
+  createProduct,
   deleteProduct as deleteSellerProduct,
 } from "../../../services/api/productService";
 import { uploadImage } from "../../../services/api/uploadService";
@@ -116,6 +117,7 @@ interface EditableProduct {
   attributes: string[]; // Selected Attribute Names
   variations: any[]; // Full variation objects
   variationName: string;
+  isNew?: boolean;
 }
 
 export default function SellerStockBulkEdit({
@@ -139,6 +141,43 @@ export default function SellerStockBulkEdit({
   const [isScanning, setIsScanning] = useState(false);
   const [scanIndex, setScanIndex] = useState<number | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  const createEmptyProduct = (): EditableProduct => ({
+    id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    original: {} as Product,
+    productName: "",
+    categoryId: "",
+    compareAtPrice: 0,
+    price: 0,
+    stock: 0,
+    publish: false,
+    images: [],
+    isChanged: false,
+    itemCode: "",
+    rackNumber: "",
+    description: "",
+    barcode: [],
+    hsnCode: "",
+    pack: "",
+    purchasePrice: 0,
+    mfgDate: "",
+    expiryDate: "",
+    weight: "",
+    deliveryTime: "",
+    lowStockQuantity: 5,
+    subCategoryId: "",
+    wholesalePrice: 0,
+    subSubCategory: "",
+    brand: "-",
+    brandId: "",
+    tax: "",
+    offerPrice: 0,
+    unitPricing: [{ minQty: 1, price: 0 }],
+    attributes: [],
+    variations: [],
+    variationName: "",
+    isNew: true,
+  });
 
   const startScanning = (index: number) => {
     setIsScanning(true);
@@ -284,6 +323,7 @@ export default function SellerStockBulkEdit({
         attributes: [], // Initialize empty, or derive from existing variations if possible (complex logic simplified for now)
         variations: p.variations || [],
         variationName: (p as any).variationName || "",
+        isNew: false,
       };
     });
     setEditableProducts(initialized);
@@ -340,15 +380,25 @@ export default function SellerStockBulkEdit({
   };
 
   const handleSave = async () => {
-    const changedProducts = editableProducts.filter((p) => p.isChanged);
-    if (changedProducts.length === 0) {
+    const changedExisting = editableProducts.filter((p) => p.isChanged && !p.isNew);
+    const newProducts = editableProducts.filter((p) => p.isNew && p.isChanged);
+
+    if (changedExisting.length === 0 && newProducts.length === 0) {
       onClose();
+      return;
+    }
+
+    const invalidNew = newProducts.filter(
+      (p) => !p.productName.trim() || !p.categoryId
+    );
+    if (invalidNew.length > 0) {
+      alert("Please fill Product Name and Category for new rows before saving.");
       return;
     }
 
     setSaving(true);
     try {
-      const updatePromises = changedProducts.map(async (p) => {
+      const updatePromises = changedExisting.map(async (p) => {
         const finalImages: string[] = [];
 
         // Upload new images and collect all URLs
@@ -418,7 +468,70 @@ export default function SellerStockBulkEdit({
         } as any);
       });
 
-      await Promise.all(updatePromises);
+      const createPromises = newProducts.map(async (p) => {
+        const finalImages: string[] = [];
+
+        for (const img of p.images) {
+          if (img.file) {
+            try {
+              const uploadRes = await uploadImage(img.file);
+              if (uploadRes) {
+                finalImages.push(uploadRes.url);
+              }
+            } catch (err) {
+              console.error("Failed to upload image", err);
+            }
+          } else {
+            finalImages.push(img.url);
+          }
+        }
+
+        const mainImageUrl = finalImages.length > 0 ? finalImages[0] : "";
+        const galleryImageUrls = finalImages.length > 1 ? finalImages.slice(1) : [];
+
+        return createProduct({
+          productName: p.productName || "Untitled",
+          categoryId: p.categoryId || undefined,
+          subcategoryId: p.subCategoryId || undefined,
+          subSubCategoryId: p.subSubCategory || undefined,
+          brandId: p.brandId || undefined,
+          publish: p.publish,
+          popular: false,
+          dealOfDay: false,
+          isReturnable: false,
+          totalAllowedQuantity: 10,
+          mainImageUrl: mainImageUrl || undefined,
+          galleryImageUrls: galleryImageUrls.length ? galleryImageUrls : undefined,
+          price: p.price,
+          compareAtPrice: p.compareAtPrice,
+          stock: p.stock,
+          discPrice: p.offerPrice,
+          wholesalePrice: p.wholesalePrice,
+          itemCode: p.itemCode || undefined,
+          rackNumber: p.rackNumber || undefined,
+          smallDescription: p.description || undefined,
+          barcode: p.barcode,
+          hsnCode: p.hsnCode || undefined,
+          purchasePrice: p.purchasePrice || undefined,
+          deliveryTime: p.deliveryTime || undefined,
+          weight: p.weight || undefined,
+          mfgDate: p.mfgDate || undefined,
+          expiryDate: p.expiryDate || undefined,
+          lowStockQuantity: p.lowStockQuantity,
+          unitPricing: (p as any).unitPricing,
+          ...(p.variationName ? { variationName: p.variationName } : {}),
+          ...(p.variations && p.variations.length > 0
+            ? {
+                variations: p.variations.map((v: any) => ({
+                  ...v,
+                  discPrice: v.offerPrice || v.discPrice || p.offerPrice,
+                })),
+              }
+            : {}),
+        } as any);
+      });
+
+      await Promise.all([...updatePromises, ...createPromises]);
       onSave(); // Trigger refresh in parent
       onClose();
     } catch (error: any) {
@@ -434,6 +547,7 @@ export default function SellerStockBulkEdit({
   // Column filtering logic
   const filteredProducts = useMemo(() => {
      return editableProducts.filter(p => {
+        if (p.isNew) return true;
         const nameMatch = p.productName.toLowerCase().includes(searchTerm.toLowerCase());
         const colProductNameMatch = p.productName.toLowerCase().includes(productNameSearch.toLowerCase());
 
@@ -636,33 +750,58 @@ export default function SellerStockBulkEdit({
     const selectedIds = Array.from(selectedProductIds);
     if (selectedIds.length === 0) return;
 
+    const newIds = selectedIds.filter((id) =>
+      editableProducts.some((p) => p.id === id && p.isNew)
+    );
+    const existingIds = selectedIds.filter((id) => !newIds.includes(id));
+
+    if (existingIds.length === 0) {
+      setEditableProducts((prev) => prev.filter((p) => !newIds.includes(p.id)));
+      setSelectedProductIds((prev) => {
+        const next = new Set(prev);
+        newIds.forEach((id) => next.delete(id));
+        return next;
+      });
+      return;
+    }
+
     const confirmed = window.confirm(
-      `Delete ${selectedIds.length} selected product(s)? This cannot be undone.`
+      `Delete ${existingIds.length} selected product(s)? This cannot be undone.`
     );
     if (!confirmed) return;
 
     setDeleting(true);
     try {
       const results = await Promise.allSettled(
-        selectedIds.map((id) => deleteSellerProduct(id))
+        existingIds.map((id) => deleteSellerProduct(id))
       );
 
-      const failedIds = selectedIds.filter((id, idx) => {
+      const failedIds = existingIds.filter((id, idx) => {
         const result = results[idx];
         if (result.status === "rejected") return true;
         return !result.value?.success;
       });
 
-      const deletedIds = selectedIds.filter((id) => !failedIds.includes(id));
+      const deletedIds = existingIds.filter((id) => !failedIds.includes(id));
 
       if (deletedIds.length > 0) {
-        setEditableProducts((prev) => prev.filter((p) => !deletedIds.includes(p.id)));
+        setEditableProducts((prev) => prev.filter((p) => !deletedIds.includes(p.id) && !newIds.includes(p.id)));
         setSelectedProductIds((prev) => {
           const next = new Set(prev);
           deletedIds.forEach((id) => next.delete(id));
+          newIds.forEach((id) => next.delete(id));
           return next;
         });
         onSave();
+      }
+
+      if (newIds.length > 0 && deletedIds.length === 0) {
+        setEditableProducts((prev) => prev.filter((p) => !newIds.includes(p.id)));
+        setSelectedProductIds((prev) => {
+          const next = new Set(prev);
+          newIds.forEach((id) => next.delete(id));
+          return next;
+        });
       }
 
       if (failedIds.length > 0) {
@@ -982,6 +1121,12 @@ export default function SellerStockBulkEdit({
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-[#f187b5] text-white rounded-t-lg">
           <h2 className="text-lg font-semibold">Bulk Edit Products</h2>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setEditableProducts((prev) => [createEmptyProduct(), ...prev])}
+              className="px-3 py-1 text-sm bg-white text-[#f187b5] rounded hover:bg-pink-50 transition-colors"
+            >
+              + Add Row
+            </button>
              <input
                 type="text"
                 placeholder="Search products..."
