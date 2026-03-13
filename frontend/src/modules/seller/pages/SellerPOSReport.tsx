@@ -46,6 +46,7 @@ const SellerPOSReport = () => {
     const [filter, setFilter] = useState("all");
     const [selectedActionOrder, setSelectedActionOrder] = useState<any>(null);
     const [editingLedgerEntry, setEditingLedgerEntry] = useState<any>(null);
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Filter State
     const [showFilterModal, setShowFilterModal] = useState(false);
@@ -187,13 +188,52 @@ const SellerPOSReport = () => {
         }
     };
 
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    const orderMatchesSearch = (order: any) => {
+        if (!normalizedSearch) return true;
+        const haystack = [
+            order.orderNumber,
+            order.customerName,
+            order.customerPhone,
+            order.paymentMethod,
+            order.paymentStatus,
+            order.total,
+            order.grandTotal,
+            order.items?.length
+        ]
+            .filter((value) => value !== undefined && value !== null)
+            .map((value) => String(value).toLowerCase())
+            .join(" ");
+        return haystack.includes(normalizedSearch);
+    };
+
+    const ledgerMatchesSearch = (entry: any) => {
+        if (!normalizedSearch) return true;
+        const haystack = [
+            entry.product?.productName,
+            entry.sku,
+            entry.source,
+            entry.type,
+            entry.quantity,
+            entry.previousStock,
+            entry.newStock
+        ]
+            .filter((value) => value !== undefined && value !== null)
+            .map((value) => String(value).toLowerCase())
+            .join(" ");
+        return haystack.includes(normalizedSearch);
+    };
+
     const filteredOrders = reportData?.orders?.filter((order: any) => {
         if (filter === "all") return true;
         if (filter === "cash") return order.paymentMethod === "Cash";
         if (filter === "online") return order.paymentMethod !== "Cash";
         if (filter === "unpaid") return order.paymentStatus !== "Paid";
         return true;
-    }) || [];
+    }).filter(orderMatchesSearch) || [];
+
+    const filteredLedger = ledgerData.filter(ledgerMatchesSearch);
 
     if (loading && !reportData) {
         return (
@@ -371,6 +411,29 @@ const SellerPOSReport = () => {
                     </button>
                 </div>
 
+                <div className="p-4 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="relative flex-1 max-w-md">
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder={activeTab === "orders" ? "Search orders by number, customer, phone..." : "Search stock ledger by product, SKU, source..."}
+                            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#f187b5]/30 focus:border-[#f187b5]"
+                        />
+                        <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35m1.85-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    {searchTerm && (
+                        <button
+                            onClick={() => setSearchTerm("")}
+                            className="px-3 py-2 text-xs font-semibold text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                            Clear
+                        </button>
+                    )}
+                </div>
+
                 {activeTab === "orders" && (
                     <div className="p-0">
                         {/* Filters Row */}
@@ -406,7 +469,7 @@ const SellerPOSReport = () => {
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {filteredOrders.length === 0 ? (
-                                        <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">No orders found for today</td></tr>
+                                        <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">{searchTerm ? "No orders match your search" : "No orders found for today"}</td></tr>
                                     ) : (
                                         filteredOrders.map((order: any) => (
                                             <tr
@@ -472,10 +535,10 @@ const SellerPOSReport = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
-                                    {ledgerData.length === 0 ? (
-                                        <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400 italic">No stock movements recorded</td></tr>
+                                    {filteredLedger.length === 0 ? (
+                                        <tr><td colSpan={6} className="px-6 py-12 text-center text-gray-400 italic">{searchTerm ? "No stock movements match your search" : "No stock movements recorded"}</td></tr>
                                     ) : (
-                                        ledgerData.map((entry: any) => (
+                                        filteredLedger.map((entry: any) => (
                                             <tr key={entry._id} className="hover:bg-gray-50/80 transition-colors group">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
