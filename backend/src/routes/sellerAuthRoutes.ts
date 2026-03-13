@@ -11,6 +11,9 @@ router.post("/send-otp", otpRateLimiter, sellerAuthController.sendOTP);
 // Verify OTP and login route
 router.post("/verify-otp", loginRateLimiter, sellerAuthController.verifyOTP);
 
+// Logout route (protected)
+router.post("/logout", authenticate, sellerAuthController.logout);
+
 // Register route
 router.post("/register", sellerAuthController.register);
 

@@ -101,7 +101,16 @@ export const updateSellerProfile = async (data: any): Promise<any> => {
  * Logout seller
  */
 export const logout = (): void => {
-  removeAuthToken();
+  // Best-effort backend logout to release one active session slot.
+  // We don't block UI logout on this call.
+  api
+    .post('/auth/seller/logout')
+    .catch(() => {
+      // Ignore errors silently; frontend logout should still succeed.
+    })
+    .finally(() => {
+      removeAuthToken();
+    });
 };
 
 

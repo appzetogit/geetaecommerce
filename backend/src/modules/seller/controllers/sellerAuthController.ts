@@ -128,6 +128,31 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
 });
 
 /**
+ * Logout seller and release one active session slot
+ */
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+  const user = (req as any).user;
+
+  // Ensure only authenticated sellers hit this endpoint
+  if (!user || user.userType !== "Seller" || !user.userId) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized",
+    });
+  }
+
+  // Remove a single active login session for this seller (any device)
+  await SellerLoginSession.findOneAndDelete({
+    sellerId: user.userId,
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Logout successful",
+  });
+});
+
+/**
  * Register new seller
  */
 export const register = asyncHandler(async (req: Request, res: Response) => {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import GeetaStoresLogo from '@assets/geetastoreslogo.png';
 import { useAuth } from '../../../context/AuthContext';
+import { logout as sellerApiLogout } from '../../../services/api/auth/sellerAuthService';
 
 interface SellerHeaderProps {
   onMenuClick: () => void;
@@ -37,9 +38,16 @@ export default function SellerHeader({ onMenuClick, isSidebarOpen }: SellerHeade
     };
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/seller/login');
+  const handleLogout = async () => {
+    // Call seller-specific backend logout to release one active session slot.
+    try {
+      await sellerApiLogout();
+    } catch {
+      // Ignore errors; ensure frontend logout still happens.
+    } finally {
+      logout();
+      navigate('/seller/login');
+    }
   };
 
   const handleSettingsClick = () => {
