@@ -122,6 +122,379 @@ const BASE_PERMISSION_GROUPS: PermissionGroup[] = [
   }
 ];
 
+const ADMIN_SIDEBAR_SECTIONS: Array<{
+  title: string;
+  badge: string;
+  badgeColor: string;
+  items: Array<{ label: string; path: string; defaultEnabled?: boolean }>;
+}> = [
+  {
+    title: 'Main',
+    badge: 'CORE',
+    badgeColor: 'text-slate-600 bg-slate-50',
+    items: [
+      { label: 'Dashboard', path: '/admin' },
+      { label: 'Sales & Summary', path: '/admin/sales-summary' },
+    ],
+  },
+  {
+    title: 'POS Section',
+    badge: 'POS MENU',
+    badgeColor: 'text-teal-600 bg-teal-50',
+    items: [
+      { label: 'POS Orders', path: '/admin/pos/orders' },
+      { label: 'POS Report', path: '/admin/pos/report' },
+      { label: 'Purchase Report', path: '/admin/purchase/report' },
+      { label: 'POS Quotations', path: '/admin/pos/quotations' },
+      { label: 'Supplier Ledger', path: '/admin/pos/suppliers' },
+      { label: 'POS Bill Settings', path: '/admin/pos/bill-settings' },
+    ],
+  },
+  {
+    title: 'Reports',
+    badge: 'REPORTS',
+    badgeColor: 'text-blue-600 bg-blue-50',
+    items: [
+      { label: 'Reports', path: '/admin/reports' },
+      { label: 'Order Report', path: '/admin/reports/order' },
+      { label: 'Invoice Report', path: '/admin/reports/invoice' },
+      { label: 'Product Inventory Report', path: '/admin/reports/inventory' },
+      { label: 'Stock Summary', path: '/admin/reports/inventory/stock-summary' },
+      { label: 'Stock Balance summary', path: '/admin/reports/inventory/stock-balance' },
+      { label: 'Low Stock summary', path: '/admin/reports/inventory/low-stock' },
+      { label: 'Out of stock summary', path: '/admin/reports/inventory/out-of-stock' },
+      { label: 'Loss summary', path: '/admin/reports/inventory/loss-summary' },
+      { label: 'GST Sales Report', path: '/admin/reports/gst-sales' },
+      { label: 'Payment Report', path: '/admin/reports/payment' },
+      { label: 'Sales Reports', path: '/admin/reports/sales' },
+      { label: 'Sales Summary', path: '/admin/reports/sales/summary' },
+      { label: 'Return and Exchange summary', path: '/admin/reports/sales/return-exchange' },
+      { label: 'Stock Sales Summary', path: '/admin/reports/sales/stock-sales' },
+      { label: 'Due Summary', path: '/admin/reports/sales/due-summary' },
+    ],
+  },
+  {
+    title: 'Product Section',
+    badge: 'PRODUCT',
+    badgeColor: 'text-orange-600 bg-orange-50',
+    items: [
+      { label: 'Category', path: '/admin/category' },
+      { label: 'Header Category', path: '/admin/category/header' },
+      { label: 'Brand', path: '/admin/brand' },
+      { label: 'Product', path: '/admin/product' },
+      { label: 'Product List', path: '/admin/product/list' },
+      { label: 'Taxes', path: '/admin/product/taxes' },
+      { label: 'Attribute Setup', path: '/admin/product/attribute-setup' },
+      { label: 'Variation Setup', path: '/admin/product/variation-setup' },
+      { label: 'Manage Seller', path: '/admin/manage-seller' },
+      { label: 'Add Seller', path: '/admin/manage-seller/add' },
+      { label: 'Manage Seller List', path: '/admin/manage-seller/list' },
+      { label: 'Seller Transaction', path: '/admin/manage-seller/transaction' },
+      { label: 'Seller User Limit', path: '/admin/manage-seller/user-limit' },
+    ],
+  },
+  {
+    title: 'Customer Section',
+    badge: 'CUSTOMER',
+    badgeColor: 'text-emerald-600 bg-emerald-50',
+    items: [
+      { label: 'Abandoned Carts', path: '/admin/customers/abandoned-carts' },
+    ],
+  },
+  {
+    title: 'Delivery Section',
+    badge: 'DELIVERY',
+    badgeColor: 'text-cyan-600 bg-cyan-50',
+    items: [
+      { label: 'Manage Location', path: '/admin/manage-location' },
+      { label: 'Seller Location', path: '/admin/manage-location/seller-location' },
+      { label: 'Delivery Boy', path: '/admin/delivery-boy' },
+      { label: 'Add Delivery Boy', path: '/admin/delivery-boy/add' },
+      { label: 'Manage Delivery Boy', path: '/admin/delivery-boy/manage' },
+      { label: 'Fund Transfer', path: '/admin/delivery-boy/fund-transfer' },
+      { label: 'Cash Collection', path: '/admin/delivery-boy/cash-collection' },
+    ],
+  },
+  {
+    title: 'Miscellaneous',
+    badge: 'MISC',
+    badgeColor: 'text-slate-600 bg-slate-50',
+    items: [
+      { label: 'Wallet', path: '/admin/wallet' },
+      { label: 'Users', path: '/admin/users' },
+      { label: 'Notification', path: '/admin/notification' },
+      { label: 'FAQ', path: '/admin/faq' },
+    ],
+  },
+  {
+    title: 'Order Section',
+    badge: 'ORDERS',
+    badgeColor: 'text-amber-600 bg-amber-50',
+    items: [
+      { label: 'Order List', path: '/admin/orders' },
+      { label: 'All Order', path: '/admin/orders/all' },
+      { label: 'Pending Order', path: '/admin/orders/pending' },
+      { label: 'Received Order', path: '/admin/orders/received' },
+      { label: 'Processed Order', path: '/admin/orders/processed' },
+      { label: 'Shipped Order', path: '/admin/orders/shipped' },
+      { label: 'Out For Delivery', path: '/admin/orders/out-for-delivery' },
+      { label: 'Delivered Order', path: '/admin/orders/delivered' },
+      { label: 'Cancelled Order', path: '/admin/orders/cancelled' },
+    ],
+  },
+  {
+    title: 'Requests',
+    badge: 'REQUESTS',
+    badgeColor: 'text-rose-600 bg-rose-50',
+    items: [
+      { label: 'Return Requests', path: '/admin/return-requests' },
+      { label: 'Replace Requests', path: '/admin/replace-requests' },
+    ],
+  },
+  {
+    title: 'Promotion',
+    badge: 'PROMO',
+    badgeColor: 'text-pink-600 bg-pink-50',
+    items: [
+      { label: 'Banner Setup', path: '/admin/promotion/banner-setup' },
+      { label: 'Free Gift Rules', path: '/admin/promotion/free-gift-rules' },
+      { label: 'Offers & Deals', path: '/admin/promotion/offers-deals' },
+      { label: 'Coupon', path: '/admin/coupon' },
+      { label: 'Flash Deals', path: '/admin/promotion/flash-deals' },
+      { label: 'Deal of the day', path: '/admin/promotion/deal-of-the-day' },
+      { label: 'Featured Deal', path: '/admin/promotion/featured-deal' },
+      { label: 'Home Section', path: '/admin/home-section' },
+      { label: 'Bestseller Cards', path: '/admin/bestseller-cards' },
+      { label: 'Promo Strip', path: '/admin/promo-strip' },
+      { label: 'Lowest Prices', path: '/admin/lowest-prices' },
+      { label: 'Shop by Store', path: '/admin/shop-by-store' },
+      { label: 'Video Finds', path: '/admin/video-finds' },
+    ],
+  },
+  {
+    title: '3rd Party',
+    badge: 'INTEGRATION',
+    badgeColor: 'text-violet-600 bg-violet-50',
+    items: [
+      { label: 'Payment methods', path: '/admin/payment-list' },
+      { label: 'Other Configurations', path: '/admin/app-settings' },
+      { label: 'Shiprocket Integration', path: '/admin/app-settings?tab=shiprocket' },
+    ],
+  },
+  {
+    title: 'Setting',
+    badge: 'SETTINGS',
+    badgeColor: 'text-gray-600 bg-gray-50',
+    items: [
+      { label: 'Brand Settings', path: '/admin/settings/store' },
+      { label: 'Product Settings', path: '/admin/product-display-settings' },
+      { label: 'Barcode Settings', path: '/admin/barcode-settings' },
+      { label: 'Delivery Settings', path: '/admin/delivery-settings' },
+      { label: 'Payment List', path: '/admin/payment-list' },
+      { label: 'SMS Gateway', path: '/admin/sms-gateway' },
+      { label: 'System User', path: '/admin/system-user' },
+      { label: 'Customer App Policy', path: '/admin/customer-app-policy' },
+      { label: 'Delivery App Policy', path: '/admin/delivery-app-policy' },
+    ],
+  },
+];
+
+const buildGroupId = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+
+const buildPermissionIdFromPath = (path: string) => {
+  let normalized = path.replace(/^\/admin\/?/, '');
+  if (!normalized) {
+    normalized = 'dashboard';
+  }
+  const cleaned = normalized.replace(/[/?=&]/g, ' ');
+  const slug = cleaned
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+  return `admin_${slug}`;
+};
+
+const buildAdminPermissionGroups = (): PermissionGroup[] => {
+  const accessGroup = BASE_PERMISSION_GROUPS.find((group) => group.id === 'access');
+  const sidebarGroups = ADMIN_SIDEBAR_SECTIONS.map((section) => {
+    const seenPaths = new Set<string>();
+    const permissions = section.items
+      .filter((item) => {
+        if (seenPaths.has(item.path)) return false;
+        seenPaths.add(item.path);
+        return true;
+      })
+      .map((item) => ({
+        id: buildPermissionIdFromPath(item.path),
+        label: item.label,
+        enabled: item.defaultEnabled ?? false,
+      }));
+
+    return {
+      id: buildGroupId(section.title),
+      title: section.title,
+      badge: section.badge,
+      badgeColor: section.badgeColor,
+      permissions,
+    };
+  });
+
+  return accessGroup ? [accessGroup, ...sidebarGroups] : sidebarGroups;
+};
+
+const SELLER_SIDEBAR_SECTIONS: Array<{
+  title: string;
+  badge: string;
+  badgeColor: string;
+  items: Array<{ label: string; path: string; defaultEnabled?: boolean }>;
+}> = [
+  {
+    title: 'Main',
+    badge: 'CORE',
+    badgeColor: 'text-slate-600 bg-slate-50',
+    items: [
+      { label: 'Dashboard', path: '/seller' },
+    ],
+  },
+  {
+    title: 'Orders',
+    badge: 'ORDERS',
+    badgeColor: 'text-amber-600 bg-amber-50',
+    items: [
+      { label: 'Orders', path: '/seller/orders' },
+      { label: 'All', path: '/seller/orders/all' },
+      { label: 'Pending', path: '/seller/orders/pending' },
+      { label: 'Received', path: '/seller/orders/received' },
+      { label: 'Processed', path: '/seller/orders/processed' },
+      { label: 'Shipped', path: '/seller/orders/shipped' },
+      { label: 'Out For Delivery', path: '/seller/orders/out-for-delivery' },
+      { label: 'Delivered', path: '/seller/orders/delivered' },
+      { label: 'Cancelled', path: '/seller/orders/cancelled' },
+    ],
+  },
+  {
+    title: 'Requests',
+    badge: 'REQUESTS',
+    badgeColor: 'text-rose-600 bg-rose-50',
+    items: [
+      { label: 'Requests', path: '/seller/requests' },
+      { label: 'Return Requests', path: '/seller/return-requests' },
+      { label: 'Replace Requests', path: '/seller/replace-requests' },
+    ],
+  },
+  {
+    title: 'POS System',
+    badge: 'POS',
+    badgeColor: 'text-teal-600 bg-teal-50',
+    items: [
+      { label: 'POS System', path: '/seller/pos' },
+      { label: 'POS Orders', path: '/seller/pos/orders' },
+      { label: 'POS Report', path: '/seller/pos/report' },
+      { label: 'Purchase Report', path: '/seller/purchase/report' },
+      { label: 'POS Quotations', path: '/seller/pos/quotations' },
+      { label: 'Supplier Ledger', path: '/seller/pos/suppliers' },
+    ],
+  },
+  {
+    title: 'Category',
+    badge: 'CATEGORY',
+    badgeColor: 'text-orange-600 bg-orange-50',
+    items: [
+      { label: 'Category', path: '/seller/category' },
+      { label: 'SubCategory', path: '/seller/subcategory' },
+    ],
+  },
+  {
+    title: 'Products',
+    badge: 'PRODUCT',
+    badgeColor: 'text-orange-600 bg-orange-50',
+    items: [
+      { label: 'Attribute Setup', path: '/seller/product/attribute-setup' },
+      { label: 'Variation Setup', path: '/seller/product/variation-setup' },
+      { label: 'Product', path: '/seller/product' },
+      { label: 'Add new Product', path: '/seller/product/add' },
+      { label: 'Taxes', path: '/seller/product/taxes' },
+      { label: 'Product List', path: '/seller/product/list' },
+      { label: 'Stock Management', path: '/seller/product/stock' },
+    ],
+  },
+  {
+    title: 'Reports',
+    badge: 'REPORTS',
+    badgeColor: 'text-blue-600 bg-blue-50',
+    items: [
+      { label: 'Reports', path: '/seller/reports' },
+      { label: 'Order Report', path: '/seller/reports/order' },
+      { label: 'Invoice Report', path: '/seller/reports/invoice' },
+      { label: 'GST Sales Report', path: '/seller/reports/gst-sales' },
+      { label: 'Payment Report', path: '/seller/reports/payment' },
+      { label: 'Sales Reports', path: '/seller/reports/sales' },
+      { label: 'Sales Summary', path: '/seller/reports/sales/summary' },
+      { label: 'Return and Exchange summary', path: '/seller/reports/sales/return-exchange' },
+      { label: 'Stock Sales Summary', path: '/seller/reports/sales/stock-sales' },
+      { label: 'Due Summary', path: '/seller/reports/sales/due-summary' },
+      { label: 'Product Inventory Reports', path: '/seller/inventory-reports' },
+      { label: 'Stock Summary', path: '/seller/inventory-reports/stock-summary' },
+      { label: 'Stock Balance', path: '/seller/inventory-reports/stock-balance' },
+      { label: 'Low Stock', path: '/seller/inventory-reports/low-stock' },
+      { label: 'Out of Stock', path: '/seller/inventory-reports/out-of-stock' },
+      { label: 'Loss Summary', path: '/seller/inventory-reports/loss-summary' },
+    ],
+  },
+  {
+    title: 'Wallet',
+    badge: 'WALLET',
+    badgeColor: 'text-emerald-600 bg-emerald-50',
+    items: [
+      { label: 'Wallet', path: '/seller/wallet' },
+      { label: 'Wallet Transactions', path: '/seller/wallet/transactions' },
+      { label: 'Withdrawal Requests', path: '/seller/wallet/withdrawals' },
+    ],
+  },
+  {
+    title: 'Settings',
+    badge: 'SETTINGS',
+    badgeColor: 'text-gray-600 bg-gray-50',
+    items: [
+      { label: 'Product Settings', path: '/seller/product-display-settings' },
+      { label: 'Bill Settings', path: '/seller/bill-settings' },
+      { label: 'Barcode Settings', path: '/seller/barcode-settings' },
+    ],
+  },
+];
+
+const buildSellerPermissionGroups = (): PermissionGroup[] => {
+  const accessGroup = BASE_PERMISSION_GROUPS.find((group) => group.id === 'access');
+  const sidebarGroups = SELLER_SIDEBAR_SECTIONS.map((section) => {
+    const seenPaths = new Set<string>();
+    const permissions = section.items
+      .filter((item) => {
+        if (seenPaths.has(item.path)) return false;
+        seenPaths.add(item.path);
+        return true;
+      })
+      .map((item) => ({
+        id: buildPermissionIdFromPath(item.path.replace('/seller', '/admin')),
+        label: item.label,
+        enabled: item.defaultEnabled ?? false,
+      }));
+
+    return {
+      id: buildGroupId(section.title),
+      title: section.title,
+      badge: section.badge,
+      badgeColor: section.badgeColor,
+      permissions,
+    };
+  });
+
+  return accessGroup ? [accessGroup, ...sidebarGroups] : sidebarGroups;
+};
+
 const SELLER_ALLOWED_PERMISSION_IDS = new Set([
   'pos_access',
   'product_list',
@@ -166,18 +539,18 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
   const isSellerManageStaff = location.pathname.startsWith('/seller/');
   const moduleType: StaffModule = isSellerManageStaff ? 'seller' : 'admin';
   const [selectedRole, setSelectedRole] = useState<string>(staff?.role || roles[0] || 'STAFF');
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['access', 'inventory', 'orders']);
-
-  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>(() =>
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(() =>
     isSellerManageStaff
-      ? BASE_PERMISSION_GROUPS
-          .map(group => ({
-            ...group,
-            permissions: group.permissions.filter(permission => SELLER_ALLOWED_PERMISSION_IDS.has(permission.id))
-          }))
-          .filter(group => group.permissions.length > 0)
-      : BASE_PERMISSION_GROUPS
+      ? ['access', 'inventory', 'orders']
+      : ['access', buildGroupId('POS Section'), buildGroupId('Reports')]
   );
+
+  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>(() => {
+    if (isSellerManageStaff) {
+      return buildSellerPermissionGroups();
+    }
+    return buildAdminPermissionGroups();
+  });
 
   // Whenever panel opens for a staff member, sync toggles from stored permissions
   useEffect(() => {
@@ -198,13 +571,8 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
     );
 
     const baseGroups = isSellerManageStaff
-      ? BASE_PERMISSION_GROUPS
-          .map(group => ({
-            ...group,
-            permissions: group.permissions.filter(permission => SELLER_ALLOWED_PERMISSION_IDS.has(permission.id))
-          }))
-          .filter(group => group.permissions.length > 0)
-      : BASE_PERMISSION_GROUPS;
+      ? buildSellerPermissionGroups()
+      : buildAdminPermissionGroups();
 
     const mapped = baseGroups.map(group => ({
               ...group,

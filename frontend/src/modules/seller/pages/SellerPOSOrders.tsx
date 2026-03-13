@@ -2659,7 +2659,7 @@ const SellerPOSOrders = () => {
   }, [addToCart]);
 
   return (
-      <div className="bg-gray-50 h-[100dvh] w-full flex flex-col font-sans overflow-hidden md:min-h-screen md:h-auto md:block md:overflow-visible md:px-4 md:pb-2 md:pt-0">
+      <div className="bg-gray-50 h-full w-full flex flex-col font-sans overflow-hidden md:min-h-screen md:h-auto md:block md:overflow-visible md:px-4 md:pb-2 md:pt-0">
         {/* Header / Breadcrumb */}
           <div className="flex-none flex justify-between items-center px-3 pt-1 pb-1 md:hidden">
           <div className="hidden">
@@ -2908,30 +2908,53 @@ const SellerPOSOrders = () => {
 
               {/* Payment Method & Order Type Controls */}
               <div className="flex-none px-4 pt-2 pb-1 md:hidden">
-                   {/* Payment Method Dropdown */}
-                   <div className="relative mb-2">
-                       <button
-                           onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
-                           className="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#E91E63]"
-                       >
-                           <span className="font-medium">{paymentMethod || 'Cash'}</span>
-                           <svg className={`w-4 h-4 text-gray-400 transition-transform ${showPaymentDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                       </button>
+                   {/* Payment Method + View Toggle (Mobile Row) */}
+                   <div className="flex items-center gap-2 mb-2">
+                       <div className="relative flex-[0_0_58%]">
+                           <button
+                               onClick={() => setShowPaymentDropdown(!showPaymentDropdown)}
+                               className="w-full flex items-center justify-between bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-[#E91E63]"
+                           >
+                               <span className="font-medium truncate">{paymentMethod || 'Cash'}</span>
+                               <svg className={`w-4 h-4 text-gray-400 transition-transform ${showPaymentDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                           </button>
 
-                       {showPaymentDropdown && (
-                           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
-                               {['Cash', 'Razorpay', 'Cashfree', 'Credit'].map((method) => (
-                                   <div
-                                       key={method}
-                                       onClick={() => setPaymentMethod(method)}
-                                       className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0"
-                                   >
-                                       <span className="text-sm font-medium text-gray-700">{method === 'Credit' ? 'Credit (Udhaar)' : method}</span>
-                                       <span className="text-gray-300">→</span>
-                                   </div>
-                               ))}
+                           {showPaymentDropdown && (
+                               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                                   {['Cash', 'Razorpay', 'Cashfree', 'Credit'].map((method) => (
+                                       <div
+                                           key={method}
+                                           onClick={() => setPaymentMethod(method)}
+                                           className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0"
+                                       >
+                                           <span className="text-sm font-medium text-gray-700">{method === 'Credit' ? 'Credit (Udhaar)' : method}</span>
+                                           <span className="text-gray-300">→</span>
+                                       </div>
+                                   ))}
+                               </div>
+                           )}
+                       </div>
+
+                       <div className="flex-1 flex justify-end">
+                           <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
+                               <button
+                                 onClick={() => setMobileCartView('list')}
+                                 className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                                   mobileCartView === 'list' ? 'bg-[#f187b5] text-white' : 'text-gray-600'
+                                 }`}
+                               >
+                                 List
+                               </button>
+                               <button
+                                 onClick={() => setMobileCartView('grid')}
+                                 className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
+                                   mobileCartView === 'grid' ? 'bg-[#f187b5] text-white' : 'text-gray-600'
+                                 }`}
+                               >
+                                 Grid
+                               </button>
                            </div>
-                       )}
+                       </div>
                    </div>
 
                    {/* Retail / Wholesale Toggle */}
@@ -3030,30 +3053,8 @@ const SellerPOSOrders = () => {
               <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
                   {/* Cart Items List Wrapper */}
                   <div className="flex-1 min-h-0 overflow-hidden w-full flex flex-col">
-                      {/* Mobile View Toggles */}
-                      <div className="md:hidden px-4 pt-4 flex items-center justify-end bg-white">
-                          <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
-                              <button
-                                onClick={() => setMobileCartView('list')}
-                                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                  mobileCartView === 'list' ? 'bg-[#f187b5] text-white' : 'text-gray-600'
-                                }`}
-                              >
-                                List
-                              </button>
-                              <button
-                                onClick={() => setMobileCartView('grid')}
-                                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors ${
-                                  mobileCartView === 'grid' ? 'bg-[#f187b5] text-white' : 'text-gray-600'
-                                }`}
-                              >
-                                Grid
-                              </button>
-                          </div>
-                      </div>
-
                       {/* Scrollable Product Container */}
-                      <div className="flex-1 min-h-0 overflow-y-auto p-4 md:p-0 md:overflow-visible custom-pos-scroll">
+                      <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-40 md:p-0 md:pb-0 md:overflow-visible custom-pos-scroll">
                           <div className={mobileCartView === 'grid'
                               ? 'grid grid-cols-2 gap-2 md:flex md:flex-col'
                               : 'space-y-2 flex flex-col'
@@ -3493,7 +3494,7 @@ const SellerPOSOrders = () => {
               </div>
 
               {/* Mobile Footer */}
-              <div className="flex-none md:hidden bg-gray-50/80 p-4 border-t border-gray-100 backdrop-blur-sm mt-auto md:rounded-b-2xl">
+              <div className="flex-none md:hidden bg-gray-50/95 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)] border-t border-gray-100 backdrop-blur-sm fixed bottom-0 left-0 right-0 z-30">
                   {/* Desktop Footer Row */}
                   <div className="hidden md:flex flex-row items-center justify-between gap-4">
                       {/* Left Side: Total */}
@@ -5258,6 +5259,3 @@ const SellerPOSOrders = () => {
 };
 
 export default SellerPOSOrders;
-
-
-
