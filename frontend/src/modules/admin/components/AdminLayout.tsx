@@ -1,6 +1,8 @@
-import { useState, ReactNode } from 'react';
+import { useEffect, useState, ReactNode } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
+import { getStaffSession, normalizeStaffMember, setStaffSession, setStoredStaffList } from '../../../utils/staffSession';
+import { getStaff as apiGetStaff } from '../../../services/api/admin/adminStaffService';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -8,10 +10,56 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Default to open on desktop
+  const [, setStaffSyncTick] = useState(0);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncStaffPermissions = async () => {
+      const activeSession = getStaffSession('admin');
+      if (!activeSession) return;
+
+      try {
+        const response = await apiGetStaff();
+        if (!response.success || !Array.isArray(response.data)) return;
+
+        const mapped = response.data.map((item: any) =>
+          normalizeStaffMember({
+            id: item._id || item.id,
+            name: item.name,
+            phone: item.phone,
+            role: item.role,
+            commission: item.commission ?? 0,
+            permissions: item.permissions,
+          })
+        );
+
+        setStoredStaffList('admin', mapped);
+
+        const matched = mapped.find(
+          (member) => member.id === activeSession.id || member.phone === activeSession.phone
+        );
+        if (!matched) return;
+
+        setStaffSession('admin', matched);
+        if (isMounted) {
+          setStaffSyncTick((tick) => tick + 1);
+        }
+      } catch {
+        // keep current session if sync request fails
+      }
+    };
+
+    syncStaffPermissions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="relative h-screen overflow-hidden bg-neutral-50">

@@ -69,6 +69,27 @@ export interface ISeller extends Document {
   logo?: string;
   isEnabled: boolean;
   canCreateCategories: boolean;
+  billSettings?: {
+    shopName?: string;
+    address?: string;
+    phone?: string;
+    notes?: {
+      text?: string;
+      enabled?: boolean;
+    };
+    terms?: {
+      text?: string;
+      enabled?: boolean;
+    };
+    gst?: {
+      text?: string;
+      enabled?: boolean;
+    };
+    fssai?: {
+      text?: string;
+      enabled?: boolean;
+    };
+  };
 
   createdAt: Date;
   updatedAt: Date;
@@ -293,6 +314,27 @@ const SellerSchema = new Schema<ISeller>(
     canCreateCategories: {
       type: Boolean,
       default: true,
+    },
+    billSettings: {
+      shopName: { type: String, trim: true, default: "" },
+      address: { type: String, trim: true, default: "" },
+      phone: { type: String, trim: true, default: "" },
+      notes: {
+        text: { type: String, trim: true, default: "Thank you for your business" },
+        enabled: { type: Boolean, default: true },
+      },
+      terms: {
+        text: { type: String, trim: true, default: "Goods once sold will not be taken back." },
+        enabled: { type: Boolean, default: true },
+      },
+      gst: {
+        text: { type: String, trim: true, default: "" },
+        enabled: { type: Boolean, default: false },
+      },
+      fssai: {
+        text: { type: String, trim: true, default: "" },
+        enabled: { type: Boolean, default: false },
+      },
     },
   },
   {

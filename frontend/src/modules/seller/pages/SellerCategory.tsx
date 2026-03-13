@@ -3,6 +3,12 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getCategories, Category } from '../../../services/api/categoryService';
 import { getSellerById } from '../../../services/api/sellerService';
+import {
+    getSellerOwnCategories as apiGetSellerOwnCategories,
+    createSellerOwnCategory as apiCreateSellerOwnCategory,
+    updateSellerOwnCategory as apiUpdateSellerOwnCategory,
+    deleteSellerOwnCategory as apiDeleteSellerOwnCategory,
+} from '../../../services/api/seller/sellerPurchaseService';
 import ThemedDropdown from '../components/ThemedDropdown';
 import SellerCategoryForm from './SellerCategoryForm';
 import { useToast } from '../../../context/ToastContext';
@@ -37,11 +43,25 @@ export default function SellerCategory() {
         };
         loadSellerPermission();
 
-        // 2. Load Own Categories
-        const savedCategories = localStorage.getItem('seller_own_categories');
-        if (savedCategories) {
-            setOwnCategories(JSON.parse(savedCategories));
-        }
+        // 2. Load Own Categories from DB
+        const loadOwnCategories = async () => {
+            try {
+                const res = await apiGetSellerOwnCategories();
+                if (res.success && Array.isArray(res.data)) {
+                    setOwnCategories(res.data as any);
+                    localStorage.setItem('seller_own_categories', JSON.stringify(res.data));
+                    return;
+                }
+            } catch {
+                // fallback to local cache
+            }
+
+            const savedCategories = localStorage.getItem('seller_own_categories');
+            if (savedCategories) {
+                setOwnCategories(JSON.parse(savedCategories));
+            }
+        };
+        void loadOwnCategories();
     }, [user?.id]);
 
     // Fetch Admin Categories
@@ -85,23 +105,29 @@ export default function SellerCategory() {
     // Pagination
     const displayedCategories = filteredCategories.slice(0, rowsPerPage); // Simple slicing for demo
 
-    const handleSaveCategory = (category: Category) => {
-        let updatedCategories = [...ownCategories];
+    const handleSaveCategory = async (category: Category) => {
+        try {
+            const isEdit = !!editingCategory?._id;
+            const res = isEdit
+                ? await apiUpdateSellerOwnCategory(String(editingCategory?._id), category)
+                : await apiCreateSellerOwnCategory(category);
 
-        // Check if editing or new
-        const existingIndex = updatedCategories.findIndex(c => c._id === category._id);
-
-        if (existingIndex >= 0) {
-            updatedCategories[existingIndex] = category;
-            showToast('Category updated successfully!', 'success');
-        } else {
-            updatedCategories.push(category);
-            showToast('Category created successfully!', 'success');
+            if (res.success && res.data) {
+                const saved = res.data as any;
+                const updatedCategories = isEdit
+                    ? ownCategories.map((c) => (c._id === saved._id ? saved : c))
+                    : [saved, ...ownCategories];
+                setOwnCategories(updatedCategories);
+                localStorage.setItem('seller_own_categories', JSON.stringify(updatedCategories));
+                showToast(isEdit ? 'Category updated successfully!' : 'Category created successfully!', 'success');
+                setEditingCategory(null);
+                setIsAddModalOpen(false);
+            } else {
+                showToast(res.message || 'Failed to save category', 'error');
+            }
+        } catch {
+            showToast('Failed to save category', 'error');
         }
-
-        setOwnCategories(updatedCategories);
-        localStorage.setItem('seller_own_categories', JSON.stringify(updatedCategories));
-        setEditingCategory(null);
     };
 
     const handleEdit = (category: Category) => {
@@ -109,12 +135,21 @@ export default function SellerCategory() {
         setIsAddModalOpen(true);
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this category?')) {
-            const updatedCategories = ownCategories.filter(c => c._id !== id);
-            setOwnCategories(updatedCategories);
-            localStorage.setItem('seller_own_categories', JSON.stringify(updatedCategories));
-            showToast('Category deleted successfully!', 'success');
+            try {
+                const res = await apiDeleteSellerOwnCategory(id);
+                if (res.success) {
+                    const updatedCategories = ownCategories.filter(c => c._id !== id);
+                    setOwnCategories(updatedCategories);
+                    localStorage.setItem('seller_own_categories', JSON.stringify(updatedCategories));
+                    showToast('Category deleted successfully!', 'success');
+                } else {
+                    showToast(res.message || 'Failed to delete category', 'error');
+                }
+            } catch {
+                showToast('Failed to delete category', 'error');
+            }
         }
     };
 

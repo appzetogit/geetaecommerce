@@ -432,11 +432,11 @@ export default function AdminManageSellerList() {
             if (response.success) {
                 setSellers(prev =>
                     prev.map(s =>
-                        s._id === id ? { ...s, canCreateCategories: newPermission } : s
+            s._id === id ? { ...s, canCreateCategories: newPermission } : s
                     )
                 );
-                setSuccessMessage(`Category creation ${newPermission ? 'enabled' : 'disabled'} for ${seller.storeName}`);
-                setTimeout(() => setSuccessMessage(''), 3000);
+        setSuccessMessage(`Category creation ${newPermission ? 'enabled' : 'disabled'} for ${seller.storeName}`);
+        setTimeout(() => setSuccessMessage(''), 3000);
             } else {
                 setError('Failed to update category permission.');
             }

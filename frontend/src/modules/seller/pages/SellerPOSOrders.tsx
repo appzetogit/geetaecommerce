@@ -14,6 +14,12 @@ import autoTable from 'jspdf-autotable';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { useAppContext } from '../../../context/AppContext';
 import { appendPOSStaffBill, getStaffSession } from '../../../utils/staffSession';
+import {
+  getSellerPurchaseEntries as apiGetSellerPurchaseEntries,
+  upsertSellerPurchaseEntry as apiUpsertSellerPurchaseEntry,
+  getSellerPOSState as apiGetSellerPOSState,
+  updateSellerPOSState as apiUpdateSellerPOSState
+} from '../../../services/api/seller/sellerPurchaseService';
 
 // Interface for Cart Item extending Product
 export interface CartItem extends Product {
@@ -159,6 +165,8 @@ const SellerPOSOrders = () => {
   const [activeBillId, setActiveBillId] = useState<string>(() => {
     return localStorage.getItem('pos_active_bill') || '1';
   });
+  const posStateSyncTimeoutRef = useRef<any>(null);
+  const posStateLoadedRef = useRef(false);
 
   // Ensure we find the correct bill, or default safely (though createNewBill sets ID correctly)
   const activeBill = bills.find(b => b.id === activeBillId) || {
@@ -296,6 +304,54 @@ const SellerPOSOrders = () => {
 
   // Derived state for new controls
   const orderType = activeBill.orderType || 'Retail';
+
+  useEffect(() => {
+    const loadPOSState = async () => {
+      try {
+        const res = await apiGetSellerPOSState();
+        if (res.success && res.data) {
+          const serverBills = Array.isArray(res.data.bills) ? res.data.bills : [];
+          const serverActiveBillId = res.data.activeBillId || '1';
+          if (serverBills.length > 0) {
+            setBills(serverBills as Bill[]);
+            setActiveBillId(serverActiveBillId);
+            localStorage.setItem('pos_bills', JSON.stringify(serverBills));
+            localStorage.setItem('pos_active_bill', serverActiveBillId);
+          }
+        }
+      } catch {
+        // keep existing local fallback behavior
+      } finally {
+        posStateLoadedRef.current = true;
+      }
+    };
+
+    void loadPOSState();
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('pos_bills', JSON.stringify(bills));
+    localStorage.setItem('pos_active_bill', activeBillId);
+
+    if (!posStateLoadedRef.current) return;
+
+    if (posStateSyncTimeoutRef.current) {
+      clearTimeout(posStateSyncTimeoutRef.current);
+    }
+    posStateSyncTimeoutRef.current = setTimeout(async () => {
+      try {
+        await apiUpdateSellerPOSState({ bills, activeBillId });
+      } catch {
+        // keep UI flow uninterrupted if sync fails
+      }
+    }, 300);
+
+    return () => {
+      if (posStateSyncTimeoutRef.current) {
+        clearTimeout(posStateSyncTimeoutRef.current);
+      }
+    };
+  }, [bills, activeBillId]);
 
   useEffect(() => {
     localStorage.setItem('pos_active_bill', activeBillId);
@@ -509,13 +565,11 @@ const SellerPOSOrders = () => {
   const [billAttachment, setBillAttachment] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<string | null>(null);
-  const [savedPurchaseEntries, setSavedPurchaseEntries] = useState<PurchaseEntryRecord[]>(() => {
-    try {
-      const raw = localStorage.getItem('admin_pos_purchase_entries');
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed.map(q => ({
+  const [savedPurchaseEntries, setSavedPurchaseEntries] = useState<PurchaseEntryRecord[]>([]);
+
+  const normalizePurchaseEntries = (list: any[]): PurchaseEntryRecord[] =>
+    Array.isArray(list)
+      ? list.map((q: any) => ({
           ...q,
           totals: {
             grossAmount: q.totals?.grossAmount ?? q.totals?.gross ?? 0,
@@ -523,14 +577,39 @@ const SellerPOSOrders = () => {
             taxAmount: q.totals?.taxAmount ?? q.totals?.tax ?? 0,
             roundOff: q.totals?.roundOff ?? 0,
             netAmount: q.totals?.netAmount ?? q.totals?.net ?? 0,
-          }
-        }));
+          },
+        }))
+      : [];
+
+  useEffect(() => {
+    const loadSavedPurchaseEntries = async () => {
+      try {
+        const res = await apiGetSellerPurchaseEntries();
+        if (res.success && Array.isArray(res.data)) {
+          const normalized = normalizePurchaseEntries(res.data);
+          setSavedPurchaseEntries(normalized);
+          localStorage.setItem('seller_pos_purchase_entries', JSON.stringify(normalized));
+          localStorage.setItem('admin_pos_purchase_entries', JSON.stringify(normalized));
+          return;
+        }
+      } catch {
+        // fallback to local cache
       }
-      return [];
-    } catch {
-      return [];
-    }
-  });
+
+      try {
+        const raw =
+          localStorage.getItem('seller_pos_purchase_entries') ||
+          localStorage.getItem('admin_pos_purchase_entries');
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        setSavedPurchaseEntries(normalizePurchaseEntries(parsed));
+      } catch {
+        setSavedPurchaseEntries([]);
+      }
+    };
+
+    void loadSavedPurchaseEntries();
+  }, []);
 
   // Handle Barcode Scan from Camera
   const onScanSuccess = async (decodedText: string, decodedResult: any) => {
@@ -1398,7 +1477,13 @@ const SellerPOSOrders = () => {
        nextEntries = [entry, ...savedPurchaseEntries];
     }
     setSavedPurchaseEntries(nextEntries);
+    localStorage.setItem('seller_pos_purchase_entries', JSON.stringify(nextEntries));
     localStorage.setItem('admin_pos_purchase_entries', JSON.stringify(nextEntries));
+    try {
+      await apiUpsertSellerPurchaseEntry(entry);
+    } catch {
+      // keep existing local behavior if API fails
+    }
 
     if (purchaseMode === 'Purchase') {
       setPurchaseItems((prev) => prev.map((item) => ({ ...item, currentQty: item.currentQty + item.qty })));

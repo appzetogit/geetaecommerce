@@ -44,6 +44,45 @@ const getPOSStaffBillKey = (module: StaffModule) => `${module}_pos_staff_bills`;
 
 const DEFAULT_STAFF_PERMISSIONS = ["pos", "orders", "customers"];
 
+const UI_PERMISSION_PREFIX = "ui:";
+
+const normalizePathForRoute = (path: string): string => {
+  const [withoutQuery] = path.split("?");
+  const [cleanPath] = withoutQuery.split("#");
+  if (!cleanPath) return "/";
+  return cleanPath.endsWith("/") && cleanPath.length > 1
+    ? cleanPath.slice(0, -1)
+    : cleanPath;
+};
+
+const normalizePathForPermissionId = (path: string): string => {
+  const [withoutHash] = path.split("#");
+  if (!withoutHash) return "/";
+  return withoutHash.endsWith("/") && withoutHash.length > 1
+    ? withoutHash.slice(0, -1)
+    : withoutHash;
+};
+
+const buildPermissionIdFromPath = (module: StaffModule, path: string): string => {
+  const normalizedPath = normalizePathForPermissionId(path);
+  let adminPath = normalizedPath;
+
+  if (module === "seller" && normalizedPath.startsWith("/seller")) {
+    adminPath = `/admin${normalizedPath.slice("/seller".length)}`;
+  }
+
+  let normalized = adminPath.replace(/^\/admin\/?/, "");
+  if (!normalized) normalized = "dashboard";
+
+  const cleaned = normalized.replace(/[/?=&]/g, " ");
+  const slug = cleaned
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+
+  return `admin_${slug}`;
+};
+
 export const normalizeStaffMember = (staff: StaffMember): StaffMember => ({
   ...staff,
   permissions:
@@ -114,20 +153,68 @@ export const canStaffAccessPath = (
 ): boolean => {
   const allowedPermissions =
     permissions && permissions.length > 0 ? permissions : DEFAULT_STAFF_PERMISSIONS;
+  const normalizedPath = normalizePathForRoute(path);
+  const uiPermissions = allowedPermissions
+    .filter((perm) => perm.startsWith(UI_PERMISSION_PREFIX))
+    .map((perm) => perm.substring(UI_PERMISSION_PREFIX.length));
+  const uiSet = new Set(uiPermissions);
+  const hasUiPermissions = uiSet.size > 0;
+
+  if (hasUiPermissions) {
+    // Seller module aliases for admin permission keys pointing to seller routes.
+    if (module === "seller") {
+      if (
+        normalizedPath.startsWith("/seller/account-settings") &&
+        (uiSet.has("admin_settings_store") || uiSet.has("admin_delivery_settings"))
+      ) {
+        return true;
+      }
+
+      if (
+        normalizedPath.startsWith("/seller/reports/payment") &&
+        (uiSet.has("admin_payment_list") || uiSet.has("admin_reports_payment"))
+      ) {
+        return true;
+      }
+    }
+
+    const directPermissionId = buildPermissionIdFromPath(module, path);
+    if (uiSet.has(directPermissionId)) {
+      return true;
+    }
+
+    // Parent menu should stay visible when any child route permission is enabled.
+    const childPrefix = `${directPermissionId}_`;
+    for (const permissionId of uiSet) {
+      if (permissionId.startsWith(childPrefix)) {
+        return true;
+      }
+    }
+
+    // Keep POS access compatibility with existing toggle behavior.
+    if (
+      uiSet.has("pos_access") &&
+      normalizedPath.startsWith(`/${module}/pos`)
+    ) {
+      return true;
+    }
+  }
 
   const posAllowed =
     allowedPermissions.includes("pos") &&
-    (path.startsWith(`/${module}/pos/orders`) ||
-      path.startsWith(`/${module}/pos/customers`) ||
-      path.startsWith(`/${module}/pos/customers/`));
+    (normalizedPath.startsWith(`/${module}/pos/orders`) ||
+      normalizedPath.startsWith(`/${module}/pos/customers`) ||
+      normalizedPath.startsWith(`/${module}/pos/customers/`));
 
   const ordersAllowed =
     allowedPermissions.includes("orders") &&
-    (path.startsWith(`/${module}/orders`) || path === `/${module}/orders`);
+    (normalizedPath.startsWith(`/${module}/orders`) ||
+      normalizedPath === `/${module}/orders`);
 
   const customersAllowed =
     allowedPermissions.includes("customers") &&
-    (path.startsWith(`/${module}/customers`) || path.startsWith(`/${module}/pos/customers`));
+    (normalizedPath.startsWith(`/${module}/customers`) ||
+      normalizedPath.startsWith(`/${module}/pos/customers`));
 
   return posAllowed || ordersAllowed || customersAllowed;
 };

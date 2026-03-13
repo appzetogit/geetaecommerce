@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
 import { PurchaseEntryRecord, PurchaseItem } from './SellerPOSOrders';
+import { getSellerPurchaseEntries as apiGetSellerPurchaseEntries } from '../../../services/api/seller/sellerPurchaseService';
 
 const SellerPOSQuotations: React.FC = () => {
   const navigate = useNavigate();
@@ -13,7 +14,28 @@ const SellerPOSQuotations: React.FC = () => {
 
   // Fetch saved quotations from localStorage
   useEffect(() => {
-    const loadQuotations = () => {
+    const loadQuotations = async () => {
+      try {
+        const res = await apiGetSellerPurchaseEntries('quotation');
+        if (res.success && Array.isArray(res.data)) {
+          const normalized: PurchaseEntryRecord[] = res.data.map((q: any) => ({
+            ...q,
+            totals: {
+              grossAmount: q.totals?.grossAmount ?? q.totals?.gross ?? 0,
+              discountAmount: q.totals?.discountAmount ?? q.totals?.discount ?? 0,
+              taxAmount: q.totals?.taxAmount ?? q.totals?.tax ?? 0,
+              roundOff: q.totals?.roundOff ?? 0,
+              netAmount: q.totals?.netAmount ?? q.totals?.net ?? 0,
+            }
+          }));
+          setQuotations(normalized.filter(q => q.type === 'quotation'));
+          localStorage.setItem('seller_pos_purchase_entries', JSON.stringify(res.data));
+          return;
+        }
+      } catch {
+        // fallback to local cache
+      }
+
       try {
         const raw = localStorage.getItem('seller_pos_purchase_entries');
         if (raw) {
@@ -36,7 +58,7 @@ const SellerPOSQuotations: React.FC = () => {
         console.error('Failed to load quotations', err);
       }
     };
-    loadQuotations();
+    void loadQuotations();
   }, []);
 
   const handleActionClick = (quote: PurchaseEntryRecord) => {

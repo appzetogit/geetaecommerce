@@ -6,6 +6,12 @@ import ThemedDropdown from '../components/ThemedDropdown';
 import { useAuth } from '../../../context/AuthContext';
 import { uploadImage } from "../../../services/api/uploadService";
 import { validateImageFile, createImagePreview } from "../../../utils/imageUpload";
+import { getSellerById } from '../../../services/api/sellerService';
+import {
+    getSellerOwnCategories as apiGetSellerOwnCategories,
+    getSellerOwnSubcategories as apiGetSellerOwnSubcategories,
+    createSellerOwnSubcategory as apiCreateSellerOwnSubcategory,
+} from '../../../services/api/seller/sellerPurchaseService';
 
 export default function SellerSubCategory() {
     const { user } = useAuth();
@@ -69,29 +75,47 @@ export default function SellerSubCategory() {
     }, [currentPage, rowsPerPage, sortColumn, sortDirection]);
 
     useEffect(() => {
-        const permissionsMap = localStorage.getItem('seller_category_permissions');
-        const currentSellerId = user?.id;
-        if (permissionsMap && currentSellerId) {
+        const loadSellerData = async () => {
+            if (!user?.id) return;
             try {
-                const parsed = JSON.parse(permissionsMap);
-                const isAllowedByAdmin = parsed[currentSellerId] === true;
-                setCanCreateSubcategories(isAllowedByAdmin);
+                const [sellerRes, catRes, subRes] = await Promise.all([
+                    getSellerById(user.id),
+                    apiGetSellerOwnCategories(),
+                    apiGetSellerOwnSubcategories(),
+                ]);
+
+                if (sellerRes.success && sellerRes.data) {
+                    setCanCreateSubcategories(sellerRes.data.canCreateCategories ?? true);
+                } else {
+                    setCanCreateSubcategories(true);
+                }
+
+                if (catRes.success && Array.isArray(catRes.data)) {
+                    setOwnCategories(catRes.data as any);
+                    localStorage.setItem('seller_own_categories', JSON.stringify(catRes.data));
+                }
+
+                if (subRes.success && Array.isArray(subRes.data)) {
+                    setOwnSubcategories(subRes.data as any);
+                    localStorage.setItem('seller_own_subcategories', JSON.stringify(subRes.data));
+                }
+                return;
             } catch {
-                setCanCreateSubcategories(true);
+                // fallback to local cache
             }
-        } else {
+
             setCanCreateSubcategories(true);
-        }
+            const savedCategories = localStorage.getItem('seller_own_categories');
+            if (savedCategories) {
+                setOwnCategories(JSON.parse(savedCategories));
+            }
 
-        const savedCategories = localStorage.getItem('seller_own_categories');
-        if (savedCategories) {
-            setOwnCategories(JSON.parse(savedCategories));
-        }
-
-        const savedSubcategories = localStorage.getItem('seller_own_subcategories');
-        if (savedSubcategories) {
-            setOwnSubcategories(JSON.parse(savedSubcategories));
-        }
+            const savedSubcategories = localStorage.getItem('seller_own_subcategories');
+            if (savedSubcategories) {
+                setOwnSubcategories(JSON.parse(savedSubcategories));
+            }
+        };
+        void loadSellerData();
     }, [user?.id]);
 
     useEffect(() => {
@@ -200,20 +224,23 @@ export default function SellerSubCategory() {
                 setUploading(false);
             }
 
-            const parent = ownCategories.find(c => c._id === formData.parentId);
-            const newSubcategory: SubCategory = {
-                _id: `seller_sub_${Date.now()}`,
-                categoryName: parent?.name || "Unknown",
+            const res = await apiCreateSellerOwnSubcategory({
+                parentId: formData.parentId,
                 subcategoryName: formData.name.trim(),
                 subcategoryImage: imageUrl,
-                totalProduct: 0,
-                parentId: formData.parentId,
-            };
+                order: formData.order,
+                status: formData.status,
+            });
 
-            const updated = [newSubcategory, ...ownSubcategories];
-            setOwnSubcategories(updated);
-            localStorage.setItem('seller_own_subcategories', JSON.stringify(updated));
-            setIsAddModalOpen(false);
+            if (res.success && res.data) {
+                const newSubcategory = res.data as SubCategory;
+                const updated = [newSubcategory, ...ownSubcategories];
+                setOwnSubcategories(updated);
+                localStorage.setItem('seller_own_subcategories', JSON.stringify(updated));
+                setIsAddModalOpen(false);
+            } else {
+                setFormErrors({ submit: res.message || "Failed to save subcategory" });
+            }
         } catch (err: any) {
             setFormErrors({ submit: err?.message || "Failed to save subcategory" });
         } finally {

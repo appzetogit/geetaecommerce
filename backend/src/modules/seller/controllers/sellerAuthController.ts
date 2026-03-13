@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Seller from "../../../models/Seller";
+import SellerLoginSession from "../../../models/SellerLoginSession";
 import {
   sendOTP as sendOTPService,
   verifyOTP as verifyOTPService,
@@ -83,6 +84,24 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
       message: "Seller not found",
     });
   }
+
+  // Enforce max 2 active login sessions per seller (per 24 hours)
+  const activeSessionsCount = await SellerLoginSession.countDocuments({
+    sellerId: seller._id,
+  });
+
+  if (activeSessionsCount >= 2) {
+    return res.status(429).json({
+      success: false,
+      message:
+        "This seller account is already active on 2 devices. Please logout from another device before logging in.",
+    });
+  }
+
+  await SellerLoginSession.create({
+    sellerId: seller._id,
+    mobile: seller.mobile,
+  });
 
   // Generate JWT token
   const token = generateToken(seller._id.toString(), "Seller");

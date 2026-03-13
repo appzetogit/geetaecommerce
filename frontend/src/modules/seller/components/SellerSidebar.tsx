@@ -381,6 +381,48 @@ const menuItems: MenuItem[] = [
     ],
   },
   {
+    label: "Brand Settings",
+    path: "/seller/account-settings",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"></path><path d="M3 17l9 4 9-4"></path><path d="M3 12l9 4 9-4"></path></svg>
+    ),
+  },
+  {
+    label: "Delivery Settings",
+    path: "/seller/account-settings?section=delivery",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+    ),
+  },
+  {
+    label: "Payment List",
+    path: "/seller/reports/payment",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+    ),
+  },
+  {
+    label: "Other Configurations",
+    path: "/seller/app-settings",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    ),
+  },
+  {
+    label: "Shiprocket Integration",
+    path: "/seller/app-settings?tab=shiprocket",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h18v4H3z"></path><path d="M8 21h8"></path><path d="M12 7v14"></path></svg>
+    ),
+  },
+  {
+    label: "SMS Gateway",
+    path: "/seller/sms-gateway",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    ),
+  },
+  {
     label: "Product Settings",
     path: "/seller/product-display-settings",
     icon: (
@@ -410,13 +452,70 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
   const staffSession = getStaffSession("seller");
   const isStaffMode = !!staffSession;
 
+  const filterVisibleSubItems = (items: SubMenuItem[]): SubMenuItem[] => {
+    if (!isStaffMode) return items;
+
+    return items.reduce<SubMenuItem[]>((acc, item) => {
+      const filteredNested = item.submenuItems
+        ? filterVisibleSubItems(item.submenuItems)
+        : undefined;
+      const selfAllowed = canStaffAccessPath("seller", item.path, staffSession?.permissions);
+      const hasVisibleNested = !!(filteredNested && filteredNested.length > 0);
+
+      if (!selfAllowed && !hasVisibleNested) {
+        return acc;
+      }
+
+       const nextHasSubmenu = !!filteredNested && filteredNested.length > 0;
+
+      acc.push({
+        ...item,
+        hasSubmenu: nextHasSubmenu,
+        submenuItems: nextHasSubmenu ? filteredNested : undefined,
+      });
+      return acc;
+    }, []);
+  };
+
+  const visibleMenuItems = isStaffMode
+    ? menuItems.reduce<MenuItem[]>((acc, item) => {
+        const filteredSubmenu = item.submenuItems
+          ? filterVisibleSubItems(item.submenuItems)
+          : undefined;
+        const selfAllowed = canStaffAccessPath("seller", item.path, staffSession?.permissions);
+        const hasVisibleChildren = !!(filteredSubmenu && filteredSubmenu.length > 0);
+
+        if (!selfAllowed && !hasVisibleChildren) {
+          return acc;
+        }
+
+        const nextHasSubmenu = !!filteredSubmenu && filteredSubmenu.length > 0;
+
+        acc.push({
+          ...item,
+          hasSubmenu: nextHasSubmenu,
+          submenuItems: nextHasSubmenu ? filteredSubmenu : undefined,
+        });
+        return acc;
+      }, [])
+    : menuItems;
+
   const isActive = (path: string) => {
+    const normalizedPath = path.split("?")[0].split("#")[0];
     if (path === "/seller") {
       return (
         location.pathname === "/seller" || location.pathname === "/seller/"
       );
     }
-    return location.pathname.startsWith(path);
+
+    if (
+      normalizedPath === "/seller/app-settings" ||
+      normalizedPath === "/seller/sms-gateway"
+    ) {
+      return location.pathname.startsWith("/seller/account-settings");
+    }
+
+    return location.pathname.startsWith(normalizedPath);
   };
 
   const isSubmenuActive = (submenuItems?: SubMenuItem[]): boolean => {
@@ -433,7 +532,11 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
   };
 
   const handleNavigation = (path: string) => {
-    navigate(path);
+    if (path.startsWith("/seller/app-settings") || path === "/seller/sms-gateway") {
+      navigate("/seller/account-settings");
+    } else {
+      navigate(path);
+    }
     // Close sidebar on mobile after navigation
     if (onClose && window.innerWidth < 1024) {
       onClose();
@@ -460,12 +563,6 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
       )
     );
   };
-
-  const visibleMenuItems = isStaffMode
-    ? menuItems.filter((item) =>
-        canStaffAccessPath("seller", item.path, staffSession?.permissions)
-      )
-    : menuItems;
 
   return (
     <aside className="w-64 bg-[#f187b5] h-screen flex flex-col">

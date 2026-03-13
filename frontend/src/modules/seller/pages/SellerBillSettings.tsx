@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useToast } from "../../../context/ToastContext";
+import {
+  getSellerBillSettings as apiGetSellerBillSettings,
+  updateSellerBillSettings as apiUpdateSellerBillSettings,
+} from "../../../services/api/seller/sellerPurchaseService";
 
 interface BillSettings {
   shopName: string;
@@ -48,35 +52,69 @@ const SellerBillSettings = () => {
   });
 
   useEffect(() => {
-    const savedSettings = localStorage.getItem("seller_bill_settings");
-    if (savedSettings) {
+    const load = async () => {
       try {
-        const parsed = JSON.parse(savedSettings);
-        // Merge with defaults to ensure notes and terms exist even if not in localStorage
-        setSettings(prev => ({
+        const res = await apiGetSellerBillSettings();
+        if (res.success && res.data) {
+          const parsed = res.data as any;
+          setSettings((prev) => ({
             ...prev,
             ...parsed,
             notes: parsed.notes || {
-                text: "Thank you for your business",
-                enabled: true
+              text: "Thank you for your business",
+              enabled: true,
             },
             terms: parsed.terms || {
-                text: "Goods once sold will not be taken back.",
-                enabled: true
+              text: "Goods once sold will not be taken back.",
+              enabled: true,
             },
             gst: parsed.gst || {
-                text: "",
-                enabled: false
+              text: "",
+              enabled: false,
             },
             fssai: parsed.fssai || {
-                text: "",
-                enabled: false
-            }
-        }));
-      } catch (e) {
-        console.error("Failed to parse bill settings", e);
+              text: "",
+              enabled: false,
+            },
+          }));
+          localStorage.setItem("seller_bill_settings", JSON.stringify(parsed));
+          return;
+        }
+      } catch {
+        // fallback to local cache
       }
-    }
+
+      const savedSettings = localStorage.getItem("seller_bill_settings");
+      if (savedSettings) {
+        try {
+          const parsed = JSON.parse(savedSettings);
+          setSettings((prev) => ({
+            ...prev,
+            ...parsed,
+            notes: parsed.notes || {
+              text: "Thank you for your business",
+              enabled: true,
+            },
+            terms: parsed.terms || {
+              text: "Goods once sold will not be taken back.",
+              enabled: true,
+            },
+            gst: parsed.gst || {
+              text: "",
+              enabled: false,
+            },
+            fssai: parsed.fssai || {
+              text: "",
+              enabled: false,
+            },
+          }));
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error("Failed to parse bill settings", e);
+        }
+      }
+    };
+    load();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -99,7 +137,7 @@ const SellerBillSettings = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Phone validation: must be exactly 10 digits
@@ -108,8 +146,17 @@ const SellerBillSettings = () => {
       return;
     }
 
-    localStorage.setItem("seller_bill_settings", JSON.stringify(settings));
-    showToast("Bill settings saved successfully", "success");
+    try {
+      const res = await apiUpdateSellerBillSettings(settings as any);
+      if (res.success) {
+        localStorage.setItem("seller_bill_settings", JSON.stringify(settings));
+        showToast("Bill settings saved successfully", "success");
+      } else {
+        showToast(res.message || "Failed to save bill settings", "error");
+      }
+    } catch {
+      showToast("Failed to save bill settings", "error");
+    }
   };
 
   return (

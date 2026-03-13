@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
+import { getSellerPurchaseEntries as apiGetSellerPurchaseEntries } from '../../../services/api/seller/sellerPurchaseService';
 
 interface PurchaseItemRow {
   productName: string;
@@ -34,7 +35,18 @@ const SellerPurchaseReport: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [editMode, setEditMode] = useState(false);
 
-  const fetchEntries = () => {
+  const fetchEntries = async () => {
+    try {
+      const res = await apiGetSellerPurchaseEntries();
+      if (res.success && Array.isArray(res.data)) {
+        setEntries(res.data);
+        localStorage.setItem('seller_pos_purchase_entries', JSON.stringify(res.data));
+        return;
+      }
+    } catch {
+      // fallback to local cache
+    }
+
     try {
       const raw = localStorage.getItem('seller_pos_purchase_entries');
       if (!raw) return;
@@ -51,7 +63,7 @@ const SellerPurchaseReport: React.FC = () => {
   const [showActionSheet, setShowActionSheet] = useState(false);
 
   useEffect(() => {
-    fetchEntries();
+    void fetchEntries();
   }, []);
 
   const rows = useMemo(() => {

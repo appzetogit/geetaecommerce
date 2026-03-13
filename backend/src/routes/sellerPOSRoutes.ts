@@ -6,7 +6,20 @@ import {
     verifyPOSPayment,
     getPOSReport,
     getPOSStockLedger,
-    getPOSProducts
+    getPOSProducts,
+    getSellerPurchaseEntries,
+    upsertSellerPurchaseEntry,
+    deleteSellerPurchaseEntry,
+    getSellerBillSettings,
+    updateSellerBillSettings,
+    getSellerPOSState,
+    upsertSellerPOSState,
+    getSellerOwnCategories,
+    createSellerOwnCategory,
+    updateSellerOwnCategory,
+    deleteSellerOwnCategory,
+    getSellerOwnSubCategories,
+    createSellerOwnSubCategory
 } from "../modules/seller/controllers/sellerPOSController";
 import { updateStockLedgerEntry } from "../modules/admin/controllers/updateStockLedgerController";
 import { createCustomer, getAllCustomers } from "../modules/admin/controllers/adminCustomerController";
@@ -26,6 +39,19 @@ router.post("/orders/verify", verifyPOSPayment);
 router.get("/report", getPOSReport);
 router.get("/stock-ledger", getPOSStockLedger);
 router.put("/stock-ledger/:id", updateStockLedgerEntry);
+router.get("/purchase-entries", getSellerPurchaseEntries);
+router.post("/purchase-entries", upsertSellerPurchaseEntry);
+router.delete("/purchase-entries/:entryId", deleteSellerPurchaseEntry);
+router.get("/bill-settings", getSellerBillSettings);
+router.put("/bill-settings", updateSellerBillSettings);
+router.get("/state", getSellerPOSState);
+router.put("/state", upsertSellerPOSState);
+router.get("/own-categories", getSellerOwnCategories);
+router.post("/own-categories", createSellerOwnCategory);
+router.put("/own-categories/:id", updateSellerOwnCategory);
+router.delete("/own-categories/:id", deleteSellerOwnCategory);
+router.get("/own-subcategories", getSellerOwnSubCategories);
+router.post("/own-subcategories", createSellerOwnSubCategory);
 
 // Dedicated POS Product Search (Global/Active Products)
 router.get("/products", getPOSProducts);

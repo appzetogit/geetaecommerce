@@ -3,6 +3,8 @@ import SellerHeader from './SellerHeader';
 import SellerSidebar from './SellerSidebar';
 import { useSellerSocket, SellerNotification } from '../hooks/useSellerSocket';
 import SellerNotificationAlert from './SellerNotificationAlert';
+import { getStaffSession, normalizeStaffMember, setStaffSession, setStoredStaffList } from '../../../utils/staffSession';
+import { getStaff as apiGetStaff } from '../../../services/api/admin/adminStaffService';
 
 interface SellerLayoutProps {
   children: ReactNode;
@@ -11,6 +13,7 @@ interface SellerLayoutProps {
 export default function SellerLayout({ children }: SellerLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
   const [activeNotification, setActiveNotification] = useState<SellerNotification | null>(null);
+  const [, setStaffSyncTick] = useState(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -33,6 +36,51 @@ export default function SellerLayout({ children }: SellerLayoutProps) {
   }, []);
 
   useSellerSocket(handleNotificationReceived);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncStaffPermissions = async () => {
+      const activeSession = getStaffSession('seller');
+      if (!activeSession) return;
+
+      try {
+        const response = await apiGetStaff();
+        if (!response.success || !Array.isArray(response.data)) return;
+
+        const mapped = response.data.map((item: any) =>
+          normalizeStaffMember({
+            id: item._id || item.id,
+            name: item.name,
+            phone: item.phone,
+            role: item.role,
+            commission: item.commission ?? 0,
+            permissions: item.permissions,
+          })
+        );
+
+        setStoredStaffList('seller', mapped);
+
+        const matched = mapped.find(
+          (member) => member.id === activeSession.id || member.phone === activeSession.phone
+        );
+        if (!matched) return;
+
+        setStaffSession('seller', matched);
+        if (isMounted) {
+          setStaffSyncTick((tick) => tick + 1);
+        }
+      } catch {
+        // keep current session if sync request fails
+      }
+    };
+
+    syncStaffPermissions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);

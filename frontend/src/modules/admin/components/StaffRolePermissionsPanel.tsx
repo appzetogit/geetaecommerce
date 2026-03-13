@@ -661,6 +661,35 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
 
       setStoredStaffList(moduleType, updatedStaffList);
 
+      // Keep other module (admin <-> seller) in sync so that existing staff
+      // sessions update without forcing logout/login.
+      const otherModule: StaffModule = moduleType === 'admin' ? 'seller' : 'admin';
+      const otherList = getStoredStaffList(otherModule);
+      if (otherList.length > 0) {
+        const sourceMember = updatedStaffList.find((m) => m.id === staff.id || m.phone === staff.phone);
+        if (sourceMember) {
+          const syncedOtherList = otherList.map((member) =>
+            member.id === staff.id || member.phone === staff.phone
+              ? {
+                  ...member,
+                  permissions: sourceMember.permissions,
+                }
+              : member
+          );
+          setStoredStaffList(otherModule, syncedOtherList);
+
+          const otherSession = getStaffSession(otherModule);
+          if (otherSession && (otherSession.id === staff.id || otherSession.phone === staff.phone)) {
+            const refreshedOther = syncedOtherList.find(
+              (member) => member.id === staff.id || member.phone === staff.phone
+            );
+            if (refreshedOther) {
+              setStaffSession(otherModule, refreshedOther);
+            }
+          }
+        }
+      }
+
       const activeSession = getStaffSession(moduleType);
       let currentMember = staff;
       if (activeSession && activeSession.id === staff.id) {
