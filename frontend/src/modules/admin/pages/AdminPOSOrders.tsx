@@ -3643,6 +3643,14 @@ const AdminPOSOrders = () => {
                             Quick add +
                           </button>
 
+                          <button
+                            onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
+                            disabled={loading || cart.length === 0}
+                            className="rounded-2xl bg-[#f187b5] hover:bg-[#e076a5] text-white font-semibold py-2.5 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+                          >
+                            {loading ? (activeBillId.startsWith('edit_') ? 'Updating...' : 'Paying...') : (activeBillId.startsWith('edit_') ? 'Update' : 'Pay')}
+                          </button>
+
                           {!activeBillId.startsWith('edit_') && (
                             <button
                               onClick={handleGenerateBill}
@@ -3652,14 +3660,6 @@ const AdminPOSOrders = () => {
                               Bill
                             </button>
                           )}
-
-                          <button
-                            onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
-                            disabled={loading || cart.length === 0}
-                            className="rounded-2xl bg-[#f187b5] hover:bg-[#e076a5] text-white font-semibold py-2.5 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
-                          >
-                            {loading ? (activeBillId.startsWith('edit_') ? 'Updating...' : 'Paying...') : (activeBillId.startsWith('edit_') ? 'Update' : 'Pay')}
-                          </button>
                       </div>
 
                       <div className="grid grid-cols-[1fr_110px] gap-2">
