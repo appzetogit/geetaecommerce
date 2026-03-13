@@ -170,7 +170,12 @@ export const getCustomerOrders = asyncHandler(
  */
 export const createCustomer = asyncHandler(
   async (req: Request, res: Response) => {
-    const { name, email, phone, address, city, state, pincode, gst } = req.body;
+    const { name, email, phone, address, city, state, pincode } = req.body;
+    // Accept both `gst` and `gstNumber` from frontend and normalize.
+    const rawGst = (req.body.gst ?? req.body.gstNumber ?? "") as string;
+    const gst = rawGst
+      ? String(rawGst).toUpperCase().replace(/[^0-9A-Z]/g, "").slice(0, 15)
+      : "";
 
     // Check if customer already exists within this context
     const existingCustomer = await Customer.findOne({

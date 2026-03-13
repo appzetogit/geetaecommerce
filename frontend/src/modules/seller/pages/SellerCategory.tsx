@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getCategories, Category } from '../../../services/api/categoryService';
+import { getSellerById } from '../../../services/api/sellerService';
 import ThemedDropdown from '../components/ThemedDropdown';
 import SellerCategoryForm from './SellerCategoryForm';
 import { useToast } from '../../../context/ToastContext';
@@ -22,24 +23,19 @@ export default function SellerCategory() {
 
     // Initial Data Loading
     useEffect(() => {
-        // 1. Check Seller Permission
-        // Admin "Category Permission" toggle ON => seller can create category
-        // Toggle OFF => seller cannot create category
-        const permissionsMap = localStorage.getItem('seller_category_permissions');
-        const currentSellerId = user?.id;
-        if (permissionsMap && currentSellerId) {
+        const loadSellerPermission = async () => {
+            if (!user?.id) return;
             try {
-                const parsed = JSON.parse(permissionsMap);
-                const isAllowedByAdmin = parsed[currentSellerId] === true;
-                setCanCreateCategories(isAllowedByAdmin);
-            } catch {
-                // Safe fallback: allow creation when permission map is invalid
+                const res = await getSellerById(user.id);
+                if (res.success && res.data) {
+                    setCanCreateCategories(res.data.canCreateCategories ?? true);
+                }
+            } catch (err) {
+                // Keep existing behavior as safe fallback
                 setCanCreateCategories(true);
             }
-        } else {
-            // If permission is not set, treat it as OFF (seller can create)
-            setCanCreateCategories(true);
-        }
+        };
+        loadSellerPermission();
 
         // 2. Load Own Categories
         const savedCategories = localStorage.getItem('seller_own_categories');

@@ -4,6 +4,7 @@ import { Staff, RoleType } from '../pages/AdminManageStaff';
 import { toast } from 'react-hot-toast';
 import { useLocation } from 'react-router-dom';
 import { getStoredStaffList, setStoredStaffList, StaffModule, getStaffSession, setStaffSession } from '../../../utils/staffSession';
+import { updateStaff as apiUpdateStaff } from '../../../services/api/admin/adminStaffService';
 
 interface StaffRolePermissionsPanelProps {
   isOpen: boolean;
@@ -167,7 +168,7 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
   const [selectedRole, setSelectedRole] = useState<string>(staff?.role || roles[0] || 'STAFF');
   const [expandedGroups, setExpandedGroups] = useState<string[]>(['access', 'inventory', 'orders']);
 
-  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>(
+  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>(() =>
     isSellerManageStaff
       ? BASE_PERMISSION_GROUPS
           .map(group => ({
@@ -178,24 +179,50 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
       : BASE_PERMISSION_GROUPS
   );
 
+  // Whenever panel opens for a staff member, sync toggles from stored permissions
   useEffect(() => {
     if (!staff) return;
-    const hasPOSPermission = (staff.permissions || ['pos', 'orders', 'customers']).includes('pos');
-    setPermissionGroups(prev =>
-      prev.map(group =>
-        group.id === 'access'
-          ? {
-              ...group,
-              permissions: group.permissions.map(permission =>
-                permission.id === 'pos_access'
-                  ? { ...permission, enabled: hasPOSPermission }
-                  : permission
-              ),
-            }
-          : group
-      )
+
+    // Find freshest staff data from storage (may contain updated permissions)
+    const storedList = getStoredStaffList(moduleType);
+    const storedMember = storedList.find(m => m.id === staff.id);
+    const effectivePermissions = storedMember?.permissions || staff.permissions || ['pos', 'orders', 'customers'];
+
+    const hasPOSPermission = effectivePermissions.includes('pos');
+
+    const UI_PREFIX = 'ui:';
+    const enabledFromUi = new Set(
+      effectivePermissions
+        .filter((perm) => perm.startsWith(UI_PREFIX))
+        .map((perm) => perm.substring(UI_PREFIX.length))
     );
-  }, [staff]);
+
+    const baseGroups = isSellerManageStaff
+      ? BASE_PERMISSION_GROUPS
+          .map(group => ({
+            ...group,
+            permissions: group.permissions.filter(permission => SELLER_ALLOWED_PERMISSION_IDS.has(permission.id))
+          }))
+          .filter(group => group.permissions.length > 0)
+      : BASE_PERMISSION_GROUPS;
+
+    const mapped = baseGroups.map(group => ({
+              ...group,
+      permissions: group.permissions.map(permission => {
+        if (group.id === 'access' && permission.id === 'pos_access') {
+          return { ...permission, enabled: hasPOSPermission };
+        }
+        // Use stored UI state if present, otherwise default from BASE_PERMISSION_GROUPS
+        const uiEnabled = enabledFromUi.has(permission.id);
+        return {
+          ...permission,
+          enabled: uiEnabled ? true : permission.enabled,
+        };
+      }),
+    }));
+
+    setPermissionGroups(mapped);
+  }, [staff, moduleType, isSellerManageStaff]);
 
   const getPermissionEnabled = (groupId: string, permissionId: string): boolean => {
     const group = permissionGroups.find(g => g.id === groupId);
@@ -223,31 +250,71 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (staff) {
       const staffList = getStoredStaffList(moduleType);
+
+      // Collect all enabled permission IDs from UI
+      const enabledPermissionIds = permissionGroups.flatMap((group) =>
+        group.permissions.filter((p) => p.enabled).map((p) => p.id)
+      );
+
+      // POS access toggle still controls legacy "pos" permission (actual access check)
       const allowPOS = getPermissionEnabled('access', 'pos_access');
+
       const updatedStaffList = staffList.map((member) => {
         if (member.id !== staff.id) return member;
-        const basePermissions = Array.isArray(member.permissions) && member.permissions.length > 0
+
+        const basePermissions =
+          Array.isArray(member.permissions) && member.permissions.length > 0
           ? member.permissions
           : ['pos', 'orders', 'customers'];
-        const nextPermissions = allowPOS
-          ? Array.from(new Set([...basePermissions, 'pos']))
-          : basePermissions.filter((permission) => permission !== 'pos');
+
+        // Preserve existing base permissions, only adjust "pos"
+        const baseSet = new Set(basePermissions);
+        if (allowPOS) {
+          baseSet.add('pos');
+        } else {
+          baseSet.delete('pos');
+        }
+
+        // Store UI-level permissions alongside, with a prefix so they don't
+        // interfere with existing access checks (which only look for 'pos', 'orders', 'customers')
+        const UI_PREFIX = 'ui:';
+        const filteredBase = Array.from(baseSet).filter((perm) => !perm.startsWith(UI_PREFIX));
+        const uiPermissions = enabledPermissionIds.map((id) => `${UI_PREFIX}${id}`);
+        const nextPermissions = [...filteredBase, ...uiPermissions];
+
         return {
           ...member,
           permissions: nextPermissions,
         };
       });
+
       setStoredStaffList(moduleType, updatedStaffList);
 
       const activeSession = getStaffSession(moduleType);
+      let currentMember = staff;
       if (activeSession && activeSession.id === staff.id) {
-        const refreshedStaff = updatedStaffList.find(member => member.id === staff.id);
+        const refreshedStaff = updatedStaffList.find((member) => member.id === staff.id);
         if (refreshedStaff) {
           setStaffSession(moduleType, refreshedStaff);
+          currentMember = refreshedStaff as Staff;
         }
+      }
+
+      // Persist permissions to backend Staff document (fire-and-forget style)
+      try {
+        const memberFromList = updatedStaffList.find((m) => m.id === staff.id);
+        if (memberFromList) {
+          await apiUpdateStaff(staff.id, {
+            permissions: memberFromList.permissions,
+          });
+        }
+      } catch (error) {
+        // Don't break UI if API fails; just log in console
+        // eslint-disable-next-line no-console
+        console.error('Failed to update staff permissions', error);
       }
     }
 

@@ -39,6 +39,7 @@ export interface Seller {
   requireProductApproval?: boolean;
   viewCustomerDetails?: boolean;
   isEnabled?: boolean;
+  canCreateCategories?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

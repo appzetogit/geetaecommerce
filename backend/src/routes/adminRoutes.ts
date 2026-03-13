@@ -42,8 +42,8 @@ import * as cashCollectionController from "../modules/admin/controllers/adminCas
 // FAQ Controllers
 import * as faqController from "../modules/admin/controllers/adminFAQController";
 
-// Role Controllers - Manage Roles functionality removed
-// import * as roleController from "../modules/admin/controllers/adminRoleController";
+// Role Controllers
+import * as roleController from "../modules/admin/controllers/adminRoleController";
 
 import * as paymentController from "../modules/admin/controllers/adminPaymentController";
 import * as policyController from "../modules/admin/controllers/adminPolicyController";
@@ -76,6 +76,9 @@ import * as lowestPricesController from "../modules/admin/controllers/adminLowes
 // PromoStrip Controllers
 import * as promoStripController from "../modules/admin/controllers/adminPromoStripController";
 
+// Staff Controllers
+import * as staffController from "../modules/admin/controllers/adminStaffController";
+
 const router = Router();
 
 // All routes require authentication
@@ -84,6 +87,12 @@ router.use(authenticate);
 // Settings Routes (Accessible to all authenticated users - Sellers need this)
 router.get("/settings", settingsController.getAppSettings);
 router.put("/settings", requireUserType("Admin", "Seller"), settingsController.updateAppSettings);
+
+// Staff routes are required for both Admin and Seller modules (e.g. seller staff-login flow)
+router.get("/staff", requireUserType("Admin", "Seller"), staffController.getStaffList);
+router.post("/staff", requireUserType("Admin", "Seller"), staffController.createStaff);
+router.put("/staff/:id", requireUserType("Admin", "Seller"), staffController.updateStaff);
+router.delete("/staff/:id", requireUserType("Admin", "Seller"), staffController.deleteStaff);
 
 router.use(requireUserType("Admin"));
 
@@ -343,6 +352,13 @@ router.put("/faqs/:id", faqController.updateFAQ);
 router.patch("/faqs/:id/status", faqController.updateFAQStatus);
 router.delete("/faqs/:id", faqController.deleteFAQ);
 router.put("/faqs/order", faqController.updateFAQOrder);
+
+// ==================== Role Routes ====================
+router.get("/roles", roleController.getRoles);
+router.get("/roles/:id", roleController.getRoleById);
+router.post("/roles", roleController.createRole);
+router.put("/roles/:id", roleController.updateRole);
+router.delete("/roles/:id", roleController.deleteRole);
 
 // ==================== Policy Routes ====================
 router.post("/policies", policyController.createPolicy);
