@@ -849,13 +849,14 @@ const AdminPOSOrders = () => {
                 Html5QrcodeSupportedFormats.QR_CODE,
             ];
             console.log('[SCANNER DEBUG] Initializing scanner with formats:', supportedFormats.map(f => Html5QrcodeSupportedFormats[f]));
-            console.log('[SCANNER DEBUG] useBarCodeDetectorIfSupported: true (uses native BarcodeDetector API if available)');
-            console.log('[SCANNER DEBUG] NOTE: Numeric barcodes >13 digits (e.g. 18-19 digit) are NOT standard EAN/UPC. They may be CODE_128 or ITF.');
-            console.log('[SCANNER DEBUG] BarcodeDetector API (native) may NOT support long numeric codes. Check browser support.');
+            console.log('[SCANNER DEBUG] Forcing ZXing engine (useBarCodeDetectorIfSupported = false) to improve compatibility with long numeric CODE_128 barcodes.');
+            console.log('[SCANNER DEBUG] NOTE: Numeric barcodes >13 digits (e.g. 18-19 digit) are typically encoded as CODE_128 / ITF and may not be reliably handled by some native BarcodeDetector implementations.');
 
             const scanner = new Html5Qrcode("reader", {
                 formatsToSupport: supportedFormats,
-                useBarCodeDetectorIfSupported: true,
+                // Force ZXing instead of browser BarcodeDetector to avoid issues
+                // with long numeric CODE_128 / ITF barcodes.
+                useBarCodeDetectorIfSupported: false,
             });
             html5QrCodeRef.current = scanner;
 
