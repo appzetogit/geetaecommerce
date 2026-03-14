@@ -881,8 +881,8 @@ const AdminPOSOrders = () => {
             console.log('[SCANNER DEBUG] Camera constraints: facingMode=environment, focusMode=continuous (if supported)');
 
             await scanner.start(
-                // Back camera with hint for continuous focus where supported.
-                { facingMode: "environment", advanced: [{ focusMode: "continuous" as any }] } as any,
+                // Back camera; keep object to a single key to satisfy html5-qrcode API.
+                { facingMode: "environment" },
                 config,
                 onScanSuccess,
                 (frameError) => {
