@@ -550,6 +550,9 @@ const AdminPOSOrders = () => {
 
   // Handle Barcode Scan from Camera
   const onScanSuccess = async (decodedText: string, decodedResult: any) => {
+      // TEMP DEBUG: Show scanned barcode on mobile device
+      alert("Scanned Barcode: " + decodedText);
+
       // === DEBUG: Log every raw scan result ===
       const detectedFormat = decodedResult?.result?.format?.formatName || decodedResult?.decodedResult?.result?.format?.formatName || 'UNKNOWN_FORMAT';
       console.log('========== [SCANNER DEBUG] SCAN DETECTED ==========');
@@ -855,24 +858,31 @@ const AdminPOSOrders = () => {
             const scanner = new Html5Qrcode("reader", {
                 formatsToSupport: supportedFormats,
                 // Force ZXing instead of browser BarcodeDetector to avoid issues
-                // with long numeric CODE_128 / ITF barcodes.
+                // with long numeric CODE_128 / ITF / EAN barcodes.
                 useBarCodeDetectorIfSupported: false,
             });
             html5QrCodeRef.current = scanner;
 
-            const boxWidth = Math.min(Math.max(element.clientWidth - 24, 220), 420);
-            const boxHeight = Math.max(200, Math.floor(boxWidth * 0.45));
+            // Use a wider, taller scan box optimized for horizontal barcodes (EAN / CODE_128).
+            const maxBoxWidth = 420;
+            const maxBoxHeight = 260;
+            const boxWidth = Math.min(element.clientWidth - 24, maxBoxWidth);
+            const boxHeight = maxBoxHeight;
             const config: any = {
-                fps: 20,
+                // Slightly higher FPS improves decode chances without overloading.
+                fps: 25,
                 qrbox: { width: boxWidth, height: boxHeight },
-                disableFlip: true
+                // Prefer wide aspect ratio; helps 1D barcodes filling frame horizontally.
+                aspectRatio: boxWidth / boxHeight,
+                disableFlip: true,
             };
             console.log('[SCANNER DEBUG] Scanner box size (px):', { width: boxWidth, height: boxHeight }, '| Element width:', element.clientWidth);
-            console.log('[SCANNER DEBUG] FPS:', config.fps, '| disableFlip:', config.disableFlip);
-            console.log('[SCANNER DEBUG] Camera mode: environment (back camera)');
+            console.log('[SCANNER DEBUG] FPS:', config.fps, '| disableFlip:', config.disableFlip, '| aspectRatio:', config.aspectRatio);
+            console.log('[SCANNER DEBUG] Camera constraints: facingMode=environment, focusMode=continuous (if supported)');
 
             await scanner.start(
-                { facingMode: "environment" },
+                // Back camera with hint for continuous focus where supported.
+                { facingMode: "environment", advanced: [{ focusMode: "continuous" as any }] } as any,
                 config,
                 onScanSuccess,
                 (frameError) => {
