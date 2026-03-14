@@ -550,8 +550,14 @@ const AdminPOSOrders = () => {
 
   // Handle Barcode Scan from Camera
   const onScanSuccess = async (decodedText: string, decodedResult: any) => {
-      // TEMP DEBUG: Show scanned barcode on mobile device
-      alert("Scanned Barcode: " + decodedText);
+      // Optional non-blocking feedback (mobile vibration if supported)
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          try {
+              navigator.vibrate(100);
+          } catch {
+              // ignore vibration errors
+          }
+      }
 
       // === DEBUG: Log every raw scan result ===
       const detectedFormat = decodedResult?.result?.format?.formatName || decodedResult?.decodedResult?.result?.format?.formatName || 'UNKNOWN_FORMAT';
