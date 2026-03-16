@@ -22,7 +22,7 @@ import {
     createSellerOwnSubCategory
 } from "../modules/seller/controllers/sellerPOSController";
 import { updateStockLedgerEntry } from "../modules/admin/controllers/updateStockLedgerController";
-import { createCustomer, getAllCustomers } from "../modules/admin/controllers/adminCustomerController";
+import { createCustomer, getAllCustomers, deleteCustomer } from "../modules/admin/controllers/adminCustomerController";
 import { authenticate, requireUserType, checkEnabled } from "../middleware/auth";
 
 const router = Router();
@@ -33,6 +33,7 @@ router.use(checkEnabled);
 
 router.get("/customers", getAllCustomers);
 router.post("/customers", createCustomer);
+router.delete("/customers/:id", deleteCustomer);
 router.post("/orders", createPOSOrder);
 router.post("/orders/online", initiatePOSOnlineOrder);
 router.post("/orders/verify", verifyPOSPayment);

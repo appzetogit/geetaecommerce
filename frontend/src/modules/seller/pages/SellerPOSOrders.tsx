@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import { getProducts, getProductById, getSellerPOSProducts as getPOSProducts, Product, updateProduct, createProduct } from '../../../services/api/productService';
 import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getSellerOrderById as getOrderById } from '../../../services/api/orderService';
@@ -20,6 +20,7 @@ import {
   getSellerPOSState as apiGetSellerPOSState,
   updateSellerPOSState as apiUpdateSellerPOSState
 } from '../../../services/api/seller/sellerPurchaseService';
+import { getAllSuppliers } from '../../../services/api/seller/supplierService';
 
 // Interface for Cart Item extending Product
 export interface CartItem extends Product {
@@ -522,7 +523,7 @@ const SellerPOSOrders = () => {
 
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
-  const [scanTarget, setScanTarget] = useState<'inventory' | 'quick-add' | 'purchase'>('inventory');
+  const [scanTarget, setScanTarget] = useState<'inventory' | 'quick-add' | 'purchase' | 'purchase-barcode'>('inventory');
   const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
@@ -546,7 +547,19 @@ const SellerPOSOrders = () => {
   const [purchasePaymentMethod, setPurchasePaymentMethod] = useState<'Cash' | 'Credit' | 'Online'>('Cash');
   const [showPurchasePaymentDropdown, setShowPurchasePaymentDropdown] = useState(false);
   const [showSupplierModal, setShowSupplierModal] = useState(false);
-  const [purchaseItems, setPurchaseItems] = useState<PurchaseItem[]>([]);
+  const [purchaseItemsStore, setPurchaseItemsStore] = useState<PurchaseItem[]>([]);
+  const [quotationItemsStore, setQuotationItemsStore] = useState<PurchaseItem[]>([]);
+
+  const purchaseItems = purchaseMode === 'Purchase' ? purchaseItemsStore : quotationItemsStore;
+
+  const setPurchaseItems = (action: React.SetStateAction<PurchaseItem[]>) => {
+    if (purchaseMode === 'Purchase') {
+      setPurchaseItemsStore(action);
+    } else {
+      setQuotationItemsStore(action);
+    }
+  };
+  const [purchaseBarcodeScanItemId, setPurchaseBarcodeScanItemId] = useState<string | null>(null);
   const [purchaseSearchLoading, setPurchaseSearchLoading] = useState(false);
   const [purchaseSearchResults, setPurchaseSearchResults] = useState<Product[]>([]);
   const [purchaseSupplier, setPurchaseSupplier] = useState<PurchaseSupplier | null>(null);
@@ -559,6 +572,31 @@ const SellerPOSOrders = () => {
     openingBalance: '',
     openingBalanceType: 'Payment',
   });
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [allSuppliers, setAllSuppliers] = useState<any[]>([]);
+  const [showSupplierResults, setShowSupplierResults] = useState(false);
+
+  useEffect(() => {
+    if (showSupplierModal) {
+      setSupplierSearch('');
+      setShowSupplierResults(false);
+      const fetchSuppliers = async () => {
+        try {
+          const res = await getAllSuppliers();
+          if (res.success) setAllSuppliers(res.data);
+        } catch (e) {
+          console.error("Failed to fetch suppliers", e);
+        }
+      };
+      fetchSuppliers();
+    }
+  }, [showSupplierModal]);
+
+  useEffect(() => {
+    if (showPurchaseSearch) {
+      setPurchaseSearchQuery('');
+    }
+  }, [showPurchaseSearch]);
   const [purchaseDate, setPurchaseDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [showVariantPicker, setShowVariantPicker] = useState(false);
   const [variantPickerItem, setVariantPickerItem] = useState<PurchaseItem | null>(null);
@@ -624,6 +662,19 @@ const SellerPOSOrders = () => {
       if (loading) return;
 
       console.log(`Scan result (${scanTarget}): ${decodedText}`, decodedResult);
+
+      // Special case: assign scanned barcode directly to a PurchaseItem's barcode field
+      if (scanTarget === 'purchase-barcode') {
+          if (purchaseBarcodeScanItemId) {
+              setPurchaseItems(prev =>
+                  prev.map(item =>
+                      item.id === purchaseBarcodeScanItemId ? { ...item, barcode: decodedText } : item
+                  )
+              );
+          }
+          setShowScanner(false);
+          return;
+      }
 
       if (scanTarget === 'quick-add') {
           setQuickForm(prev => ({ ...prev, barcode: decodedText }));
@@ -763,7 +814,7 @@ const SellerPOSOrders = () => {
       if (raw) {
         try {
           const quote: PurchaseEntryRecord = JSON.parse(raw);
-          setPurchaseItems(quote.items);
+          setQuotationItemsStore(quote.items);
           setPurchaseSupplier(quote.supplier);
           setPurchaseMode('Quotation');
           setEditingQuotationId(quote.id);
@@ -815,7 +866,7 @@ const SellerPOSOrders = () => {
       }
     } else if (mode === 'new_quotation') {
       setPurchaseMode('Quotation');
-      setPurchaseItems([]);
+      setQuotationItemsStore([]);
       setPurchaseSupplier(null);
       setEditingQuotationId(null);
       setShowPurchaseEntry(true);
@@ -824,7 +875,7 @@ const SellerPOSOrders = () => {
       if (raw) {
         try {
           const purchase: any = JSON.parse(raw);
-          setPurchaseItems(purchase.items);
+          setPurchaseItemsStore(purchase.items);
           setPurchaseSupplier(purchase.supplier);
           setPurchaseMode('Purchase');
           setEditingQuotationId(purchase.id);
@@ -4036,9 +4087,30 @@ const SellerPOSOrders = () => {
                       </button>
                       {item.additionalOpen && (
                         <div className="space-y-2">
-                          <label className="text-xs text-gray-500 block">Enter Barcode Number
-                            <input type="text" value={item.barcode} onChange={(e) => updatePurchaseItem(item.id, { barcode: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
-                          </label>
+                          <label className="text-xs text-gray-500 block">Enter Barcode Number</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={item.barcode}
+                              onChange={(e) => updatePurchaseItem(item.id, { barcode: e.target.value })}
+                              className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2"
+                              placeholder="Scan or Enter"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPurchaseBarcodeScanItemId(item.id);
+                                setScanTarget('purchase-barcode');
+                                setShowScanner(true);
+                                setScannerKey((k) => k + 1);
+                              }}
+                              className="mt-1 px-3 py-2 bg-pink-50 border border-pink-200 rounded-xl hover:bg-pink-100 text-[#f187b5] flex items-center justify-center gap-1 text-xs font-semibold"
+                              title="Scan Barcode"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7V5a2 2 0 012-2h2m6 0h2a2 2 0 012 2v2M5 17v2a2 2 0 002 2h2m6 0h2a2 2 0 002-2v-2M7 12h10M7 9h2m6 0h2m-4 6h2m-8 0h2" /></svg>
+                              Scan
+                            </button>
+                          </div>
                           <div className="grid grid-cols-2 gap-2">
                             <button
                               onClick={() => handlePrintPurchaseBarcode(item)}
@@ -4161,6 +4233,58 @@ const SellerPOSOrders = () => {
           <div className="w-full max-w-xl bg-white rounded-t-3xl p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-3"></div>
             <h3 className="text-3xl font-semibold text-gray-800 mb-4">Add Supplier</h3>
+
+            {/* Supplier Search */}
+            <div className="mb-4 relative">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Search Existing Supplier</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={supplierSearch}
+                  onChange={(e) => {
+                    setSupplierSearch(e.target.value);
+                    setShowSupplierResults(true);
+                  }}
+                  onFocus={() => setShowSupplierResults(true)}
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2.5 pl-10 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all"
+                  placeholder="Search by name or phone..."
+                />
+                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+
+              {showSupplierResults && supplierSearch.trim() && (
+                <div className="absolute z-[90] left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                  {allSuppliers.filter(s =>
+                    s.name.toLowerCase().includes(supplierSearch.toLowerCase()) ||
+                    s.phone.includes(supplierSearch)
+                  ).map(s => (
+                    <button
+                      key={s._id}
+                      onClick={() => {
+                        setPurchaseSupplierForm({
+                          name: s.name,
+                          phone: s.phone,
+                          address: s.address || '',
+                          notes: s.notes || '',
+                          gstNumber: s.gstNumber || '',
+                          openingBalance: String(s.openingBalance || '0'),
+                          openingBalanceType: s.openingBalanceType || 'Payment'
+                        });
+                        setSupplierSearch(s.name);
+                        setShowSupplierResults(false);
+                      }}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                    >
+                      <div className="font-semibold text-gray-800">{s.name}</div>
+                      <div className="text-xs text-gray-500">{s.phone} {s.gstNumber ? `| GST: ${s.gstNumber}` : ''}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-3">
               <label className="block text-sm font-semibold text-gray-700">Supplier Name *
                 <input value={purchaseSupplierForm.name} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, name: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all" placeholder="Enter supplier name" />
@@ -4191,7 +4315,7 @@ const SellerPOSOrders = () => {
             <div className="grid grid-cols-2 gap-3 mt-6">
               <button onClick={() => setShowSupplierModal(false)} className="rounded-xl border border-gray-300 py-3 font-semibold text-gray-700">Cancel</button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   if (!purchaseSupplierForm.name.trim() || !purchaseSupplierForm.phone.trim()) {
                     showToast('Supplier name and phone are required.', 'error');
                     return;
@@ -4199,6 +4323,38 @@ const SellerPOSOrders = () => {
                   setPurchaseSupplier(purchaseSupplierForm);
                   setShowSupplierModal(false);
                   showToast('Supplier added in purchase entry.', 'success');
+
+                  // Additionally, try to persist supplier in Seller POS Supplier Ledger (DB).
+                  // This is best-effort only; failures won't affect current flow.
+                  try {
+                    const openingBalance = parseFloat(purchaseSupplierForm.openingBalance || '0') || 0;
+                    const openingBalanceType =
+                      purchaseSupplierForm.openingBalanceType === 'Receive' ||
+                      purchaseSupplierForm.openingBalanceType === 'Payment'
+                        ? purchaseSupplierForm.openingBalanceType
+                        : 'Receive';
+
+                    const payload: Partial<import('../../../services/api/seller/supplierService').Supplier> = {
+                      name: purchaseSupplierForm.name.trim(),
+                      phone: purchaseSupplierForm.phone.trim(),
+                      address: purchaseSupplierForm.address || undefined,
+                      gstNumber: purchaseSupplierForm.gstNumber || undefined,
+                      notes: purchaseSupplierForm.notes || undefined,
+                      openingBalance,
+                      openingBalanceType,
+                    };
+
+                    const res = await import('../../../services/api/seller/supplierService').then(m =>
+                      m.createSupplier(payload)
+                    );
+
+                    if (!res?.success) {
+                      console.warn('Failed to persist supplier to ledger:', res?.message);
+                    }
+                  } catch (err) {
+                    // Silently ignore DB errors to avoid breaking existing purchase-entry flow
+                    console.error('Error creating supplier in ledger (non-blocking):', err);
+                  }
                 }}
                 className="rounded-xl bg-[#f187b5] hover:bg-[#e076a5] text-white py-3 font-semibold transition-all"
               >

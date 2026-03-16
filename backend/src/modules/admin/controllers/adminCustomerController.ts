@@ -214,3 +214,36 @@ export const createCustomer = asyncHandler(
   }
 );
 
+/**
+ * Delete a customer
+ */
+export const deleteCustomer = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const query: any = { _id: id };
+    
+    // Ensure Seller can only delete their own customers
+    if (req.user && req.user.userType === 'Seller') {
+      query.sellerId = req.user.userId;
+    } else if (req.user && req.user.userType === 'Admin') {
+      // Admin deletes global/admin customers
+      query.sellerId = null;
+    }
+
+    const customer = await Customer.findOneAndDelete(query);
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found or you don't have permission to delete it",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Customer deleted successfully",
+    });
+  }
+);
+

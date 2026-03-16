@@ -116,6 +116,17 @@ export const createCustomer = async (
 };
 
 /**
+ * Update a customer
+ */
+export const updateCustomer = async (
+  id: string,
+  data: Partial<Customer>
+): Promise<ApiResponse<Customer>> => {
+  const response = await api.put<ApiResponse<Customer>>(`/admin/customers/${id}`, data);
+  return response.data;
+};
+
+/**
  * Get abandoned carts
  */
 export const getAbandonedCarts = async (
@@ -132,5 +143,13 @@ export const getAbandonedCarts = async (
     "/admin/customers/abandoned-carts",
     { params }
   );
+  return response.data;
+};
+
+/**
+ * Delete a customer
+ */
+export const deleteCustomer = async (id: string): Promise<ApiResponse<void>> => {
+  const response = await api.delete<ApiResponse<void>>(`/admin/customers/${id}`);
   return response.data;
 };

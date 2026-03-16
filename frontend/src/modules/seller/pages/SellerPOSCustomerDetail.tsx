@@ -9,6 +9,7 @@ import {
     verifyCreditPayment,
     CreditTransaction
 } from '../../../services/api/seller/creditService';
+import { updateCustomer, deleteCustomer } from '../../../services/api/seller/sellerCustomerService';
 import { jsPDF } from "jspdf";
 
 // Extended type for UI
@@ -22,6 +23,8 @@ interface CustomerData {
     orders: any[]; // Order summary
     totalCredit: number;
     totalPaid: number;
+    address?: string;
+    email?: string;
 }
 
 const SellerPOSCustomerDetail = () => {
@@ -32,6 +35,18 @@ const SellerPOSCustomerDetail = () => {
     const [loading, setLoading] = useState(true);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showCreditModal, setShowCreditModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isActionLoading, setIsActionLoading] = useState(false);
+
+    // Edit state
+    const [editData, setEditData] = useState({
+        name: '',
+        phone: '',
+        gst: '',
+        address: '',
+        email: ''
+    });
 
     // Form States
     const dateNow = new Date().toISOString().split('T')[0];
@@ -67,11 +82,21 @@ const SellerPOSCustomerDetail = () => {
                 name: data.customer.name,
                 phone: data.customer.phone,
                 gst: data.customer.gst,
+                address: data.customer.address,
                 creditBalance: data.customer.creditBalance,
                 transactions: data.transactions,
                 orders: data.orders || [],
                 totalCredit,
-                totalPaid
+                totalPaid,
+                email: data.customer.email
+            });
+
+            setEditData({
+                name: data.customer.name,
+                phone: data.customer.phone,
+                gst: data.customer.gst || '',
+                address: data.customer.address || '',
+                email: data.customer.email || ''
             });
         } catch (error) {
             console.error(error);
@@ -131,6 +156,42 @@ const SellerPOSCustomerDetail = () => {
             loadCustomer();
         } catch (error) {
             showToast("Failed to add credit", "error");
+        }
+    };
+
+    const handleUpdateCustomer = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!id || !customerData) return;
+
+        setIsActionLoading(true);
+        try {
+            const res = await updateCustomer(id, editData);
+            if (res.success) {
+                showToast("Customer updated successfully", "success");
+                setShowEditModal(false);
+                loadCustomer();
+            }
+        } catch (error) {
+            showToast("Failed to update customer", "error");
+        } finally {
+            setIsActionLoading(false);
+        }
+    };
+
+    const handleDeleteCustomer = async () => {
+        if (!id) return;
+        setIsActionLoading(true);
+        try {
+            const res = await deleteCustomer(id);
+            if (res.success) {
+                showToast("Customer deleted successfully", "success");
+                navigate('/seller/pos/customers');
+            }
+        } catch (error) {
+            showToast("Failed to delete customer", "error");
+        } finally {
+            setIsActionLoading(false);
+            setShowDeleteModal(false);
         }
     };
 
@@ -390,13 +451,29 @@ const SellerPOSCustomerDetail = () => {
                                  )}
                              </div>
                          </div>
-                        <button
-                            onClick={handleExportPDF}
-                            className="ml-auto flex items-center gap-2 bg-gray-50 text-gray-700 font-bold px-4 py-2 rounded-lg text-xs hover:bg-gray-100 transition-colors border border-gray-200"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                            PDF
-                        </button>
+                        <div className="ml-auto flex gap-2">
+                             <button
+                                 onClick={() => setShowDeleteModal(true)}
+                                 className="flex items-center gap-2 bg-red-50 text-red-600 font-bold px-4 py-2 rounded-lg text-xs hover:bg-red-100 transition-colors border border-red-100"
+                             >
+                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                 Delete
+                             </button>
+                             <button
+                                 onClick={() => setShowEditModal(true)}
+                                 className="flex items-center gap-2 bg-gray-50 text-gray-700 font-bold px-4 py-2 rounded-lg text-xs hover:bg-gray-100 transition-colors border border-gray-200"
+                             >
+                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                 Edit
+                             </button>
+                             <button
+                                 onClick={handleExportPDF}
+                                 className="flex items-center gap-2 bg-gray-50 text-gray-700 font-bold px-4 py-2 rounded-lg text-xs hover:bg-gray-100 transition-colors border border-gray-200"
+                             >
+                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                 PDF
+                             </button>
+                         </div>
                     </div>
 
                     {/* Stats Grid */}
@@ -702,6 +779,69 @@ const SellerPOSCustomerDetail = () => {
                                 className="flex-[2] bg-[#1a1a1a] text-white font-black text-xs py-3 rounded-xl shadow-lg hover:bg-black transition-all"
                             >
                                 Add Credit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showEditModal && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center">
+                             <h3 className="text-lg font-bold">Edit Customer Details</h3>
+                             <button onClick={() => setShowEditModal(false)} className="text-white/80 hover:text-white transition-colors">
+                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                             </button>
+                         </div>
+                        <form onSubmit={handleUpdateCustomer} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Full Name *</label>
+                                <input type="text" required className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Phone Number *</label>
+                                    <input type="tel" required maxLength={10} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all font-mono" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Email (Optional)</label>
+                                    <input type="email" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Address</label>
+                                <textarea rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all resize-none h-20" value={editData.address} onChange={e => setEditData({...editData, address: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">GST Number (Optional)</label>
+                                <input type="text" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all uppercase" value={editData.gst} onChange={e => setEditData({...editData, gst: e.target.value.toUpperCase()})} />
+                            </div>
+                            <button type="submit" disabled={isActionLoading} className="w-full py-4 bg-[#f187b5] text-white rounded-2xl font-bold flex items-center justify-center gap-2 mt-4 shadow-lg shadow-pink-100 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                                {isActionLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (
+                                    <>
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                        Save Changes
+                                    </>
+                                )}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Modal */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center">
+                        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center text-red-500 mx-auto mb-6">
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Customer?</h3>
+                        <p className="text-sm text-gray-500 mb-8 px-4">This action cannot be undone. All transaction history for this customer will be permanently removed.</p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-3 text-sm font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition-colors">Cancel</button>
+                            <button onClick={handleDeleteCustomer} disabled={isActionLoading} className="flex-1 py-3 bg-red-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-red-100 hover:bg-red-700 transition-all">
+                                {isActionLoading ? 'Deleting...' : 'Yes, Delete'}
                             </button>
                         </div>
                     </div>
