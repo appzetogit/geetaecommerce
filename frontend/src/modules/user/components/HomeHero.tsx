@@ -434,12 +434,12 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
                 key={tab.id}
                 ref={(el) => { if (el) tabRefs.current.set(tab.id, el); else tabRefs.current.delete(tab.id); }}
                 onClick={() => handleTabClick(tab.id)}
-                className={`flex-shrink-0 flex flex-col items-center justify-center w-auto min-w-[65px] md:w-auto md:min-w-[85px] px-1 md:px-2 py-2 relative ${tabColor} z-10`}
+                className={`flex-shrink-0 flex flex-col items-center justify-center w-auto min-w-[75px] md:w-auto md:min-w-[95px] px-1 md:px-3 py-2 relative ${tabColor} z-10`}
                 style={{ transition: 'color 0.3s ease-out' }}
                 type="button"
               >
                 <motion.div
-                  className={`mb-1 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${tabColor}`}
+                  className={`mb-1.5 w-12 h-12 md:w-14 md:h-14 flex items-center justify-center ${tabColor}`}
                   style={{ transition: 'color 0.3s ease-out' }}
                   animate={
                     isActive
