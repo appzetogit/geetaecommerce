@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useLayoutEffect, useRef, useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { getTheme } from '../../../utils/themes';
@@ -149,7 +150,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
             label: c.name,
             theme: c.theme || c.slug,
             icon: c.image ? (
-                <img src={c.image} alt={c.name} className="w-full h-full object-contain" />
+                <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
             ) : (
                 getIconByName(c.iconName)
             )
@@ -433,14 +434,29 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
                 key={tab.id}
                 ref={(el) => { if (el) tabRefs.current.set(tab.id, el); else tabRefs.current.delete(tab.id); }}
                 onClick={() => handleTabClick(tab.id)}
-                className={`flex-shrink-0 flex flex-col items-center justify-center w-auto min-w-[60px] md:w-auto md:min-w-[80px] md:px-3 py-1 md:py-1.5 relative ${tabColor} z-10`}
+                className={`flex-shrink-0 flex flex-col items-center justify-center w-auto min-w-[65px] md:w-auto md:min-w-[85px] px-1 md:px-2 py-2 relative ${tabColor} z-10`}
                 style={{ transition: 'color 0.3s ease-out' }}
                 type="button"
               >
-                <div className={`mb-0.5 w-5 h-5 md:w-6 md:h-6 flex items-center justify-center ${tabColor}`} style={{ transition: 'color 0.3s ease-out, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)', transform: isActive ? 'scale(1.1)' : 'scale(1)' }}>
-                  {tab.icon}
-                </div>
-                <span className={`text-[10px] md:text-xs md:whitespace-nowrap ${isActive ? 'font-semibold' : 'font-medium'}`} style={{ transition: 'font-weight 0.3s ease-out' }}>
+                <motion.div
+                  className={`mb-1 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center ${tabColor}`}
+                  style={{ transition: 'color 0.3s ease-out' }}
+                  animate={
+                    isActive
+                      ? { scale: [1, 1.12, 1], y: [0, -1.5, 0] }
+                      : { scale: 1, y: 0 }
+                  }
+                  transition={
+                    isActive
+                      ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+                      : { duration: 0.25, ease: [0.4, 0, 0.2, 1] }
+                  }
+                >
+                  <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-xl">
+                    {tab.icon}
+                  </div>
+                </motion.div>
+                <span className={`text-[10px] md:text-xs md:whitespace-nowrap ${isActive ? 'font-bold' : 'font-medium'}`} style={{ transition: 'font-weight 0.3s ease-out' }}>
                   {tab.label}
                 </span>
               </button>

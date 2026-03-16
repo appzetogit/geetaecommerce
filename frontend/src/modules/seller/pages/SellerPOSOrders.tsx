@@ -550,6 +550,9 @@ const SellerPOSOrders = () => {
   const [purchaseItemsStore, setPurchaseItemsStore] = useState<PurchaseItem[]>([]);
   const [quotationItemsStore, setQuotationItemsStore] = useState<PurchaseItem[]>([]);
 
+  const POS_ENTRY_DRAFT_KEY = 'seller_pos_purchase_entry_draft_v1';
+  const prevShowPurchaseEntryRef = useRef<boolean>(false);
+
   const purchaseItems = purchaseMode === 'Purchase' ? purchaseItemsStore : quotationItemsStore;
 
   const setPurchaseItems = (action: React.SetStateAction<PurchaseItem[]>) => {
@@ -604,6 +607,45 @@ const SellerPOSOrders = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingQuotationId, setEditingQuotationId] = useState<string | null>(null);
   const [savedPurchaseEntries, setSavedPurchaseEntries] = useState<PurchaseEntryRecord[]>([]);
+
+  useEffect(() => {
+    try {
+      // Only clear draft when user explicitly closes the entry screen (true -> false),
+      // never on first mount (otherwise refresh would lose the draft before restore).
+      const prev = prevShowPurchaseEntryRef.current;
+      prevShowPurchaseEntryRef.current = showPurchaseEntry;
+      if (prev && !showPurchaseEntry) {
+        localStorage.removeItem(POS_ENTRY_DRAFT_KEY);
+        return;
+      }
+      if (!showPurchaseEntry) return;
+
+      const draft = {
+        showPurchaseEntry,
+        purchaseMode,
+        purchaseItemsStore,
+        quotationItemsStore,
+        purchaseSupplier,
+        purchaseDate,
+        purchasePaymentMethod,
+        reduceStockOnQuotation,
+        editingQuotationId,
+      };
+      localStorage.setItem(POS_ENTRY_DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // ignore draft persistence failures
+    }
+  }, [
+    showPurchaseEntry,
+    purchaseMode,
+    purchaseItemsStore,
+    quotationItemsStore,
+    purchaseSupplier,
+    purchaseDate,
+    purchasePaymentMethod,
+    reduceStockOnQuotation,
+    editingQuotationId,
+  ]);
 
   const normalizePurchaseEntries = (list: any[]): PurchaseEntryRecord[] =>
     Array.isArray(list)
@@ -745,7 +787,7 @@ const SellerPOSOrders = () => {
                              purchasePrice: Number(variationMatch?.purchasePrice ?? match.purchasePrice ?? match.price ?? 0),
                              qty: 1,
                              currentQty: Number(variationMatch?.stock ?? 0),
-                             includingGST: false,
+                             includingGST: true,
                              billDiscount: 0,
                              billDiscountType: '%',
                              gstPercent: 18,
@@ -886,6 +928,31 @@ const SellerPOSOrders = () => {
         } catch (e) {
           console.error("Failed to parse edit_purchase_data", e);
         }
+      }
+    } else if (!mode) {
+      // No explicit mode in URL -> restore draft (refresh-safe)
+      try {
+        const raw = localStorage.getItem(POS_ENTRY_DRAFT_KEY);
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        if (!draft || typeof draft !== 'object') return;
+        if (!draft.showPurchaseEntry) return;
+
+        if (draft.purchaseMode === 'Quotation' || draft.purchaseMode === 'Purchase') {
+          setPurchaseMode(draft.purchaseMode);
+        }
+        if (Array.isArray(draft.purchaseItemsStore)) setPurchaseItemsStore(draft.purchaseItemsStore);
+        if (Array.isArray(draft.quotationItemsStore)) setQuotationItemsStore(draft.quotationItemsStore);
+        setPurchaseSupplier(draft.purchaseSupplier ?? null);
+        if (typeof draft.purchaseDate === 'string' && draft.purchaseDate) setPurchaseDate(draft.purchaseDate);
+        if (draft.purchasePaymentMethod === 'Cash' || draft.purchasePaymentMethod === 'Credit' || draft.purchasePaymentMethod === 'Online') {
+          setPurchasePaymentMethod(draft.purchasePaymentMethod);
+        }
+        if (typeof draft.reduceStockOnQuotation === 'boolean') setReduceStockOnQuotation(draft.reduceStockOnQuotation);
+        setEditingQuotationId(typeof draft.editingQuotationId === 'string' ? draft.editingQuotationId : null);
+        setShowPurchaseEntry(true);
+      } catch {
+        // ignore restore failures
       }
     }
   }, [customers]);
@@ -1617,7 +1684,7 @@ const SellerPOSOrders = () => {
         purchasePrice: Number(product.purchasePrice || product.price || 0),
         qty: 1,
         currentQty: Number(product.stock || 0),
-        includingGST: false,
+        includingGST: true,
         billDiscount: 0,
         billDiscountType: '%',
         gstPercent: 18,
@@ -1703,7 +1770,7 @@ const SellerPOSOrders = () => {
         purchasePrice: Number(variation?.purchasePrice ?? baseItem.purchasePrice ?? 0),
         qty: 1,
         currentQty: Number(variation?.stock ?? 0),
-        includingGST: false,
+        includingGST: true,
         billDiscount: 0,
         billDiscountType: '%',
         gstPercent: 18,
@@ -1956,7 +2023,7 @@ const SellerPOSOrders = () => {
             mrp: parseFloat(quickForm.mrp) || 0,
             retailPrice: parseFloat(quickForm.price) || 0,
             wholesalePrice: parseFloat(quickForm.wholesalePrice) || 0,
-            purchasePrice: parseFloat(quickForm.purchasePrice) || 0,
+            purchasePrice: parseFloat(quickForm.purchasePrice) || parseFloat(quickForm.price) || 0,
             qty: parseInt(quickForm.qty) || 1,
             currentQty: finalProductData?.stock || 0,
             includingGST: true,
