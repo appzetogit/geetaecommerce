@@ -59,9 +59,11 @@ export const getHomeContent = async (
 export const getStoreProducts = async (
   storeId: string,
   latitude?: number,
-  longitude?: number
+  longitude?: number,
+  page?: number,
+  limit?: number
 ): Promise<any> => {
-  const params: any = {};
+  const params: any = { page, limit };
   if (latitude !== undefined && longitude !== undefined) {
     params.latitude = latitude;
     params.longitude = longitude;

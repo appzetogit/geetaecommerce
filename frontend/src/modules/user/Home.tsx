@@ -13,10 +13,12 @@ import FeaturedDeal from "./components/banners/FeaturedDeal";
 import DealOfTheDay from "./components/banners/DealOfTheDay";
 import { getHomeContent } from "../../services/api/customerHomeService";
 import { getHeaderCategoriesPublic } from "../../services/api/headerCategoryService";
+import { getProducts as getCustomerProducts } from "../../services/api/customerProductService";
 import { useLocation } from "../../hooks/useLocation";
 import { useLoading } from "../../context/LoadingContext";
 import PageLoader from "../../components/PageLoader";
 import { useThemeContext } from "../../context/ThemeContext";
+import Pagination from "./components/Pagination";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -41,6 +43,10 @@ export default function Home() {
   });
 
   const [products, setProducts] = useState<any[]>([]);
+  const [tabProducts, setTabProducts] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 9;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,7 +54,8 @@ export default function Home() {
         startRouteLoading();
         setLoading(true);
         setError(null);
-        const response = await getHomeContent(undefined);
+        // Fetch fresh home content so admin updates (e.g. lowest prices) reflect immediately.
+        const response = await getHomeContent(undefined, undefined, undefined, false);
         if (response.success && response.data) {
           let finalData = { ...response.data };
 
@@ -142,20 +149,49 @@ export default function Home() {
     preloadHeaderCategories();
   }, [location?.latitude, location?.longitude]);
 
+  useEffect(() => {
+    const loadTabProducts = async () => {
+      if (!activeTab || activeTab === "all") {
+        setTabProducts([]);
+        return;
+      }
+      try {
+        const res = await getCustomerProducts({
+          headerCategorySlug: activeTab,
+          page: currentPage,
+          limit: limit,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+        });
+        if ((res as any).success && Array.isArray((res as any).data)) {
+          setTabProducts((res as any).data);
+          if ((res as any).pagination) {
+            setTotalPages((res as any).pagination.pages);
+          }
+        } else {
+          setTabProducts([]);
+        }
+      } catch (e) {
+        console.error("Failed to load tab products:", e);
+        setTabProducts([]);
+      }
+    };
+    void loadTabProducts();
+  }, [activeTab, location?.latitude, location?.longitude, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset page when tab changes
+  }, [activeTab]);
+
   const getFilteredProducts = (tabId: string) => {
-    if (tabId === "all") {
-      return products;
-    }
-    return products.filter(
-      (p) =>
-        p.categoryId === tabId ||
-        (p.category && (p.category._id === tabId || p.category.slug === tabId))
-    );
+    if (tabId === "all") return products;
+    // For header categories like Grocery/Beauty, show all products under that category.
+    return tabProducts;
   };
 
   const filteredProducts = useMemo(
     () => getFilteredProducts(activeTab),
-    [activeTab, products]
+    [activeTab, products, tabProducts]
   );
 
   if (loading && !products.length) {
@@ -257,7 +293,8 @@ export default function Home() {
             </h2>
             <div className="px-4 md:px-6 lg:px-8">
               {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
+                <>
+                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
                   {filteredProducts.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -269,6 +306,20 @@ export default function Home() {
                     />
                   ))}
                 </div>
+
+                <Pagination 
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(page) => {
+                    setCurrentPage(page);
+                    // Scroll to products section header
+                    const element = document.querySelector('[data-products-section]');
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                />
+              </>
               ) : (
                 <div className="text-center py-12 md:py-16 text-neutral-500">
                   <p className="text-lg md:text-xl mb-2">No products found</p>

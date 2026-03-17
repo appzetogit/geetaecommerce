@@ -27,6 +27,7 @@ export interface GetProductsParams {
     sort?: 'price_asc' | 'price_desc' | 'popular' | 'discount';
     page?: number;
     limit?: number;
+    headerCategorySlug?: string; // Home header tabs (e.g. grocery, beauty)
     latitude?: number; // User location latitude
     longitude?: number; // User location longitude
 }

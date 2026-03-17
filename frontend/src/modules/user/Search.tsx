@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ProductCard from './components/ProductCard';
+import Pagination from './components/Pagination';
 import { getProducts } from '../../services/api/customerProductService';
 import { getHomeContent } from '../../services/api/customerHomeService';
 import { Product } from '../../types/domain';
@@ -16,6 +17,9 @@ export default function Search() {
   const [cookingIdeas, setCookingIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [contentLoading, setContentLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 9;
 
   // Fetch products based on search query
   useEffect(() => {
@@ -27,7 +31,11 @@ export default function Search() {
 
       setLoading(true);
       try {
-        const params: any = { search: searchQuery };
+        const params: any = { 
+          search: searchQuery,
+          page: currentPage,
+          limit: limit
+        };
         // Include user location for seller service radius filtering
         if (location?.latitude && location?.longitude) {
           params.latitude = location.latitude;
@@ -35,6 +43,9 @@ export default function Search() {
         }
         const response = await getProducts(params);
         setSearchResults(response.data as unknown as Product[]);
+        if (response.pagination) {
+          setTotalPages(response.pagination.pages);
+        }
       } catch (error) {
         console.error('Error searching products:', error);
         setSearchResults([]);
@@ -45,7 +56,11 @@ export default function Search() {
 
     const timeout = setTimeout(fetchProducts, 500); // 500ms debounce
     return () => clearTimeout(timeout);
-  }, [searchQuery, location]);
+  }, [searchQuery, location, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset page when search query changes
+  }, [searchQuery]);
 
   // Fetch trending/home content for initial view
   useEffect(() => {
@@ -86,18 +101,29 @@ export default function Search() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
             </div>
           ) : searchResults.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-              {searchResults.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  categoryStyle={true}
-                  showBadge={true}
-                  showPackBadge={false}
-                  showStockInfo={true}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                {searchResults.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    categoryStyle={true}
+                    showBadge={true}
+                    showPackBadge={false}
+                    showStockInfo={true}
+                  />
+                ))}
+              </div>
+              
+              <Pagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => {
+                  setCurrentPage(page);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+            </>
           ) : (
             <div className="text-center py-12 md:py-16 text-neutral-500">
               <p className="text-lg md:text-xl mb-2">No products found</p>

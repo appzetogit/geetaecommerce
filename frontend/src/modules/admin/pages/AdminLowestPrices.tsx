@@ -384,6 +384,7 @@ export default function AdminLowestPrices() {
                                 <thead>
                                     <tr className="bg-neutral-50 text-xs font-bold text-neutral-800 border-b border-neutral-200">
                                         <th className="p-4">Order</th>
+                                        <th className="p-4">Preview</th>
                                         <th className="p-4">Product Name</th>
                                         <th className="p-4">Price</th>
                                         <th className="p-4">Status</th>
@@ -394,7 +395,7 @@ export default function AdminLowestPrices() {
                                     {loadingProducts ? (
                                         <tr>
                                             <td
-                                                colSpan={5}
+                                                colSpan={6}
                                                 className="p-8 text-center text-neutral-400"
                                             >
                                                 Loading products...
@@ -403,7 +404,7 @@ export default function AdminLowestPrices() {
                                     ) : displayedProducts.length === 0 ? (
                                         <tr>
                                             <td
-                                                colSpan={5}
+                                                colSpan={6}
                                                 className="p-8 text-center text-neutral-400"
                                             >
                                                 No products found. Add your first product!
@@ -415,12 +416,35 @@ export default function AdminLowestPrices() {
                                                 typeof item.product === "string"
                                                     ? null
                                                     : item.product;
+                                            const imageUrl =
+                                                product?.mainImage ||
+                                                (product as any)?.mainImageUrl ||
+                                                "";
                                             return (
                                                 <tr
                                                     key={item._id}
                                                     className="hover:bg-neutral-50 transition-colors text-sm text-neutral-700 border-b border-neutral-200"
                                                 >
                                                     <td className="p-4">{item.order}</td>
+                                                    <td className="p-4">
+                                                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 flex items-center justify-center">
+                                                            {imageUrl ? (
+                                                                <img
+                                                                    src={imageUrl}
+                                                                    alt={product?.productName || "Product"}
+                                                                    className="w-full h-full object-cover"
+                                                                    referrerPolicy="no-referrer"
+                                                                    onError={(e) => {
+                                                                        (e.target as HTMLImageElement).style.display = "none";
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <span className="text-neutral-400 text-lg font-bold">
+                                                                    {(product?.productName || "?").charAt(0).toUpperCase()}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
                                                     <td className="p-4 font-medium">
                                                         {product?.productName || "Product not found"}
                                                     </td>

@@ -336,101 +336,44 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    // Use admin-selected products if provided, otherwise fallback to fetching
-    if (adminProducts && adminProducts.length > 0) {
-      const mappedProducts = adminProducts.map((p: any) => {
-        // Get product name and remove any description-like suffixes
-        let productName = p.productName || p.name || '';
-        // Remove common description patterns like " - Fresh & Quality Assured"
-        productName = productName.replace(/\s*-\s*(Fresh|Quality|Assured|Premium|Best|Top|Hygienic|Carefully|Selected).*$/i, '').trim();
-
-        // Get pack without description
-        let packValue = p.variations?.[0]?.title || p.pack || 'Standard';
-        // Remove description from pack if it contains it
-        if (packValue && packValue.includes(' - ')) {
-          packValue = packValue.split(' - ')[0].trim();
-        }
-
-        return {
-          ...p,
-          id: p._id || p.id || p.id,
-          name: productName,
-          imageUrl: p.mainImage || p.imageUrl || p.mainImage,
-          mrp: p.mrp || p.price,
-          pack: packValue
-        };
-      });
-      setProducts(mappedProducts);
-    } else {
-      // Fallback: fetch products if admin hasn't configured any
-      const fetchDiscountedProducts = async () => {
-        try {
-          const response = await getProducts({ limit: 50 });
-          if (response.success && response.data) {
-            const mappedProducts = (response.data as any[]).map(p => {
-              let productName = p.productName || p.name || '';
-              productName = productName.replace(/\s*-\s*(Fresh|Quality|Assured|Premium|Best|Top|Hygienic|Carefully|Selected).*$/i, '').trim();
-
-              let packValue = p.variations?.[0]?.title || p.pack || 'Standard';
-              if (packValue && packValue.includes(' - ')) {
-                packValue = packValue.split(' - ')[0].trim();
-              }
-
-              return {
-                ...p,
-                id: p._id || p.id,
-                name: productName,
-                imageUrl: p.mainImage || p.imageUrl,
-                mrp: p.mrp || p.price,
-                pack: packValue
-              };
-            });
-            setProducts(mappedProducts);
-          }
-        } catch (err) {
-          console.error("Failed to fetch products for LowestPricesEver", err);
-        }
-      };
-      fetchDiscountedProducts();
+    // Lowest Prices Ever is admin-controlled only. No automatic fallback products.
+    if (!adminProducts || adminProducts.length === 0) {
+      setProducts([]);
+      return;
     }
+
+    const mappedProducts = adminProducts.map((p: any) => {
+      // Get product name and remove any description-like suffixes
+      let productName = p.productName || p.name || '';
+      productName = productName
+        .replace(/\s*-\s*(Fresh|Quality|Assured|Premium|Best|Top|Hygienic|Carefully|Selected).*$/i, '')
+        .trim();
+
+      // Get pack without description
+      let packValue = p.variations?.[0]?.title || p.pack || 'Standard';
+      if (packValue && packValue.includes(' - ')) {
+        packValue = packValue.split(' - ')[0].trim();
+      }
+
+      return {
+        ...p,
+        id: p._id || p.id || p.id,
+        name: productName,
+        imageUrl: p.mainImage || p.imageUrl || p.mainImage,
+        mrp: p.mrp || p.price,
+        pack: packValue,
+      };
+    });
+
+    setProducts(mappedProducts);
   }, [adminProducts]);
 
   // Get products for this section
   // If using admin-selected products, use them directly (already filtered and ordered)
   // Otherwise, filter by activeTab and discount
   const getFilteredProducts = () => {
-    // If admin has selected products, use them directly (already ordered)
-    if (adminProducts && adminProducts.length > 0) {
-      return products.slice(0, 20); // Show up to 20 admin-selected products
-    }
-
-    // Fallback: filter by activeTab and discount
-    let filtered = products;
-
-    if (activeTab !== 'all') {
-      if (activeTab === 'grocery') {
-        filtered = products.filter((p) =>
-          ['snacks', 'atta-rice', 'dairy-breakfast', 'masala-oil', 'biscuits-bakery', 'cold-drinks', 'fruits-veg'].includes(p.categoryId)
-        );
-      } else {
-        filtered = products.filter((p) => p.categoryId === activeTab);
-      }
-    }
-
-    return filtered
-      .filter((product: any) => {
-        if (!product) return false;
-        const mrpValue = product.mrp;
-        const priceValue = product.price;
-
-        if (mrpValue === undefined || priceValue === undefined || mrpValue <= 0 || priceValue <= 0) {
-          return false;
-        }
-
-        const discountPercentage = Math.round(((mrpValue - priceValue) / mrpValue) * 100);
-        return discountPercentage > 0;
-      })
-      .slice(0, 10); // Show top 10 discounted products
+    // Admin-selected products are already curated/ordered.
+    return products.slice(0, 20);
   };
 
   const discountedProducts = getFilteredProducts();

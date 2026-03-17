@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getBrandById, Brand } from '../../services/api/brandService';
 import { getProducts } from '../../services/api/customerProductService';
 import ProductCard from './components/ProductCard';
+import Pagination from './components/Pagination';
 import IconLoader from '../../components/loaders/IconLoader';
 
 export default function BrandProducts() {
@@ -11,6 +12,9 @@ export default function BrandProducts() {
   const [brand, setBrand] = useState<Brand | null>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 9;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -25,7 +29,11 @@ export default function BrandProducts() {
         }
 
         // Fetch Products for this brand
-        const productsResponse = await getProducts({ brand: id });
+        const productsResponse = await getProducts({ 
+          brand: id,
+          page: currentPage,
+          limit: limit
+        });
         if (productsResponse.success) {
            // Ensure products have proper structure
            const safeProducts = Array.isArray(productsResponse.data) ? productsResponse.data.map((p: any) => ({
@@ -34,6 +42,9 @@ export default function BrandProducts() {
             nameParts: p.name ? p.name.toLowerCase().split(" ") : [],
           })) : [];
           setProducts(safeProducts);
+          if (productsResponse.pagination) {
+            setTotalPages(productsResponse.pagination.pages);
+          }
         }
       } catch (err) {
         console.error("Error fetching brand data:", err);
@@ -43,6 +54,10 @@ export default function BrandProducts() {
     };
 
     fetchData();
+  }, [id, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset page when brand changes
   }, [id]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><IconLoader forceShow /></div>;
@@ -72,6 +87,7 @@ export default function BrandProducts() {
       {/* Products Grid */}
       <div className="p-4">
         {products.length > 0 ? (
+          <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
                 {products.map((product) => (
                     <ProductCard
@@ -83,6 +99,16 @@ export default function BrandProducts() {
                     />
                 ))}
             </div>
+
+            <Pagination 
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => {
+                    setCurrentPage(page);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+            />
+          </>
         ) : (
             <div className="flex flex-col items-center justify-center py-20 text-neutral-500">
                 <div className="text-4xl mb-4">🛍️</div>

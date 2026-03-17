@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getStoreProducts } from '../../services/api/customerHomeService';
 import { useLocation } from '../../hooks/useLocation';
 import ProductCard from './components/ProductCard';
+import Pagination from './components/Pagination';
 
 export default function StorePage() {
     const { slug } = useParams<{ slug: string }>();
@@ -12,6 +13,9 @@ export default function StorePage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [shopData, setShopData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const limit = 9;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -23,7 +27,9 @@ export default function StorePage() {
                 const response = await getStoreProducts(
                     slug,
                     location?.latitude,
-                    location?.longitude
+                    location?.longitude,
+                    currentPage,
+                    limit
                 );
                 console.log(`[StorePage] Response for slug "${slug}":`, {
                     success: response.success,
@@ -34,6 +40,9 @@ export default function StorePage() {
                 if (response.success) {
                     setProducts(response.data || []);
                     setShopData(response.shop || null);
+                    if (response.pagination) {
+                        setTotalPages(response.pagination.pages);
+                    }
                 } else {
                     setProducts([]);
                     setShopData(null);
@@ -49,7 +58,11 @@ export default function StorePage() {
         };
 
         fetchData();
-    }, [slug, location]);
+    }, [slug, location, currentPage]);
+
+    useEffect(() => {
+        setCurrentPage(1); // Reset page when store changes
+    }, [slug]);
 
     const storeName = shopData?.name || (slug ? slug.charAt(0).toUpperCase() + slug.slice(1).replace('-', ' ') : 'Store');
     const [bannerImage, setBannerImage] = useState<string | null>(null);
@@ -163,6 +176,7 @@ export default function StorePage() {
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                     </div>
                 ) : products.length > 0 ? (
+                  <>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
                         {products.map((product) => (
                             <ProductCard
@@ -175,6 +189,16 @@ export default function StorePage() {
                             />
                         ))}
                     </div>
+
+                    <Pagination 
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={(page) => {
+                            setCurrentPage(page);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                    />
+                  </>
                 ) : (
                     <div className="text-center py-20 text-neutral-500">
                         <p>No products found in this store yet.</p>

@@ -1,6 +1,7 @@
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import ProductCard from "./components/ProductCard";
+import Pagination from "./components/Pagination";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   getProducts,
@@ -26,6 +27,10 @@ export default function CategoryPage() {
   const [loading, setLoading] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 9;
+  const productsContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch Category Details
   useEffect(() => {
@@ -75,6 +80,7 @@ export default function CategoryPage() {
 
     if (id) {
       fetchCategoryDetails();
+      setCurrentPage(1); // Reset to page 1 when category changes
     }
   }, [id, searchParams]);
 
@@ -89,7 +95,11 @@ export default function CategoryPage() {
         // However, for fetching products, the backend getProducts handles 'category' (parent)
         // and 'subcategory' separately.
 
-        const params: any = { category: category?._id || id };
+        const params: any = { 
+          category: category?._id || id,
+          page: currentPage,
+          limit: limit
+        };
         if (selectedSubcategory !== "all") {
           params.subcategory = selectedSubcategory;
         }
@@ -108,6 +118,9 @@ export default function CategoryPage() {
             nameParts: p.name ? p.name.toLowerCase().split(" ") : [],
           }));
           setProducts(safeProducts);
+          if (response.pagination) {
+            setTotalPages(response.pagination.pages);
+          }
         } else {
           setError("Failed to fetch products for this category.");
         }
@@ -122,7 +135,15 @@ export default function CategoryPage() {
     if (id) {
       fetchProducts();
     }
-  }, [id, selectedSubcategory, category?._id, userLocation]);
+  }, [id, selectedSubcategory, category?._id, userLocation, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of product container for smooth UX
+    if (productsContainerRef.current) {
+        productsContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Client-side filtering removed in favor of backend subcategory filtering
   const categoryProducts = products;
@@ -465,7 +486,7 @@ export default function CategoryPage() {
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto scrollbar-hide bg-white">
+          <div ref={productsContainerRef} className="flex-1 overflow-y-auto scrollbar-hide bg-white">
             {/* Products Grid */}
             {categoryProducts.length > 0 ? (
               <div className="px-3 md:px-6 lg:px-8 py-4 md:py-6">
@@ -623,6 +644,14 @@ export default function CategoryPage() {
                       })}
                     </div>
                   </div>
+                </div>
+
+                <div className="px-5">
+                  <Pagination 
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
                 </div>
 
                 {/* Footer Buttons */}

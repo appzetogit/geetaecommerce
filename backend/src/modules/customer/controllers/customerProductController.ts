@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Product from "../../../models/Product";
 import Category from "../../../models/Category";
 import SubCategory from "../../../models/SubCategory";
+import HeaderCategory from "../../../models/HeaderCategory";
 import mongoose from "mongoose";
 import Seller from "../../../models/Seller"; // Import Seller model
 import Brand from "../../../models/Brand";
@@ -22,6 +23,7 @@ export const getProducts = async (req: Request, res: Response) => {
       maxPrice,
       brand,
       minDiscount,
+      headerCategorySlug,
       latitude, // User location latitude
       longitude, // User location longitude
     } = req.query;
@@ -155,6 +157,45 @@ export const getProducts = async (req: Request, res: Response) => {
         "Category"
       );
       if (categoryId) query.category = categoryId;
+    }
+
+    // Optional: filter by Header Category (e.g. "grocery", "beauty") used by Home header tabs
+    // This is additive and does not break existing category/subcategory filtering.
+    if (headerCategorySlug && headerCategorySlug !== "all") {
+      const header = await HeaderCategory.findOne({
+        slug: headerCategorySlug,
+        status: "Published",
+      })
+        .select("_id")
+        .lean();
+
+      if (header?._id) {
+        // Include root categories directly linked to this header category
+        const roots = await Category.find({
+          headerCategoryId: header._id,
+          status: "Active",
+        })
+          .select("_id")
+          .lean();
+        const rootIds = roots.map((c: any) => c._id);
+
+        // Include child categories (subcategories) under those roots (common in this codebase)
+        const children = rootIds.length
+          ? await Category.find({
+              parentId: { $in: rootIds },
+              status: "Active",
+            })
+              .select("_id")
+              .lean()
+          : [];
+        const childIds = children.map((c: any) => c._id);
+
+        const allIds = [...rootIds, ...childIds];
+        query.category = { $in: allIds };
+      } else {
+        // Unknown header category -> return empty list (keeps behavior explicit)
+        query.category = { $in: [] };
+      }
     }
 
     if (subcategory) {
