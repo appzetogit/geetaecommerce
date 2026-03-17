@@ -569,6 +569,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
       {/* Close button - only show on mobile */}
       <div className="flex justify-end p-4 border-b border-[#e076a5] lg:hidden">
         <button
+          type="button"
           onClick={onClose}
           className="p-2 text-pink-50 hover:text-white transition-colors"
           aria-label="Close menu">
@@ -598,6 +599,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
             return (
               <li key={item.path}>
                 <button
+                  type="button"
                   onClick={() => {
                     if (item.hasSubmenu && item.submenuItems) {
                       toggleMenu(item.path);
@@ -648,6 +650,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                         return (
                           <li key={subItem.path}>
                             <button
+                              type="button"
                               onClick={() => toggleMenu(subItem.path)}
                               className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-left transition-colors ${
                                 active
@@ -691,6 +694,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                                   return (
                                     <li key={nestedItem.path}>
                                       <button
+                                        type="button"
                                         onClick={() =>
                                           handleNavigation(nestedItem.path)
                                         }
@@ -721,6 +725,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                       return (
                         <li key={subItem.path}>
                           <button
+                            type="button"
                             onClick={() => handleNavigation(subItem.path)}
                             className={`w-full flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-left transition-colors ${
                               subActive

@@ -54,8 +54,7 @@ export default function Home() {
         startRouteLoading();
         setLoading(true);
         setError(null);
-        // Fetch fresh home content so admin updates (e.g. lowest prices) reflect immediately.
-        const response = await getHomeContent(undefined, undefined, undefined, false);
+        const response = await getHomeContent(undefined, undefined, undefined, true, 5 * 60 * 1000, true);
         if (response.success && response.data) {
           let finalData = { ...response.data };
 
@@ -147,7 +146,7 @@ export default function Home() {
     };
 
     preloadHeaderCategories();
-  }, [location?.latitude, location?.longitude]);
+  }, []);
 
   useEffect(() => {
     const loadTabProducts = async () => {

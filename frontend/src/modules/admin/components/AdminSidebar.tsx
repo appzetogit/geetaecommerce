@@ -1620,6 +1620,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
       {/* Close button - only show on mobile */}
       <div className="flex justify-end p-4 border-b border-white/10 lg:hidden">
         <button
+          type="button"
           onClick={onClose}
           className="p-2 text-white hover:text-white transition-colors"
           aria-label="Close menu">
@@ -1668,6 +1669,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
       {!isStaffMode && (
       <div className="px-4 py-2 border-b border-white/10">
         <button
+          type="button"
           onClick={() => handleNavigation("/admin")}
           className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${isActive("/admin") && location.pathname === "/admin"
             ? "bg-black/20 text-white"
@@ -1698,6 +1700,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
       {!isStaffMode && (
       <div className="px-4 py-2 border-b border-white/10">
         <button
+          type="button"
           onClick={() => handleNavigation("/admin/sales-summary")}
           className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${isActive("/admin/sales-summary")
             ? "bg-black/20 text-white"
@@ -1744,6 +1747,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
                 return (
                   <li key={item.path}>
                     <button
+                      type="button"
                       onClick={() => {
                         if (item.hasSubmenu) {
                           toggleMenu(item.path);
@@ -1792,6 +1796,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
                             return (
                               <li key={subItem.path}>
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     if (subItem.hasSubmenu) {
                                       toggleMenu(subItem.path);
@@ -1835,6 +1840,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
                                       return (
                                         <li key={nestedItem.path}>
                                           <button
+                                            type="button"
                                             onClick={() => handleNavigation(nestedItem.path)}
                                             className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${nestedActive
                                               ? "bg-white/30 text-white"

@@ -19,6 +19,7 @@ export const LoadingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const activeRequests = useRef(0);
   const activeRouteRequests = useRef(1); // Start with 1 to represent initial page load
   const MINIMUM_LOADING_TIME = 1000; // 1 second
+  const MINIMUM_ROUTE_LOADING_TIME = 0; // Avoid long full-screen loader on quick route changes
 
   const safetyTimer = useRef<NodeJS.Timeout | null>(null);
   const routeSafetyTimer = useRef<NodeJS.Timeout | null>(null);
@@ -49,7 +50,7 @@ export const LoadingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const now = Date.now();
       const startTime = loadingStartTime.current || now;
       const elapsed = now - startTime;
-      const remainingTime = Math.max(0, MINIMUM_LOADING_TIME - elapsed);
+      const remainingTime = Math.max(0, MINIMUM_ROUTE_LOADING_TIME - elapsed);
       setTimeout(() => {
         if (activeRequests.current === 0) {
           setIsLoading(false);
