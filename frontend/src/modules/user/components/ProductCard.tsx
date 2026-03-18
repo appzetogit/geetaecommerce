@@ -209,7 +209,7 @@ export default function ProductCard({
     }
   };
 
-  const { currentTheme: theme } = useThemeContext();
+  const { currentTheme: theme, currentCategory } = useThemeContext();
 
   return (
     <motion.div
@@ -255,7 +255,7 @@ export default function ProductCard({
           {categoryStyle && showBadge && discount > 0 && (
             <div
                 className="absolute top-2 left-2 z-10 text-white text-[10px] font-semibold px-2 py-0.5 rounded"
-                style={{ backgroundColor: theme.primary[0] }}
+                style={{ backgroundColor: currentCategory?.offerTagColor || theme.primary[0] }}
             >
               {discount}% off
             </div>
@@ -337,8 +337,8 @@ export default function ProductCard({
                       : 'bg-transparent'
                     }`}
                     style={product.isAvailable !== false ? {
-                        borderColor: theme.primary[0],
-                        color: theme.primary[0]
+                        borderColor: currentCategory?.addButtonColor || theme.primary[0],
+                        color: currentCategory?.addButtonColor || theme.primary[0]
                     } : {}}
                   >
                     {product.isAvailable === false ? 'Out of Range' : 'ADD'}
@@ -348,7 +348,7 @@ export default function ProductCard({
             ) : (
               <div
                 className="flex items-center justify-center gap-1.5 bg-white rounded-full px-1.5 py-0.5 h-7 w-full border"
-                style={{ borderColor: theme.primary[0] }}
+                style={{ borderColor: currentCategory?.addButtonColor || theme.primary[0] }}
               >
                 <Button
                   variant="default"
@@ -358,12 +358,12 @@ export default function ProductCard({
                     handleDecrease(e);
                   }}
                   className="w-5 h-5 p-0 bg-transparent shadow-none"
-                  style={{ color: theme.primary[0] }}
+                  style={{ color: currentCategory?.addButtonColor || theme.primary[0] }}
                   aria-label="Decrease quantity"
                 >
                   −
                 </Button>
-                <span className="text-xs font-bold min-w-[1rem] text-center" style={{ color: theme.primary[0] }}>
+                <span className="text-xs font-bold min-w-[1rem] text-center" style={{ color: currentCategory?.addButtonColor || theme.primary[0] }}>
                   {inCartQty}
                 </span>
                 <Button
@@ -377,7 +377,7 @@ export default function ProductCard({
                   className={`w-5 h-5 p-0 bg-transparent shadow-none ${
                     product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : ''
                   }`}
-                  style={product.isAvailable !== false ? { color: theme.primary[0] } : {}}
+                  style={product.isAvailable !== false ? { color: currentCategory?.addButtonColor || theme.primary[0] } : {}}
                   aria-label="Increase quantity"
                 >
                   +
@@ -566,8 +566,8 @@ export default function ProductCard({
                     : 'hover:bg-opacity-10'
                   }`}
                   style={product.isAvailable !== false ? {
-                      borderColor: theme.primary[0],
-                      color: theme.primary[0]
+                      borderColor: currentCategory?.addButtonColor || theme.primary[0],
+                      color: currentCategory?.addButtonColor || theme.primary[0]
                   } : {}}
                 >
                   {product.isAvailable === false ? 'Out of Range' : 'Add'}
@@ -578,19 +578,19 @@ export default function ProductCard({
             ) : (
               <div
                 className="flex items-center justify-center gap-2 bg-white rounded-full px-2 py-0.5 h-8 border"
-                style={{ borderColor: theme.primary[0] }}
+                style={{ borderColor: currentCategory?.addButtonColor || theme.primary[0] }}
               >
                 <Button
                   variant="default"
                   size="icon"
                   onClick={handleDecrease}
                   className="w-6 h-6 p-0 bg-transparent shadow-none"
-                  style={{ color: theme.primary[0] }}
+                  style={{ color: currentCategory?.addButtonColor || theme.primary[0] }}
                   aria-label="Decrease quantity"
                 >
                   −
                 </Button>
-                <span className="text-xs font-bold min-w-[1.5rem] text-center" style={{ color: theme.primary[0] }}>
+                <span className="text-xs font-bold min-w-[1.5rem] text-center" style={{ color: currentCategory?.addButtonColor || theme.primary[0] }}>
                   {inCartQty}
                 </span>
                 <Button
@@ -601,7 +601,7 @@ export default function ProductCard({
                   className={`w-6 h-6 p-0 bg-transparent shadow-none ${
                     product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : ''
                   }`}
-                  style={product.isAvailable !== false ? { color: theme.primary[0] } : {}}
+                  style={product.isAvailable !== false ? { color: currentCategory?.addButtonColor || theme.primary[0] } : {}}
                   aria-label="Increase quantity"
                 >
                   +

@@ -7,6 +7,8 @@ export interface IHeaderCategory extends Document {
     image?: string; // Optional image URL
     slug: string;
     theme: string; // Theme key for color mapping
+    addButtonColor?: string; // Custom color for ADD button
+    offerTagColor?: string; // Custom color for offer badge
     relatedCategory?: string; // Links to a product category
     order: number;
     status: 'Published' | 'Unpublished';
@@ -22,6 +24,8 @@ const HeaderCategorySchema: Schema = new Schema(
         image: { type: String, required: false }, // New field for optional image
         slug: { type: String, required: true, unique: true },
         theme: { type: String, required: true },
+        addButtonColor: { type: String, required: false },
+        offerTagColor: { type: String, required: false },
         relatedCategory: { type: String, required: false },
         order: { type: Number, default: 0 },
         status: { type: String, enum: ['Published', 'Unpublished'], default: 'Published' },

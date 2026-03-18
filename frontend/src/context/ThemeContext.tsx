@@ -7,6 +7,7 @@ interface ThemeContextType {
     setActiveCategory: (category: string) => void;
     currentTheme: Theme;
     themeKey: string;
+    currentCategory: any | null;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -15,18 +16,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const [activeCategory, setActiveCategory] = useState('all');
     const [headerCategories, setHeaderCategories] = useState<any[]>([]);
 
-    useEffect(() => {
-        const fetchHeaderCategories = async () => {
-            try {
-                const cats = await getHeaderCategoriesPublic();
-                if (cats) {
-                    setHeaderCategories(cats);
-                }
-            } catch (error) {
-                console.error('Failed to fetch header categories in ThemeProvider', error);
+    const fetchHeaderCategories = async () => {
+        try {
+            const cats = await getHeaderCategoriesPublic();
+            if (cats) {
+                setHeaderCategories(cats);
             }
-        };
+        } catch (error) {
+            console.error('Failed to fetch header categories in ThemeProvider', error);
+        }
+    };
+
+    useEffect(() => {
         fetchHeaderCategories();
+
+        // Refresh when tab gets focus (Real-time update from Admin changes)
+        window.addEventListener('focus', fetchHeaderCategories);
+        return () => window.removeEventListener('focus', fetchHeaderCategories);
     }, []);
 
     const slugToThemeMap = useMemo(() => {
@@ -43,8 +49,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const currentTheme = getTheme(themeKey);
 
+    const currentCategory = useMemo(() => {
+        return headerCategories.find(cat => cat.slug === activeCategory) || null;
+    }, [activeCategory, headerCategories]);
+
     return (
-        <ThemeContext.Provider value={{ activeCategory, setActiveCategory, currentTheme, themeKey }}>
+        <ThemeContext.Provider value={{ activeCategory, setActiveCategory, currentTheme, themeKey, currentCategory }}>
             {children}
         </ThemeContext.Provider>
     );

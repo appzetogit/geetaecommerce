@@ -27,6 +27,8 @@ export default function AdminHeaderCategory() {
   const [selectedStatus, setSelectedStatus] = useState<'Published' | 'Unpublished'>('Published');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [addButtonColor, setAddButtonColor] = useState('');
+  const [offerTagColor, setOfferTagColor] = useState('');
 
   // Icon search state
   const [iconSearchTerm, setIconSearchTerm] = useState('');
@@ -39,6 +41,15 @@ export default function AdminHeaderCategory() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const themeOptions = Object.keys(themes);
+
+  const rgbToHex = (colorString: string) => {
+    if (!colorString) return '#ffffff';
+    if (colorString.startsWith('#')) return colorString;
+    const match = colorString.match(/\d+/g);
+    if (!match || match.length < 3) return '#ffffff';
+    const [r, g, b] = match.map(Number);
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  };
 
   useEffect(() => {
     fetchCategories();
@@ -183,6 +194,8 @@ export default function AdminHeaderCategory() {
     setHeaderCategoryImage('');
     setSelectedCategory('');
     setSelectedTheme('all');
+    setAddButtonColor('');
+    setOfferTagColor('');
     setSelectedStatus('Published');
     setEditingId(null);
     setIconSearchTerm('');
@@ -211,6 +224,8 @@ export default function AdminHeaderCategory() {
         image: selectedIconType === 'Image' ? headerCategoryImage : '',
         slug: customSlug, // decouple slug from theme
         theme: selectedTheme, // New separate theme field
+        addButtonColor,
+        offerTagColor,
         relatedCategory: selectedCategory,
         status: selectedStatus,
       };
@@ -252,6 +267,8 @@ export default function AdminHeaderCategory() {
     setSelectedCategory(category.relatedCategory || '');
     setSelectedTheme(category.theme || category.slug); // Support older data where theme was slug
     setSelectedStatus(category.status);
+    setAddButtonColor(category.addButtonColor || '');
+    setOfferTagColor(category.offerTagColor || '');
     setIconSearchTerm('');
   };
 
@@ -575,6 +592,106 @@ export default function AdminHeaderCategory() {
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Custom UI Colors */}
+            <div>
+               <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  Pick UI Colors (Optional):
+               </label>
+               <div className="space-y-4">
+                  {/* ADD Button Color */}
+                  <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">ADD Button Color</label>
+                        <button 
+                          onClick={() => setAddButtonColor('')}
+                          className="text-[9px] text-[#f187b5] font-bold hover:underline"
+                        >Reset to Default</button>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2.5">
+                         {themeOptions.slice(0, 10).map(themeKey => {
+                            const color = themes[themeKey].primary[0];
+                            const isSelected = addButtonColor === color;
+                            return (
+                              <div
+                                key={themeKey}
+                                onClick={() => setAddButtonColor(color)}
+                                className={`w-8 h-8 rounded-full cursor-pointer transition-all border-2 ${isSelected ? 'border-[#f187b5] scale-110 shadow-md' : 'border-transparent hover:scale-110'}`}
+                                style={{ backgroundColor: color }}
+                                title={themeKey}
+                              />
+                            );
+                         })}
+                         {/* Custom Circle */}
+                         <div className="relative w-8 h-8 group">
+                            <div 
+                              className={`w-8 h-8 rounded-full border-2 bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500 transition-all ${addButtonColor.startsWith('#') && !themeOptions.some(k => themes[k].primary[0] === addButtonColor) ? 'border-[#f187b5] scale-110 shadow-md' : 'border-transparent group-hover:scale-110'}`}
+                              title="Custom Color"
+                            />
+                            <input 
+                              type="color" 
+                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10" 
+                              value={rgbToHex(addButtonColor)} 
+                              onChange={(e) => setAddButtonColor(e.target.value)}
+                            />
+                         </div>
+                      </div>
+                      {addButtonColor && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <div className="w-4 h-4 rounded border border-black/10" style={{ background: addButtonColor }} />
+                          <span className="text-[10px] font-mono text-neutral-500 uppercase">{addButtonColor}</span>
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Offer Tag Color */}
+                  <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">Offer Tag Color</label>
+                        <button 
+                          onClick={() => setOfferTagColor('')}
+                          className="text-[9px] text-[#f187b5] font-bold hover:underline"
+                        >Reset to Default</button>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2.5">
+                         {themeOptions.slice(0, 10).map(themeKey => {
+                            const color = themes[themeKey].primary[0];
+                            const isSelected = offerTagColor === color;
+                            return (
+                              <div
+                                key={themeKey}
+                                onClick={() => setOfferTagColor(color)}
+                                className={`w-8 h-8 rounded-full cursor-pointer transition-all border-2 ${isSelected ? 'border-[#f187b5] scale-110 shadow-md' : 'border-transparent hover:scale-110'}`}
+                                style={{ backgroundColor: color }}
+                                title={themeKey}
+                              />
+                            );
+                         })}
+                         {/* Custom Circle */}
+                         <div className="relative w-8 h-8 group">
+                            <div 
+                              className={`w-8 h-8 rounded-full border-2 bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500 transition-all ${offerTagColor.startsWith('#') && !themeOptions.some(k => themes[k].primary[0] === offerTagColor) ? 'border-[#f187b5] scale-110 shadow-md' : 'border-transparent group-hover:scale-110'}`}
+                              title="Custom Color"
+                            />
+                            <input 
+                              type="color" 
+                              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10" 
+                              value={rgbToHex(offerTagColor)} 
+                              onChange={(e) => setOfferTagColor(e.target.value)}
+                            />
+                         </div>
+                      </div>
+                      {offerTagColor && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <div className="w-4 h-4 rounded border border-black/10" style={{ background: offerTagColor }} />
+                          <span className="text-[10px] font-mono text-neutral-500 uppercase">{offerTagColor}</span>
+                        </div>
+                      )}
+                  </div>
+               </div>
             </div>
 
             {/* Related Category */}

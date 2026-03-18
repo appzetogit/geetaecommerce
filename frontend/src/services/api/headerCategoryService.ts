@@ -9,6 +9,8 @@ export interface HeaderCategory {
     image?: string; // Optional image URL
     slug: string; // Internal identifier/URL slug
     theme: string; // Maps to theme key in themes.ts
+    addButtonColor?: string; // Custom color for ADD button
+    offerTagColor?: string; // Custom color for offer badge
     relatedCategory?: string;
     status: 'Published' | 'Unpublished';
     order?: number;

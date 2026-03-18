@@ -49,6 +49,8 @@ export const createHeaderCategory = async (req: Request, res: Response) => {
       relatedCategory,
       status,
       order,
+      addButtonColor,
+      offerTagColor,
     } = req.body;
 
     const categoryExists = await HeaderCategory.findOne({ slug });
@@ -68,6 +70,8 @@ export const createHeaderCategory = async (req: Request, res: Response) => {
       relatedCategory,
       status,
       order,
+      addButtonColor,
+      offerTagColor,
     });
 
     return res.status(201).json(category);
@@ -94,6 +98,8 @@ export const updateHeaderCategory = async (req: Request, res: Response) => {
       relatedCategory,
       status,
       order,
+      addButtonColor,
+      offerTagColor,
     } = req.body;
     const category = await HeaderCategory.findById(req.params.id);
 
@@ -117,6 +123,8 @@ export const updateHeaderCategory = async (req: Request, res: Response) => {
       category.relatedCategory = relatedCategory; // Allow clearing it (undefined or null or empty string)
       category.status = status || category.status;
       category.order = order !== undefined ? order : category.order;
+      category.addButtonColor = addButtonColor !== undefined ? addButtonColor : category.addButtonColor;
+      category.offerTagColor = offerTagColor !== undefined ? offerTagColor : category.offerTagColor;
 
       const updatedCategory = await category.save();
       return res.json(updatedCategory);
