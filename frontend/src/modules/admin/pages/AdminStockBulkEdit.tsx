@@ -548,14 +548,89 @@ export default function AdminStockBulkEdit({
 
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [activeMenuColumn, setActiveMenuColumn] = useState<string | null>(null);
-  const [columnOrder, setColumnOrder] = useState<string[]>([
-    "index", "image", "productName", "category", "subCategory", "subSubCategory",
-    "attributes", "variations", "variationName",
-    "sku", "rackNumber", "description", "barcode", "hsnCode", "pack",
-    "size", "color", "tax", "gst", "purchasePrice", "mfgDate", "expiryDate", "weight", "compareAtPrice",
-    "price", "deliveryTime", "stock", "offerPrice", "wholesalePrice",
-    "lowStockQuantity", "brand", "valMrp", "valPur", "unitPrice", "status"
-  ]);
+
+  const DEFAULT_COLUMN_ORDER: string[] = [
+    "index",
+    "image",
+    "productName",
+    "category",
+    "subCategory",
+    "subSubCategory",
+    "attributes",
+    "variations",
+    "variationName",
+    "sku",
+    "rackNumber",
+    "description",
+    "barcode",
+    "hsnCode",
+    "pack",
+    "size",
+    "color",
+    "tax",
+    "gst",
+    "purchasePrice",
+    "mfgDate",
+    "expiryDate",
+    "weight",
+    "compareAtPrice",
+    "price",
+    "deliveryTime",
+    "stock",
+    "offerPrice",
+    "wholesalePrice",
+    "lowStockQuantity",
+    "brand",
+    "valMrp",
+    "valPur",
+    "unitPrice",
+    "status",
+  ];
+
+  const PRIORITY_FIRST_COLUMNS: string[] = [
+    "image",
+    "productName",
+    "compareAtPrice", // MRP
+    "price", // SP
+    "purchasePrice", // PP
+    "stock",
+    "barcode",
+    "category",
+    "subCategory",
+    "subSubCategory",
+    "pack", // Unit
+    "deliveryTime",
+    "weight", // Item weight
+  ];
+
+  const createInitialColumnOrder = () => {
+    const base = DEFAULT_COLUMN_ORDER;
+    const seen = new Set<string>();
+    const ordered: string[] = [];
+
+    if (base.includes("index")) {
+      ordered.push("index");
+      seen.add("index");
+    }
+
+    for (const key of PRIORITY_FIRST_COLUMNS) {
+      if (base.includes(key) && !seen.has(key)) {
+        ordered.push(key);
+        seen.add(key);
+      }
+    }
+
+    for (const key of base) {
+      if (!seen.has(key)) {
+        ordered.push(key);
+        seen.add(key);
+      }
+    }
+
+    return ordered;
+  };
+
+  const [columnOrder, setColumnOrder] = useState<string[]>(createInitialColumnOrder);
   const [draggedCol, setDraggedCol] = useState<string | null>(null);
 
   const COLUMN_LABELS: Record<string, string> = {
@@ -958,12 +1033,12 @@ export default function AdminStockBulkEdit({
         return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.description} onChange={(e) => handleFieldChange(originalIndex, 'description', e.target.value)} /></td>;
       case "barcode":
         return (
-          <td key={key} className="p-1 border-r border-neutral-200 align-top">
-            <div className="flex flex-col gap-1">
-                <div className="flex flex-wrap gap-1 px-1">
+          <td key={key} className="p-1 border-r border-neutral-200 align-top overflow-hidden">
+            <div className="flex flex-col gap-1 w-full min-w-0">
+                <div className="flex flex-wrap gap-1 px-1 w-full min-w-0">
                     {(product.barcode || []).map(b => (
-                        <span key={b} className="bg-pink-50 text-pink-700 px-1.5 py-0.5 rounded text-[10px] border border-pink-100 flex items-center gap-1 group/chip">
-                            {b}
+                        <span key={b} className="bg-pink-50 text-pink-700 px-1.5 py-0.5 rounded text-[10px] border border-pink-100 flex items-center gap-1 group/chip max-w-full break-all">
+                            <span className="min-w-0 break-all">{b}</span>
                             <button onClick={() => {
                                 const newBarcodes = (product.barcode || []).filter(item => item !== b);
                                 handleFieldChange(originalIndex, 'barcode', newBarcodes);
@@ -971,10 +1046,10 @@ export default function AdminStockBulkEdit({
                         </span>
                     ))}
                 </div>
-                <div className="flex gap-1 px-1 mt-1">
+                <div className="flex gap-1 px-1 mt-1 w-full min-w-0">
                     <input
                         type="text"
-                        className="flex-1 px-2 py-1 border border-gray-200 rounded text-[11px] focus:ring-1 focus:ring-[#f187b5] focus:outline-none"
+                        className="flex-1 min-w-0 w-full px-2 py-1 border border-gray-200 rounded text-[11px] focus:ring-1 focus:ring-[#f187b5] focus:outline-none"
                         placeholder="Add"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -1102,44 +1177,39 @@ export default function AdminStockBulkEdit({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-[#f187b5] text-white rounded-t-lg">
-          <h2 className="text-lg font-semibold">Bulk Edit Products</h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setEditableProducts((prev) => [createEmptyProduct(), ...prev])}
-              className="px-3 py-1 text-sm bg-white text-[#f187b5] rounded hover:bg-pink-50 transition-colors"
-            >
-              + Add Row
-            </button>
-             <input
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[90vh] flex flex-col">
+          {/* Header */}
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200 bg-[#f187b5] text-white rounded-t-lg">
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-lg font-semibold leading-snug">Bulk Edit Products</h2>
+              <button
+                onClick={onClose}
+                className="text-white hover:bg-[#e076a5] p-2 rounded transition-colors shrink-0"
+                aria-label="Close"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setEditableProducts((prev) => [createEmptyProduct(), ...prev])}
+                className="px-3 py-1.5 text-sm bg-white text-[#f187b5] rounded hover:bg-pink-50 transition-colors whitespace-nowrap"
+              >
+                + Add Row
+              </button>
+              <input
                 type="text"
                 placeholder="Search products..."
-                className="px-3 py-1 text-sm text-black rounded border-none focus:ring-2 focus:ring-[#f187b5]"
+                className="flex-1 min-w-[160px] px-3 py-1.5 text-sm text-black rounded border-none focus:ring-2 focus:ring-[#f187b5]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-             />
-            <button
-              onClick={onClose}
-              className="text-white hover:bg-[#e076a5] p-2 rounded transition-colors"
-            >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
+              />
+            </div>
           </div>
-        </div>
 
         {/* Content (Spreadsheet) */}
         <div className="flex-1 overflow-auto p-0">
