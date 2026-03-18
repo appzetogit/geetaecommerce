@@ -1,16 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getTheme } from '../../../../utils/themes';
 import { useThemeContext } from '../../../../context/ThemeContext';
-import { getProducts, getProductById } from '../../../../services/api/customerProductService';
+import { getProductById } from '../../../../services/api/customerProductService';
 import { Product } from '../../../../types/domain';
 import { calculateProductPrice } from '../../../../utils/priceUtils';
 import { bannerService } from '../../../../services/bannerService';
 
 export default function DealOfTheDay() {
   const navigate = useNavigate();
-  const { activeCategory } = useThemeContext();
-  const theme = getTheme(activeCategory || 'all');
+  const { currentTheme: theme } = useThemeContext();
   const [dealProducts, setDealProducts] = useState<Product[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -98,7 +96,10 @@ export default function DealOfTheDay() {
         }}
       >
           {/* Header */}
-          <div className="flex justify-between items-center z-10 text-left border-b border-orange-100 pb-4">
+          <div
+            className="flex justify-between items-center z-10 text-left border-b pb-4"
+            style={{ borderColor: theme.primary[2] }}
+          >
               <div>
                   <h3 className="text-2xl font-bold text-gray-800">Deal of the Day</h3>
                   <p className="text-sm text-gray-500 mt-1">Grab the best prices before they reset!</p>
@@ -123,7 +124,8 @@ export default function DealOfTheDay() {
                   return (
                       <div
                          key={product.id}
-                         className="flex-none w-full md:w-[48%] lg:w-[40%] xl:w-[30%] snap-center bg-white rounded-xl p-6 shadow-md border border-gray-100 flex flex-col items-center gap-4 cursor-pointer hover:shadow-xl transition-shadow relative"
+                         className="flex-none w-full md:w-[48%] lg:w-[40%] xl:w-[30%] snap-center bg-white rounded-xl p-6 shadow-md border flex flex-col items-center gap-4 cursor-pointer hover:shadow-xl transition-shadow relative"
+                         style={{ borderColor: theme.primary[2] }}
                          onClick={() => navigate(`/product/${product.id}`)}
                       >
                          <div
@@ -173,7 +175,7 @@ export default function DealOfTheDay() {
           {dealProducts.length > 1 && (
              <div className="flex justify-center gap-2 mt-2">
                  {dealProducts.map((_, i) => (
-                     <div key={i} className={`w-2 h-2 rounded-full transition-colors bg-gray-300`} />
+                     <div key={i} className="w-2 h-2 rounded-full transition-colors" style={{ backgroundColor: theme.primary[1] }} />
                  ))}
              </div>
           )}
