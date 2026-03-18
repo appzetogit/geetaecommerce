@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { getStoreProducts } from '../../services/api/customerHomeService';
 import { useLocation } from '../../hooks/useLocation';
 import ProductCard from './components/ProductCard';
-import Pagination from './components/Pagination';
 
 export default function StorePage() {
     const { slug } = useParams<{ slug: string }>();
@@ -15,7 +14,7 @@ export default function StorePage() {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const limit = 9;
+    const limit = 1000;
 
     useEffect(() => {
         const fetchData = async () => {
@@ -190,14 +189,7 @@ export default function StorePage() {
                         ))}
                     </div>
 
-                    <Pagination 
-                        currentPage={currentPage}
-                        totalPages={totalPages}
-                        onPageChange={(page) => {
-                            setCurrentPage(page);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }}
-                    />
+
                   </>
                 ) : (
                     <div className="text-center py-20 text-neutral-500">

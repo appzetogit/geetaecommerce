@@ -18,7 +18,7 @@ import { useLocation } from "../../hooks/useLocation";
 import { useLoading } from "../../context/LoadingContext";
 import PageLoader from "../../components/PageLoader";
 import { useThemeContext } from "../../context/ThemeContext";
-import Pagination from "./components/Pagination";
+
 
 export default function Home() {
   const navigate = useNavigate();
@@ -46,7 +46,7 @@ export default function Home() {
   const [tabProducts, setTabProducts] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 9;
+  const limit = 1000;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -292,8 +292,7 @@ export default function Home() {
             </h2>
             <div className="px-4 md:px-6 lg:px-8">
               {filteredProducts.length > 0 ? (
-                <>
-                  <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
                   {filteredProducts.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -305,20 +304,6 @@ export default function Home() {
                     />
                   ))}
                 </div>
-
-                <Pagination 
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={(page) => {
-                    setCurrentPage(page);
-                    // Scroll to products section header
-                    const element = document.querySelector('[data-products-section]');
-                    if (element) {
-                        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                  }}
-                />
-              </>
               ) : (
                 <div className="text-center py-12 md:py-16 text-neutral-500">
                   <p className="text-lg md:text-xl mb-2">No products found</p>
@@ -346,11 +331,11 @@ export default function Home() {
                   if (section.displayType === "products" && section.data && section.data.length > 0) {
                     const gridClass = {
                       2: "grid-cols-2",
-                      3: "grid-cols-3",
-                      4: "grid-cols-4",
-                      6: "grid-cols-6",
-                      8: "grid-cols-8"
-                    }[columnCount] || "grid-cols-4";
+                      3: "grid-cols-2 md:grid-cols-3",
+                      4: "grid-cols-2 md:grid-cols-4",
+                      6: "grid-cols-2 md:grid-cols-6",
+                      8: "grid-cols-2 md:grid-cols-8"
+                    }[columnCount] || "grid-cols-2 md:grid-cols-4";
 
                     const isCompact = columnCount >= 4;
                     const gapClass = columnCount >= 4 ? "gap-2" : "gap-3 md:gap-4";

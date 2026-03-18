@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ProductCard from './components/ProductCard';
-import Pagination from './components/Pagination';
 import { getProducts } from '../../services/api/customerProductService';
 import { getHomeContent } from '../../services/api/customerHomeService';
 import { Product } from '../../types/domain';
@@ -19,7 +18,7 @@ export default function Search() {
   const [contentLoading, setContentLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 9;
+  const limit = 1000;
 
   // Fetch products based on search query
   useEffect(() => {
@@ -115,14 +114,7 @@ export default function Search() {
                 ))}
               </div>
               
-              <Pagination 
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={(page) => {
-                  setCurrentPage(page);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-              />
+
             </>
           ) : (
             <div className="text-center py-12 md:py-16 text-neutral-500">

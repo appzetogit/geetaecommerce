@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getBrandById, Brand } from '../../services/api/brandService';
 import { getProducts } from '../../services/api/customerProductService';
 import ProductCard from './components/ProductCard';
-import Pagination from './components/Pagination';
+
 import IconLoader from '../../components/loaders/IconLoader';
 
 export default function BrandProducts() {
@@ -14,7 +14,7 @@ export default function BrandProducts() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 9;
+  const limit = 1000;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -100,14 +100,7 @@ export default function BrandProducts() {
                 ))}
             </div>
 
-            <Pagination 
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={(page) => {
-                    setCurrentPage(page);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-            />
+
           </>
         ) : (
             <div className="flex flex-col items-center justify-center py-20 text-neutral-500">

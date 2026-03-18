@@ -1,7 +1,7 @@
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import ProductCard from "./components/ProductCard";
-import Pagination from "./components/Pagination";
+
 import { motion, AnimatePresence } from "framer-motion";
 import {
   getProducts,
@@ -29,7 +29,7 @@ export default function CategoryPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const limit = 9;
+  const limit = 1000;
   const productsContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch Category Details
@@ -646,13 +646,7 @@ export default function CategoryPage() {
                   </div>
                 </div>
 
-                <div className="px-5">
-                  <Pagination 
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={handlePageChange}
-                  />
-                </div>
+
 
                 {/* Footer Buttons */}
                 <div className="px-5 py-4 border-t border-neutral-200 flex gap-3 bg-white">
