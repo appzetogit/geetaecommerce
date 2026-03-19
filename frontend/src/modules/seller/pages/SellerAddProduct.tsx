@@ -909,7 +909,7 @@ export default function SellerAddProduct() {
               totalAllowedQuantity:
                 product.totalAllowedQuantity?.toString() || "10",
               mainImageUrl: product.mainImageUrl || product.mainImage || "",
-              galleryImageUrls: product.galleryImageUrls || [],
+              galleryImageUrls: product.galleryImageUrls || product.galleryImages || [],
               isShopByStoreOnly: (product as any).isShopByStoreOnly ? "Yes" : "No",
               shopId: (product as any).shopId?._id || (product as any).shopId || "",
               pack: (product as any).pack || "",
@@ -955,9 +955,13 @@ export default function SellerAddProduct() {
                 product.mainImageUrl || product.mainImage || ""
               );
             }
-            if (product.galleryImageUrls) {
-              setGalleryImagePreviews(product.galleryImageUrls);
+            const galleryToUse = product.galleryImageUrls || product.galleryImages || [];
+            if (galleryToUse.length > 0) {
+              setGalleryImagePreviews(galleryToUse);
             }
+
+
+
           }
         } catch (err) {
           console.error("Error fetching product:", err);
@@ -1319,8 +1323,8 @@ export default function SellerAddProduct() {
           : undefined,
         totalAllowedQuantity: parseInt(formData.totalAllowedQuantity || "10"),
         fssaiLicNo: formData.fssaiLicNo || undefined,
-        mainImageUrl: mainImageUrl || undefined,
-        galleryImageUrls,
+        mainImage: mainImageUrl || undefined,
+        galleryImages: galleryImageUrls,
         variations: finalVariations,
         variationType: formData.variationType || undefined,
         isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",

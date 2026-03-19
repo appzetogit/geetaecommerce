@@ -428,7 +428,7 @@ export default function SellerStockBulkEdit({
           stock: p.stock,
           publish: p.publish,
           mainImage: mainImage,
-          galleryImageUrls: galleryImages, // Note: productService uses galleryImageUrls, admin uses galleryImages? Checking interface... productService uses galleryImageUrls in CreateData but Product interface has both?
+          galleryImages: galleryImages, // Changed from galleryImageUrls to match backend schema
           // Product interface has galleryImageUrls: string[]. CreateProductData has galleryImageUrls?: string[].
           // Let's use galleryImageUrls.
           itemCode: p.itemCode || undefined,
@@ -500,8 +500,8 @@ export default function SellerStockBulkEdit({
           dealOfDay: false,
           isReturnable: false,
           totalAllowedQuantity: 10,
-          mainImageUrl: mainImageUrl || undefined,
-          galleryImageUrls: galleryImageUrls.length ? galleryImageUrls : undefined,
+          mainImage: mainImageUrl || undefined,
+          galleryImages: galleryImageUrls.length ? galleryImageUrls : undefined,
           price: p.price,
           compareAtPrice: p.compareAtPrice,
           stock: p.stock,

@@ -57,7 +57,8 @@ export interface Product {
   fssaiLicNo?: string;
   mainImageUrl?: string;
   mainImage?: string; // Mapped directly from Product model
-  galleryImageUrls: string[];
+  galleryImageUrls?: string[];
+  galleryImages?: string[]; // Added to match backend schema
   variations: ProductVariation[];
   variationName?: string;
   variationType?: string;
@@ -112,7 +113,9 @@ export interface CreateProductData {
   totalAllowedQuantity: number;
   fssaiLicNo?: string;
   mainImageUrl?: string;
+  mainImage?: string; // Mapped directly from Product model
   galleryImageUrls?: string[];
+  galleryImages?: string[]; // Added to match backend schema
   barcode?: string[];
   variations: ProductVariation[];
   variationName?: string;

@@ -529,7 +529,7 @@ export default function AdminAddProduct() {
               totalAllowedQuantity:
                 product.totalAllowedQuantity?.toString() || "10",
               mainImageUrl: product.mainImageUrl || product.mainImage || "",
-              galleryImageUrls: product.galleryImageUrls || [],
+              galleryImageUrls: product.galleryImageUrls || product.galleryImages || [],
               isShopByStoreOnly: product.isShopByStoreOnly ? "Yes" : "No",
               shopId: typeof product.shopId === 'object' ? product.shopId?._id : product.shopId || "",
               pack: product.pack || "",
@@ -582,8 +582,9 @@ export default function AdminAddProduct() {
                  product.mainImageUrl || product.mainImage || ""
                );
              }
-            if (product.galleryImageUrls) {
-              setGalleryItems(product.galleryImageUrls.map((url) => ({
+            const galleryToUse = product.galleryImageUrls || product.galleryImages || [];
+            if (galleryToUse.length > 0) {
+              setGalleryItems(galleryToUse.map((url: string) => ({
                 id: url,
                 url: url,
                 isExisting: true,
@@ -1262,8 +1263,8 @@ export default function AdminAddProduct() {
           : undefined,
         totalAllowedQuantity: parseInt(formData.totalAllowedQuantity || "10"),
         fssaiLicNo: formData.fssaiLicNo || undefined,
-        mainImageUrl: mainImageUrl || undefined,
-        galleryImageUrls,
+        mainImage: mainImageUrl || undefined,
+        galleryImages: galleryImageUrls,
         variations: finalVariations,
         variationType: formData.variationType || undefined,
         price: finalVariations[0]?.price || 0,

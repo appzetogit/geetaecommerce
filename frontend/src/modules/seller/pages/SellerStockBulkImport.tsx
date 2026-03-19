@@ -155,7 +155,7 @@ export default function SellerStockBulkImport({
       // We'll put price, stock, mrp into the first variation if no variations exist, or top level if supported.
       // CreateProductData requires variations: ProductVariation[]
 
-      mainImageUrl: row['Image'] || row['Img'] || row['Main Image'] || "",
+      mainImage: row['Image'] || row['Img'] || row['Main Image'] || "",
 
     } as any; // Casting to any to allow flexible mapping, specifically for the variations array construction below
   };
@@ -210,7 +210,7 @@ export default function SellerStockBulkImport({
                 dealOfDay: false,
                 isReturnable: false,
                 totalAllowedQuantity: 10, // Default
-                mainImageUrl: rawData.mainImageUrl,
+                mainImage: rawData.mainImage,
                 variations: variations as any,
                 itemCode: rawData.itemCode,
                 rackNumber: rawData.rackNumber,
