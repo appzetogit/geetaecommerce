@@ -975,45 +975,28 @@ const AdminPOSOrders = () => {
                 Html5QrcodeSupportedFormats.CODABAR,
                 Html5QrcodeSupportedFormats.QR_CODE,
             ];
-            console.log('[SCANNER DEBUG] Initializing scanner with formats:', supportedFormats.map(f => Html5QrcodeSupportedFormats[f]));
-            console.log('[SCANNER DEBUG] Forcing ZXing engine (useBarCodeDetectorIfSupported = false) to improve compatibility with long numeric CODE_128 barcodes.');
-            console.log('[SCANNER DEBUG] NOTE: Numeric barcodes >13 digits (e.g. 18-19 digit) are typically encoded as CODE_128 / ITF and may not be reliably handled by some native BarcodeDetector implementations.');
-
             const scanner = new Html5Qrcode("reader", {
+                verbose: false,
                 formatsToSupport: supportedFormats,
-                // Force ZXing instead of browser BarcodeDetector to avoid issues
-                // with long numeric CODE_128 / ITF / EAN barcodes.
-                useBarCodeDetectorIfSupported: false,
+                useBarCodeDetectorIfSupported: true,
             });
             html5QrCodeRef.current = scanner;
 
-            // Use a wider, taller scan box optimized for horizontal barcodes (EAN / CODE_128).
-            const maxBoxWidth = 420;
-            const maxBoxHeight = 260;
-            const boxWidth = Math.min(element.clientWidth - 24, maxBoxWidth);
-            const boxHeight = maxBoxHeight;
+            // Match Seller POS scanner sizing for mobile.
+            const boxWidth = Math.min(Math.max(element.clientWidth - 24, 220), 420);
+            const boxHeight = Math.max(200, Math.floor(boxWidth * 0.45));
             const config: any = {
-                // Slightly higher FPS improves decode chances without overloading.
-                fps: 25,
+                fps: 20,
                 qrbox: { width: boxWidth, height: boxHeight },
-                // Prefer wide aspect ratio; helps 1D barcodes filling frame horizontally.
-                aspectRatio: boxWidth / boxHeight,
-                disableFlip: true,
+                disableFlip: true
             };
-            console.log('[SCANNER DEBUG] Scanner box size (px):', { width: boxWidth, height: boxHeight }, '| Element width:', element.clientWidth);
-            console.log('[SCANNER DEBUG] FPS:', config.fps, '| disableFlip:', config.disableFlip, '| aspectRatio:', config.aspectRatio);
-            console.log('[SCANNER DEBUG] Camera constraints: facingMode=environment, focusMode=continuous (if supported)');
 
             await scanner.start(
                 // Back camera; keep object to a single key to satisfy html5-qrcode API.
                 { facingMode: "environment" },
                 config,
                 onScanSuccess,
-                (frameError) => {
-                    // === DEBUG: Per-frame errors (very verbose - disable after debugging) ===
-                    // Uncomment below only if barcode is not detected at all:
-                    // console.log('[SCANNER DEBUG] Frame decode attempt failed:', frameError);
-                } // Silent per-frame errors
+                () => {} // Ignore errors per frame
             );
         } catch (err) {
             console.error("Scanner Start Error:", err);
