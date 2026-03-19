@@ -474,47 +474,9 @@ const AdminPOSOrders = () => {
   const [scanTarget, setScanTarget] = useState<'inventory' | 'quick-add' | 'purchase' | 'purchase-barcode'>('inventory');
   const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
   const lastScanRef = useRef({ code: '', time: 0 });
-  const lastAnyScanAtRef = useRef(0);
-  const scanInFlightRef = useRef(false);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const addToCartRef = useRef<any>(null);
   const activeBillIdRef = useRef<string>(activeBillId);
-  const beepCtxRef = useRef<AudioContext | null>(null);
-
-  const SCANNER_DEBUG = false;
-  const SCAN_DUPLICATE_WINDOW_MS = 750; // Ignore same code scans within this window
-  const SCAN_ANY_THROTTLE_MS = 120; // Guard against ultra-frequent callbacks
-
-  const playBeep = () => {
-    try {
-      const AudioContextCtor = (window as any).AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContextCtor) return;
-
-      if (!beepCtxRef.current) beepCtxRef.current = new AudioContextCtor();
-      const ctx = beepCtxRef.current;
-      if (!ctx) return;
-      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.value = 880;
-      gain.gain.value = 0.0001;
-
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-
-      const now = ctx.currentTime;
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
-
-      oscillator.start(now);
-      oscillator.stop(now + 0.08);
-    } catch {
-      // ignore audio errors
-    }
-  };
 
   useEffect(() => {
     activeBillIdRef.current = activeBillId;
@@ -668,57 +630,50 @@ const AdminPOSOrders = () => {
 
   // Handle Barcode Scan from Camera
   const onScanSuccess = async (decodedText: string, decodedResult: any) => {
-       const code = String(decodedText || '').trim();
-       if (!code) return;
-
-       const scanNow = Date.now();
-       if (scanNow - lastAnyScanAtRef.current < SCAN_ANY_THROTTLE_MS) return;
-       lastAnyScanAtRef.current = scanNow;
-
       // Optional non-blocking feedback (mobile vibration if supported)
-       if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-           try {
-               navigator.vibrate(60);
-           } catch {
-               // ignore vibration errors
-           }
-       }
-      playBeep();
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          try {
+              navigator.vibrate(100);
+          } catch {
+              // ignore vibration errors
+          }
+      }
 
-       // === DEBUG: Log every raw scan result ===
-       const detectedFormat = decodedResult?.result?.format?.formatName || decodedResult?.decodedResult?.result?.format?.formatName || 'UNKNOWN_FORMAT';
-      SCANNER_DEBUG && console.log('========== [SCANNER DEBUG] SCAN DETECTED ==========');
-      SCANNER_DEBUG && console.log('[SCANNER DEBUG] Raw scanned value  :', code);
-      SCANNER_DEBUG && console.log('[SCANNER DEBUG] Barcode length      :', code.length);
-      SCANNER_DEBUG && console.log('[SCANNER DEBUG] Barcode format      :', detectedFormat);
-      SCANNER_DEBUG && console.log('[SCANNER DEBUG] Is fully numeric?   :', /^\d+$/.test(code));
-      SCANNER_DEBUG && console.log('[SCANNER DEBUG] Active scanTarget   :', scanTarget);
-      SCANNER_DEBUG && console.log('[SCANNER DEBUG] Full decodedResult  :', decodedResult);
-      SCANNER_DEBUG && console.log('===================================================');
+      // === DEBUG: Log every raw scan result ===
+      const detectedFormat = decodedResult?.result?.format?.formatName || decodedResult?.decodedResult?.result?.format?.formatName || 'UNKNOWN_FORMAT';
+      console.log('========== [SCANNER DEBUG] SCAN DETECTED ==========');
+      console.log('[SCANNER DEBUG] Raw scanned value  :', decodedText);
+      console.log('[SCANNER DEBUG] Barcode length      :', decodedText.length);
+      console.log('[SCANNER DEBUG] Barcode format      :', detectedFormat);
+      console.log('[SCANNER DEBUG] Is fully numeric?   :', /^\d+$/.test(decodedText));
+      console.log('[SCANNER DEBUG] Active scanTarget   :', scanTarget);
+      console.log('[SCANNER DEBUG] Full decodedResult  :', JSON.stringify(decodedResult, null, 2));
+      console.log('===================================================');
 
       // Cooldown for same barcode to avoid double scans (2 seconds)
-      const isDuplicate = code === lastScanRef.current.code && (scanNow - lastScanRef.current.time < SCAN_DUPLICATE_WINDOW_MS);
-      SCANNER_DEBUG && console.log('[SCANNER DEBUG] Duplicate check — same code within window?', isDuplicate, '| Last code:', lastScanRef.current.code, '| Time diff (ms):', scanNow - lastScanRef.current.time);
+      const now = Date.now();
+      const isDuplicate = decodedText === lastScanRef.current.code && (now - lastScanRef.current.time < 2000);
+      console.log('[SCANNER DEBUG] Duplicate check — same code within 2s?', isDuplicate, '| Last code:', lastScanRef.current.code, '| Time diff (ms):', now - lastScanRef.current.time);
       if (isDuplicate) {
-          SCANNER_DEBUG && console.log('[SCANNER DEBUG] ⚠️ BLOCKED by duplicate cooldown — returning early.');
+          console.log('[SCANNER DEBUG] ⚠️ BLOCKED by duplicate cooldown — returning early.');
           return;
       }
-      lastScanRef.current = { code, time: scanNow };
+      lastScanRef.current = { code: decodedText, time: now };
 
-       // Don't process if loading to prevent spam
-       if (loading) {
-          SCANNER_DEBUG && console.log('[SCANNER DEBUG] ⚠️ BLOCKED because loading=true — returning early.');
+      // Don't process if loading to prevent spam
+      if (loading) {
+          console.log('[SCANNER DEBUG] ⚠️ BLOCKED because loading=true — returning early.');
           return;
-       }
+      }
 
-      SCANNER_DEBUG && console.log(`[SCANNER DEBUG] Processing scan (${scanTarget}): "${code}" | Length: ${code.length}`);
+      console.log(`[SCANNER DEBUG] Processing scan (${scanTarget}): "${decodedText}" | Length: ${decodedText.length}`);
 
       // Special case: assign scanned barcode directly to a PurchaseItem's barcode field
       if (scanTarget === 'purchase-barcode') {
           if (purchaseBarcodeScanItemId) {
               setPurchaseItems(prev =>
                   prev.map(item =>
-                      item.id === purchaseBarcodeScanItemId ? { ...item, barcode: code } : item
+                      item.id === purchaseBarcodeScanItemId ? { ...item, barcode: decodedText } : item
                   )
               );
           }
@@ -726,25 +681,21 @@ const AdminPOSOrders = () => {
           return;
       }
 
-       if (scanTarget === 'quick-add') {
-           setQuickForm(prev => ({ ...prev, barcode: code }));
-           setShowScanner(false);
-           showToast("Barcode added to form", "success");
-           return;
-       }
+      if (scanTarget === 'quick-add') {
+          setQuickForm(prev => ({ ...prev, barcode: decodedText }));
+          setShowScanner(false);
+          showToast("Barcode added to form", "success");
+          return;
+      }
 
-      // Prevent overlapping API work (avoids flooding on noisy decodes)
-      if (scanInFlightRef.current) return;
-
-       // Default: Inventory search and add to cart
-       try {
-          scanInFlightRef.current = true;
-           // Play beep
-           // const audio = new Audio('/assets/beep.mp3'); audio.play().catch(e=>{});
+      // Default: Inventory search and add to cart
+      try {
+          // Play beep
+          // const audio = new Audio('/assets/beep.mp3'); audio.play().catch(e=>{});
 
           // Use POS Search for optimized results
           console.log('[SCANNER DEBUG] Calling getPOSProducts API with search:', decodedText);
-          const res = await getPOSProducts({ search: code });
+          const res = await getPOSProducts({ search: decodedText });
           console.log('[SCANNER DEBUG] API response — success:', res.success, '| total products returned:', res.data?.length ?? 0);
 
           if (res.success && res.data && res.data.length > 0) {
@@ -752,8 +703,8 @@ const AdminPOSOrders = () => {
              // Try to find exact match on Barcode or SKU
              let match = productsFound.find((p: any) => {
                const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
-                const barcodeHit = barcodes.some((b: string) => String(b).toLowerCase() === code.toLowerCase());
-                const skuHit = p.sku && String(p.sku).toLowerCase() === code.toLowerCase();
+               const barcodeHit = barcodes.some((b: string) => String(b).toLowerCase() === decodedText.toLowerCase());
+               const skuHit = p.sku && String(p.sku).toLowerCase() === decodedText.toLowerCase();
                console.log('[SCANNER DEBUG] Checking product:', p.productName, '| barcodes in DB:', barcodes, '| barcodeHit:', barcodeHit, '| skuHit:', skuHit);
                return barcodeHit || skuHit;
              });
@@ -766,8 +717,8 @@ const AdminPOSOrders = () => {
                   if (p.variations) {
                     const v = p.variations.find((varItem: any) => {
                       const barcodes = Array.isArray(varItem.barcode) ? varItem.barcode : (varItem.barcode ? [varItem.barcode] : []);
-                       return barcodes.some((b: string) => String(b).toLowerCase() === code.toLowerCase()) ||
-                              (varItem.sku && String(varItem.sku).toLowerCase() === code.toLowerCase());
+                      return barcodes.some((b: string) => String(b).toLowerCase() === decodedText.toLowerCase()) ||
+                             (varItem.sku && String(varItem.sku).toLowerCase() === decodedText.toLowerCase());
                     });
                     if (v) {
                       match = p;
@@ -860,14 +811,12 @@ const AdminPOSOrders = () => {
              // Close scanner after successful add
              setShowScanner(false);
           } else {
-             showToast(`Product not found: ${code}`, "error");
+             showToast(`Product not found: ${decodedText}`, "error");
           }
-       } catch (e) {
-          console.error("Scan Error", e);
-          showToast("Error processing scan", "error");
-       } finally {
-          scanInFlightRef.current = false;
-       }
+      } catch (e) {
+         console.error("Scan Error", e);
+         showToast("Error processing scan", "error");
+      }
   };
 
   // Handle Quotation Edit/Convert from search params
@@ -1026,12 +975,11 @@ const AdminPOSOrders = () => {
                 Html5QrcodeSupportedFormats.CODABAR,
                 Html5QrcodeSupportedFormats.QR_CODE,
             ];
-            SCANNER_DEBUG && console.log('[SCANNER DEBUG] Initializing scanner with formats:', supportedFormats.map(f => Html5QrcodeSupportedFormats[f]));
-            SCANNER_DEBUG && console.log('[SCANNER DEBUG] Forcing ZXing engine (useBarCodeDetectorIfSupported = false) to improve compatibility with long numeric CODE_128 barcodes.');
-            SCANNER_DEBUG && console.log('[SCANNER DEBUG] NOTE: Numeric barcodes >13 digits (e.g. 18-19 digit) are typically encoded as CODE_128 / ITF and may not be reliably handled by some native BarcodeDetector implementations.');
+            console.log('[SCANNER DEBUG] Initializing scanner with formats:', supportedFormats.map(f => Html5QrcodeSupportedFormats[f]));
+            console.log('[SCANNER DEBUG] Forcing ZXing engine (useBarCodeDetectorIfSupported = false) to improve compatibility with long numeric CODE_128 barcodes.');
+            console.log('[SCANNER DEBUG] NOTE: Numeric barcodes >13 digits (e.g. 18-19 digit) are typically encoded as CODE_128 / ITF and may not be reliably handled by some native BarcodeDetector implementations.');
 
             const scanner = new Html5Qrcode("reader", {
-                verbose: false,
                 formatsToSupport: supportedFormats,
                 // Force ZXing instead of browser BarcodeDetector to avoid issues
                 // with long numeric CODE_128 / ITF / EAN barcodes.
@@ -1039,36 +987,26 @@ const AdminPOSOrders = () => {
             });
             html5QrCodeRef.current = scanner;
 
-            // Focus region: wide + shorter height improves small 1D barcode detection.
+            // Use a wider, taller scan box optimized for horizontal barcodes (EAN / CODE_128).
             const maxBoxWidth = 420;
-            const minBoxWidth = 260;
-            const boxWidth = Math.max(minBoxWidth, Math.min(element.clientWidth - 24, maxBoxWidth));
-            const boxHeight = 170;
+            const maxBoxHeight = 260;
+            const boxWidth = Math.min(element.clientWidth - 24, maxBoxWidth);
+            const boxHeight = maxBoxHeight;
             const config: any = {
-                // Higher FPS improves decode chances for small/fast barcodes.
-                fps: 30,
+                // Slightly higher FPS improves decode chances without overloading.
+                fps: 25,
                 qrbox: { width: boxWidth, height: boxHeight },
                 // Prefer wide aspect ratio; helps 1D barcodes filling frame horizontally.
                 aspectRatio: boxWidth / boxHeight,
                 disableFlip: true,
-                // Ask for higher resolution stream when supported.
-                videoConstraints: {
-                    facingMode: { ideal: "environment" },
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 },
-                } as MediaTrackConstraints,
             };
-            SCANNER_DEBUG && console.log('[SCANNER DEBUG] Scanner box size (px):', { width: boxWidth, height: boxHeight }, '| Element width:', element.clientWidth);
-            SCANNER_DEBUG && console.log('[SCANNER DEBUG] FPS:', config.fps, '| disableFlip:', config.disableFlip, '| aspectRatio:', config.aspectRatio);
-            SCANNER_DEBUG && console.log('[SCANNER DEBUG] Camera constraints: facingMode=environment, focusMode=continuous (if supported)');
+            console.log('[SCANNER DEBUG] Scanner box size (px):', { width: boxWidth, height: boxHeight }, '| Element width:', element.clientWidth);
+            console.log('[SCANNER DEBUG] FPS:', config.fps, '| disableFlip:', config.disableFlip, '| aspectRatio:', config.aspectRatio);
+            console.log('[SCANNER DEBUG] Camera constraints: facingMode=environment, focusMode=continuous (if supported)');
 
             await scanner.start(
-                // Back camera + higher resolution for small barcodes.
-                {
-                    facingMode: { ideal: "environment" },
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 },
-                } as MediaTrackConstraints,
+                // Back camera; keep object to a single key to satisfy html5-qrcode API.
+                { facingMode: "environment" },
                 config,
                 onScanSuccess,
                 (frameError) => {
@@ -1077,20 +1015,6 @@ const AdminPOSOrders = () => {
                     // console.log('[SCANNER DEBUG] Frame decode attempt failed:', frameError);
                 } // Silent per-frame errors
             );
-
-            // Best-effort autofocus/zoom tuning for small barcodes (supported on some devices).
-            try {
-                const caps = scanner.getRunningTrackCapabilities?.();
-                const advanced: any[] = [{ focusMode: "continuous" }];
-                const zoomCaps: any = (caps as any)?.zoom;
-                if (zoomCaps && typeof zoomCaps.max === 'number') {
-                    const targetZoom = Math.min(zoomCaps.max, 2);
-                    advanced.push({ zoom: targetZoom });
-                }
-                await scanner.applyVideoConstraints({ advanced } as any);
-            } catch {
-                // ignore constraint tuning failures
-            }
         } catch (err) {
             console.error("Scanner Start Error:", err);
             showToast("Failed to start camera. Please check permissions and ensure you are on HTTPS.", "error");
@@ -1104,21 +1028,19 @@ const AdminPOSOrders = () => {
 
     return () => {
         const cleanup = async () => {
-             if (html5QrCodeRef.current) {
-                 try {
-                     if (html5QrCodeRef.current.isScanning) {
-                         await html5QrCodeRef.current.stop();
-                     }
-                     html5QrCodeRef.current.clear();
-                 } catch (e) {
-                     console.error("Scanner Cleanup Error:", e);
-                 } finally {
-                     html5QrCodeRef.current = null;
-                 }
-             }
-         };
-         cleanup();
-     };
+            if (html5QrCodeRef.current) {
+                try {
+                    if (html5QrCodeRef.current.isScanning) {
+                        await html5QrCodeRef.current.stop();
+                    }
+                    html5QrCodeRef.current.clear();
+                } catch (e) {
+                    console.error("Scanner Cleanup Error:", e);
+                }
+            }
+        };
+        cleanup();
+    };
   }, [showScanner, scannerKey]);
 
   // Search Customers
@@ -5553,23 +5475,12 @@ const AdminPOSOrders = () => {
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
-                 </div>
-                 <div className="p-4 bg-black">
-                     <div className="relative w-full">
-                         <div id="reader" className="w-full h-[260px] sm:h-[320px] md:h-[360px] bg-black rounded-xl overflow-hidden shadow-inner"></div>
-                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                             <div className="relative w-[86%] h-[58%] rounded-xl border-2 border-white/70">
-                                 <div className="absolute -top-[2px] -left-[2px] w-6 h-6 border-l-4 border-t-4 border-white rounded-tl-xl"></div>
-                                 <div className="absolute -top-[2px] -right-[2px] w-6 h-6 border-r-4 border-t-4 border-white rounded-tr-xl"></div>
-                                 <div className="absolute -bottom-[2px] -left-[2px] w-6 h-6 border-l-4 border-b-4 border-white rounded-bl-xl"></div>
-                                 <div className="absolute -bottom-[2px] -right-[2px] w-6 h-6 border-r-4 border-b-4 border-white rounded-br-xl"></div>
-                                 <div className="absolute left-0 right-0 top-1/2 h-[2px] bg-white/30"></div>
-                             </div>
-                         </div>
-                     </div>
+                </div>
+                <div className="p-4 bg-black">
+                     <div id="reader" className="w-full h-[260px] sm:h-[320px] md:h-[360px] bg-black rounded-xl overflow-hidden shadow-inner"></div>
                      <p className="text-center text-white/60 text-[11px] font-medium mt-4 tracking-wide uppercase">Point camera at a barcode to scan</p>
-                 </div>
-                 {/* Removed Restart Scanner footer for compact look */}
+                </div>
+                {/* Removed Restart Scanner footer for compact look */}
             </div>
         </div>
       )}
