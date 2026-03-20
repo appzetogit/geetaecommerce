@@ -385,38 +385,48 @@ const SellerPOSOrders = () => {
           const order = res.data;
 
           // Map Order Items to CartItems
-          const mappedCart: CartItem[] = (order.items as any[]).map(item => ({
-             _id: item.product?._id || item.product, // Handle different population levels
-             productName: item.productName || item.product?.productName,
-             // If we have custom unitPrice, use it as customPrice
-             price: item.unitPrice,
-             customPrice: item.unitPrice,
-             qty: item.quantity,
-             mainImage: item.productImage || item.product?.mainImage,
-             originalProductId: item.product?._id || item.product,
-             variationId: item.variation,
-             isVariation: !!item.variation,
-             // Add extra fields as needed by CartItem interface (mocking some defaults if missing)
-             stock: 9999, // Assume available for edit or fetch fresh?
-             description: '',
-             sku: item.sku || '',
-             compareAtPrice: item.unitPrice * 1.2, // Mock if missing
-             purchasePrice: 0,
-             wholesalePrice: 0,
-             category: 'uncategorized', // Mock
-             seller: '', // Mock
-             galleryImages: [],
-             publish: true,
-             popular: false,
-             dealOfDay: false,
-             status: 'Active',
-             isReturnable: true,
-             tags: [],
-             requiresApproval: false,
-             totalAllowedQuantity: 0,
-             galleryImageUrls: [],
-             variations: []
-          }));
+          const mappedCart: CartItem[] = (order.items as any[]).map(item => {
+             const resolvedProductId =
+               item.productId ||
+               item.product?._id ||
+               item.product?.id ||
+               (typeof item.product === 'string' && /^[a-f\d]{24}$/i.test(item.product) ? item.product : '') ||
+               '';
+             const resolvedVariationId = item.variationId || item.variation;
+
+             return {
+               _id: resolvedProductId || item._id,
+               productName: item.productName || item.product?.productName || item.product || 'Unknown Product',
+               // If we have custom unitPrice, use it as customPrice
+               price: item.unitPrice,
+               customPrice: item.unitPrice,
+               qty: item.quantity,
+               mainImage: item.productImage || item.product?.mainImage,
+               originalProductId: resolvedProductId || null,
+               variationId: resolvedVariationId,
+               isVariation: !!resolvedVariationId,
+               // Add extra fields as needed by CartItem interface (mocking some defaults if missing)
+               stock: 9999, // Assume available for edit or fetch fresh?
+               description: '',
+               sku: item.sku || '',
+               compareAtPrice: item.unitPrice * 1.2, // Mock if missing
+               purchasePrice: 0,
+               wholesalePrice: 0,
+               category: 'uncategorized', // Mock
+               seller: '', // Mock
+               galleryImages: [],
+               publish: true,
+               popular: false,
+               dealOfDay: false,
+               status: 'Active',
+               isReturnable: true,
+               tags: [],
+               requiresApproval: false,
+               totalAllowedQuantity: 0,
+               galleryImageUrls: [],
+               variations: []
+             };
+          });
 
           const newBill: Bill = {
              id: billId,

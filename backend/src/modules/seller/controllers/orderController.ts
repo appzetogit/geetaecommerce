@@ -153,6 +153,7 @@ export const getOrderById = asyncHandler(
     const formattedItems = orderItems.map(item => {
       let unit = item.variation || 'N/A';
       let variationMatched = false;
+      let resolvedVariationId = '';
 
       // Try to resolve variation value from product if it exists
       // item.product is populated now
@@ -164,11 +165,13 @@ export const getOrderById = asyncHandler(
             if (variationById) {
               unit = variationById.value;
               variationMatched = true;
+              resolvedVariationId = variationById._id.toString();
             } else {
                 const variationByValue = product.variations.find((v: any) => v.value === item.variation);
                 if (variationByValue) {
                     unit = variationByValue.value;
                     variationMatched = true;
+                    resolvedVariationId = variationByValue._id.toString();
                 }
             }
         }
@@ -179,34 +182,48 @@ export const getOrderById = asyncHandler(
              if (variationByPrice) {
                  unit = variationByPrice.value;
                  variationMatched = true;
+                 resolvedVariationId = variationByPrice._id.toString();
              } else if (product.variations.length === 1) {
                  // 3. Last Resort: If there is only one variation, assume it's that one
                  unit = product.variations[0].value;
+                 resolvedVariationId = product.variations[0]._id.toString();
              }
         }
       }
 
       return {
+        _id: item._id,
         srNo: item._id.toString().slice(-4), // Use last 4 chars of ID as srNo
         product: item.productName || 'Unknown Product',
+        productId: product?._id?.toString?.() || item.product?.toString?.() || '',
+        productName: item.productName || 'Unknown Product',
+        productImage: item.productImage || product?.mainImage || '',
         soldBy: (item.seller as any)?.storeName || 'N/A',
         unit: unit,
         price: item.unitPrice || 0,
+        unitPrice: item.unitPrice || 0,
         tax: 0,
         taxPercent: 0,
         qty: item.quantity || 0,
+        quantity: item.quantity || 0,
         subtotal: item.total || 0,
+        sku: item.sku || '',
+        variation: item.variation || '',
+        variationId: resolvedVariationId,
       };
     });
 
     // Format order data for frontend
     const orderDetail = {
       id: order._id,
+      _id: order._id,
+      orderNumber: order.orderNumber || order.invoiceNumber || 'N/A',
       invoiceNumber: order.invoiceNumber || order.orderNumber || 'N/A',
       orderDate: order.orderDate ? order.orderDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       deliveryDate: order.estimatedDeliveryDate ? order.estimatedDeliveryDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       timeSlot: order.timeSlot || 'N/A',
       status: order.status === 'On the way' ? 'Out For Delivery' : order.status,
+      customer: order.customer,
       customerName: (order.customer as any)?.name || order.customerName || '',
       customerEmail: (order.customer as any)?.email || order.customerEmail || '',
       customerPhone: (order.customer as any)?.phone || order.customerPhone || '',

@@ -443,10 +443,27 @@ export const updateOrderItems = asyncHandler(
 
       for (const itemData of newItemsData) {
         const quantity = Number(itemData.quantity) || 0; // Force number
+        const normalizedProductId = typeof itemData.productId === "string" ? itemData.productId.trim() : "";
+        const normalizedVariationId = typeof itemData.variationId === "string" ? itemData.variationId.trim() : "";
+        const normalizedSku = typeof itemData.sku === "string" ? itemData.sku.trim() : "";
 
-        const product = await Product.findById(itemData.productId).populate("seller").session(session);
+        let product = null;
+
+        if (normalizedProductId && mongoose.Types.ObjectId.isValid(normalizedProductId)) {
+          product = await Product.findById(normalizedProductId).populate("seller").session(session);
+        }
+
+        if (!product && normalizedSku) {
+          product = await Product.findOne({
+            $or: [
+              { sku: normalizedSku },
+              { "variations.sku": normalizedSku }
+            ]
+          }).populate("seller").session(session);
+        }
+
         if (!product) {
-          throw new Error(`Product not found: ${itemData.productId}`);
+          throw new Error(`Product not found: ${itemData.productId || itemData.sku}`);
         }
 
         let unitPrice = Number(itemData.unitPrice) || product.price; // Force number
@@ -456,9 +473,36 @@ export const updateOrderItems = asyncHandler(
 
         let foundVariation: any = null;
 
-        if (itemData.variationId && product.variations && product.variations.length > 0) {
-          // Fix: Use find instead of .id to safely match string or objectID
-          const variation = product.variations.find((v: any) => v._id.toString() === itemData.variationId.toString());
+        if ((normalizedVariationId || normalizedSku) && product.variations && product.variations.length > 0) {
+          const variationLabel = normalizedVariationId.toLowerCase();
+          const variation = product.variations.find((v: any) => {
+            const variationName = typeof v.name === "string" ? v.name : "";
+            const variationTitle = typeof v.title === "string" ? v.title : "";
+            const variationValue = typeof v.value === "string" ? v.value : "";
+            const composedName = `${variationName}: ${variationValue}`.toLowerCase();
+            const composedTitle = `${variationTitle}: ${variationValue}`.toLowerCase();
+
+            if (normalizedVariationId && mongoose.Types.ObjectId.isValid(normalizedVariationId) && v._id.toString() === normalizedVariationId) {
+              return true;
+            }
+
+            if (normalizedSku && v.sku === normalizedSku) {
+              return true;
+            }
+
+            if (!normalizedVariationId) {
+              return false;
+            }
+
+            return (
+              variationValue.toLowerCase() === variationLabel ||
+              variationName.toLowerCase() === variationLabel ||
+              variationTitle.toLowerCase() === variationLabel ||
+              composedName === variationLabel ||
+              composedTitle === variationLabel
+            );
+          });
+
           if (variation) {
             foundVariation = variation;
             unitPrice = Number(itemData.unitPrice) || variation.price || unitPrice;
