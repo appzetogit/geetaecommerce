@@ -222,11 +222,13 @@ export const updateOrderStatus = async (
 export const updateOrderItems = async (
   id: string,
   items: Array<{
-    productId: string;
+    productId?: string;
     variationId?: string;
     quantity: number;
     unitPrice?: number;
     sku?: string;
+    productName?: string;
+    productImage?: string;
   }>
 ): Promise<ApiResponse<Order>> => {
   const response = await api.patch<ApiResponse<Order>>(

@@ -2830,11 +2830,13 @@ const SellerPOSOrders = () => {
       setLoading(true);
       try {
           const items = cart.map(item => ({
-              productId: item.originalProductId || item._id,
+              productId: (item.originalProductId || item._id)?.match?.(/^[a-f\d]{24}$/i) ? (item.originalProductId || item._id) : undefined,
               variationId: item.variationId,
               quantity: item.qty,
               unitPrice: getEffectivePrice(item),
-              sku: item.sku
+              sku: item.sku,
+              productName: item.productName,
+              productImage: item.mainImage || (item as any).image || ''
           }));
 
           const res = await updateOrderItems(editOrderId, items);

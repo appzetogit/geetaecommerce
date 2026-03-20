@@ -338,7 +338,7 @@ export const updateOrderStatus = asyncHandler(
 export const updateOrderItems = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { items: newItemsData } = req.body; // Array of { productId, variationId?, quantity, unitPrice? }
+    const { items: newItemsData } = req.body; // Array of { productId, variationId?, quantity, unitPrice?, productName?, productImage? }
 
     if (!newItemsData || !Array.isArray(newItemsData) || newItemsData.length === 0) {
       return res.status(400).json({
@@ -446,6 +446,8 @@ export const updateOrderItems = asyncHandler(
         const normalizedProductId = typeof itemData.productId === "string" ? itemData.productId.trim() : "";
         const normalizedVariationId = typeof itemData.variationId === "string" ? itemData.variationId.trim() : "";
         const normalizedSku = typeof itemData.sku === "string" ? itemData.sku.trim() : "";
+        const snapshotProductName = typeof itemData.productName === "string" ? itemData.productName.trim() : "";
+        const snapshotProductImage = typeof itemData.productImage === "string" ? itemData.productImage.trim() : "";
 
         let product = null;
 
@@ -463,7 +465,35 @@ export const updateOrderItems = asyncHandler(
         }
 
         if (!product) {
-          throw new Error(`Product not found: ${itemData.productId || itemData.sku}`);
+          if (!snapshotProductName) {
+            throw new Error(`Product not found: ${itemData.productId || itemData.sku || ""}`);
+          }
+
+          const customUnitPrice = Number(itemData.unitPrice) || 0;
+          const customVariationLabel =
+            typeof itemData.variation === "string"
+              ? itemData.variation.trim()
+              : !mongoose.Types.ObjectId.isValid(normalizedVariationId)
+                ? normalizedVariationId
+                : "";
+          const customTotal = customUnitPrice * quantity;
+          newSubtotal += customTotal;
+
+          const detachedOrderItem = new OrderItem({
+            order: order._id,
+            productName: snapshotProductName,
+            productImage: snapshotProductImage,
+            sku: normalizedSku,
+            unitPrice: customUnitPrice,
+            quantity,
+            total: customTotal,
+            variation: customVariationLabel,
+            status: "Pending"
+          });
+
+          await detachedOrderItem.save({ session });
+          newItemIds.push(detachedOrderItem._id);
+          continue;
         }
 
         let unitPrice = Number(itemData.unitPrice) || product.price; // Force number
@@ -527,8 +557,8 @@ export const updateOrderItems = asyncHandler(
           order: order._id,
           product: product._id,
           seller: (product.seller as any)?._id || product.seller,
-          productName: product.productName,
-          productImage: product.mainImage,
+          productName: snapshotProductName || product.productName,
+          productImage: snapshotProductImage || product.mainImage,
           sku: sku,
           unitPrice: unitPrice,
           quantity: quantity,
