@@ -441,12 +441,19 @@ export const updateOrderItems = asyncHandler(
       let newSubtotal = 0;
       const newItemIds = [];
 
-      for (const itemData of newItemsData) {
+      for (let itemIndex = 0; itemIndex < newItemsData.length; itemIndex++) {
+        const itemData = newItemsData[itemIndex];
         const quantity = Number(itemData.quantity) || 0; // Force number
         const normalizedProductId = typeof itemData.productId === "string" ? itemData.productId.trim() : "";
         const normalizedVariationId = typeof itemData.variationId === "string" ? itemData.variationId.trim() : "";
         const normalizedSku = typeof itemData.sku === "string" ? itemData.sku.trim() : "";
         const snapshotProductName = typeof itemData.productName === "string" ? itemData.productName.trim() : "";
+        const fallbackNameFromPayload =
+          typeof itemData.name === "string"
+            ? itemData.name.trim()
+            : typeof itemData.title === "string"
+              ? itemData.title.trim()
+              : "";
         const snapshotProductImage = typeof itemData.productImage === "string" ? itemData.productImage.trim() : "";
 
         let product = null;
@@ -465,9 +472,11 @@ export const updateOrderItems = asyncHandler(
         }
 
         if (!product) {
-          if (!snapshotProductName) {
-            throw new Error(`Product not found: ${itemData.productId || itemData.sku || ""}`);
-          }
+          const fallbackProductName =
+            snapshotProductName ||
+            fallbackNameFromPayload ||
+            normalizedSku ||
+            `Custom Item ${itemIndex + 1}`;
 
           const customUnitPrice = Number(itemData.unitPrice) || 0;
           const customVariationLabel =
@@ -481,7 +490,7 @@ export const updateOrderItems = asyncHandler(
 
           const detachedOrderItem = new OrderItem({
             order: order._id,
-            productName: snapshotProductName,
+            productName: fallbackProductName,
             productImage: snapshotProductImage,
             sku: normalizedSku,
             unitPrice: customUnitPrice,
