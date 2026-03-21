@@ -219,7 +219,7 @@ export default function ProductCard({
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
       className={`${categoryStyle ? '' : 'bg-white'} rounded-lg shadow-sm overflow-hidden flex flex-col relative`}
-      style={{ backgroundColor: categoryStyle ? theme.primary[3] : '#ffffff' }}
+      style={{ backgroundColor: categoryStyle ? '#fff4ed' : '#ffffff' }} // Light peach/orange background as per reference image
     >
       <div
         onClick={handleCardClick}
@@ -254,8 +254,8 @@ export default function ProductCard({
 
           {categoryStyle && showBadge && discount > 0 && (
             <div
-                className="absolute top-2 left-2 z-10 text-white text-[10px] font-semibold px-2 py-0.5 rounded"
-                style={{ backgroundColor: currentCategory?.offerTagColor || theme.primary[0] }}
+                className="absolute top-2 left-2 z-10 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md"
+                style={{ backgroundColor: '#d35400' }} // Orange offer tag
             >
               {discount}% off
             </div>
@@ -263,8 +263,9 @@ export default function ProductCard({
 
           {!categoryStyle && showBadge && (badgeText || discount > 0) && (
             <Badge
-              variant="destructive"
+              variant="default"
               className="absolute top-2 left-2 z-10 text-xs px-2 py-1"
+              style={{ backgroundColor: '#d35400' }}
             >
               {badgeText || `${discount}% OFF`}
             </Badge>
@@ -337,8 +338,8 @@ export default function ProductCard({
                       : 'bg-transparent'
                     }`}
                     style={product.isAvailable !== false ? {
-                        borderColor: currentCategory?.addButtonColor || theme.primary[0],
-                        color: currentCategory?.addButtonColor || theme.primary[0]
+                        borderColor: '#d35400',
+                        color: '#d35400'
                     } : {}}
                   >
                     {product.isAvailable === false ? 'Out of Range' : 'ADD'}
@@ -348,7 +349,7 @@ export default function ProductCard({
             ) : (
               <div
                 className="flex items-center justify-center gap-1.5 bg-white rounded-full px-1.5 py-0.5 h-7 w-full border"
-                style={{ borderColor: currentCategory?.addButtonColor || theme.primary[0] }}
+                style={{ borderColor: '#d35400' }}
               >
                 <Button
                   variant="default"
@@ -358,12 +359,12 @@ export default function ProductCard({
                     handleDecrease(e);
                   }}
                   className="w-5 h-5 p-0 bg-transparent shadow-none"
-                  style={{ color: currentCategory?.addButtonColor || theme.primary[0] }}
+                  style={{ color: '#d35400' }}
                   aria-label="Decrease quantity"
                 >
                   −
                 </Button>
-                <span className="text-xs font-bold min-w-[1rem] text-center" style={{ color: currentCategory?.addButtonColor || theme.primary[0] }}>
+                <span className="text-xs font-bold min-w-[1rem] text-center" style={{ color: '#d35400' }}>
                   {inCartQty}
                 </span>
                 <Button
@@ -377,7 +378,7 @@ export default function ProductCard({
                   className={`w-5 h-5 p-0 bg-transparent shadow-none ${
                     product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : ''
                   }`}
-                  style={product.isAvailable !== false ? { color: currentCategory?.addButtonColor || theme.primary[0] } : {}}
+                  style={product.isAvailable !== false ? { color: '#d35400' } : {}}
                   aria-label="Increase quantity"
                 >
                   +
@@ -436,10 +437,10 @@ export default function ProductCard({
                     {/* Additional Tiers */}
                     {tieredPrices.slice().sort((a: any, b: any) => a.minQty - b.minQty).map((tier: any, idx: number) => (
                         <div key={idx} className="flex justify-between items-center text-[9px] leading-tight">
-                           <span className="text-green-600 font-bold">{tier.minQty}+ units</span>
+                           <span className="text-[#d35400] font-bold">{tier.minQty}+ units</span>
                            <div className="flex items-center gap-1">
                              <span className="font-bold text-gray-900">₹{tier.price}</span>
-                             <span className="text-green-600 font-bold bg-green-50 px-1 rounded-sm">
+                              <span className="text-[#d35400] font-bold bg-orange-50 px-1 rounded-sm">
                                {Math.round(((mrp - tier.price) / mrp) * 100)}% OFF
                              </span>
                            </div>
@@ -448,7 +449,7 @@ export default function ProductCard({
                  </div>
               ) : (
                  discount > 0 && (
-                  <p className="text-[9px] font-semibold text-green-600 mb-0.5 leading-tight">
+                   <p className="text-[9px] font-semibold text-[#d35400] mb-0.5 leading-tight">
                     {discount}% OFF
                   </p>
                  )
@@ -505,11 +506,11 @@ export default function ProductCard({
                       {tieredPrices.map((tier: any, idx: number) => {
                           const tierDiscount = mrp ? Math.round(((mrp - tier.price) / mrp) * 100) : 0;
                           return (
-                              <div key={idx} className="flex justify-between items-center bg-teal-50 px-2 py-1 rounded text-[10px] border border-teal-100">
-                                  <span className="font-bold text-teal-800">Buy {tier.minQty}+</span>
+                               <div key={idx} className="flex justify-between items-center bg-orange-50 px-2 py-1 rounded text-[10px] border border-orange-100">
+                                  <span className="font-bold text-orange-800">Buy {tier.minQty}+</span>
                                   <div className="flex items-center gap-1">
-                                      <span className="font-bold text-teal-700">₹{tier.price}</span>
-                                      {tierDiscount > 0 && <span className="text-[9px] text-teal-600 font-bold">({tierDiscount}% OFF)</span>}
+                                      <span className="font-bold text-orange-700">₹{tier.price}</span>
+                                      {tierDiscount > 0 && <span className="text-[9px] text-[#d35400] font-bold">({tierDiscount}% OFF)</span>}
                                   </div>
                               </div>
                           );
@@ -518,7 +519,7 @@ export default function ProductCard({
               )}
 
               {showStockInfo && (
-                <p className="text-xs text-green-600 mb-2 font-medium">
+                <p className="text-xs text-[#d35400] mb-2 font-medium">
                   Fast delivery
                 </p>
               )}
@@ -566,8 +567,8 @@ export default function ProductCard({
                     : 'hover:bg-opacity-10'
                   }`}
                   style={product.isAvailable !== false ? {
-                      borderColor: currentCategory?.addButtonColor || theme.primary[0],
-                      color: currentCategory?.addButtonColor || theme.primary[0]
+                      borderColor: '#d35400',
+                      color: '#d35400'
                   } : {}}
                 >
                   {product.isAvailable === false ? 'Out of Range' : 'Add'}
@@ -578,19 +579,19 @@ export default function ProductCard({
             ) : (
               <div
                 className="flex items-center justify-center gap-2 bg-white rounded-full px-2 py-0.5 h-8 border"
-                style={{ borderColor: currentCategory?.addButtonColor || theme.primary[0] }}
+                style={{ borderColor: '#d35400' }}
               >
                 <Button
                   variant="default"
                   size="icon"
                   onClick={handleDecrease}
                   className="w-6 h-6 p-0 bg-transparent shadow-none"
-                  style={{ color: currentCategory?.addButtonColor || theme.primary[0] }}
+                  style={{ color: '#d35400' }}
                   aria-label="Decrease quantity"
                 >
                   −
                 </Button>
-                <span className="text-xs font-bold min-w-[1.5rem] text-center" style={{ color: currentCategory?.addButtonColor || theme.primary[0] }}>
+                <span className="text-xs font-bold min-w-[1.5rem] text-center" style={{ color: '#d35400' }}>
                   {inCartQty}
                 </span>
                 <Button
@@ -601,7 +602,7 @@ export default function ProductCard({
                   className={`w-6 h-6 p-0 bg-transparent shadow-none ${
                     product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : ''
                   }`}
-                  style={product.isAvailable !== false ? { color: currentCategory?.addButtonColor || theme.primary[0] } : {}}
+                  style={product.isAvailable !== false ? { color: '#d35400' } : {}}
                   aria-label="Increase quantity"
                 >
                   +
