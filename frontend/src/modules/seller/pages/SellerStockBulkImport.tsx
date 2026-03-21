@@ -425,13 +425,22 @@ export default function SellerStockBulkImport({
             if (mrp <= 0) mrp = price;
             if (discPrice > price) discPrice = 0;
 
+            const safePrice = Number.isFinite(price) && !Number.isNaN(price) ? Math.max(0, price) : 1;
+            const safeMrp = Number.isFinite(mrp) && !Number.isNaN(mrp) ? Math.max(0, mrp) : safePrice;
+
             // mapRowToProduct uses `variations` for Size/Color tags only (no price). Never send those as API variations
             // or the backend drops them and price is missing. Spread `...rawData` must not overwrite this array.
             const excelAttrs = rawData.variations && Array.isArray(rawData.variations) ? rawData.variations : [];
+            // Must use .every: if first row is Size/Color (no price) but another row has price: 0, .some() wrongly
+            // picked excelAttrs — backend then reads variations[0].price → undefined → 400.
             const hasPricedExcelVariation =
               excelAttrs.length > 0 &&
-              excelAttrs.some(
-                (v: any) => v != null && typeof v.price === "number" && !Number.isNaN(v.price)
+              excelAttrs.every(
+                (v: any) =>
+                  v != null &&
+                  typeof v.price === "number" &&
+                  !Number.isNaN(v.price) &&
+                  v.price >= 0
               );
 
             let varTitle =
@@ -441,12 +450,12 @@ export default function SellerStockBulkImport({
             }
 
             const defaultVariation: Record<string, unknown> = {
-              price,
-              discPrice: discPrice || 0,
+              price: safePrice,
+              discPrice: Number.isFinite(discPrice) && discPrice >= 0 ? discPrice : 0,
               stock,
               status: stock > 0 ? "In stock" : "Sold out",
-              compareAtPrice: mrp,
-              wholesalePrice: wholesalePrice,
+              compareAtPrice: safeMrp,
+              wholesalePrice: Number.isFinite(wholesalePrice) ? wholesalePrice : 0,
               title: varTitle,
             };
             const code = rawData.itemCode != null ? String(rawData.itemCode).trim() : "";
@@ -574,6 +583,13 @@ export default function SellerStockBulkImport({
               >
                   Excel Format
               </button>
+              <a
+                href={`${import.meta.env.BASE_URL}sample_product_import_template_filled.csv`}
+                download="sample_product_import_template_filled.csv"
+                className="mt-1 text-sm text-[#f187b5] hover:underline block"
+              >
+                Sample file (demo data)
+              </a>
               <input
                 type="file"
                 ref={fileInputRef}

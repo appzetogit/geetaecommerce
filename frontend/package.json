@@ -10,6 +10,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "copy-images": "node scripts/copy-images.js",
+    "generate:sample-import": "node scripts/generate-sample-product-import-template.mjs",
     "prebuild": "npm run copy-images"
   },
   "dependencies": {
