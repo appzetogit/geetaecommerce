@@ -53,8 +53,8 @@ const row1 = [
 
 const row2 = [
   ...stdCols,
-  "Price (Min Qty 2)",
-  "Price (Min Qty 4)",
+  "26. Unit Price (Min Qty 2)",
+  "27. Unit Price (Min Qty 4)",
   "28. Variations",
   "Image",
   "29. Mfg Date",

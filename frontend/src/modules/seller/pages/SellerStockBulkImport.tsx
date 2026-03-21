@@ -84,14 +84,12 @@ function isStockManagementCsv(headersNormalized: string[]): boolean {
   const hasStock =
     headersNormalized.includes("stock") || headersNormalized.includes("current_stock");
   if (!hasVid || !hasStock) return false;
-  // Stock export can include "Product Name"; rely on absence of *price* columns used for new-product template.
+  // Do not use broad "mrp" — "16. MRP" / "24. Val (MRP)" would false-match. Rely on sell / retail import columns.
   const hasCreatePriceCols = headersNormalized.some(
     (k) =>
       k.includes("sell_price") ||
       k.includes("product_retail_price") ||
-      k.includes("product_selling_price") ||
-      k.includes("product_mrp") ||
-      k.includes("mrp")
+      k.includes("product_selling_price")
   );
   return !hasCreatePriceCols;
 }
@@ -162,7 +160,14 @@ export default function SellerStockBulkImport({
           const firstRow = json[0];
           const values = Object.values(firstRow);
           // Check if specific sub-headers exist as values in the first 'data' row
-          if (values.includes("Price (Min Qty 2)") || values.includes("Price (Min Qty 4)")) {
+          if (
+            values.includes("Price (Min Qty 2)") ||
+            values.includes("Price (Min Qty 4)") ||
+            values.includes("26. Unit Price (Min Qty 2)") ||
+            values.includes("27. Unit Price (Min Qty 4)") ||
+            values.includes("Unit Price (Min Qty 2)") ||
+            values.includes("Unit Price (Min Qty 4)")
+          ) {
               // Re-parse skipping the first header row (so the second row becomes the header)
               json = XLSX.utils.sheet_to_json(sheet, { range: 1 });
           }
@@ -188,7 +193,7 @@ export default function SellerStockBulkImport({
     }
 
     // New Generic Variations Column
-    const rawVars = rowCell(row, ["Variations", "29. Variations", "PRODUCT_VARIATIONS"]);
+    const rawVars = rowCell(row, ["Variations", "28. Variations", "29. Variations", "PRODUCT_VARIATIONS"]);
     if (rawVars) {
         String(rawVars).split(';').forEach(v => {
             const [name, val] = v.split(':').map(s => s.trim());
@@ -201,8 +206,23 @@ export default function SellerStockBulkImport({
     let unitPricing: { minQty: number; price: number }[] = [];
     try {
         // Check for specific columns first (New Template Format)
-        const priceFor2 = parseFloat(rowCell(row, ["27. Unit Price (Min Qty 2)", "Unit Price (Min Qty 2)", "27. Price (Min Qty 2)", "Price (Min Qty 2)"]) || "0");
-        const priceFor4 = parseFloat(rowCell(row, ["28. Unit Price (Min Qty 4)", "Unit Price (Min Qty 4)", "28. Price (Min Qty 4)", "Price (Min Qty 4)"]) || "0");
+        const priceFor2 = parseFloat(
+          rowCell(row, [
+            "26. Unit Price (Min Qty 2)",
+            "Unit Price (Min Qty 2)",
+            "27. Price (Min Qty 2)",
+            "Price (Min Qty 2)",
+          ]) || "0"
+        );
+        const priceFor4 = parseFloat(
+          rowCell(row, [
+            "27. Unit Price (Min Qty 4)",
+            "Unit Price (Min Qty 4)",
+            "28. Unit Price (Min Qty 4)",
+            "28. Price (Min Qty 4)",
+            "Price (Min Qty 4)",
+          ]) || "0"
+        );
 
         if (priceFor2 > 0) unitPricing.push({ minQty: 2, price: priceFor2 });
         if (priceFor4 > 0) unitPricing.push({ minQty: 4, price: priceFor4 });
@@ -538,7 +558,15 @@ export default function SellerStockBulkImport({
     const row1 = [...stdCols, "Unit Pricing Rules", "", "28. Variations", "Image", "29. Mfg Date", "30. Expiry Date"];
 
     // Row 2: Standard Cols (Repeated for parsing) + Sub-Headers + "28. Variations" + "Image" + "29. Mfg Date" + "30. Expiry Date"
-    const row2 = [...stdCols, "Price (Min Qty 2)", "Price (Min Qty 4)", "28. Variations", "Image", "29. Mfg Date", "30. Expiry Date"];
+    const row2 = [
+      ...stdCols,
+      "26. Unit Price (Min Qty 2)",
+      "27. Unit Price (Min Qty 4)",
+      "28. Variations",
+      "Image",
+      "29. Mfg Date",
+      "30. Expiry Date",
+    ];
 
     const ws = XLSX.utils.aoa_to_sheet([row1, row2]);
 
