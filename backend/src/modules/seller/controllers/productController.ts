@@ -32,15 +32,25 @@ export const createProduct = asyncHandler(
       galleryImages: productData.galleryImageUrls,
     };
 
+    // Normalize variations (quick-add / POS may omit or send non-array)
+    const rawVariations = productData.variations;
+    const variationsList: any[] = Array.isArray(rawVariations)
+      ? rawVariations
+      : rawVariations != null && typeof rawVariations === "object"
+        ? [rawVariations]
+        : [];
+
     // Map variations: Ensure 'title' from frontend is mapped to 'value' (or name) expected by Schema
-    if (newProductData.variations) {
-      newProductData.variations = newProductData.variations.map((v: any) => ({
+    if (variationsList.length > 0) {
+      newProductData.variations = variationsList.map((v: any) => ({
         ...v,
         value: v.value || v.title, // Map title to value
         name: v.name || "Variation", // Default name
         discPrice: v.discPrice || 0,
         status: v.status || "Available",
       }));
+    } else {
+      delete newProductData.variations;
     }
 
     // 3. Set Price and Stock from Variations
@@ -83,12 +93,14 @@ export const createProduct = asyncHandler(
     }
 
     // Validate variation prices
-    for (const variation of productData.variations) {
-      if (Number(variation.discPrice) > Number(variation.price)) {
-        return res.status(400).json({
-          success: false,
-          message: `Discounted price (${variation.discPrice}) cannot be greater than price (${variation.price}) for variation ${variation.title}`,
-        });
+    if (newProductData.variations && newProductData.variations.length > 0) {
+      for (const variation of newProductData.variations) {
+        if (Number(variation.discPrice) > Number(variation.price)) {
+          return res.status(400).json({
+            success: false,
+            message: `Discounted price (${variation.discPrice}) cannot be greater than price (${variation.price}) for variation ${variation.title}`,
+          });
+        }
       }
     }
 
