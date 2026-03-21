@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
-import { getProducts, getProductById, getSellerPOSProducts as getPOSProducts, Product, updateProduct, createProduct } from '../../../services/api/productService';
+import { getProducts, getProductById, Product, updateProduct, createProduct } from '../../../services/api/productService';
 import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getSellerOrderById as getOrderById } from '../../../services/api/orderService';
 import { updateOrderItems } from '../../../services/api/admin/adminOrderService';
 import { getAllCustomers, createCustomer } from '../../../services/api/seller/sellerCustomerService';
@@ -104,6 +104,38 @@ export interface PurchaseEntryRecord {
   };
   createdAt: string;
   billAttachment?: string;
+}
+
+/** Same expansion as billing POS grid — seller's Product List catalog only (not global POS catalog). */
+function expandSellerCatalogProductsForPOS(products: any[]): any[] {
+  const expandedProducts: any[] = [];
+  products.forEach((product: any) => {
+    if (product.variations && product.variations.length > 0) {
+      product.variations.forEach((variation: any) => {
+        expandedProducts.push({
+          ...product,
+          _id: `${product._id}-${variation._id}`,
+          originalProductId: product._id,
+          productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || 'Variation'}`,
+          price: variation.price,
+          compareAtPrice: variation.compareAtPrice || product.compareAtPrice,
+          purchasePrice: variation.purchasePrice || product.purchasePrice,
+          stock: variation.stock,
+          sku: variation.sku || product.sku,
+          isVariation: true,
+          variationId: variation._id,
+          wholesalePrice: Number(product.wholesalePrice || 0)
+        });
+      });
+    } else {
+      expandedProducts.push({
+        ...product,
+        originalProductId: product._id,
+        wholesalePrice: product.wholesalePrice || 0
+      });
+    }
+  });
+  return expandedProducts;
 }
 
 const SellerPOSOrders = () => {
@@ -740,8 +772,8 @@ const SellerPOSOrders = () => {
           // Play beep
           // const audio = new Audio('/assets/beep.mp3'); audio.play().catch(e=>{});
 
-          // Use POS Search for optimized results
-          const res = await getPOSProducts({ search: decodedText });
+          // Seller Product List catalog only (same as billing grid / admin product list scope for this seller)
+          const res = await getProducts({ search: decodedText, limit: 50, page: 1 });
           if (res.success && res.data && res.data.length > 0) {
              const productsFound = res.data;
              // Try to find exact match on Barcode or SKU
@@ -1168,37 +1200,7 @@ const SellerPOSOrders = () => {
           brand: !showMobileSearch ? (selectedBrand || undefined) : undefined,
         });
         if (response.success && response.data) {
-          // Expand Variations
-          const expandedProducts: any[] = []; // Relax type to allow adding originalProductId
-
-          response.data.forEach((product: any) => {
-             if (product.variations && product.variations.length > 0) {
-                 product.variations.forEach((variation: any) => {
-                     expandedProducts.push({
-                         ...product,
-                         _id: `${product._id}-${variation._id}`, // Consistent ID for variations
-                         originalProductId: product._id, // Store parent ID
-                         productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || 'Variation'}`,
-                         price: variation.price,
-                         compareAtPrice: variation.compareAtPrice || product.compareAtPrice, // Fallback to product MRP if variation doesn't have one
-                         purchasePrice: variation.purchasePrice || product.purchasePrice, // Fallback to product PP
-                         stock: variation.stock,
-                         sku: variation.sku || product.sku, // Use variation SKU
-                         isVariation: true,
-                         variationId: variation._id,
-                         wholesalePrice: Number(product.wholesalePrice || 0)
-                     });
-                 });
-             } else {
-                 expandedProducts.push({
-                     ...product,
-                     originalProductId: product._id,
-                     wholesalePrice: product.wholesalePrice || 0
-                 });
-             }
-          });
-
-          setProducts(expandedProducts);
+          setProducts(expandSellerCatalogProductsForPOS(response.data));
         }
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -1222,9 +1224,16 @@ const SellerPOSOrders = () => {
     const fetchPurchaseProducts = async () => {
       setPurchaseSearchLoading(true);
       try {
-        const response = await getPOSProducts(purchaseSearchQuery.trim() ? { search: purchaseSearchQuery.trim() } : {});
-        if (isActive && response.success) {
-          setPurchaseSearchResults(response.data || []);
+        const q = purchaseSearchQuery.trim();
+        const response = await getProducts({
+          ...(q ? { search: q } : {}),
+          category: selectedCategory || undefined,
+          brand: selectedBrand || undefined,
+          limit: 100,
+          page: 1,
+        });
+        if (isActive && response.success && response.data) {
+          setPurchaseSearchResults(expandSellerCatalogProductsForPOS(response.data));
         }
       } catch {
         if (isActive) {
@@ -1242,7 +1251,7 @@ const SellerPOSOrders = () => {
       isActive = false;
       clearTimeout(timer);
     };
-  }, [showPurchaseSearch, purchaseSearchQuery]);
+  }, [showPurchaseSearch, purchaseSearchQuery, selectedCategory, selectedBrand]);
 
   // Barcode Scanner Handler
   const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1268,35 +1277,15 @@ const SellerPOSOrders = () => {
 
         // If not found in current products (maybe due to debounce or filter), fetch immediately
         try {
-            const res = await getPOSProducts({ search: searchQuery.trim() });
+            const res = await getProducts({
+              search: searchQuery.trim(),
+              category: selectedCategory || undefined,
+              brand: selectedBrand || undefined,
+              limit: 100,
+              page: 1,
+            });
             if (res.success && res.data && res.data.length > 0) {
-                const expanded: any[] = [];
-                res.data.forEach((product: any) => {
-                    if (product.variations && product.variations.length > 0) {
-                        product.variations.forEach((variation: any) => {
-                            expanded.push({
-                                ...product,
-                                _id: `${product._id}-${variation._id}`,
-                                originalProductId: product._id,
-                                productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || 'Variation'}`,
-                                price: variation.price,
-                                compareAtPrice: variation.compareAtPrice || product.compareAtPrice,
-                                purchasePrice: variation.purchasePrice || product.purchasePrice,
-                                stock: variation.stock,
-                                sku: variation.sku || product.sku,
-                                isVariation: true,
-                                variationId: variation._id,
-                                wholesalePrice: Number(product.wholesalePrice || 0)
-                            });
-                        });
-                    } else {
-                        expanded.push({
-                            ...product,
-                            originalProductId: product._id,
-                            wholesalePrice: product.wholesalePrice || 0
-                        });
-                    }
-                });
+                const expanded = expandSellerCatalogProductsForPOS(res.data);
 
                 exactMatch = findMatch(expanded);
                 if (exactMatch) {
