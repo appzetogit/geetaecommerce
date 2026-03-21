@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import axios from "axios";
 import * as XLSX from "xlsx";
 import {
   createProduct,
@@ -75,6 +76,30 @@ function isValidObjectIdString(id: unknown): boolean {
   return /^[a-fA-F0-9]{24}$/.test(s);
 }
 
+/** Readable message for API throws (axios) or Error — bulk import UI + console. */
+function bulkImportErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const d = err.response?.data;
+    if (d && typeof d === "object" && d !== null) {
+      const o = d as Record<string, unknown>;
+      if (typeof o.message === "string" && o.message.trim()) return o.message.trim();
+      if (typeof o.error === "string" && o.error.trim()) return o.error.trim();
+      if (Array.isArray(o.errors) && o.errors.length) {
+        try {
+          return JSON.stringify(o.errors);
+        } catch {
+          /* fall through */
+        }
+      }
+    }
+    if (typeof d === "string" && d.trim()) return d.trim();
+    const st = err.response?.status;
+    if (st) return `Server error (${st})${err.message ? `: ${err.message}` : ""}`;
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return String(err);
+}
+
 /**
  * Stock Management CSV export: `Variation Id`, `Stock`, no product-template price columns.
  * That file must update existing variation stock — not create new products.
@@ -133,6 +158,9 @@ export default function SellerStockBulkImport({
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ total: 0, current: 0, success: 0, failed: 0 });
+  const [importFailures, setImportFailures] = useState<
+    { row: number; label: string; message: string }[]
+  >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
@@ -140,6 +168,7 @@ export default function SellerStockBulkImport({
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       setFile(selectedFile);
+      setImportFailures([]);
       readExcel(selectedFile);
     }
   };
@@ -159,15 +188,20 @@ export default function SellerStockBulkImport({
       if (json.length > 0) {
           const firstRow = json[0];
           const values = Object.values(firstRow);
-          // Check if specific sub-headers exist as values in the first 'data' row
-          if (
-            values.includes("Price (Min Qty 2)") ||
-            values.includes("Price (Min Qty 4)") ||
-            values.includes("26. Unit Price (Min Qty 2)") ||
-            values.includes("27. Unit Price (Min Qty 4)") ||
-            values.includes("Unit Price (Min Qty 2)") ||
-            values.includes("Unit Price (Min Qty 4)")
-          ) {
+          const twoRowMarkers = new Set([
+            "Price (Min Qty 2)",
+            "Price (Min Qty 4)",
+            "26. Unit Price (Min Qty 2)",
+            "27. Unit Price (Min Qty 4)",
+            "Unit Price (Min Qty 2)",
+            "Unit Price (Min Qty 4)",
+          ]);
+          const hit = values.some((v) => {
+            if (v == null) return false;
+            const s = String(v).trim();
+            return twoRowMarkers.has(s);
+          });
+          if (hit) {
               // Re-parse skipping the first header row (so the second row becomes the header)
               json = XLSX.utils.sheet_to_json(sheet, { range: 1 });
           }
@@ -193,7 +227,7 @@ export default function SellerStockBulkImport({
     }
 
     // New Generic Variations Column
-    const rawVars = rowCell(row, ["Variations", "28. Variations", "29. Variations", "PRODUCT_VARIATIONS"]);
+    const rawVars = rowCell(row, ["Variations", "28. Variations", "PRODUCT_VARIATIONS"]);
     if (rawVars) {
         String(rawVars).split(';').forEach(v => {
             const [name, val] = v.split(':').map(s => s.trim());
@@ -210,6 +244,7 @@ export default function SellerStockBulkImport({
           rowCell(row, [
             "26. Unit Price (Min Qty 2)",
             "Unit Price (Min Qty 2)",
+            "26. Price (Min Qty 2)",
             "27. Price (Min Qty 2)",
             "Price (Min Qty 2)",
           ]) || "0"
@@ -218,6 +253,7 @@ export default function SellerStockBulkImport({
           rowCell(row, [
             "27. Unit Price (Min Qty 4)",
             "Unit Price (Min Qty 4)",
+            "27. Price (Min Qty 4)",
             "28. Unit Price (Min Qty 4)",
             "28. Price (Min Qty 4)",
             "Price (Min Qty 4)",
@@ -310,6 +346,8 @@ export default function SellerStockBulkImport({
   const handleUpload = async () => {
     if (!previewData.length) return;
     setUploading(true);
+    setImportFailures([]);
+    const failures: { row: number; label: string; message: string }[] = [];
     const total = previewData.length;
     let successCount = 0;
     let failedCount = 0;
@@ -529,17 +567,33 @@ export default function SellerStockBulkImport({
             }
             successCount++;
         } catch (err) {
-            console.error("Failed to import row", i, row, err);
+            const message = bulkImportErrorMessage(err);
+            const label =
+              rowCell(row, ["5. SKU", "SKU", "sku", "ITEM_CODE", "PRODUCT_SKU"]) ||
+              rowCell(row, ["4. Product Name", "Product Name", "PRODUCT_NAME"]) ||
+              "—";
+            failures.push({ row: i + 1, label, message });
+            console.error("Failed to import row", i + 1, label, message, row, err);
             failedCount++;
         }
         setProgress(prev => ({ ...prev, current: i + 1, success: successCount, failed: failedCount }));
     }
 
     setUploading(false);
-    alert(`Import Complete! Success: ${successCount}, Failed: ${failedCount}`);
+    setImportFailures(failures);
+
+    if (failures.length > 0) {
+      alert(
+        `Import finished.\nSuccess: ${successCount}\nFailed: ${failedCount}\n\nSee the red box below for the exact error on each row.`
+      );
+      if (successCount > 0) onSuccess();
+      return;
+    }
+
+    alert(`Import complete! Success: ${successCount}`);
     if (successCount > 0) {
-        onSuccess();
-        onClose();
+      onSuccess();
+      onClose();
     }
   };
 
@@ -683,7 +737,15 @@ export default function SellerStockBulkImport({
                     <span className="font-medium text-neutral-900">{file.name}</span>
                     <span className="text-sm text-neutral-500">({previewData.length} rows found)</span>
                  </div>
-                 <button onClick={() => setFile(null)} className="text-red-600 hover:text-red-700 text-sm">Remove File</button>
+                 <button
+                   onClick={() => {
+                     setFile(null);
+                     setImportFailures([]);
+                   }}
+                   className="text-red-600 hover:text-red-700 text-sm"
+                 >
+                   Remove File
+                 </button>
               </div>
 
               <div className="flex-1 overflow-auto border border-neutral-200 rounded-lg">
@@ -728,6 +790,25 @@ export default function SellerStockBulkImport({
                           <span className="text-red-600">Failed: {progress.failed}</span>
                       </div>
                   </div>
+              )}
+
+              {!uploading && importFailures.length > 0 && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm">
+                  <p className="font-semibold text-red-900 mb-2">
+                    Failed rows ({importFailures.length}) — exact error
+                  </p>
+                  <ul className="max-h-52 overflow-y-auto space-y-2 text-red-900">
+                    {importFailures.map((f, idx) => (
+                      <li key={idx} className="border-b border-red-100 pb-2 last:border-0">
+                        <span className="font-medium">Row {f.row}</span>
+                        <span className="text-red-700"> · {f.label}</span>
+                        <div className="mt-1 text-red-800 whitespace-pre-wrap break-words font-mono text-xs">
+                          {f.message}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </>
           )}
