@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Product from "../../../models/Product";
 import Shop from "../../../models/Shop";
+import Category from "../../../models/Category";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
 /**
@@ -24,13 +25,25 @@ export const createProduct = asyncHandler(
       ...productData,
       seller: sellerId, // Map sellerId to seller
       headerCategoryId: productData.headerCategoryId, // Map headerCategoryId
-      category: productData.categoryId, // Map categoryId to category
-      subcategory: productData.subcategoryId,
-      subSubCategory: productData.subSubCategoryId,
-      brand: productData.brandId,
+      // Quick-add / POS may send `category` instead of `categoryId`
+      category: productData.categoryId || productData.category,
+      subcategory: productData.subcategoryId || productData.subcategory,
+      subSubCategory: productData.subSubCategoryId || productData.subSubCategory,
+      brand: productData.brandId || productData.brand,
       mainImage: productData.mainImageUrl, // Map mainImageUrl to mainImage
       galleryImages: productData.galleryImageUrls,
     };
+
+    // If still no category (e.g. minimal quick-add body), use first active category
+    if (!newProductData.category) {
+      const defaultCategory = await Category.findOne({ status: "Active" })
+        .sort({ createdAt: 1 })
+        .select("_id")
+        .lean();
+      if (defaultCategory?._id) {
+        newProductData.category = defaultCategory._id;
+      }
+    }
 
     // Normalize variations (quick-add / POS may omit or send non-array)
     const rawVariations = productData.variations;

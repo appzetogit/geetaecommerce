@@ -369,7 +369,9 @@ SellerSchema.methods.comparePassword = async function (
 SellerSchema.index({ location: '2dsphere' });
 SellerSchema.index({ status: 1 }); // Compound index for status + location queries
 
-const Seller = mongoose.model<ISeller>('Seller', SellerSchema);
+const Seller =
+  (mongoose.models.Seller as mongoose.Model<ISeller>) ||
+  mongoose.model<ISeller>('Seller', SellerSchema);
 
 export default Seller;
 
