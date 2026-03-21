@@ -139,7 +139,7 @@ export default function DealOfTheDay() {
                              {discount > 0 && (
                                 <span
                                     className="absolute -top-1 -left-1 text-white text-sm font-bold px-3 py-1 rounded-full shadow-sm z-10"
-                                    style={{ backgroundColor: theme.primary[0] }}
+                                    style={{ backgroundColor: '#ef4444' }}
                                 >
                                     {discount}% OFF
                                 </span>
