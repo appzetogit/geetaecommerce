@@ -4,6 +4,7 @@ import {
   getSellerBillSettings as apiGetSellerBillSettings,
   updateSellerBillSettings as apiUpdateSellerBillSettings,
 } from "../../../services/api/seller/sellerPurchaseService";
+import { SELLER_BILL_SETTINGS_KEY, SELLER_BILL_SETTINGS_UPDATED_EVENT } from "../../../utils/sellerPosBillSettings";
 
 interface BillSettings {
   shopName: string;
@@ -84,7 +85,7 @@ const SellerBillSettings = () => {
         // fallback to local cache
       }
 
-      const savedSettings = localStorage.getItem("seller_bill_settings");
+      const savedSettings = localStorage.getItem(SELLER_BILL_SETTINGS_KEY);
       if (savedSettings) {
         try {
           const parsed = JSON.parse(savedSettings);
@@ -149,7 +150,8 @@ const SellerBillSettings = () => {
     try {
       const res = await apiUpdateSellerBillSettings(settings as any);
       if (res.success) {
-        localStorage.setItem("seller_bill_settings", JSON.stringify(settings));
+        localStorage.setItem(SELLER_BILL_SETTINGS_KEY, JSON.stringify(settings));
+        window.dispatchEvent(new Event(SELLER_BILL_SETTINGS_UPDATED_EVENT));
         showToast("Bill settings saved successfully", "success");
       } else {
         showToast(res.message || "Failed to save bill settings", "error");

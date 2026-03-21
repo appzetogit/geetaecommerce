@@ -21,6 +21,7 @@ import {
   updateSellerPOSState as apiUpdateSellerPOSState
 } from '../../../services/api/seller/sellerPurchaseService';
 import { getAllSuppliers } from '../../../services/api/seller/supplierService';
+import { useSellerPosBillSettings } from '../hooks/useSellerPosBillSettings';
 
 // Interface for Cart Item extending Product
 export interface CartItem extends Product {
@@ -145,6 +146,7 @@ const SellerPOSOrders = () => {
   const { showToast } = useToast();
   const { config, refreshConfig } = useAppContext();
   const activeStaffSession = getStaffSession('seller');
+  const { posBillSettings, syncBeforePrint, readSellerPosBillSettings } = useSellerPosBillSettings();
 
   useEffect(() => {
     refreshConfig();
@@ -1426,6 +1428,21 @@ const SellerPOSOrders = () => {
       return;
     }
 
+    const bs = readSellerPosBillSettings() as Record<string, any> | null;
+    const esc = (v: string) =>
+      v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const shopTitle = esc(String(bs?.shopName || 'GEETA'));
+    const addrLines = String(
+      bs?.address ||
+        'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'
+    );
+    const addrHtml = esc(addrLines).replace(/\n/g, '<br>');
+    const phoneLine = esc(String(bs?.phone || '7898111456'));
+    const fssaiBlk =
+      bs?.fssai?.enabled && bs?.fssai?.text
+        ? `FSSAI: ${esc(String(bs.fssai.text))}`
+        : 'FSSAI: 583545736';
+
     const billNoPrefix = entry.type === 'quotation' ? 'QTN' : 'BILL';
     const billNo = `${billNoPrefix}/${new Date(entry.createdAt).getFullYear()}/${entry.id.slice(-5)}`;
     const supplierName = entry.supplier?.name || 'Walk-in Supplier';
@@ -1484,8 +1501,8 @@ const SellerPOSOrders = () => {
         </head>
         <body>
           <div class="top">
-            <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 4px;">GEETA</h1>
-            <p style="font-size: 14px; line-height: 1.4;">Q7WM+92M, Q7WM+92M, , Indore Division,<br>Nagda, Madhya Pradesh, India - 454001<br>7898111456<br>FSSAI: 583545736</p>
+            <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 4px;">${shopTitle}</h1>
+            <p style="font-size: 14px; line-height: 1.4;">${addrHtml}<br>${phoneLine}<br>${fssaiBlk}</p>
           </div>
 
           <div class="meta">
@@ -2205,6 +2222,7 @@ const SellerPOSOrders = () => {
    * Renamed from handleGenerateBill to downloadPDF
    */
    const downloadPDF = () => {
+    const billPdf = readSellerPosBillSettings() ?? posBillSettings;
     if (lastBillDetails?.isQuotation && lastBillDetails.quotationEntry) {
       const entry = lastBillDetails.quotationEntry;
       const doc = new jsPDF();
@@ -2223,14 +2241,21 @@ const SellerPOSOrders = () => {
       // --- Header (Image 4 Style) ---
       doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
-      doc.text("GEETA", 14, 20);
+      doc.text(billPdf?.shopName || "GEETA", 14, 20);
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text("Q7WM+92M, Q7WM+92M, , Indore Division,", 14, 26);
-      doc.text("Nagda, Madhya Pradesh, India - 454001", 14, 31);
-      doc.text("7898111456", 14, 36);
-      doc.text("FSSAI: 583545736", 14, 41);
+      const qAddress = billPdf?.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001";
+      const qLines = doc.splitTextToSize(qAddress, 180);
+      doc.text(qLines, 14, 26);
+      let qY = 26 + (qLines.length * 5);
+      doc.text(billPdf?.phone || "7898111456", 14, qY);
+      qY += 5;
+      if (billPdf?.fssai?.enabled && billPdf?.fssai?.text) {
+        doc.text(`FSSAI: ${billPdf.fssai.text}`, 14, qY);
+      } else {
+        doc.text("FSSAI: 583545736", 14, qY);
+      }
 
       // Meta Boxes (Image 3 Style)
       doc.setDrawColor(200, 200, 200);
@@ -2347,15 +2372,21 @@ const SellerPOSOrders = () => {
     // --- Header ---
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("GEETA", 14, 20);
+    doc.text(billPdf?.shopName || "GEETA", 14, 20);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    let address = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
-    if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
+    let address = billPdf?.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
+
+    if (billPdf?.gst?.enabled && billPdf?.gst?.text) {
+        address += `\nGST: ${billPdf.gst.text}`;
+    } else if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
         address += `\nGST: ${config.invoiceSettings.gst.text}`;
     }
-    if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
+
+    if (billPdf?.fssai?.enabled && billPdf?.fssai?.text) {
+        address += `\nFSSAI: ${billPdf.fssai.text}`;
+    } else if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
         address += `\nFSSAI: ${config.invoiceSettings.fssai.text}`;
     }
     doc.text(address, 14, 26);
@@ -2486,7 +2517,7 @@ const SellerPOSOrders = () => {
     y += 10;
     if (config?.invoiceSettings) {
         // Notes
-        if (config.invoiceSettings.notes?.enabled && config.invoiceSettings.notes?.text) {
+        if ((billPdf?.notes?.enabled && billPdf?.notes?.text) || (config.invoiceSettings.notes?.enabled && config.invoiceSettings.notes?.text)) {
              if (y > 270) { doc.addPage(); y = 20; }
              doc.setFontSize(10);
              doc.setFont("helvetica", "bold");
@@ -2494,13 +2525,14 @@ const SellerPOSOrders = () => {
              y += 5;
              doc.setFont("helvetica", "normal");
              doc.setFontSize(9);
-             const splitNotes = doc.splitTextToSize(config.invoiceSettings.notes.text, 180);
+             const noteText = billPdf?.notes?.enabled ? billPdf?.notes?.text : config.invoiceSettings.notes.text;
+             const splitNotes = doc.splitTextToSize(noteText, 180);
              doc.text(splitNotes, 14, y);
              y += (splitNotes.length * 4) + 8;
         }
 
         // Terms
-        if (config.invoiceSettings.terms?.enabled && config.invoiceSettings.terms?.text) {
+        if ((billPdf?.terms?.enabled && billPdf?.terms?.text) || (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text)) {
              if (y > 270) { doc.addPage(); y = 20; }
              doc.setFontSize(10);
              doc.setFont("helvetica", "bold");
@@ -2508,8 +2540,16 @@ const SellerPOSOrders = () => {
              y += 5;
              doc.setFont("helvetica", "normal");
              doc.setFontSize(8);
-             const splitTerms = doc.splitTextToSize(config.invoiceSettings.terms.text, 180);
+             const termText = billPdf?.terms?.enabled ? billPdf?.terms?.text : config?.invoiceSettings?.terms?.text;
+             const splitTerms = doc.splitTextToSize(termText, 180);
              doc.text(splitTerms, 14, y);
+             y += (splitTerms.length * 4) + 5;
+        }
+
+        // QR Code
+        if (billPdf?.qrCode) {
+            if (y > 240) { doc.addPage(); y = 20; }
+            doc.addImage(billPdf.qrCode, 'PNG', 14, y, 30, 30);
         }
     }
 
@@ -2548,7 +2588,8 @@ const SellerPOSOrders = () => {
   };
 
   const handlePrintBill = () => {
-     window.print();
+    syncBeforePrint();
+    window.print();
   };
 
   const handleAccessPayment = () => {
@@ -2613,11 +2654,15 @@ const SellerPOSOrders = () => {
                     return;
                 }
 
+                const razorpayShopName =
+                  (readSellerPosBillSettings() as Record<string, any> | null)?.shopName?.trim() ||
+                  posBillSettings?.shopName?.trim() ||
+                  "Geeta Stores";
                 const options = {
                     key: key,
                     amount: Math.round(amount * 100),
                     currency: "INR",
-                    name: "Geeta Stores",
+                    name: razorpayShopName,
                     description: "POS Payment",
                     order_id: razorpayOrderId,
                     handler: async function (response: any) {
@@ -5003,7 +5048,7 @@ const SellerPOSOrders = () => {
                 {/* Header */}
                 <div className="bg-[#f3f4f6] px-5 pt-5 pb-2">
                    <div className="flex justify-between items-center mb-4">
-                       <h2 className="text-lg font-bold tracking-widest text-slate-800">Geeta Store</h2>
+                       <h2 className="text-lg font-bold tracking-widest text-slate-800 uppercase">{posBillSettings?.shopName || 'Geeta Store'}</h2>
                        <button onClick={() => setShowSuccessModal(false)} className="bg-black text-white px-3 py-1 rounded-full text-[10px] font-bold">Close</button>
                    </div>
 
@@ -5163,10 +5208,9 @@ const SellerPOSOrders = () => {
           {/* We use a specific width/style for thermal printing */}
           <div className="w-[80mm] p-2 font-mono text-sm text-black mx-auto font-semibold">
               <div className="mb-2 text-left">
-                  <h1 className="text-xl font-bold uppercase">GEETA</h1>
-                  <p className="text-xs leading-tight font-medium">Q7WM+92M, Q7WM+92M, , Indore Division,</p>
-                  <p className="text-xs leading-tight font-medium">Nagda, Madhya Pradesh, India - 454001</p>
-                  <p className="text-xs font-medium">7898111456</p>
+                  <h1 className="text-xl font-bold uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
+                  <p className="text-xs leading-tight whitespace-pre-wrap font-medium">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
+                  <p className="text-xs font-medium">{posBillSettings?.phone || '7898111456'}</p>
 
                   {/* GST & FSSAI */}
                   {config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text && (
@@ -5268,18 +5312,35 @@ const SellerPOSOrders = () => {
 
               <div className="text-center mt-4 text-xs font-medium">
                   {/* Notes */}
-                  {config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text && (
-                      <p className="font-bold mb-2 whitespace-pre-wrap">{config.invoiceSettings.notes.text}</p>
+                  {((posBillSettings?.notes?.enabled && posBillSettings?.notes?.text) || (config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text)) && (
+                      <p className="font-bold mb-2 whitespace-pre-wrap">{posBillSettings?.notes?.enabled ? posBillSettings?.notes?.text : config?.invoiceSettings?.notes?.text}</p>
                   )}
 
                   {/* Terms & Conditions */}
-                  {config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text && (
+                  {((posBillSettings?.terms?.enabled && posBillSettings?.terms?.text) || (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text)) && (
                       <div className="text-left mt-2 border-t border-black border-dashed pt-2">
                           <p className="font-bold mb-1">Terms & Conditions:</p>
-                          <p className="whitespace-pre-wrap leading-tight">{config.invoiceSettings.terms.text}</p>
+                          <p className="whitespace-pre-wrap leading-tight">{posBillSettings?.terms?.enabled ? posBillSettings?.terms?.text : config?.invoiceSettings?.terms?.text}</p>
                       </div>
                   )}
 
+                  {posBillSettings?.gst?.enabled && posBillSettings?.gst?.text && (
+                      <p className="text-xs font-bold mt-2">GST: {posBillSettings.gst.text}</p>
+                  )}
+                  {posBillSettings?.fssai?.enabled && posBillSettings?.fssai?.text && (
+                      <p className="text-xs font-bold">FSSAI: {posBillSettings.fssai.text}</p>
+                  )}
+
+                  {posBillSettings?.qrCode && (
+                      <div className="mt-4 flex justify-center">
+                          <img
+                              src={posBillSettings.qrCode}
+                              alt="Payment QR"
+                              className="w-32 h-32 object-contain"
+                              style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+                          />
+                      </div>
+                  )}
 
               </div>
           </div>
