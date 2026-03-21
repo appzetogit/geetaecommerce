@@ -3452,13 +3452,13 @@ const SellerPOSOrders = () => {
                                                </div>
 
                                                {/* Name */}
-                                               <div className="col-span-3 min-w-0">
-                                                   <h4 className="text-xs font-semibold text-gray-800 truncate" title={item.productName}>{item.productName}</h4>
-                                                   {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
-                                                       <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
-                                                           {(item as any).warrantyType}: {(item as any).warrantyDuration}
-                                                       </div>
-                                                   )}
+                                                <div className="col-span-3 min-w-0">
+                                                    <h4 className="text-sm font-semibold text-gray-800 truncate" title={item.productName}>{item.productName}</h4>
+                                                    {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
+                                                        <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
+                                                            {(item as any).warrantyType}: {(item as any).warrantyDuration}
+                                                        </div>
+                                                    )}
                                                    {showProfit && (
                                                        <span className={`text-[10px] ${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                                                            Profit: {profitPercent}%
@@ -3468,13 +3468,13 @@ const SellerPOSOrders = () => {
 
                                                {/* MRP Input */}
                                                <div className="col-span-1">
-                                                    <input
-                                                        type="number"
-                                                        value={mrp}
-                                                        onChange={(e) => updateItemDetails(item._id, { compareAtPrice: parseFloat(e.target.value) || 0 })}
-                                                        className="w-full text-center text-xs border border-transparent hover:border-gray-200 focus:border-[#f187b5] bg-transparent focus:bg-white rounded px-1 py-1 outline-none transition-all"
-                                                    />
-                                               </div>
+                                                     <input
+                                                         type="number"
+                                                         value={mrp}
+                                                         onChange={(e) => updateItemDetails(item._id, { compareAtPrice: parseFloat(e.target.value) || 0 })}
+                                                         className="w-full text-center text-sm border border-transparent hover:border-gray-200 focus:border-[#f187b5] bg-transparent focus:bg-white rounded px-1 py-1 outline-none transition-all"
+                                                     />
+                                                </div>
 
                                                {/* Quantity */}
                                                <div className="col-span-2 flex justify-center">
@@ -3483,7 +3483,7 @@ const SellerPOSOrders = () => {
                                                           onClick={() => updateQuantity(item._id, -1)}
                                                           className="w-6 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors"
                                                         >−</button>
-                                                        <div className="flex-1 h-full flex items-center justify-center text-xs font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
+                                                        <div className="flex-1 h-full flex items-center justify-center text-sm font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
                                                             {item.qty}
                                                         </div>
                                                         <button
@@ -3495,13 +3495,13 @@ const SellerPOSOrders = () => {
 
                                                {/* Retail Price (SP) Input */}
                                                <div className="col-span-1">
-                                                   <input
-                                                        type="number"
-                                                        value={sp}
-                                                        onChange={(e) => updateItemDetails(item._id, { customPrice: parseFloat(e.target.value) || 0 })}
-                                                        className="w-full text-center text-xs font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all"
-                                                    />
-                                               </div>
+                                                    <input
+                                                         type="number"
+                                                         value={sp}
+                                                         onChange={(e) => updateItemDetails(item._id, { customPrice: parseFloat(e.target.value) || 0 })}
+                                                         className="w-full text-center text-sm font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all"
+                                                     />
+                                                </div>
 
                                                {/* Sub Total */}
                                                <div className="col-span-1 text-center font-bold text-gray-900 text-sm">
@@ -3657,18 +3657,18 @@ const SellerPOSOrders = () => {
 
                         {/* --- SUMMARY & ACTIONS --- */}
                         <div className="flex-none space-y-2 pt-3 border-t border-gray-200 bg-gray-50">
-                            <div className="bg-gray-900 text-white p-2 rounded-[1rem] shadow-lg">
+                            <div className="bg-[#162a43] text-white p-2 rounded-[1rem] shadow-lg">
                               <div className="flex justify-between items-center mb-0.5">
-                                 <span className="text-gray-400 text-[8px] uppercase tracking-widest">Subtotal</span>
+                                 <span className="text-white text-[8px] uppercase tracking-widest">Subtotal</span>
                                  <span className="font-bold text-[12px]">₹{calculateTotal().toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between items-center mb-1">
-                                 <span className="text-gray-400 text-[8px] uppercase tracking-widest">Qty. Items</span>
+                                 <span className="text-white text-[8px] uppercase tracking-widest">Qty. Items</span>
                                  <span className="font-bold text-[12px]">{cart.reduce((a, c) => a + c.qty, 0)}</span>
                               </div>
                               <div className="border-t border-white/10 pt-2 flex justify-between items-center">
                                  <div className="flex flex-col">
-                                     <span className="text-[#f187b5] text-[7px] font-bold uppercase tracking-widest">Total Payable</span>
+                                      <span className="text-white text-[7px] font-bold uppercase tracking-widest">Total Payable</span>
                                      <span className="text-base font-black">₹{calculateTotal().toLocaleString()}</span>
                                  </div>
                               </div>
@@ -3677,20 +3677,20 @@ const SellerPOSOrders = () => {
                           <div className="space-y-2">
                                {!activeBillId.startsWith('edit_') && (
                                  <button
-                                   onClick={handleGenerateBill}
-                                   disabled={cart.length === 0}
-                                   className="w-full bg-white border-2 border-[#f187b5] text-[#f187b5] hover:bg-[#f187b5] hover:text-white font-black py-2 px-4 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group text-xs"
-                                 >
+                                    onClick={handleGenerateBill}
+                                    disabled={cart.length === 0}
+                                    className="w-full bg-[#162a43] border-2 border-[#162a43] text-white hover:bg-[#162a43] hover:text-white font-black py-2 px-4 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group text-xs"
+                                  >
                                     <svg className="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                     <span>GENERATE BILL</span>
                                  </button>
                                )}
 
                                <button
-                                 onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
-                                 disabled={loading || cart.length === 0}
-                                   className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#f187b5] hover:bg-[#e076a5]' : 'bg-[#f187b5] hover:bg-[#e076a5]'} text-white font-black py-2.5 px-4 rounded-xl shadow-lg shadow-[#f187b5]/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-xs`}
-                               >
+                                  onClick={activeBillId.startsWith('edit_') ? handleUpdateOrder : handleAccessPayment}
+                                  disabled={loading || cart.length === 0}
+                                    className={`w-full ${activeBillId.startsWith('edit_') ? 'bg-[#162a43] hover:bg-[#162a43]' : 'bg-[#162a43] hover:bg-[#162a43]'} text-white font-black py-2.5 px-4 rounded-xl shadow-lg shadow-[#162a43]/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed text-xs`}
+                                >
                                   {loading ? (
                                      <>
                                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
