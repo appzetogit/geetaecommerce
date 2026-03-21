@@ -167,12 +167,15 @@ export const createPOSOrder = asyncHandler(
            let productData = {
                productName: product.productName,
                mainImage: product.mainImage,
-               sku: product.sku
+               sku: (product.sku && String(product.sku).trim()) || "NO-SKU",
            };
 
            // Verify and Deduct Stock
            const prevStock = product.stock;
-           let sku = product.sku;
+           let sku =
+             (product.sku && String(product.sku).trim()) ||
+             ((product as any).itemCode && String((product as any).itemCode).trim()) ||
+             "";
            let varId = null;
 
            if (item.variationId && product.variations) {
@@ -181,14 +184,19 @@ export const createPOSOrder = asyncHandler(
                    const prevVarStock = product.variations[variationIndex].stock || 0;
                    product.variations[variationIndex].stock = Math.max(0, prevVarStock - soldQty);
                    product.stock = Math.max(0, prevStock - soldQty);
-                   sku = product.variations[variationIndex].sku || sku;
+                   const vSku = product.variations[variationIndex].sku;
+                   sku =
+                     (vSku && String(vSku).trim()) ||
+                     sku;
                    varId = product.variations[variationIndex]._id;
+
+                   const ledgerSku = sku || "NO-SKU";
 
                    // Ledger for Variation
                    await StockLedger.create([{
                        product: product._id,
                        variationId: varId,
-                       sku: sku,
+                       sku: ledgerSku,
                        quantity: soldQty,
                        type: "OUT",
                        source: "POS",
@@ -200,9 +208,10 @@ export const createPOSOrder = asyncHandler(
                }
            } else {
                product.stock = Math.max(0, prevStock - soldQty);
+               const ledgerSku = sku || "NO-SKU";
                await StockLedger.create([{
                    product: product._id,
-                   sku: sku,
+                   sku: ledgerSku,
                    quantity: soldQty,
                    type: "OUT",
                    source: "POS",
@@ -227,7 +236,7 @@ export const createPOSOrder = asyncHandler(
                                                  // For now, adhere to "POS Order - Seller: ID" logic.
              productName: productData.productName,
              productImage: productData.mainImage,
-             sku: sku,
+             sku: sku || "NO-SKU",
              unitPrice: unitPrice,
              quantity: soldQty,
              total: totalItemPrice,
