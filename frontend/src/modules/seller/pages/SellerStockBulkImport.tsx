@@ -14,23 +14,47 @@ interface SellerStockBulkImportProps {
   onSuccess: () => void;
 }
 
-/** First matching column by exact key, then case-insensitive / underscore-normalized match (handles PRODUCT_NAME-style headers). */
+/** Strip BOM / zero-width chars; normalize so "PRODUCT NAME", "Product_Name", "﻿PRODUCT_NAME" all match. */
+function normalizeHeaderKey(k: string): string {
+  return String(k)
+    .replace(/^\uFEFF/, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, "_")
+    .replace(/_+/g, "_");
+}
+
+/** Merge normalized header aliases onto the row so template columns always resolve. */
+function normalizeExcelRow(row: Record<string, unknown>): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...row };
+  for (const [k, v] of Object.entries(row)) {
+    const nk = normalizeHeaderKey(k);
+    if (nk && !(nk in merged)) merged[nk] = v;
+  }
+  return merged;
+}
+
+/** First matching column by exact key, then normalized header match (Excel BOM/spacing/case). */
 function rowCell(row: Record<string, unknown>, keys: string[]): string | undefined {
+  const pick = (v: unknown) => {
+    if (v === undefined || v === null) return undefined;
+    if (typeof v === "number" && !Number.isNaN(v)) return String(v);
+    const s = String(v).trim();
+    return s !== "" ? s : undefined;
+  };
+
   for (const key of keys) {
     if (Object.prototype.hasOwnProperty.call(row, key)) {
-      const v = row[key];
-      if (v !== undefined && v !== null && String(v).trim() !== "") return String(v);
+      const got = pick(row[key]);
+      if (got !== undefined) return got;
     }
   }
-  const rowKeys = Object.keys(row);
-  for (const want of keys) {
-    const wn = want.toLowerCase().replace(/\s+/g, "_");
-    for (const rk of rowKeys) {
-      const rn = rk.toLowerCase().replace(/\s+/g, "_");
-      if (rn === want.toLowerCase() || rn === wn) {
-        const v = row[rk];
-        if (v !== undefined && v !== null && String(v).trim() !== "") return String(v);
-      }
+  const normalizedWants = new Set(keys.map((w) => normalizeHeaderKey(w)));
+  for (const rk of Object.keys(row)) {
+    if (normalizedWants.has(normalizeHeaderKey(rk))) {
+      const got = pick(row[rk]);
+      if (got !== undefined) return got;
     }
   }
   return undefined;
@@ -198,7 +222,11 @@ export default function SellerStockBulkImport({
     setProgress({ total, current: 0, success: 0, failed: 0 });
 
     for (let i = 0; i < total; i++) {
-        const row = previewData[i];
+        const row = normalizeExcelRow(
+          previewData[i] && typeof previewData[i] === "object"
+            ? (previewData[i] as Record<string, unknown>)
+            : {}
+        );
         try {
             const rawData = mapRowToProduct(row);
 
@@ -242,16 +270,17 @@ export default function SellerStockBulkImport({
                 (v: any) => v != null && typeof v.price === "number" && !Number.isNaN(v.price)
               );
 
-            const defaultVariation = {
+            const defaultVariation: Record<string, unknown> = {
               price,
               discPrice: discPrice || 0,
               stock,
               status: stock > 0 ? "In stock" : "Sold out",
-              sku: rawData.itemCode,
               compareAtPrice: mrp,
               wholesalePrice: wholesalePrice,
               title: "Default",
             };
+            const code = rawData.itemCode != null ? String(rawData.itemCode).trim() : "";
+            if (code) defaultVariation.sku = code;
 
             const variations = hasPricedExcelVariation ? (excelAttrs as any) : [defaultVariation];
 
@@ -271,7 +300,7 @@ export default function SellerStockBulkImport({
                 totalAllowedQuantity: 10, // Default
                 mainImage: rawData.mainImage,
                 variations: variations as any,
-                itemCode: rawData.itemCode,
+                itemCode: code || undefined,
                 rackNumber: rawData.rackNumber,
                 hsnCode: rawData.hsnCode,
                 purchasePrice: rawData.purchasePrice,
@@ -279,7 +308,10 @@ export default function SellerStockBulkImport({
                 lowStockQuantity: rawData.lowStockQuantity,
             };
 
-            await createProduct(productPayload);
+            const res = await createProduct(productPayload);
+            if (!res?.success) {
+              throw new Error(res?.message || "Import failed");
+            }
             successCount++;
         } catch (err) {
             console.error("Failed to import row", i, row, err);

@@ -30,16 +30,23 @@ export const createProduct = asyncHandler(
       subcategory: productData.subcategoryId || productData.subcategory,
       subSubCategory: productData.subSubCategoryId || productData.subSubCategory,
       brand: productData.brandId || productData.brand,
-      mainImage: productData.mainImageUrl, // Map mainImageUrl to mainImage
+      // Bulk import sends `mainImage`; add form uses `mainImageUrl` — keep whichever is set
+      mainImage: productData.mainImageUrl ?? productData.mainImage,
       galleryImages: productData.galleryImageUrls,
     };
 
-    // If still no category (e.g. minimal quick-add body), use first active category
+    // If still no category (e.g. minimal quick-add / Excel import), use first active category, then any category
     if (!newProductData.category) {
-      const defaultCategory = await Category.findOne({ status: "Active" })
+      let defaultCategory = await Category.findOne({ status: "Active" })
         .sort({ createdAt: 1 })
         .select("_id")
         .lean();
+      if (!defaultCategory?._id) {
+        defaultCategory = await Category.findOne()
+          .sort({ createdAt: 1 })
+          .select("_id")
+          .lean();
+      }
       if (defaultCategory?._id) {
         newProductData.category = defaultCategory._id;
       }
@@ -55,13 +62,20 @@ export const createProduct = asyncHandler(
 
     // Map variations: Ensure 'title' from frontend is mapped to 'value' (or name) expected by Schema
     if (variationsList.length > 0) {
-      newProductData.variations = variationsList.map((v: any) => ({
-        ...v,
-        value: v.value || v.title, // Map title to value
-        name: v.name || "Variation", // Default name
-        discPrice: v.discPrice || 0,
-        status: v.status || "Available",
-      }));
+      newProductData.variations = variationsList.map((v: any) => {
+        const cleaned: any = {
+          ...v,
+          value: v.value || v.title, // Map title to value
+          name: v.name || "Variation", // Default name
+          discPrice: v.discPrice || 0,
+          status: v.status || "Available",
+        };
+        // Empty sku breaks MongoDB unique index (multiple docs with ""); omit unless non-empty
+        if (cleaned.sku == null || String(cleaned.sku).trim() === "") {
+          delete cleaned.sku;
+        }
+        return cleaned;
+      });
     } else {
       delete newProductData.variations;
     }
@@ -96,6 +110,12 @@ export const createProduct = asyncHandler(
     if (!newProductData.subcategory) delete newProductData.subcategory;
     if (!newProductData.subSubCategory) delete newProductData.subSubCategory;
     if (!newProductData.brand) delete newProductData.brand;
+    if (
+      newProductData.sku == null ||
+      String(newProductData.sku).trim() === ""
+    ) {
+      delete newProductData.sku;
+    }
 
     // Handle Tax: Frontend sends taxId, Model expects 'tax' (string) or something else?
     // Checking SellerAddProduct.tsx sending taxId -> formData.tax
