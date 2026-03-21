@@ -4,13 +4,38 @@ import Shop from "../../../models/Shop";
 import Category from "../../../models/Category";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
+/** Excel / bulk import often sends category or brand *names*; only valid 24-char hex IDs may be cast to ObjectId. */
+function isValidObjectIdString(id: unknown): boolean {
+  if (id == null) return false;
+  const s = String(id).trim();
+  return /^[a-fA-F0-9]{24}$/.test(s);
+}
+
+function stripInvalidObjectIdFields(body: Record<string, unknown>): void {
+  const keys = [
+    "categoryId",
+    "subcategoryId",
+    "brandId",
+    "headerCategoryId",
+    "sellerId",
+    "shopId",
+  ] as const;
+  for (const k of keys) {
+    const v = body[k];
+    if (v !== undefined && v !== null && v !== "" && !isValidObjectIdString(v)) {
+      delete body[k];
+    }
+  }
+}
+
 /**
  * Create a new product
  */
 export const createProduct = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
-    const productData = req.body;
+    const productData = req.body as Record<string, unknown>;
+    stripInvalidObjectIdFields(productData);
 
     // Ensure sellerId matches authenticated seller
     if (productData.sellerId && productData.sellerId !== sellerId) {
@@ -34,6 +59,20 @@ export const createProduct = asyncHandler(
       mainImage: productData.mainImageUrl ?? productData.mainImage,
       galleryImages: productData.galleryImageUrls,
     };
+
+    // Drop ref fields that are not valid ObjectIds (names from Excel would otherwise cause cast errors / 400)
+    if (newProductData.category && !isValidObjectIdString(newProductData.category)) {
+      delete newProductData.category;
+    }
+    if (newProductData.subcategory && !isValidObjectIdString(newProductData.subcategory)) {
+      delete newProductData.subcategory;
+    }
+    if (newProductData.brand && !isValidObjectIdString(newProductData.brand)) {
+      delete newProductData.brand;
+    }
+    if (newProductData.headerCategoryId && !isValidObjectIdString(newProductData.headerCategoryId)) {
+      delete newProductData.headerCategoryId;
+    }
 
     // If still no category (e.g. minimal quick-add / Excel import), use first active category, then any category
     if (!newProductData.category) {

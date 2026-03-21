@@ -60,6 +60,19 @@ function rowCell(row: Record<string, unknown>, keys: string[]): string | undefin
   return undefined;
 }
 
+function safeNonNegativeNumber(n: unknown, fallback = 0): number {
+  const x = typeof n === "number" ? n : parseFloat(String(n ?? ""));
+  if (!Number.isFinite(x) || Number.isNaN(x) || x < 0) return fallback;
+  return x;
+}
+
+/** 24-char hex Mongo ObjectId — used so we never send brand/category *names* as IDs. */
+function isValidObjectIdString(id: unknown): boolean {
+  if (id == null || typeof id !== "string") return false;
+  const s = id.trim();
+  return /^[a-fA-F0-9]{24}$/.test(s);
+}
+
 export default function SellerStockBulkImport({
   categories,
   onClose,
@@ -171,7 +184,15 @@ export default function SellerStockBulkImport({
       categoryId: findCategory(rowCell(row, ["Category", "1. Category", "PRODUCT_CATEGORY", "product_category"]) || ""),
       subcategoryId: rowCell(row, ["Sub Cat", "2. Sub Cat", "PRODUCT_SUB_CATEGORY"]) || "",
       subSubCategoryId: rowCell(row, ["Sub Sub Cat", "3. Sub Sub Cat"]) || "",
-      productName: rowCell(row, ["Product Name", "4. Product Name", "PRODUCT_NAME", "product_name"]) || "",
+      productName:
+        rowCell(row, [
+          "Product Name",
+          "4. Product Name",
+          "PRODUCT_NAME",
+          "product_name",
+          "Name",
+          "PRODUCT NAME",
+        ]) || "",
       itemCode: rowCell(row, ["SKU", "5. SKU", "PRODUCT_SKU", "product_sku"]) || "",
       rackNumber: rowCell(row, ["Rack", "6. Rack"]) || "",
       smallDescription: rowCell(row, ["Desc", "7. Desc", "PRODUCT_DESCRIPTION", "DESCRIPTION"]) || "",
@@ -232,7 +253,7 @@ export default function SellerStockBulkImport({
 
             // Construct proper CreateProductData payload
             // We need to ensure variations array is populated correctly with price/stock/mrp
-            const price = parseFloat(
+            let price = safeNonNegativeNumber(
               rowCell(row, [
                 "Sell Price",
                 "17. Sell Price",
@@ -240,26 +261,53 @@ export default function SellerStockBulkImport({
                 "Selling Price",
                 "PRODUCT_RETAIL_PRICE",
                 "PRODUCT_SELLING_PRICE",
-              ]) || "0"
+                "Price",
+                "Retail Price",
+                "Sale Price",
+              ]),
+              0
             );
-            const mrp = parseFloat(
-              rowCell(row, ["MRP", "16. MRP", "17. MRP", "PRODUCT_MRP"]) || "0"
+            let mrp = safeNonNegativeNumber(
+              rowCell(row, ["MRP", "16. MRP", "17. MRP", "PRODUCT_MRP", "Compare At Price"]),
+              0
             );
-            const stock = parseInt(
-              rowCell(row, ["Stock", "19. Stock", "20. Stock", "PRODUCT_QUANTITY", "PRODUCT_STOCK"]) || "0",
-              10
+            const stock = Math.floor(
+              safeNonNegativeNumber(
+                rowCell(row, [
+                  "Stock",
+                  "19. Stock",
+                  "20. Stock",
+                  "PRODUCT_QUANTITY",
+                  "PRODUCT_STOCK",
+                  "Current Stock",
+                ]),
+                0
+              )
             );
-            const discPrice = parseFloat(
-              rowCell(row, ["Offer Price", "20. Offer Price", "21. Offer Price", "PRODUCT_OFFER_PRICE"]) || "0"
+            let discPrice = safeNonNegativeNumber(
+              rowCell(row, ["Offer Price", "20. Offer Price", "21. Offer Price", "PRODUCT_OFFER_PRICE"]),
+              0
             );
-            const wholesalePrice = parseFloat(
+            const wholesalePrice = safeNonNegativeNumber(
               rowCell(row, [
                 "Wholesale Price",
                 "21. Wholesale Price",
                 "22. Wholesale Price",
                 "PRODUCT_WHOLESALE_PRICE",
-              ]) || "0"
+              ]),
+              0
             );
+
+            if (price <= 0 && mrp > 0) price = mrp;
+            if (price <= 0) {
+              const alt = safeNonNegativeNumber(rowCell(row, ["Price", "Retail Price", "Sell Price"]), 0);
+              if (alt > 0) price = alt;
+            }
+            if (price <= 0 && mrp > 0) price = mrp;
+            if (mrp <= 0 && price > 0) mrp = price;
+            if (price <= 0) price = 1;
+            if (mrp <= 0) mrp = price;
+            if (discPrice > price) discPrice = 0;
 
             // mapRowToProduct uses `variations` for Size/Color tags only (no price). Never send those as API variations
             // or the backend drops them and price is missing. Spread `...rawData` must not overwrite this array.
@@ -270,6 +318,12 @@ export default function SellerStockBulkImport({
                 (v: any) => v != null && typeof v.price === "number" && !Number.isNaN(v.price)
               );
 
+            let varTitle =
+              rowCell(row, ["Variation", "Variation Name", "VARIATION", "Variant"]) || "Default";
+            if (/^variation\s*:/i.test(varTitle)) {
+              varTitle = varTitle.replace(/^variation\s*:\s*/i, "").trim() || "Default";
+            }
+
             const defaultVariation: Record<string, unknown> = {
               price,
               discPrice: discPrice || 0,
@@ -277,7 +331,7 @@ export default function SellerStockBulkImport({
               status: stock > 0 ? "In stock" : "Sold out",
               compareAtPrice: mrp,
               wholesalePrice: wholesalePrice,
-              title: "Default",
+              title: varTitle,
             };
             const code = rawData.itemCode != null ? String(rawData.itemCode).trim() : "";
             if (code) defaultVariation.sku = code;
@@ -289,10 +343,12 @@ export default function SellerStockBulkImport({
             const productPayload: CreateProductData = {
                 ...rawWithoutVariations,
                 productName: rawData.productName || "Untitled",
-                categoryId: rawData.categoryId,
-                subcategoryId: rawData.subcategoryId,
+                categoryId: isValidObjectIdString(rawData.categoryId) ? rawData.categoryId : undefined,
+                subcategoryId: isValidObjectIdString(rawData.subcategoryId)
+                  ? rawData.subcategoryId
+                  : undefined,
                 subSubCategoryId: rawData.subSubCategoryId,
-                brandId: rawData.brandId,
+                brandId: isValidObjectIdString(rawData.brandId) ? rawData.brandId : undefined,
                 publish: !!rawData.publish,
                 popular: false,
                 dealOfDay: false,
