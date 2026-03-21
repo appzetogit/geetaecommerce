@@ -54,7 +54,15 @@ export const initializeSocket = (httpServer: HttpServer) => {
                                    normalizedOrigin.startsWith("http://127.0.0.1:") ||
                                    normalizedOrigin.startsWith("https://localhost:");
 
-                if (isGeetaToday || isLocalhost) {
+                let isVercelAppSocket = false;
+                try {
+                    const u = new URL(normalizedOrigin);
+                    isVercelAppSocket = u.protocol === "https:" && u.hostname.endsWith(".vercel.app");
+                } catch {
+                    isVercelAppSocket = false;
+                }
+
+                if (isGeetaToday || isLocalhost || isVercelAppSocket) {
                     return callback(null, true);
                 }
 

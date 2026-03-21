@@ -20,6 +20,16 @@ export const isOriginAllowed = (origin: string | undefined): boolean => {
     }
   }
 
+  // Vercel preview / hosted frontends (*.vercel.app)
+  try {
+    const u = new URL(origin.replace(/\/$/, ''));
+    if (u.protocol === 'https:' && u.hostname.endsWith('.vercel.app')) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+
   // In production, check against allowed origins
   if (isProduction) {
     // Get allowed origins from environment variable (comma-separated)

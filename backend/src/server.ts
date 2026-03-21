@@ -56,7 +56,16 @@ const corsOptions: cors.CorsOptions = {
                        normalizedOrigin.startsWith("http://127.0.0.1:") ||
                        normalizedOrigin.startsWith("https://localhost:");
 
-    if (isGeetaToday || isLocalhost) {
+    // Vercel preview / production deployments (e.g. *.vercel.app)
+    let isVercelApp = false;
+    try {
+      const u = new URL(normalizedOrigin);
+      isVercelApp = u.protocol === "https:" && u.hostname.endsWith(".vercel.app");
+    } catch {
+      isVercelApp = false;
+    }
+
+    if (isGeetaToday || isLocalhost || isVercelApp) {
       return callback(null, true);
     }
 
