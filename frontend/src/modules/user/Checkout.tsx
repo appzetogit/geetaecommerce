@@ -929,7 +929,7 @@ export default function Checkout() {
                       e.stopPropagation();
                       if (prod) handleMoveToWishlist(prod);
                     }}
-                    className="text-[10px] text-green-600 font-medium mb-1.5 hover:text-green-700 transition-colors"
+                    className="text-[10px] text-[#d35400] font-medium mb-1.5 hover:text-orange-700 transition-colors"
                   >
                     Move to wishlist
                   </button>
@@ -942,7 +942,7 @@ export default function Checkout() {
                             Standard Qty: 1
                         </div>
                     ) : (
-                    <div className="flex items-center gap-1.5 bg-white border-2 border-green-600 rounded-full px-1.5 py-0.5">
+                    <div className="flex items-center gap-1.5 bg-white border-2 border-[#d35400] rounded-full px-1.5 py-0.5">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -954,11 +954,11 @@ export default function Checkout() {
                           const pId = prod.id || prod._id || '';
                           updateQuantity(pId as string, (item.quantity || 1) - 1, vId, vTitle);
                         }}
-                        className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors text-xs"
+                        className="w-5 h-5 flex items-center justify-center text-[#d35400] font-bold hover:bg-orange-50 rounded-full transition-colors text-xs"
                       >
                         −
                       </button>
-                      <span className="text-xs font-bold text-green-600 min-w-[1.25rem] text-center">
+                      <span className="text-xs font-bold text-[#d35400] min-w-[1.25rem] text-center">
                         {item.quantity}
                       </span>
                       <button
@@ -1089,7 +1089,7 @@ export default function Checkout() {
                                 e.stopPropagation();
                                 addToCart(product, e.currentTarget);
                               }}
-                              className="bg-white/95 backdrop-blur-sm text-green-600 border-2 border-green-600 text-[10px] font-semibold px-2 py-1 rounded shadow-md hover:bg-white transition-colors"
+                              className="bg-white/95 backdrop-blur-sm text-[#d35400] border-2 border-[#d35400] text-[10px] font-semibold px-2 py-1 rounded shadow-md hover:bg-white transition-colors"
                             >
                               ADD
                             </motion.button>
@@ -1100,7 +1100,7 @@ export default function Checkout() {
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.8 }}
                               transition={{ duration: 0.2 }}
-                              className="flex items-center gap-1 bg-green-600 rounded px-1.5 py-1 shadow-md"
+                               className="flex items-center gap-1 bg-[#d35400] rounded px-1.5 py-1 shadow-md"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <motion.button
@@ -1220,13 +1220,13 @@ export default function Checkout() {
                     {/* Bottom Link */}
                     <div
                       onClick={() => navigate(`/category/${product.categoryId || product.category || 'all'}`)}
-                      className="w-full bg-green-100 text-green-700 text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-green-200 transition-colors mt-auto cursor-pointer"
+                      className="w-full bg-orange-50 text-[#d35400] text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-orange-100 transition-colors mt-auto cursor-pointer"
                     >
                       <span>See more like this</span>
                       <div className="flex items-center gap-0.5">
-                        <div className="w-px h-2 bg-green-300"></div>
+                        <div className="w-px h-2 bg-orange-200"></div>
                         <svg width="6" height="6" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M0 0L8 4L0 8Z" fill="#16a34a" />
+                          <path d="M0 0L8 4L0 8Z" fill="#d35400" />
                         </svg>
                       </div>
                     </div>

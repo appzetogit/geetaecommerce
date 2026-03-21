@@ -128,7 +128,7 @@ const ProductCard = memo(({
                     className={`bg-white/95 backdrop-blur-sm text-[10px] font-semibold px-2 py-1 rounded shadow-md transition-colors ${
                       product.isAvailable === false
                       ? 'text-neutral-400 border-2 border-neutral-300 cursor-not-allowed'
-                      : 'text-green-600 border-2 border-green-600 hover:bg-white'
+                      : 'text-[#d35400] border-2 border-[#d35400] hover:bg-white'
                     }`}
                   >
                     {product.isAvailable === false ? 'Out of Range' : 'ADD'}
@@ -140,7 +140,7 @@ const ProductCard = memo(({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     transition={{ duration: 0.2 }}
-                    className="flex items-center gap-1 bg-green-600 rounded px-1.5 py-1 shadow-md"
+                    className="flex items-center gap-1 bg-[#d35400] rounded px-1.5 py-1 shadow-md"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <motion.button
@@ -150,7 +150,7 @@ const ProductCard = memo(({
                         e.stopPropagation();
                         onUpdateQuantity(product.id, inCartQty - 1, undefined, product.pack);
                       }}
-                      className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
+                      className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-orange-700 rounded transition-colors p-0 leading-none"
                       style={{ lineHeight: 1, fontSize: '14px' }}
                     >
                       <span className="relative top-[-1px]">−</span>
@@ -176,7 +176,7 @@ const ProductCard = memo(({
                       className={`w-4 h-4 flex items-center justify-center font-bold rounded transition-colors p-0 leading-none ${
                         product.isAvailable === false
                         ? 'text-neutral-300 cursor-not-allowed'
-                        : 'text-white hover:bg-green-700'
+                        : 'text-white hover:bg-orange-700'
                       }`}
                       style={{ lineHeight: 1, fontSize: '14px' }}
                     >
@@ -258,13 +258,13 @@ const ProductCard = memo(({
           {/* Bottom Link */}
           <Link
             to={`/category/${product.categoryId || 'all'}`}
-            className="w-full bg-green-100 text-green-700 text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-green-200 transition-colors mt-auto"
+            className="w-full bg-orange-50 text-[#d35400] text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-orange-100 transition-colors mt-auto cursor-pointer"
           >
             <span>See more like this</span>
             <div className="flex items-center gap-0.5">
-              <div className="w-px h-2 bg-green-300"></div>
+              <div className="w-px h-2 bg-orange-200"></div>
               <svg width="6" height="6" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 0L8 4L0 8Z" fill="#16a34a" />
+                <path d="M0 0L8 4L0 8Z" fill="#d35400" />
               </svg>
             </div>
           </Link>
