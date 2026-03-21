@@ -109,6 +109,12 @@ export const createProduct = asyncHandler(
           discPrice: v.discPrice || 0,
           status: v.status || "Available",
         };
+        // JSON/Excel: NaN becomes null; strings like "199" must be numbers — invalid → 1
+        let pv = cleaned.price;
+        if (pv === "" || pv === undefined || pv === null) pv = NaN;
+        else pv = Number(pv);
+        if (!Number.isFinite(pv) || pv < 0) pv = 1;
+        cleaned.price = pv;
         // Empty sku breaks MongoDB unique index (multiple docs with ""); omit unless non-empty
         if (cleaned.sku == null || String(cleaned.sku).trim() === "") {
           delete cleaned.sku;
@@ -122,8 +128,16 @@ export const createProduct = asyncHandler(
     // 3. Set Price and Stock from Variations
     // The Product model requires a top-level price and stock
     if (newProductData.variations && newProductData.variations.length > 0) {
-      // Use the price of the first variation as the base price
-      newProductData.price = newProductData.variations[0].price;
+      // Use the price of the first variation as the base price (never leave null — fails validation below)
+      const v0 = newProductData.variations[0];
+      let pTop = v0.price;
+      if (pTop === "" || pTop === undefined || pTop === null) pTop = NaN;
+      else pTop = Number(pTop);
+      if (!Number.isFinite(pTop) || pTop < 0) {
+        pTop = 1;
+        v0.price = 1;
+      }
+      newProductData.price = pTop;
       newProductData.discPrice = newProductData.variations[0].discPrice || 0;
 
       // Calculate total stock (sum of all variations)

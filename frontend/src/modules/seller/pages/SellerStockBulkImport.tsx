@@ -465,6 +465,20 @@ export default function SellerStockBulkImport({
 
             const { variations: _excelVariationAttrs, ...rawWithoutVariations } = rawData as any;
 
+            const variationPayload =
+              Array.isArray(variations) && variations.length > 0
+                ? variations
+                : [
+                    {
+                      price: safePrice,
+                      discPrice: 0,
+                      stock,
+                      status: stock > 0 ? "In stock" : "Sold out",
+                      compareAtPrice: safeMrp,
+                      title: varTitle,
+                    },
+                  ];
+
             const productPayload: CreateProductData = {
                 ...rawWithoutVariations,
                 productName: rawData.productName || "Untitled",
@@ -480,7 +494,7 @@ export default function SellerStockBulkImport({
                 isReturnable: false,
                 totalAllowedQuantity: 10, // Default
                 mainImage: rawData.mainImage,
-                variations: variations as any,
+                variations: variationPayload as any,
                 itemCode: code || undefined,
                 rackNumber: rawData.rackNumber,
                 hsnCode: rawData.hsnCode,
