@@ -1298,6 +1298,11 @@ export default function SellerAddProduct() {
             .filter(Boolean)
         : [];
 
+      const variationsWithImages = finalVariations.map((v: any) => ({
+        ...v,
+        image: v.image || mainImageUrl || "",
+      }));
+
       const productData = {
         productName: formData.productName,
         headerCategoryId: formData.headerCategory || undefined,
@@ -1325,7 +1330,7 @@ export default function SellerAddProduct() {
         fssaiLicNo: formData.fssaiLicNo || undefined,
         mainImage: mainImageUrl || undefined,
         galleryImages: galleryImageUrls,
-        variations: finalVariations,
+        variations: variationsWithImages,
         variationType: formData.variationType || undefined,
         isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",
         shopId: formData.shopId || undefined,

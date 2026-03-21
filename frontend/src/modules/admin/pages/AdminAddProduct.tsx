@@ -1238,6 +1238,11 @@ export default function AdminAddProduct() {
             .filter(Boolean)
         : [];
 
+      const variationsWithImages = finalVariations.map((v: any) => ({
+        ...v,
+        image: v.image || mainImageUrl || "",
+      }));
+
       const productData = {
         productName: formData.productName,
         headerCategoryId: formData.headerCategory || undefined, // Schema has headerCategoryId
@@ -1265,13 +1270,13 @@ export default function AdminAddProduct() {
         fssaiLicNo: formData.fssaiLicNo || undefined,
         mainImage: mainImageUrl || undefined,
         galleryImages: galleryImageUrls,
-        variations: finalVariations,
+        variations: variationsWithImages,
         variationType: formData.variationType || undefined,
-        price: finalVariations[0]?.price || 0,
-        compareAtPrice: finalVariations[0]?.compareAtPrice || 0,
-        wholesalePrice: finalVariations[0]?.wholesalePrice || 0,
-        discPrice: finalVariations[0]?.discPrice || 0,
-        stock: finalVariations.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0),
+        price: variationsWithImages[0]?.price || 0,
+        compareAtPrice: variationsWithImages[0]?.compareAtPrice || 0,
+        wholesalePrice: variationsWithImages[0]?.wholesalePrice || 0,
+        discPrice: variationsWithImages[0]?.discPrice || 0,
+        stock: variationsWithImages.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0),
         isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",
         shopId: formData.shopId || undefined,
         pack: (formData as any).pack || undefined,
@@ -3053,10 +3058,19 @@ const applySearchedImage = () => {
                                 ))}
                              </div>
                           </div>
-                          <div>
-                            <span className="text-xs text-neutral-400 block">Unit Value</span>
-                            <span className="font-medium text-neutral-900">{variation.title}</span>
-                          </div>
+                           <div>
+                             <span className="text-xs text-neutral-400 block">Unit Value</span>
+                             <div className="flex items-center gap-2">
+                               <div className="w-9 h-9 bg-white border border-neutral-200 rounded overflow-hidden flex items-center justify-center shrink-0">
+                                 {(variation.image || (variation as any).imageUrl || formData.mainImageUrl) ? (
+                                   <img src={variation.image || (variation as any).imageUrl || formData.mainImageUrl} alt="" className="w-full h-full object-cover" />
+                                 ) : (
+                                   <span className="text-[10px] text-neutral-300 font-bold">IMG</span>
+                                 )}
+                               </div>
+                               <span className="font-medium text-neutral-900">{variation.title}</span>
+                             </div>
+                           </div>
                           <div>
                             <span className="text-xs text-neutral-400 block">Price</span>
                             <span className="font-medium text-[#f187b5]">₹{variation.price}</span>

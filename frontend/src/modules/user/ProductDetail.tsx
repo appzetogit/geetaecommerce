@@ -1,9 +1,9 @@
-import {
-  useParams,
-  useNavigate,
-  useLocation as useRouterLocation,
-} from "react-router-dom";
-import { useRef, useState, useEffect } from "react";
+ import {
+   useParams,
+   useNavigate,
+   useLocation as useRouterLocation,
+ } from "react-router-dom";
+ import { useRef, useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 // import { products } from '../../data/products'; // REMOVED
 // import { categories } from '../../data/categories'; // REMOVED
@@ -194,6 +194,31 @@ export default function ProductDetail() {
   // Get all images for gallery
   const allImages = product?.allImages || [product?.imageUrl || ""].filter(Boolean);
   const currentImage = allImages[selectedImageIndex] || product?.imageUrl || "";
+
+  const variationImageMatches = useMemo(() => {
+    const map = new Map<string, number[]>();
+    const variants = product?.variations || [];
+    for (let i = 0; i < variants.length; i += 1) {
+      const img = variants[i]?.image;
+      if (!img) continue;
+      const existing = map.get(img) || [];
+      existing.push(i);
+      map.set(img, existing);
+    }
+    return map;
+  }, [product?.variations]);
+
+  // If user changes the main image gallery (click/swipe), sync selected variant when the image uniquely matches a variant image.
+  useEffect(() => {
+    if (!currentImage) return;
+    if (!product?.variations || product.variations.length <= 1) return;
+    const matches = variationImageMatches.get(currentImage);
+    if (!matches || matches.length !== 1) return;
+    const matchIndex = matches[0];
+    if (matchIndex !== selectedVariantIndex) {
+      setSelectedVariantIndex(matchIndex);
+    }
+  }, [currentImage, product?.variations, selectedVariantIndex, variationImageMatches]);
 
   // Minimum swipe distance (in pixels)
   const minSwipeDistance = 50;
@@ -666,7 +691,15 @@ export default function ProductDetail() {
                   return (
                     <button
                       key={index}
-                      onClick={() => setSelectedVariantIndex(index)}
+                      onClick={() => {
+                        setSelectedVariantIndex(index);
+                        if (variant.image) {
+                          const imageIndex = allImages.indexOf(variant.image);
+                          if (imageIndex !== -1) {
+                            setSelectedImageIndex(imageIndex);
+                          }
+                        }
+                      }}
                       disabled={isOutOfStock}
                       className={`relative group transition-all duration-200 ${
                         variant.image ? "w-20 md:w-24" : "min-w-[70px]"

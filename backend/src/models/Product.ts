@@ -49,6 +49,7 @@ export interface IProduct extends Document {
     sku?: string;
     status?: string;
     barcode?: string[];
+    image?: string;
     tieredPrices?: { minQty: number; price: number }[];
   }>;
 
@@ -257,6 +258,7 @@ export interface IProduct extends Document {
           },
           sku: String,
           barcode: { type: [String], default: [] },
+          image: { type: String, trim: true },
           tieredPrices: {
              type: [{ minQty: Number, price: Number }],
              default: []
