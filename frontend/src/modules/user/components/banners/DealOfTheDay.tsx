@@ -8,7 +8,16 @@ import { bannerService } from '../../../../services/bannerService';
 
 export default function DealOfTheDay() {
   const navigate = useNavigate();
-  const { currentTheme: theme } = useThemeContext();
+  const { currentTheme: dynamicTheme } = useThemeContext();
+  const theme = {
+    primary: ['rgb(251, 146, 60)', 'rgb(253, 186, 116)', 'rgb(254, 215, 170)', 'rgb(255, 237, 213)'],
+    secondary: ['rgb(255, 237, 213)', 'rgb(254, 215, 170)', 'rgb(253, 186, 116)'],
+    textColor: '#9a3412',
+    accentColor: '#c2410c',
+    bannerText: 'AUTUMN',
+    saleText: 'SALE',
+    headerTextColor: '#7c2d12',
+  };
   const [dealProducts, setDealProducts] = useState<Product[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -107,7 +116,7 @@ export default function DealOfTheDay() {
               <button
                 onClick={() => navigate('/deal-of-the-day')}
                 className="text-sm font-semibold flex items-center gap-1 transition-colors"
-                style={{ color: theme.primary[0] }}
+                style={{ color: '#d35400' }}
               >
                   View All <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
