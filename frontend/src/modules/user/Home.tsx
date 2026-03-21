@@ -11,6 +11,7 @@ import HomePopup from "./components/banners/HomePopup";
 import FlashDealSection from "./components/banners/FlashDealSection";
 import FeaturedDeal from "./components/banners/FeaturedDeal";
 import DealOfTheDay from "./components/banners/DealOfTheDay";
+import FirstOrderOfferBanner from "./components/banners/FirstOrderOfferBanner";
 import { getHomeContent } from "../../services/api/customerHomeService";
 import { getHeaderCategoriesPublic } from "../../services/api/headerCategoryService";
 import { getProducts as getCustomerProducts } from "../../services/api/customerProductService";
@@ -283,6 +284,9 @@ export default function Home() {
 
         {/* Deal of the Day Section */}
         <DealOfTheDay />
+
+        {/* First Order Offer (First-time users) */}
+        <FirstOrderOfferBanner />
 
         {/* Filtered Products Section */}
         {activeTab !== "all" && (

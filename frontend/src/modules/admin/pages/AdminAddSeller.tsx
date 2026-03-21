@@ -6,6 +6,34 @@ import { toast } from "react-hot-toast";
 import GoogleLocationPickerMap from "../components/GoogleLocationPickerMap";
 import GoogleMapsAutocomplete from "../../../components/GoogleMapsAutocomplete";
 
+type CommissionSlabInput = {
+  minPrice: string;
+  maxPrice: string; // empty => no upper limit
+  commission: string; // percentage
+};
+
+const COMMISSION_SLABS_STORAGE_KEY = "admin_seller_commission_slabs_v1";
+
+const readCommissionSlabsStore = (): Record<string, { minPrice: number; maxPrice: number | null; commission: number }[]> => {
+  try {
+    const raw = localStorage.getItem(COMMISSION_SLABS_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") return parsed;
+    return {};
+  } catch {
+    return {};
+  }
+};
+
+const writeCommissionSlabsStore = (store: Record<string, { minPrice: number; maxPrice: number | null; commission: number }[]>) => {
+  try {
+    localStorage.setItem(COMMISSION_SLABS_STORAGE_KEY, JSON.stringify(store));
+  } catch {
+    // ignore storage errors (private mode/quota)
+  }
+};
+
 interface FormData {
   // Seller Info
   sellerName: string;
@@ -50,6 +78,10 @@ export default function AdminAddSeller() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [useCommissionSlabs, setUseCommissionSlabs] = useState(false);
+  const [commissionSlabs, setCommissionSlabs] = useState<CommissionSlabInput[]>([
+    { minPrice: "0", maxPrice: "", commission: "" },
+  ]);
   const [formData, setFormData] = useState<FormData>({
     sellerName: "",
     email: "",
@@ -202,10 +234,21 @@ export default function AdminAddSeller() {
       // Append all text fields
       Object.keys(formData).forEach(key => {
         const value = formData[key as keyof FormData];
+        if (key === "commission") return;
         if (value !== null && typeof value !== 'object') {
           data.append(key, value as string);
         }
       });
+
+      // Commission (required by backend)
+      let commissionForApi = formData.commission;
+      if (useCommissionSlabs) {
+        const firstValid = commissionSlabs
+          .map(s => parseFloat(s.commission))
+          .find(v => !Number.isNaN(v) && v >= 0 && v <= 100);
+        commissionForApi = (firstValid ?? 0).toString();
+      }
+      data.append("commission", commissionForApi || "0");
 
       // Append files
       if (formData.profile) data.append("profile", formData.profile);
@@ -215,6 +258,28 @@ export default function AdminAddSeller() {
       const res = await createSeller(data);
 
       if (res.success) {
+        if (useCommissionSlabs) {
+          const normalized = commissionSlabs
+            .map((s) => {
+              const minPrice = parseFloat(s.minPrice || "0");
+              const maxPriceRaw = s.maxPrice === "" ? null : parseFloat(s.maxPrice);
+              const commission = parseFloat(s.commission || "0");
+              return {
+                minPrice: Number.isNaN(minPrice) ? 0 : minPrice,
+                maxPrice: maxPriceRaw === null || Number.isNaN(maxPriceRaw) ? null : maxPriceRaw,
+                commission: Number.isNaN(commission) ? 0 : commission,
+              };
+            })
+            .filter((s) => s.commission >= 0 && s.commission <= 100)
+            .sort((a, b) => a.minPrice - b.minPrice);
+
+          const sellerKey = (res.data as any)?._id || formData.email;
+          if (sellerKey && normalized.length > 0) {
+            const store = readCommissionSlabsStore();
+            store[String(sellerKey)] = normalized;
+            writeCommissionSlabsStore(store);
+          }
+        }
         toast.success("Seller added successfully!");
         navigate("/admin/manage-seller-list");
       } else {
@@ -697,6 +762,133 @@ export default function AdminAddSeller() {
                   max="100"
                   step="0.01"
                 />
+
+                <div className="mt-3 flex items-center justify-between gap-4">
+                  <label className="flex items-center gap-2 text-sm font-medium text-neutral-700 select-none">
+                    <input
+                      type="checkbox"
+                      checked={useCommissionSlabs}
+                      onChange={(e) => setUseCommissionSlabs(e.target.checked)}
+                      className="h-4 w-4 accent-[#f187b5]"
+                    />
+                    Use price-wise commission slabs
+                  </label>
+                  <span className="text-xs text-neutral-500">
+                    Frontend only (saved in this browser)
+                  </span>
+                </div>
+
+                {useCommissionSlabs && (
+                  <div className="mt-3 border border-neutral-200 rounded-lg overflow-hidden">
+                    <div className="bg-[#f187b5]/10 px-4 py-2 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-neutral-800">
+                        Commission Slabs (by product price)
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCommissionSlabs((prev) => [
+                            ...prev,
+                            { minPrice: "", maxPrice: "", commission: "" },
+                          ])
+                        }
+                        className="px-3 py-1.5 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded text-xs font-bold transition-colors"
+                      >
+                        + Add Slab
+                      </button>
+                    </div>
+
+                    <div className="p-4 space-y-3">
+                      {commissionSlabs.map((slab, idx) => (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-1 md:grid-cols-10 gap-3 items-end"
+                        >
+                          <div className="md:col-span-3">
+                            <label className="block text-xs font-semibold text-neutral-500 mb-1">
+                              Min Price (₹)
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={slab.minPrice}
+                              onChange={(e) =>
+                                setCommissionSlabs((prev) => {
+                                  const next = [...prev];
+                                  next[idx] = { ...next[idx], minPrice: e.target.value };
+                                  return next;
+                                })
+                              }
+                              className="w-full px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
+                              placeholder="0"
+                            />
+                          </div>
+
+                          <div className="md:col-span-3">
+                            <label className="block text-xs font-semibold text-neutral-500 mb-1">
+                              Max Price (₹)
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={slab.maxPrice}
+                              onChange={(e) =>
+                                setCommissionSlabs((prev) => {
+                                  const next = [...prev];
+                                  next[idx] = { ...next[idx], maxPrice: e.target.value };
+                                  return next;
+                                })
+                              }
+                              className="w-full px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
+                              placeholder="(blank = no limit)"
+                            />
+                          </div>
+
+                          <div className="md:col-span-3">
+                            <label className="block text-xs font-semibold text-neutral-500 mb-1">
+                              Commission %
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.01"
+                              value={slab.commission}
+                              onChange={(e) =>
+                                setCommissionSlabs((prev) => {
+                                  const next = [...prev];
+                                  next[idx] = { ...next[idx], commission: e.target.value };
+                                  return next;
+                                })
+                              }
+                              className="w-full px-3 py-2 border border-neutral-300 rounded outline-none text-sm"
+                              placeholder="e.g. 2.5"
+                            />
+                          </div>
+
+                          <div className="md:col-span-1 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setCommissionSlabs((prev) => prev.filter((_, i) => i !== idx))
+                              }
+                              disabled={commissionSlabs.length === 1}
+                              className="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Remove slab"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <p className="text-xs text-neutral-500">
+                        Example: 0–100 = 5%, 100–500 = 3%, 500+ = 2%
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

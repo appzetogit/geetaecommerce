@@ -203,6 +203,7 @@ const AdminBannerSetup = lazy(() => import("./modules/admin/pages/AdminBannerSet
 const AdminFlashDeal = lazy(() => import("./modules/admin/pages/AdminFlashDeal"));
 const AdminDealOfTheDay = lazy(() => import("./modules/admin/pages/AdminDealOfTheDay"));
 const AdminFeaturedDeal = lazy(() => import("./modules/admin/pages/AdminFeaturedDeal"));
+const AdminFirstOrderOffer = lazy(() => import("./modules/admin/pages/AdminFirstOrderOffer"));
 const AdminFreeGiftRules = lazy(() => import("./modules/admin/pages/AdminFreeGiftRules"));
 const AdminReturnRequests = lazy(() => import("./modules/admin/pages/AdminReturnRequests"));
 const AdminReplaceRequests = lazy(() => import("./modules/admin/pages/AdminReplaceRequests"));
@@ -601,6 +602,7 @@ function App() {
                             <Route path="promotion/flash-deals" element={<AdminFlashDeal />} />
                             <Route path="promotion/deal-of-the-day" element={<AdminDealOfTheDay />} />
                             <Route path="promotion/featured-deal" element={<AdminFeaturedDeal />} />
+                            <Route path="promotion/first-order-offer" element={<AdminFirstOrderOffer />} />
                             <Route path="promotion/free-gift-rules" element={<AdminFreeGiftRules />} />
 
                             <Route path="return-requests" element={<AdminReturnRequests />} />

@@ -939,10 +939,10 @@ export default function AdminManageSellerList() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" onClick={handleCloseEditModal}>
                     <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                         {/* Modal Header */}
-                        <div className="bg-[#E91E63] text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
+                        <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-lg flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-semibold">Edit Seller - {editingSeller.name}</h3>
-                                <p className="text-sm text-pink-100 mt-1">View and manage seller details</p>
+                                <p className="text-sm text-white/80 mt-1">View and manage seller details</p>
                             </div>
                             <button
                                 onClick={handleCloseEditModal}
@@ -968,8 +968,8 @@ export default function AdminManageSellerList() {
                                 {/* Status Badge */}
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${editingSeller.status === 'Approved'
-                                                ? 'bg-[#E91E63]/10 text-[#E91E63]'
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${editingSeller.status === 'Approved'
+                                                ? 'bg-[#f187b5]/10 text-[#f187b5]'
                                                 : editingSeller.status === 'Pending'
                                                     ? 'bg-yellow-100 text-yellow-800'
                                                     : 'bg-red-100 text-red-800'
@@ -981,7 +981,7 @@ export default function AdminManageSellerList() {
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => handleApprove(editingSeller._id)}
-                                                className="px-4 py-2 bg-[#E91E63] hover:bg-[#D81B60] text-white rounded text-sm font-medium transition-colors flex items-center gap-2"
+                                                className="px-4 py-2 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded text-sm font-medium transition-colors flex items-center gap-2"
                                             >
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                     <polyline points="20 6 9 17 4 12"></polyline>
@@ -1125,12 +1125,12 @@ export default function AdminManageSellerList() {
                                                                             const val = parseFloat(e.target.value);
                                                                             setNewRadius(isNaN(val) ? 0 : val);
                                                                         }}
-                                                                        className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-[#E91E63] focus:border-[#E91E63]"
+                                                                        className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-[#f187b5] focus:border-[#f187b5]"
                                                                     />
                                                                     <button
                                                                         onClick={handleUpdateLocation}
                                                                         disabled={isUpdatingRadius}
-                                                                        className="px-4 py-2 bg-[#E91E63] text-white rounded text-sm font-medium hover:bg-[#D81B60] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                                                                        className="px-4 py-2 bg-[#f187b5] text-white rounded text-sm font-medium hover:bg-[#e076a5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
                                                                     >
                                                                         {isUpdatingRadius ? 'Updating...' : 'Update Location'}
                                                                     </button>
@@ -1268,7 +1268,7 @@ export default function AdminManageSellerList() {
                                             {editingSeller.categories.map((category, index) => (
                                                 <span
                                                     key={index}
-                                                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#E91E63]/10 text-[#E91E63]"
+                                                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-[#f187b5]/10 text-[#f187b5]"
                                                 >
                                                     {category}
                                                 </span>
@@ -1294,4 +1294,3 @@ export default function AdminManageSellerList() {
         </div>
     );
 }
-
