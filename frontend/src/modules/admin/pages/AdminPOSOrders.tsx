@@ -5180,18 +5180,18 @@ const AdminPOSOrders = () => {
       {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
       <div className="hidden print:block fixed inset-0 bg-white z-[200] p-0 m-0">
           {/* We use a specific width/style for thermal printing */}
-          <div className="w-[80mm] p-2 font-mono text-xs text-black mx-auto">
+          <div className="w-[80mm] p-2 font-mono text-sm text-black mx-auto font-semibold">
               <div className="mb-2 text-left">
-                  <h1 className="text-sm font-bold uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
-                  <p className="text-[10px] leading-tight whitespace-pre-wrap">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
-                  <p className="text-[10px]">{posBillSettings?.phone || '7898111456'}</p>
+                  <h1 className="text-xl font-bold uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
+                  <p className="text-xs leading-tight whitespace-pre-wrap font-medium">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
+                  <p className="text-xs font-medium">{posBillSettings?.phone || '7898111456'}</p>
 
                   {/* GST & FSSAI */}
                   {config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text && (
-                      <p className="text-[10px] font-bold mt-1">GST: {config.invoiceSettings.gst.text}</p>
+                      <p className="text-xs font-bold mt-1">GST: {config.invoiceSettings.gst.text}</p>
                   )}
                   {config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text && (
-                      <p className="text-[10px] font-bold">FSSAI: {config.invoiceSettings.fssai.text}</p>
+                      <p className="text-xs font-bold">FSSAI: {config.invoiceSettings.fssai.text}</p>
                   )}
               </div>
 
@@ -5210,10 +5210,10 @@ const AdminPOSOrders = () => {
 
               <div className="grid grid-cols-12 gap-1 font-bold mb-1">
                   <div className="col-span-12">Item Name</div>
-                  <div className="col-span-3 text-right">Qty</div>
-                  <div className="col-span-3 text-right">MRP</div>
-                  <div className="col-span-3 text-right">SP</div>
-                  <div className="col-span-3 text-right">Amt</div>
+                  <div className="col-span-3 text-right text-xs">Qty</div>
+                  <div className="col-span-3 text-right text-xs">MRP</div>
+                  <div className="col-span-3 text-right text-xs">SP</div>
+                  <div className="col-span-3 text-right text-xs">Amt</div>
               </div>
 
               <div className="border-b border-black border-dashed my-2"></div>
@@ -5226,16 +5226,16 @@ const AdminPOSOrders = () => {
                        <div key={idx}>
                            <div>{idx + 1}. {item.productName}</div>
                            {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
-                               <div className="text-[10px] bg-gray-100 px-2 py-0.5 border-l-2 border-black font-bold mt-1 ml-4" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                               <div className="text-xs bg-gray-100 px-2 py-0.5 border-l-2 border-black font-bold mt-1 ml-4" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                    {(item as any).warrantyType}: {(item as any).warrantyDuration}
                                </div>
                            )}
                            <div className="grid grid-cols-12 gap-1">
                                <div className="col-span-12"></div> {/* Spacer for name line */}
-                               <div className="col-span-3 text-right">{item.qty}PC</div>
-                               <div className="col-span-3 text-right">{mrp.toFixed(2)}</div>
-                               <div className="col-span-3 text-right">{sp.toFixed(2)}</div>
-                               <div className="col-span-3 text-right">{(sp * item.qty).toFixed(2)}</div>
+                               <div className="col-span-3 text-right text-xs">{item.qty}PC</div>
+                               <div className="col-span-3 text-right text-xs">{mrp.toFixed(2)}</div>
+                               <div className="col-span-3 text-right text-xs">{sp.toFixed(2)}</div>
+                               <div className="col-span-3 text-right text-xs">{(sp * item.qty).toFixed(2)}</div>
                            </div>
                        </div>
                    )})}
@@ -5259,7 +5259,7 @@ const AdminPOSOrders = () => {
 
                   return (
                       <>
-                          <div className="flex justify-between font-bold mb-1">
+                          <div className="flex justify-between font-bold mb-1 text-xs">
                               <span>Total Qty.: {tQty}</span>
                               <span>Total MRP: Rs {tMRP.toFixed(2)}</span>
                           </div>
@@ -5273,18 +5273,18 @@ const AdminPOSOrders = () => {
                   );
               })()}
 
-              <div className="flex justify-between font-bold text-sm">
+              <div className="flex justify-between font-bold text-lg">
                   <span>Total Payable Amount</span>
                   <span>{lastBillDetails?.total.toFixed(2)}</span>
               </div>
-               <div className="flex justify-between mt-1">
+               <div className="flex justify-between mt-1 font-bold">
                   <span>Cash Paid</span>
                   <span>{lastBillDetails?.total.toFixed(2)}</span>
               </div>
 
               <div className="border-b border-black border-dashed my-2"></div>
 
-              <div className="text-center mt-4 text-[10px]">
+              <div className="text-center mt-4 text-xs font-medium">
                   {/* Notes */}
                   {((posBillSettings?.notes?.enabled && posBillSettings?.notes?.text) || (config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text)) && (
                       <p className="font-bold mb-2 whitespace-pre-wrap">{posBillSettings?.notes?.enabled ? posBillSettings?.notes?.text : config?.invoiceSettings?.notes?.text}</p>
@@ -5298,12 +5298,11 @@ const AdminPOSOrders = () => {
                       </div>
                   )}
 
-                  {/* GST & FSSAI (POS Specific) */}
                   {posBillSettings?.gst?.enabled && posBillSettings?.gst?.text && (
-                      <p className="text-[10px] font-bold mt-2">GST: {posBillSettings.gst.text}</p>
+                      <p className="text-xs font-bold mt-2">GST: {posBillSettings.gst.text}</p>
                   )}
                   {posBillSettings?.fssai?.enabled && posBillSettings?.fssai?.text && (
-                      <p className="text-[10px] font-bold">FSSAI: {posBillSettings.fssai.text}</p>
+                      <p className="text-xs font-bold">FSSAI: {posBillSettings.fssai.text}</p>
                   )}
 
                   {posBillSettings?.qrCode && (
