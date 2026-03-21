@@ -69,6 +69,64 @@ function safeNonNegativeNumber(n: unknown, fallback = 0): number {
   return x;
 }
 
+/** Never send NaN in variations; collect human-readable issues for one console.warn per row. */
+function sanitizeImportVariations(
+  variations: unknown[],
+  fallbackPrice: number,
+  fallbackStock: number
+): { list: Record<string, unknown>[]; issues: string[] } {
+  const fp = Number.isFinite(fallbackPrice) && fallbackPrice > 0 ? fallbackPrice : 1;
+  const fs = Math.floor(safeNonNegativeNumber(fallbackStock, 0));
+  const issues: string[] = [];
+
+  const list = variations.map((v, idx) => {
+    const raw = v != null && typeof v === "object" ? (v as Record<string, unknown>) : {};
+    const out: Record<string, unknown> = { ...raw };
+
+    const rawPrice = typeof raw.price === "number" ? raw.price : parseFloat(String(raw.price ?? ""));
+    let price = rawPrice;
+    if (!Number.isFinite(price) || price < 0) {
+      issues.push(`variation[${idx}] price invalid (NaN/empty) → ${fp}`);
+      price = fp;
+    }
+    out.price = price;
+
+    const rawStockParsed =
+      typeof raw.stock === "number" ? raw.stock : parseFloat(String(raw.stock ?? ""));
+    const hadBadStock =
+      raw.stock != null &&
+      String(raw.stock).trim() !== "" &&
+      (!Number.isFinite(rawStockParsed) || Number.isNaN(rawStockParsed) || rawStockParsed < 0);
+    const stockNum = Math.floor(safeNonNegativeNumber(raw.stock, fs));
+    if (hadBadStock) {
+      issues.push(`variation[${idx}] stock invalid (NaN/empty) → ${stockNum}`);
+    }
+    out.stock = stockNum;
+
+    let disc = typeof raw.discPrice === "number" ? raw.discPrice : parseFloat(String(raw.discPrice ?? ""));
+    if (!Number.isFinite(disc) || disc < 0) disc = 0;
+    if (disc > price) disc = 0;
+    out.discPrice = disc;
+
+    let mrp = typeof raw.compareAtPrice === "number" ? raw.compareAtPrice : parseFloat(String(raw.compareAtPrice ?? ""));
+    if (!Number.isFinite(mrp) || mrp < 0) {
+      mrp = price;
+    }
+    out.compareAtPrice = mrp;
+
+    let wholesale =
+      typeof raw.wholesalePrice === "number"
+        ? raw.wholesalePrice
+        : parseFloat(String(raw.wholesalePrice ?? ""));
+    if (!Number.isFinite(wholesale) || wholesale < 0) wholesale = 0;
+    out.wholesalePrice = wholesale;
+
+    return out;
+  });
+
+  return { list, issues };
+}
+
 /** 24-char hex Mongo ObjectId — used so we never send brand/category *names* as IDs. */
 function isValidObjectIdString(id: unknown): boolean {
   if (id == null || typeof id !== "string") return false;
@@ -537,9 +595,62 @@ export default function SellerStockBulkImport({
                     },
                   ];
 
+            const { list: normalizedVariations, issues: variationIssues } = sanitizeImportVariations(
+              variationPayload as unknown[],
+              safePrice,
+              stock
+            );
+
+            const productNameTrimmed = String(rawData.productName ?? "").trim();
+            const productNameFinal = productNameTrimmed || "Untitled";
+
+            const importRowIssues: string[] = [...variationIssues];
+            if (!productNameTrimmed) {
+              importRowIssues.push("productName empty → using Untitled");
+            }
+
+            const purchaseRaw =
+              typeof rawData.purchasePrice === "number"
+                ? rawData.purchasePrice
+                : parseFloat(String(rawData.purchasePrice ?? ""));
+            const purchasePriceFinal =
+              Number.isFinite(purchaseRaw) && !Number.isNaN(purchaseRaw) && purchaseRaw >= 0
+                ? purchaseRaw
+                : 0;
+            if (
+              rawData.purchasePrice != null &&
+              String(rawData.purchasePrice).trim() !== "" &&
+              !Number.isFinite(purchaseRaw)
+            ) {
+              importRowIssues.push("purchasePrice invalid (NaN) → 0");
+            }
+
+            const lowRaw =
+              typeof rawData.lowStockQuantity === "number"
+                ? rawData.lowStockQuantity
+                : parseInt(String(rawData.lowStockQuantity ?? ""), 10);
+            const lowStockFinal =
+              Number.isFinite(lowRaw) && !Number.isNaN(lowRaw) && lowRaw >= 0
+                ? Math.floor(lowRaw)
+                : 5;
+            if (
+              rawData.lowStockQuantity != null &&
+              String(rawData.lowStockQuantity).trim() !== "" &&
+              (!Number.isFinite(lowRaw) || Number.isNaN(lowRaw))
+            ) {
+              importRowIssues.push(`lowStockQuantity invalid (NaN) → ${lowStockFinal}`);
+            }
+
+            if (importRowIssues.length > 0) {
+              console.warn(
+                `[Bulk import] Row ${i + 1} (${code || productNameFinal}):`,
+                importRowIssues.join(" | ")
+              );
+            }
+
             const productPayload: CreateProductData = {
                 ...rawWithoutVariations,
-                productName: rawData.productName || "Untitled",
+                productName: productNameFinal,
                 categoryId: isValidObjectIdString(rawData.categoryId) ? rawData.categoryId : undefined,
                 subcategoryId: isValidObjectIdString(rawData.subcategoryId)
                   ? rawData.subcategoryId
@@ -552,13 +663,13 @@ export default function SellerStockBulkImport({
                 isReturnable: false,
                 totalAllowedQuantity: 10, // Default
                 mainImage: rawData.mainImage,
-                variations: variationPayload as any,
+                variations: normalizedVariations as any,
                 itemCode: code || undefined,
                 rackNumber: rawData.rackNumber,
                 hsnCode: rawData.hsnCode,
-                purchasePrice: rawData.purchasePrice,
+                purchasePrice: purchasePriceFinal,
                 deliveryTime: rawData.deliveryTime,
-                lowStockQuantity: rawData.lowStockQuantity,
+                lowStockQuantity: lowStockFinal,
             };
 
             const res = await createProduct(productPayload);
