@@ -3,7 +3,9 @@ import * as XLSX from "xlsx";
 import {
   createProduct,
   CreateProductData,
-  Product
+  getProductById,
+  getProducts,
+  updateStock,
 } from "../../../services/api/productService";
 import { Category } from "../../../services/api/categoryService";
 import { useAuth } from "../../../context/AuthContext";
@@ -71,6 +73,57 @@ function isValidObjectIdString(id: unknown): boolean {
   if (id == null || typeof id !== "string") return false;
   const s = id.trim();
   return /^[a-fA-F0-9]{24}$/.test(s);
+}
+
+/**
+ * Stock Management CSV export: `Variation Id`, `Stock`, no product-template price columns.
+ * That file must update existing variation stock — not create new products.
+ */
+function isStockManagementCsv(headersNormalized: string[]): boolean {
+  const hasVid = headersNormalized.includes("variation_id");
+  const hasStock =
+    headersNormalized.includes("stock") || headersNormalized.includes("current_stock");
+  if (!hasVid || !hasStock) return false;
+  // Stock export can include "Product Name"; rely on absence of *price* columns used for new-product template.
+  const hasCreatePriceCols = headersNormalized.some(
+    (k) =>
+      k.includes("sell_price") ||
+      k.includes("product_retail_price") ||
+      k.includes("product_selling_price") ||
+      k.includes("product_mrp") ||
+      k.includes("mrp")
+  );
+  return !hasCreatePriceCols;
+}
+
+/** Map variation subdocument _id -> { productId, variationId } for stock CSV rows that only store 24-char variation ids. */
+async function buildMongoVariationLookup(): Promise<
+  Map<string, { productId: string; variationId: string }>
+> {
+  const map = new Map<string, { productId: string; variationId: string }>();
+  let page = 1;
+  const limit = 200;
+  for (;;) {
+    const res = await getProducts({
+      page,
+      limit,
+      sortBy: "createdAt",
+      sortOrder: "desc",
+    });
+    if (!res.success || !res.data?.length) break;
+    for (const p of res.data) {
+      const pid = (p as { _id?: string })._id;
+      if (!pid) continue;
+      for (const v of (p as { variations?: { _id?: string }[] }).variations || []) {
+        const vid = v?._id != null ? String(v._id) : "";
+        if (vid) map.set(vid, { productId: pid, variationId: vid });
+      }
+    }
+    const pages = (res as { pagination?: { pages?: number } }).pagination?.pages ?? 1;
+    if (page >= pages) break;
+    page += 1;
+  }
+  return map;
 }
 
 export default function SellerStockBulkImport({
@@ -242,6 +295,31 @@ export default function SellerStockBulkImport({
     let failedCount = 0;
     setProgress({ total, current: 0, success: 0, failed: 0 });
 
+    const firstNorm = normalizeExcelRow(
+      previewData[0] && typeof previewData[0] === "object"
+        ? (previewData[0] as Record<string, unknown>)
+        : {}
+    );
+    const stockImportMode = isStockManagementCsv(
+      Object.keys(firstNorm).map(normalizeHeaderKey)
+    );
+    let mongoVariationLookup: Map<string, { productId: string; variationId: string }> | null =
+      null;
+    if (stockImportMode) {
+      const needsMongo = previewData.some((raw) => {
+        const r = normalizeExcelRow(
+          raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {}
+        );
+        const vid = rowCell(r, ["Variation Id", "variation_id"]);
+        if (!vid) return false;
+        const s = String(vid).trim();
+        return /^[a-fA-F0-9]{24}$/.test(s) && !/^([a-fA-F0-9]{24})-\d+$/.test(s);
+      });
+      if (needsMongo) {
+        mongoVariationLookup = await buildMongoVariationLookup();
+      }
+    }
+
     for (let i = 0; i < total; i++) {
         const row = normalizeExcelRow(
           previewData[i] && typeof previewData[i] === "object"
@@ -249,6 +327,44 @@ export default function SellerStockBulkImport({
             : {}
         );
         try {
+            if (stockImportMode) {
+              const vidRaw = rowCell(row, ["Variation Id", "variation_id"]);
+              if (!vidRaw) throw new Error("Missing Variation Id");
+              const vidStr = String(vidRaw).trim();
+              const stockNum = Math.floor(
+                safeNonNegativeNumber(rowCell(row, ["Stock", "Current Stock"]), 0)
+              );
+
+              const composite = /^([a-fA-F0-9]{24})-(\d+)$/.exec(vidStr);
+              if (composite) {
+                const productId = composite[1];
+                const idx = parseInt(composite[2], 10);
+                const pr = await getProductById(productId);
+                if (!pr.success || !pr.data) throw new Error("Product not found");
+                const vars = pr.data.variations || [];
+                const v = vars[idx];
+                if (!v?._id) throw new Error("Variation not found at index");
+                const res = await updateStock(productId, String(v._id), stockNum);
+                if (!res?.success) throw new Error(res?.message || "Stock update failed");
+                successCount++;
+                continue;
+              }
+
+              if (/^[a-fA-F0-9]{24}$/.test(vidStr)) {
+                if (!mongoVariationLookup) {
+                  mongoVariationLookup = await buildMongoVariationLookup();
+                }
+                const found = mongoVariationLookup.get(vidStr);
+                if (!found) throw new Error("Variation not found");
+                const res = await updateStock(found.productId, found.variationId, stockNum);
+                if (!res?.success) throw new Error(res?.message || "Stock update failed");
+                successCount++;
+                continue;
+              }
+
+              throw new Error("Invalid Variation Id");
+            }
+
             const rawData = mapRowToProduct(row);
 
             // Construct proper CreateProductData payload
