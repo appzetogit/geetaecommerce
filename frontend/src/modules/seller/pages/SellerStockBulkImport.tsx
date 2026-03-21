@@ -14,6 +14,28 @@ interface SellerStockBulkImportProps {
   onSuccess: () => void;
 }
 
+/** First matching column by exact key, then case-insensitive / underscore-normalized match (handles PRODUCT_NAME-style headers). */
+function rowCell(row: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(row, key)) {
+      const v = row[key];
+      if (v !== undefined && v !== null && String(v).trim() !== "") return String(v);
+    }
+  }
+  const rowKeys = Object.keys(row);
+  for (const want of keys) {
+    const wn = want.toLowerCase().replace(/\s+/g, "_");
+    for (const rk of rowKeys) {
+      const rn = rk.toLowerCase().replace(/\s+/g, "_");
+      if (rn === want.toLowerCase() || rn === wn) {
+        const v = row[rk];
+        if (v !== undefined && v !== null && String(v).trim() !== "") return String(v);
+      }
+    }
+  }
+  return undefined;
+}
+
 export default function SellerStockBulkImport({
   categories,
   onClose,
@@ -66,15 +88,17 @@ export default function SellerStockBulkImport({
     const findCategory = (name: string) => categories.find((c) => c.name?.toLowerCase() === name?.toLowerCase())?._id || "";
 
     const variations = [];
-    if (row['Size'] || row['11. Size']) {
-       variations.push({ name: "Size", value: String(row['Size'] || row['11. Size']) });
+    const sizeVal = rowCell(row, ["Size", "11. Size", "PRODUCT_SIZE"]);
+    const colorVal = rowCell(row, ["Color", "12. Color", "PRODUCT_COLOR"]);
+    if (sizeVal) {
+       variations.push({ name: "Size", value: sizeVal });
     }
-    if (row['Color'] || row['12. Color']) {
-       variations.push({ name: "Color", value: String(row['Color'] || row['12. Color']) });
+    if (colorVal) {
+       variations.push({ name: "Color", value: colorVal });
     }
 
     // New Generic Variations Column
-    const rawVars = row['Variations'] || row['29. Variations'];
+    const rawVars = rowCell(row, ["Variations", "29. Variations", "PRODUCT_VARIATIONS"]);
     if (rawVars) {
         String(rawVars).split(';').forEach(v => {
             const [name, val] = v.split(':').map(s => s.trim());
@@ -87,16 +111,18 @@ export default function SellerStockBulkImport({
     let unitPricing: { minQty: number; price: number }[] = [];
     try {
         // Check for specific columns first (New Template Format)
-        const priceFor2 = parseFloat(row['27. Unit Price (Min Qty 2)'] || row['Unit Price (Min Qty 2)'] || row['27. Price (Min Qty 2)'] || row['Price (Min Qty 2)'] || "0");
-        const priceFor4 = parseFloat(row['28. Unit Price (Min Qty 4)'] || row['Unit Price (Min Qty 4)'] || row['28. Price (Min Qty 4)'] || row['Price (Min Qty 4)'] || "0");
+        const priceFor2 = parseFloat(rowCell(row, ["27. Unit Price (Min Qty 2)", "Unit Price (Min Qty 2)", "27. Price (Min Qty 2)", "Price (Min Qty 2)"]) || "0");
+        const priceFor4 = parseFloat(rowCell(row, ["28. Unit Price (Min Qty 4)", "Unit Price (Min Qty 4)", "28. Price (Min Qty 4)", "Price (Min Qty 4)"]) || "0");
 
         if (priceFor2 > 0) unitPricing.push({ minQty: 2, price: priceFor2 });
         if (priceFor4 > 0) unitPricing.push({ minQty: 4, price: priceFor4 });
 
         // Fallback or additional rules from single column (Old Format)
-        const rawPricing = row['Unit Pricing'] || row['Tiered Pricing'] || row['Pricing Rules'] ||
-                          row['27. Unit Pricing Rules (e.g. 2=100; 5=90)'] || row['27. Unit Pricing Rules'] ||
-                          row['27. Pricing Rules'] || row['Unit Pricing Rules'];
+        const rawPricing = rowCell(row, [
+          "Unit Pricing", "Tiered Pricing", "Pricing Rules",
+          "27. Unit Pricing Rules (e.g. 2=100; 5=90)", "27. Unit Pricing Rules",
+          "27. Pricing Rules", "Unit Pricing Rules",
+        ]);
 
         if (rawPricing) {
              const pricingStr = String(rawPricing).trim();
@@ -118,34 +144,37 @@ export default function SellerStockBulkImport({
     }
 
     return {
-      categoryId: findCategory(row['Category'] || row['1. Category']),
-      subcategoryId: row['Sub Cat'] || row['2. Sub Cat'] || "",
-      subSubCategoryId: row['Sub Sub Cat'] || row['3. Sub Sub Cat'] || "",
-      productName: row['Product Name'] || row['4. Product Name'] || "",
-      itemCode: row['SKU'] || row['5. SKU'] || "", // Map to itemCode as per interface
-      rackNumber: row['Rack'] || row['6. Rack'] || "",
-      smallDescription: row['Desc'] || row['7. Desc'] || "", // description maps to smallDescription in CreateProductData
+      categoryId: findCategory(rowCell(row, ["Category", "1. Category", "PRODUCT_CATEGORY", "product_category"]) || ""),
+      subcategoryId: rowCell(row, ["Sub Cat", "2. Sub Cat", "PRODUCT_SUB_CATEGORY"]) || "",
+      subSubCategoryId: rowCell(row, ["Sub Sub Cat", "3. Sub Sub Cat"]) || "",
+      productName: rowCell(row, ["Product Name", "4. Product Name", "PRODUCT_NAME", "product_name"]) || "",
+      itemCode: rowCell(row, ["SKU", "5. SKU", "PRODUCT_SKU", "product_sku"]) || "",
+      rackNumber: rowCell(row, ["Rack", "6. Rack"]) || "",
+      smallDescription: rowCell(row, ["Desc", "7. Desc", "PRODUCT_DESCRIPTION", "DESCRIPTION"]) || "",
       // barcode: row['Barcode'] || row['8. Barcode'] || "", // CreateProductData does not strictly have barcode? It's mapped in backend usually? Or variations?
       // Looking at productService.ts: CreateProductData has itemCode, rackNumber, hsnCode, etc. It doesn't have 'barcode' at top level.
       // But updateProduct supports it via payload.
       // We will assume backend handles it if passed as 'any' or put it in variations first element if needed.
       // Let's pass it anyway.
       // barcode: row['Barcode'] || ...
-      hsnCode: row['HSN'] || row['9. HSN'] || "",
+      hsnCode: rowCell(row, ["HSN", "9. HSN", "PRODUCT_HSN"]) || "",
       // pack: row['Unit'] || row['10. Unit'] || "", // unit
       variations: variations.length > 0 ? variations : [], // Provide empty array if none
-      taxId: row['Tax Cat'] || row['13. Tax Cat'] || "", // Assuming Tax Cat maps to taxId
-      purchasePrice: parseFloat(row['Pur. Price'] || row['16. Pur. Price'] || "0"),
+      taxId: rowCell(row, ["Tax Cat", "13. Tax Cat"]) || "",
+      purchasePrice: parseFloat(rowCell(row, ["Pur. Price", "15. Pur. Price", "16. Pur. Price", "PRODUCT_PURCHASE_PRICE"]) || "0"),
       // compareAtPrice: parseFloat(row['MRP'] || row['17. MRP'] || "0"), // Product interface has compareAtPrice, CreateProductData has variations which have compareAtPrice.
       // Note: createProduct in productService creates a product structure. Some fields might be top level, others in variations.
       // Let's create a minimal valid structure based on CreateProductData
       // deliveryTime: row['Del. Time'] || row['19. Del. Time'] || "",
-      lowStockQuantity: parseInt(row['Low Stock'] || row['23. Low Stock'] || "5"),
-      brandId: row['Brand'] || row['24. Brand'] || "",
-      mfgDate: row['Mfg Date'] || row['29. Mfg Date'] || "",
-      expiryDate: row['Expiry Date'] || row['30. Expiry Date'] || "",
+      lowStockQuantity: parseInt(rowCell(row, ["Low Stock", "23. Low Stock", "22. Low Stock", "PRODUCT_LOW_STOCK"]) || "5", 10),
+      brandId: rowCell(row, ["Brand", "24. Brand", "23. Brand", "PRODUCT_BRAND"]) || "",
+      mfgDate: rowCell(row, ["Mfg Date", "29. Mfg Date", "PRODUCT_MFG_DATE"]) || "",
+      expiryDate: rowCell(row, ["Expiry Date", "30. Expiry Date", "PRODUCT_EXPIRY_DATE"]) || "",
 
-      publish: (row['Status'] || row['Status'] || "").toLowerCase() === 'active' || (row['Status'] || "").toLowerCase() === 'published' ? true : false,
+      publish: (() => {
+        const st = (rowCell(row, ["Status", "PRODUCT_STATUS"]) || "").toLowerCase();
+        return st === "active" || st === "published";
+      })(),
       popular: false,
       dealOfDay: false,
       isReturnable: false,
@@ -155,7 +184,7 @@ export default function SellerStockBulkImport({
       // We'll put price, stock, mrp into the first variation if no variations exist, or top level if supported.
       // CreateProductData requires variations: ProductVariation[]
 
-      mainImage: row['Image'] || row['Img'] || row['Main Image'] || "",
+      mainImage: rowCell(row, ["Image", "Img", "Main Image", "PRODUCT_IMAGE", "PRODUCT_MAIN_IMAGE"]) || "",
 
     } as any; // Casting to any to allow flexible mapping, specifically for the variations array construction below
   };
@@ -175,31 +204,61 @@ export default function SellerStockBulkImport({
 
             // Construct proper CreateProductData payload
             // We need to ensure variations array is populated correctly with price/stock/mrp
-            const price = parseFloat(row['Sell Price'] || row['18. Sell Price'] || row['Selling Price'] || "0");
-            const mrp = parseFloat(row['MRP'] || row['17. MRP'] || "0");
-            const stock = parseInt(row['Stock'] || row['20. Stock'] || "0");
-            const discPrice = parseFloat(row['Offer Price'] || row['21. Offer Price'] || "0");
-            const wholesalePrice = parseFloat(row['Wholesale Price'] || row['22. Wholesale Price'] || "0");
+            const price = parseFloat(
+              rowCell(row, [
+                "Sell Price",
+                "17. Sell Price",
+                "18. Sell Price",
+                "Selling Price",
+                "PRODUCT_RETAIL_PRICE",
+                "PRODUCT_SELLING_PRICE",
+              ]) || "0"
+            );
+            const mrp = parseFloat(
+              rowCell(row, ["MRP", "16. MRP", "17. MRP", "PRODUCT_MRP"]) || "0"
+            );
+            const stock = parseInt(
+              rowCell(row, ["Stock", "19. Stock", "20. Stock", "PRODUCT_QUANTITY", "PRODUCT_STOCK"]) || "0",
+              10
+            );
+            const discPrice = parseFloat(
+              rowCell(row, ["Offer Price", "20. Offer Price", "21. Offer Price", "PRODUCT_OFFER_PRICE"]) || "0"
+            );
+            const wholesalePrice = parseFloat(
+              rowCell(row, [
+                "Wholesale Price",
+                "21. Wholesale Price",
+                "22. Wholesale Price",
+                "PRODUCT_WHOLESALE_PRICE",
+              ]) || "0"
+            );
 
-            const variations = rawData.variations && rawData.variations.length > 0 ? rawData.variations : [
-                {
-                    price,
-                    discPrice: discPrice || 0,
-                    stock,
-                    status: stock > 0 ? "In stock" : "Sold out",
-                    sku: rawData.itemCode,
-                    compareAtPrice: mrp,
-                    wholesalePrice: wholesalePrice,
-                    title: "Default",
-                }
-            ];
+            // mapRowToProduct uses `variations` for Size/Color tags only (no price). Never send those as API variations
+            // or the backend drops them and price is missing. Spread `...rawData` must not overwrite this array.
+            const excelAttrs = rawData.variations && Array.isArray(rawData.variations) ? rawData.variations : [];
+            const hasPricedExcelVariation =
+              excelAttrs.length > 0 &&
+              excelAttrs.some(
+                (v: any) => v != null && typeof v.price === "number" && !Number.isNaN(v.price)
+              );
 
-            // If variations exist, we should probably distribute stock/price or assume row defines the main variation?
-            // Bulk import usually implies one row = one product (or specific variation logic)
-            // If row has Size/Color, it's a variation.
-            // If we are creating a NEW product, we need at least one variation.
+            const defaultVariation = {
+              price,
+              discPrice: discPrice || 0,
+              stock,
+              status: stock > 0 ? "In stock" : "Sold out",
+              sku: rawData.itemCode,
+              compareAtPrice: mrp,
+              wholesalePrice: wholesalePrice,
+              title: "Default",
+            };
+
+            const variations = hasPricedExcelVariation ? (excelAttrs as any) : [defaultVariation];
+
+            const { variations: _excelVariationAttrs, ...rawWithoutVariations } = rawData as any;
 
             const productPayload: CreateProductData = {
+                ...rawWithoutVariations,
                 productName: rawData.productName || "Untitled",
                 categoryId: rawData.categoryId,
                 subcategoryId: rawData.subcategoryId,
@@ -218,9 +277,6 @@ export default function SellerStockBulkImport({
                 purchasePrice: rawData.purchasePrice,
                 deliveryTime: rawData.deliveryTime,
                 lowStockQuantity: rawData.lowStockQuantity,
-                // Add fields that might be processed by backend even if strict type doesn't show them (like barcode)
-                // Any extra fields are handled here by casting
-                ...rawData
             };
 
             await createProduct(productPayload);
