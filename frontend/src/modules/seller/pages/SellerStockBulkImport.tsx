@@ -1,4 +1,7 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+
+/** Search built `SellerStockBulkImport-*.js` for this string after deploy — if missing, server still serving old files. */
+export const SELLER_BULK_IMPORT_BUILD_ID = "geeta-bulk-import-2025-03-23";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import {
@@ -222,6 +225,10 @@ export default function SellerStockBulkImport({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
+  useEffect(() => {
+    console.info("[Seller bulk import]", SELLER_BULK_IMPORT_BUILD_ID);
+  }, []);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
@@ -377,8 +384,17 @@ export default function SellerStockBulkImport({
       // compareAtPrice: parseFloat(row['MRP'] || row['17. MRP'] || "0"), // Product interface has compareAtPrice, CreateProductData has variations which have compareAtPrice.
       // Note: createProduct in productService creates a product structure. Some fields might be top level, others in variations.
       // Let's create a minimal valid structure based on CreateProductData
-      // deliveryTime: row['Del. Time'] || row['19. Del. Time'] || "",
-      lowStockQuantity: parseInt(rowCell(row, ["Low Stock", "23. Low Stock", "22. Low Stock", "PRODUCT_LOW_STOCK"]) || "5", 10),
+      deliveryTime:
+        rowCell(row, [
+          "Del. Time",
+          "18. Del. Time",
+          "19. Del. Time",
+          "PRODUCT_DELIVERY_TIME",
+        ]) || "",
+      lowStockQuantity: parseInt(
+        rowCell(row, ["Low Stock", "22. Low Stock", "21. Low Stock", "PRODUCT_LOW_STOCK"]) || "5",
+        10
+      ),
       brandId: rowCell(row, ["Brand", "24. Brand", "23. Brand", "PRODUCT_BRAND"]) || "",
       mfgDate: rowCell(row, ["Mfg Date", "29. Mfg Date", "PRODUCT_MFG_DATE"]) || "",
       expiryDate: rowCell(row, ["Expiry Date", "30. Expiry Date", "PRODUCT_EXPIRY_DATE"]) || "",

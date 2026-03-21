@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
 import {
@@ -13,7 +13,9 @@ import {
 } from "../../../services/api/categoryService";
 import { useAuth } from "../../../context/AuthContext";
 import SellerStockBulkEdit from "./SellerStockBulkEdit";
-import SellerStockBulkImport from "./SellerStockBulkImport";
+
+/** Own chunk so production shows `SellerStockBulkImport-*.js` — proves new import code deployed (not old inlined bundle). */
+const SellerStockBulkImport = lazy(() => import("./SellerStockBulkImport"));
 import { getAppSettings } from "../../../services/api/admin/adminSettingsService";
 import VariationDropdown from "../../../components/VariationDropdown";
 
@@ -1254,13 +1256,23 @@ export default function SellerProductList() {
       )}
 
       {showBulkImport && (
-        <SellerStockBulkImport
-           categories={categories}
-           onClose={() => setShowBulkImport(false)}
-           onSuccess={() => {
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg px-6 py-4 shadow text-sm text-neutral-600">
+                Loading bulk import…
+              </div>
+            </div>
+          }
+        >
+          <SellerStockBulkImport
+            categories={categories}
+            onClose={() => setShowBulkImport(false)}
+            onSuccess={() => {
               fetchData();
-           }}
-        />
+            }}
+          />
+        </Suspense>
       )}
 
       {showScanner && (
