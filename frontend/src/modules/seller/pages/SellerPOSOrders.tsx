@@ -4491,40 +4491,73 @@ const SellerPOSOrders = () => {
                     const purchaseQty = purchaseItem?.qty || 0;
 
                     return (
-                      <div key={product._id} className="bg-white border border-gray-200 rounded-2xl p-3">
+                      <div
+                        key={product._id}
+                        className={`bg-white p-4 rounded-lg border shadow-sm ${
+                          product.stock <= 0 ? 'opacity-60 grayscale' : ''
+                        }`}
+                      >
                         <div className="flex gap-3">
-                          <div className="w-14 h-14 rounded-lg bg-gray-100 overflow-hidden flex items-center justify-center">
-                            {product.mainImage ? <img src={product.mainImage} alt="" className="w-full h-full object-contain" /> : <span className="text-xs text-gray-400">IMG</span>}
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {product.mainImage ? (
+                              <img src={product.mainImage} alt="" className="w-full h-full object-contain" />
+                            ) : (
+                              <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                              </svg>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-gray-800 leading-tight">{product.productName}</h4>
-                            <p className="text-sm text-gray-500">MRP: ₹{product.compareAtPrice || product.price} | Retail Price: ₹{product.price}</p>
-                            <p className="text-sm text-gray-500">Quantity: {product.stock} Piece</p>
+                            <h4 className="font-semibold text-gray-800 text-sm line-clamp-2 mb-1">
+                              {product.productName}
+                            </h4>
+                            <div className="flex items-center gap-2 text-xs mb-2">
+                              <span className="text-gray-500">
+                                MRP: <span className="line-through">₹{product.compareAtPrice || 0}</span>
+                              </span>
+                              <span className="font-bold text-[#f187b5]">
+                                {orderType === 'Wholesale' && (product.wholesalePrice || 0) > 0
+                                  ? `WSP: ₹${product.wholesalePrice}`
+                                  : `SP: ₹${product.price}`}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Quantity: {product.stock} Piece
+                            </div>
                           </div>
-                          {purchaseQty > 0 ? (
-                            <div className="self-center flex items-center gap-2 bg-[#fdf0f6] border border-[#f3c7dc] rounded-xl px-2 py-1">
-                              <button
-                                onClick={() => decreasePurchaseQtyByProductId(product._id)}
-                                className="w-7 h-7 rounded-md border border-[#f3c7dc] text-[#cf6594] bg-white font-bold text-lg leading-none"
-                              >
-                                -
-                              </button>
-                              <span className="min-w-[20px] text-center text-sm font-bold text-[#cf6594]">{purchaseQty}</span>
+                          <div className="flex items-center">
+                            {purchaseQty > 0 ? (
+                              <div className="flex items-center gap-2 bg-[#f187b5]/10 rounded-lg px-2 py-1">
+                                <button
+                                  onClick={() => decreasePurchaseQtyByProductId(product._id)}
+                                  className="w-7 h-7 flex items-center justify-center bg-white text-[#f187b5] rounded hover:bg-[#f187b5] hover:text-white transition-colors border border-[#f187b5]"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4"></path>
+                                  </svg>
+                                </button>
+                                <span className="font-bold text-[#f187b5] min-w-[20px] text-center">
+                                  {purchaseQty}
+                                </span>
+                                <button
+                                  onClick={() => addProductToPurchase(product)}
+                                  className="w-7 h-7 flex items-center justify-center bg-[#f187b5] text-white rounded hover:bg-[#e076a5] transition-colors"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                                  </svg>
+                                </button>
+                              </div>
+                            ) : (
                               <button
                                 onClick={() => addProductToPurchase(product)}
-                                className="w-7 h-7 rounded-md bg-[#f187b5] text-white font-bold text-lg leading-none"
+                                disabled={product.stock <= 0}
+                                className="px-4 py-2 bg-[#f187b5] text-white rounded-lg hover:bg-[#e076a5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
                               >
-                                +
+                                Add
                               </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => addProductToPurchase(product)}
-                              className="self-center rounded-xl border border-gray-300 px-5 py-2 font-semibold hover:bg-gray-50"
-                            >
-                              Add
-                            </button>
-                          )}
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
