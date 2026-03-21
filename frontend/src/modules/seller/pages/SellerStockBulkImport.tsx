@@ -419,6 +419,10 @@ export default function SellerStockBulkImport({
 
   const handleUpload = async () => {
     if (!previewData.length) return;
+    const apiBase =
+      import.meta.env.VITE_API_BASE_URL ||
+      (import.meta.env.DEV ? "/api/v1" : "https://api.geeta.today/api/v1");
+
     setUploading(true);
     setImportFailures([]);
     const failures: { row: number; label: string; message: string }[] = [];
@@ -435,6 +439,15 @@ export default function SellerStockBulkImport({
     const stockImportMode = isStockManagementCsv(
       Object.keys(firstNorm).map(normalizeHeaderKey)
     );
+
+    console.log("[Seller bulk import] START — user clicked Upload & Import", {
+      fileName: file?.name ?? "(unknown)",
+      rowCount: total,
+      mode: stockImportMode ? "stock CSV (update existing variation stock)" : "product rows (create product per row)",
+      api: stockImportMode
+        ? `PATCH ${apiBase}/products/{productId}/variations/{variationId}/stock`
+        : `POST ${apiBase}/products`,
+    });
     let mongoVariationLookup: Map<string, { productId: string; variationId: string }> | null =
       null;
     if (stockImportMode) {
@@ -708,6 +721,22 @@ export default function SellerStockBulkImport({
 
     setUploading(false);
     setImportFailures(failures);
+
+    const summary =
+      failedCount === 0 && successCount > 0
+        ? "completed — all rows succeeded"
+        : successCount > 0 && failedCount > 0
+          ? "completed — partial (some rows failed)"
+          : failedCount > 0 && successCount === 0
+            ? "completed — all rows failed"
+            : "completed — nothing imported";
+
+    console.log("[Seller bulk import] DONE", {
+      fileName: file?.name ?? "(unknown)",
+      successRows: successCount,
+      failedRows: failedCount,
+      summary,
+    });
 
     if (failures.length > 0) {
       alert(
