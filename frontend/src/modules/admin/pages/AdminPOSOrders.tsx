@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { getProducts, getProductById, getPOSProducts, Product, getSellers, updateProduct, createProduct } from '../../../services/api/admin/adminProductService';
 import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getOrderById, updateOrderItems } from '../../../services/api/admin/adminOrderService';
 import { getAllSuppliers } from '../../../services/api/admin/supplierService';
@@ -13,6 +14,11 @@ import autoTable from 'jspdf-autotable';
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { useAppContext } from '../../../context/AppContext';
 import { appendPOSStaffBill, getStaffSession } from '../../../utils/staffSession';
+import {
+  ADMIN_POS_BILL_SETTINGS_KEY,
+  ADMIN_POS_BILL_SETTINGS_UPDATED_EVENT,
+  readAdminPosBillSettings,
+} from '../../../utils/adminPosBillSettings';
 
 // Interface for Cart Item extending Product
 export interface CartItem extends Product {
@@ -108,10 +114,33 @@ const AdminPOSOrders = () => {
 
   useEffect(() => {
     refreshConfig();
-    const saved = localStorage.getItem('admin_pos_bill_settings');
-    if (saved) {
-      setPosBillSettings(JSON.parse(saved));
-    }
+    const loadPosBillSettings = () => {
+      try {
+        const saved = localStorage.getItem(ADMIN_POS_BILL_SETTINGS_KEY);
+        if (saved) {
+          setPosBillSettings(JSON.parse(saved));
+        } else {
+          setPosBillSettings(null);
+        }
+      } catch (e) {
+        console.error('Failed to load POS bill settings', e);
+      }
+    };
+    loadPosBillSettings();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === ADMIN_POS_BILL_SETTINGS_KEY || e.key === null) {
+        loadPosBillSettings();
+      }
+    };
+    const onBillSettingsUpdated = () => loadPosBillSettings();
+    window.addEventListener('storage', onStorage);
+    window.addEventListener(ADMIN_POS_BILL_SETTINGS_UPDATED_EVENT, onBillSettingsUpdated);
+    window.addEventListener('focus', onBillSettingsUpdated);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(ADMIN_POS_BILL_SETTINGS_UPDATED_EVENT, onBillSettingsUpdated);
+      window.removeEventListener('focus', onBillSettingsUpdated);
+    };
   }, []);
 
   const [selectedSeller, setSelectedSeller] = useState('');
@@ -1426,6 +1455,21 @@ const AdminPOSOrders = () => {
       return;
     }
 
+    const bs = readAdminPosBillSettings() as Record<string, any> | null;
+    const esc = (v: string) =>
+      v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const shopTitle = esc(String(bs?.shopName || 'GEETA'));
+    const addrLines = String(
+      bs?.address ||
+        'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'
+    );
+    const addrHtml = esc(addrLines).replace(/\n/g, '<br>');
+    const phoneLine = esc(String(bs?.phone || '7898111456'));
+    const fssaiBlk =
+      bs?.fssai?.enabled && bs?.fssai?.text
+        ? `FSSAI: ${esc(String(bs.fssai.text))}`
+        : 'FSSAI: 583545736';
+
     const billNoPrefix = entry.type === 'quotation' ? 'QTN' : 'BILL';
     const billNo = `${billNoPrefix}/${new Date(entry.createdAt).getFullYear()}/${entry.id.slice(-5)}`;
     const supplierName = entry.supplier?.name || 'Walk-in Supplier';
@@ -1484,8 +1528,8 @@ const AdminPOSOrders = () => {
         </head>
         <body>
           <div class="top">
-            <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 4px;">GEETA</h1>
-            <p style="font-size: 14px; line-height: 1.4;">Q7WM+92M, Q7WM+92M, , Indore Division,<br>Nagda, Madhya Pradesh, India - 454001<br>7898111456<br>FSSAI: 583545736</p>
+            <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 4px;">${shopTitle}</h1>
+            <p style="font-size: 14px; line-height: 1.4;">${addrHtml}<br>${phoneLine}<br>${fssaiBlk}</p>
           </div>
 
           <div class="meta">
@@ -2200,6 +2244,7 @@ const AdminPOSOrders = () => {
    * Renamed from handleGenerateBill to downloadPDF
    */
    const downloadPDF = () => {
+    const billPdf = readAdminPosBillSettings() ?? posBillSettings;
     if (lastBillDetails?.isQuotation && lastBillDetails.quotationEntry) {
       const entry = lastBillDetails.quotationEntry;
       const doc = new jsPDF();
@@ -2218,18 +2263,18 @@ const AdminPOSOrders = () => {
       // --- Header (Image 4 Style) ---
       doc.setFontSize(22);
       doc.setFont("helvetica", "bold");
-      doc.text(posBillSettings?.shopName || "GEETA", 14, 20);
+      doc.text(billPdf?.shopName || "GEETA", 14, 20);
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      const qAddress = posBillSettings?.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001";
+      const qAddress = billPdf?.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001";
       const qLines = doc.splitTextToSize(qAddress, 180);
       doc.text(qLines, 14, 26);
       let qY = 26 + (qLines.length * 5);
-      doc.text(posBillSettings?.phone || "7898111456", 14, qY);
+      doc.text(billPdf?.phone || "7898111456", 14, qY);
       qY += 5;
-      if (posBillSettings?.fssai?.enabled && posBillSettings?.fssai?.text) {
-        doc.text(`FSSAI: ${posBillSettings.fssai.text}`, 14, qY);
+      if (billPdf?.fssai?.enabled && billPdf?.fssai?.text) {
+        doc.text(`FSSAI: ${billPdf.fssai.text}`, 14, qY);
       } else {
         doc.text("FSSAI: 583545736", 14, qY);
       }
@@ -2349,20 +2394,20 @@ const AdminPOSOrders = () => {
     // --- Header ---
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text(posBillSettings?.shopName || "GEETA", 14, 20);
+    doc.text(billPdf?.shopName || "GEETA", 14, 20);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    let address = posBillSettings?.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
+    let address = billPdf?.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
 
-    if (posBillSettings?.gst?.enabled && posBillSettings?.gst?.text) {
-        address += `\nGST: ${posBillSettings.gst.text}`;
+    if (billPdf?.gst?.enabled && billPdf?.gst?.text) {
+        address += `\nGST: ${billPdf.gst.text}`;
     } else if (config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text) {
         address += `\nGST: ${config.invoiceSettings.gst.text}`;
     }
 
-    if (posBillSettings?.fssai?.enabled && posBillSettings?.fssai?.text) {
-        address += `\nFSSAI: ${posBillSettings.fssai.text}`;
+    if (billPdf?.fssai?.enabled && billPdf?.fssai?.text) {
+        address += `\nFSSAI: ${billPdf.fssai.text}`;
     } else if (config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text) {
         address += `\nFSSAI: ${config.invoiceSettings.fssai.text}`;
     }
@@ -2495,7 +2540,7 @@ const AdminPOSOrders = () => {
     y += 10;
     if (config?.invoiceSettings) {
         // Notes
-        if ((posBillSettings?.notes?.enabled && posBillSettings?.notes?.text) || (config.invoiceSettings.notes?.enabled && config.invoiceSettings.notes?.text)) {
+        if ((billPdf?.notes?.enabled && billPdf?.notes?.text) || (config.invoiceSettings.notes?.enabled && config.invoiceSettings.notes?.text)) {
              if (y > 270) { doc.addPage(); y = 20; }
              doc.setFontSize(10);
              doc.setFont("helvetica", "bold");
@@ -2503,14 +2548,14 @@ const AdminPOSOrders = () => {
              y += 5;
              doc.setFont("helvetica", "normal");
              doc.setFontSize(9);
-             const noteText = posBillSettings?.notes?.enabled ? posBillSettings?.notes?.text : config.invoiceSettings.notes.text;
+             const noteText = billPdf?.notes?.enabled ? billPdf?.notes?.text : config.invoiceSettings.notes.text;
              const splitNotes = doc.splitTextToSize(noteText, 180);
              doc.text(splitNotes, 14, y);
              y += (splitNotes.length * 4) + 8;
         }
 
         // Terms
-        if ((posBillSettings?.terms?.enabled && posBillSettings?.terms?.text) || (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text)) {
+        if ((billPdf?.terms?.enabled && billPdf?.terms?.text) || (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text)) {
              if (y > 270) { doc.addPage(); y = 20; }
              doc.setFontSize(10);
              doc.setFont("helvetica", "bold");
@@ -2518,16 +2563,16 @@ const AdminPOSOrders = () => {
              y += 5;
              doc.setFont("helvetica", "normal");
              doc.setFontSize(8);
-             const termText = posBillSettings?.terms?.enabled ? posBillSettings?.terms?.text : config?.invoiceSettings?.terms?.text;
+             const termText = billPdf?.terms?.enabled ? billPdf?.terms?.text : config?.invoiceSettings?.terms?.text;
              const splitTerms = doc.splitTextToSize(termText, 180);
              doc.text(splitTerms, 14, y);
              y += (splitTerms.length * 4) + 5;
         }
 
         // QR Code
-        if (posBillSettings?.qrCode) {
+        if (billPdf?.qrCode) {
             if (y > 240) { doc.addPage(); y = 20; }
-            doc.addImage(posBillSettings.qrCode, 'PNG', 14, y, 30, 30);
+            doc.addImage(billPdf.qrCode, 'PNG', 14, y, 30, 30);
         }
     }
 
@@ -2566,7 +2611,15 @@ const AdminPOSOrders = () => {
   };
 
   const handlePrintBill = () => {
-     window.print();
+    try {
+      const fresh = readAdminPosBillSettings();
+      flushSync(() => {
+        setPosBillSettings(fresh);
+      });
+    } catch (e) {
+      console.error('Failed to sync bill settings before print', e);
+    }
+    window.print();
   };
 
   const handleAccessPayment = () => {

@@ -3,6 +3,7 @@ import { useToast } from "../../../context/ToastContext";
 import { Camera, Save, ArrowLeft, Loader2, Trash2, Phone, MapPin, Building, FileText, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { uploadImage } from "../../../services/api/uploadService";
+import { ADMIN_POS_BILL_SETTINGS_KEY, ADMIN_POS_BILL_SETTINGS_UPDATED_EVENT } from "../../../utils/adminPosBillSettings";
 
 interface BillSettings {
   shopName: string;
@@ -58,7 +59,7 @@ const AdminPOSBillSettings = () => {
   });
 
   useEffect(() => {
-    const savedSettings = localStorage.getItem("admin_pos_bill_settings");
+    const savedSettings = localStorage.getItem(ADMIN_POS_BILL_SETTINGS_KEY);
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
@@ -136,7 +137,8 @@ const AdminPOSBillSettings = () => {
       return;
     }
 
-    localStorage.setItem("admin_pos_bill_settings", JSON.stringify(settings));
+    localStorage.setItem(ADMIN_POS_BILL_SETTINGS_KEY, JSON.stringify(settings));
+    window.dispatchEvent(new Event(ADMIN_POS_BILL_SETTINGS_UPDATED_EVENT));
     showToast("POS Bill settings saved successfully", "success");
   };
 
