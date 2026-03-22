@@ -1,3 +1,4 @@
+import axios from "axios";
 import api from "./config";
 
 export interface ApiResponse<T> {
@@ -170,8 +171,19 @@ export interface ProductsResponse {
 export const createProduct = async (
   data: CreateProductData
 ): Promise<ApiResponse<Product>> => {
-  const response = await api.post<ApiResponse<Product>>("/products", data);
-  return response.data;
+  try {
+    const response = await api.post<ApiResponse<Product>>("/products", data);
+    return response.data;
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      console.error("[API createProduct] request failed", {
+        status: err.response?.status,
+        body: err.response?.data,
+        productName: (data as { productName?: string })?.productName,
+      });
+    }
+    throw err;
+  }
 };
 
 /**

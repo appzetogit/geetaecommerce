@@ -4,7 +4,7 @@ import {
   SELLER_BILL_SETTINGS_KEY,
   SELLER_BILL_SETTINGS_UPDATED_EVENT,
   readSellerPosBillSettings,
-} from '../../utils/sellerPosBillSettings';
+} from '../../../utils/sellerPosBillSettings';
 
 /**
  * Loads seller Bill Settings from localStorage (same source as Seller Bill Settings page)

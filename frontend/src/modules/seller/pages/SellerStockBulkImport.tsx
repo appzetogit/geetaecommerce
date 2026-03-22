@@ -1,7 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-
-/** Search built `SellerStockBulkImport-*.js` for this string after deploy — if missing, server still serving old files. */
-export const SELLER_BULK_IMPORT_BUILD_ID = "geeta-bulk-import-2025-03-23";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import {
@@ -13,6 +10,9 @@ import {
 } from "../../../services/api/productService";
 import { Category } from "../../../services/api/categoryService";
 import { useAuth } from "../../../context/AuthContext";
+
+/** After deploy: pink header ke neeche yeh line dikhni chahiye; `SellerStockBulkImport-*.js` mein bhi search karo. */
+export const SELLER_BULK_IMPORT_BUILD_ID = "geeta-bulk-import-2025-03-24";
 
 interface SellerStockBulkImportProps {
   categories: Category[];
@@ -813,7 +813,12 @@ export default function SellerStockBulkImport({
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-[#f187b5] text-white rounded-t-lg">
-          <h2 className="text-lg font-semibold">Bulk Import Products</h2>
+          <div>
+            <h2 className="text-lg font-semibold">Bulk Import Products</h2>
+            <p className="text-[10px] text-white/85 font-normal tracking-wide mt-0.5">
+              {SELLER_BULK_IMPORT_BUILD_ID}
+            </p>
+          </div>
           <button onClick={onClose} className="text-white hover:bg-[#e076a5] p-2 rounded">✕</button>
         </div>
 
