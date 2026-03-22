@@ -19,6 +19,7 @@ function stripInvalidObjectIdFields(body: Record<string, unknown>): void {
     "headerCategoryId",
     "sellerId",
     "shopId",
+    "taxId",
   ] as const;
   for (const k of keys) {
     const v = body[k];
@@ -170,12 +171,14 @@ export const createProduct = asyncHandler(
       delete newProductData.sku;
     }
 
-    // Handle Tax: Frontend sends taxId, Model expects 'tax' (string) or something else?
-    // Checking SellerAddProduct.tsx sending taxId -> formData.tax
-    // Model Product.ts -> tax: { type: String }
-    // Ideally we should store the Tax ID or Name. Since frontend sends ID, let's map it.
-    if (productData.taxId) {
+    // Tax is ObjectId ref — Excel "0" / empty name must not be cast (BSONError).
+    if (productData.taxId && isValidObjectIdString(productData.taxId)) {
       newProductData.tax = productData.taxId;
+    } else {
+      delete newProductData.tax;
+    }
+    if (newProductData.tax != null && !isValidObjectIdString(newProductData.tax)) {
+      delete newProductData.tax;
     }
 
     // Validate variation prices
@@ -393,9 +396,21 @@ export const updateProduct = asyncHandler(
       updateData.brand = updateData.brandId;
       delete updateData.brandId;
     }
-    if (updateData.taxId) {
-      updateData.tax = updateData.taxId;
+    if (updateData.taxId !== undefined && updateData.taxId !== null) {
+      if (isValidObjectIdString(updateData.taxId)) {
+        updateData.tax = updateData.taxId;
+      } else {
+        delete updateData.tax;
+      }
       delete updateData.taxId;
+    }
+    if (
+      updateData.tax !== undefined &&
+      updateData.tax !== null &&
+      updateData.tax !== "" &&
+      !isValidObjectIdString(updateData.tax)
+    ) {
+      delete updateData.tax;
     }
     if (updateData.mainImageUrl) {
       updateData.mainImage = updateData.mainImageUrl;
