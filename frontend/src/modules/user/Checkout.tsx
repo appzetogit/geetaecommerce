@@ -271,6 +271,53 @@ export default function Checkout() {
 
   const grandTotal = baseTotalForDiscount;
 
+  const getAvailableStockForCartItem = (item: any): number => {
+    const product = item?.product;
+    if (!product) return 0;
+
+    const rawVariant = item?.variant;
+    const variantLabel = rawVariant != null ? String(rawVariant) : "";
+    const normalizedVariantLabel = variantLabel.trim().toLowerCase();
+    const variantIdLabel = String((rawVariant as any)?._id || "").trim().toLowerCase();
+
+    if (Array.isArray(product.variations) && product.variations.length > 0) {
+      if (normalizedVariantLabel || variantIdLabel) {
+        const matchedVariation = product.variations.find((v: any) => {
+          const vId = String(v?._id || "").trim().toLowerCase();
+          const vTitle = String(v?.title || "").trim().toLowerCase();
+          const vName = String(v?.name || "").trim().toLowerCase();
+          const vValue = String(v?.value || "").trim().toLowerCase();
+          return (
+            (variantIdLabel && vId === variantIdLabel) ||
+            (normalizedVariantLabel &&
+              (vId === normalizedVariantLabel ||
+                vTitle === normalizedVariantLabel ||
+                vName === normalizedVariantLabel ||
+                vValue === normalizedVariantLabel))
+          );
+        });
+
+        if (matchedVariation) {
+          return Number(matchedVariation.stock) || 0;
+        }
+      }
+    }
+
+    return Number(product.stock) || 0;
+  };
+
+  const outOfStockItems = displayItems.filter((item: any) => {
+    const qty = Number(item?.quantity) || 0;
+    if (qty <= 0) return true;
+    const availableStock = getAvailableStockForCartItem(item);
+    return availableStock < qty;
+  });
+
+  const firstOutOfStockName =
+    outOfStockItems[0]?.product?.name ||
+    outOfStockItems[0]?.product?.productName ||
+    "one or more items";
+
   const handleApplyCoupon = async (coupon: ApiCoupon) => {
     setIsValidatingCoupon(true);
     setCouponError(null);
@@ -360,6 +407,10 @@ export default function Checkout() {
     setShowPaymentModal(false);
 
     if (!selectedAddress || cart.items.length === 0) return;
+    if (outOfStockItems.length > 0) {
+      showGlobalToast(`"${firstOutOfStockName}" is out of stock. Please update cart first.`, "error");
+      return;
+    }
 
     // Use user's current location as fallback if address doesn't have coordinates
     const finalLatitude = selectedAddress.latitude ?? userLocation?.latitude;
@@ -486,6 +537,10 @@ export default function Checkout() {
   const performOrderPlacement = async (method: string) => {
     // Re-validate just in case
     if (!selectedAddress || cart.items.length === 0) return;
+    if (outOfStockItems.length > 0) {
+      showGlobalToast(`"${firstOutOfStockName}" is out of stock. Please update cart first.`, "error");
+      return;
+    }
 
     const finalLatitude = selectedAddress.latitude ?? userLocation?.latitude;
     const finalLongitude = selectedAddress.longitude ?? userLocation?.longitude;
@@ -550,6 +605,10 @@ export default function Checkout() {
 
   const handlePlaceOrderClick = () => {
     if (!selectedAddress || cart.items.length === 0) {
+      return;
+    }
+    if (outOfStockItems.length > 0) {
+      showGlobalToast(`"${firstOutOfStockName}" is out of stock. Please update cart first.`, "error");
       return;
     }
 
@@ -1879,8 +1938,8 @@ export default function Checkout() {
         {selectedAddress ? (
           <button
             onClick={handlePlaceOrderClick}
-            disabled={cart.items.length === 0}
-            className={`w-full py-3 px-4 font-bold text-sm uppercase tracking-wide transition-colors ${cart.items.length > 0
+            disabled={cart.items.length === 0 || outOfStockItems.length > 0}
+            className={`w-full py-3 px-4 font-bold text-sm uppercase tracking-wide transition-colors ${cart.items.length > 0 && outOfStockItems.length === 0
               ? 'bg-green-600 text-white hover:bg-green-700'
               : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
               }`}
