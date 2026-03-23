@@ -492,7 +492,7 @@ export default function ProductDetail() {
                     <img
                       src={image}
                       alt={`${product.name} - Image ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                       referrerPolicy="no-referrer"
                       draggable={false}
                     />

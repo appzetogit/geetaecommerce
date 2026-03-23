@@ -231,7 +231,7 @@ export default function ProductCard({
               ref={imageRef}
               src={product.imageUrl || product.mainImage}
               alt={product.name || product.productName || 'Product'}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               referrerPolicy="no-referrer"
               onError={(e) => {
                 // Hide broken image and show fallback
