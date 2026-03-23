@@ -70,9 +70,12 @@ export default function AdminStockManagement() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, token } = useAuth();
+  const lastFetchKeyRef = useRef<string>("");
+  const staticDataFetchKeyRef = useRef<string>("");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -112,6 +115,39 @@ export default function AdminStockManagement() {
   const LIVE_BASE_URL = "https://geeta.today";
   const buildLiveProductUrl = (productId: string) => `${LIVE_BASE_URL}/product/${productId}`;
 
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [searchTerm]);
+
+  const fetchStaticData = async () => {
+    try {
+      const categoriesResponse = await getCategories();
+      if (categoriesResponse.success) {
+        setCategories(categoriesResponse.data);
+      }
+
+      const brandsResponse = await getBrands();
+      if (brandsResponse.success) {
+        setBrands(brandsResponse.data);
+      }
+
+      const subCategoriesResponse = await getSubCategories({ limit: 1000 } as any);
+      if (subCategoriesResponse.success) {
+        setSubCategories(subCategoriesResponse.data);
+      }
+
+      const settingsRes = await getAppSettings();
+      if (settingsRes.success && settingsRes.data.barcodeSettings) {
+        setBarcodeSettings(settingsRes.data.barcodeSettings);
+      }
+    } catch (err) {
+      console.error("Error fetching stock management static data:", err);
+    }
+  };
+
   // Fetch products and categories
   const fetchData = async () => {
     try {
@@ -120,19 +156,13 @@ export default function AdminStockManagement() {
       setHasUnsavedChanges(false);
       setChangedProductIds(new Set());
 
-      // Fetch categories for filter dropdown
-      const categoriesResponse = await getCategories();
-      if (categoriesResponse.success) {
-        setCategories(categoriesResponse.data);
-      }
-
       // Fetch products
       const params: any = {
         limit: 1000, // Fetch all products (increase if you have more than 1000)
       };
 
-      if (searchTerm) {
-        params.search = searchTerm;
+      if (debouncedSearchTerm) {
+        params.search = debouncedSearchTerm;
       }
 
       if (filterCategory !== "All Category") {
@@ -146,24 +176,6 @@ export default function AdminStockManagement() {
       const response = await getProducts(params);
       if (response.success) {
         setProducts(response.data);
-      }
-
-      // Fetch Brands
-      const brandsResponse = await getBrands();
-      if (brandsResponse.success) {
-        setBrands(brandsResponse.data);
-      }
-
-      // Fetch Subcategories
-      const subCategoriesResponse = await getSubCategories({ limit: 1000 } as any);
-      if (subCategoriesResponse.success) {
-        setSubCategories(subCategoriesResponse.data);
-      }
-
-      // Fetch barcode settings
-      const settingsRes = await getAppSettings();
-      if (settingsRes.success && settingsRes.data.barcodeSettings) {
-          setBarcodeSettings(settingsRes.data.barcodeSettings);
       }
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -188,11 +200,21 @@ export default function AdminStockManagement() {
       setLoading(false);
       return;
     }
+
+    const staticDataKey = `${token}|${location.key}`;
+    if (staticDataFetchKeyRef.current !== staticDataKey) {
+      staticDataFetchKeyRef.current = staticDataKey;
+      fetchStaticData();
+    }
+
+    const fetchKey = `${token}|${debouncedSearchTerm}|${filterCategory}|${filterStatus}|${location.key}`;
+    if (lastFetchKeyRef.current === fetchKey) return;
+    lastFetchKeyRef.current = fetchKey;
     fetchData();
   }, [
     isAuthenticated,
     token,
-    searchTerm,
+    debouncedSearchTerm,
     filterCategory,
     filterStatus,
     location.key,
