@@ -14,6 +14,54 @@ interface AdminStockBulkImportProps {
   onSuccess: () => void;
 }
 
+function normalizeHeaderKey(k: string): string {
+  return String(k)
+    .replace(/^\uFEFF/, "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, "_")
+    .replace(/_+/g, "_");
+}
+
+function normalizeExcelRow(row: Record<string, unknown>): Record<string, unknown> {
+  const merged: Record<string, unknown> = { ...row };
+  for (const [k, v] of Object.entries(row)) {
+    const nk = normalizeHeaderKey(k);
+    if (nk && !(nk in merged)) merged[nk] = v;
+  }
+  return merged;
+}
+
+function rowCell(row: Record<string, unknown>, keys: string[]): string | undefined {
+  const pick = (v: unknown) => {
+    if (v === undefined || v === null) return undefined;
+    if (typeof v === "number" && !Number.isNaN(v)) return String(v);
+    const s = String(v).trim();
+    return s !== "" ? s : undefined;
+  };
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(row, key)) {
+      const got = pick(row[key]);
+      if (got !== undefined) return got;
+    }
+  }
+  const normalizedWants = new Set(keys.map((w) => normalizeHeaderKey(w)));
+  for (const rk of Object.keys(row)) {
+    if (normalizedWants.has(normalizeHeaderKey(rk))) {
+      const got = pick(row[rk]);
+      if (got !== undefined) return got;
+    }
+  }
+  return undefined;
+}
+
+function safeNonNegativeNumber(n: unknown, fallback = 0): number {
+  const x = typeof n === "number" ? n : parseFloat(String(n ?? ""));
+  if (!Number.isFinite(x) || Number.isNaN(x) || x < 0) return fallback;
+  return x;
+}
+
 export default function AdminStockBulkImport({
   categories,
   onClose,
@@ -53,13 +101,23 @@ export default function AdminStockBulkImport({
 
       // Let's check if the first row of data looks like headers
       if (json.length > 0) {
-          const firstRow = json[0];
-          const values = Object.values(firstRow);
-          // Check if specific sub-headers exist as values in the first 'data' row
-          if (values.includes("Price (Min Qty 2)") || values.includes("Price (Min Qty 4)")) {
-              // Re-parse skipping the first header row (so the second row becomes the header)
-              json = XLSX.utils.sheet_to_json(sheet, { range: 1 });
-          }
+        const firstRow = json[0];
+        const values = Object.values(firstRow);
+        const twoRowMarkers = new Set([
+          "Price (Min Qty 2)",
+          "Price (Min Qty 4)",
+          "26. Unit Price (Min Qty 2)",
+          "27. Unit Price (Min Qty 4)",
+          "Unit Price (Min Qty 2)",
+          "Unit Price (Min Qty 4)",
+        ]);
+        const hit = values.some((v) => {
+          if (v == null) return false;
+          return twoRowMarkers.has(String(v).trim());
+        });
+        if (hit) {
+          json = XLSX.utils.sheet_to_json(sheet, { range: 1 });
+        }
       }
 
       setPreviewData(json);
@@ -67,93 +125,107 @@ export default function AdminStockBulkImport({
     reader.readAsBinaryString(file);
   };
 
-  const mapRowToProduct = (row: any): Partial<CreateProductData> => {
-    // Helper to find category ID by name
-    const findCategory = (name: string) => categories.find((c) => c.name?.toLowerCase() === name?.toLowerCase())?._id || "";
+  const mapRowToProduct = (row: Record<string, unknown>): Partial<CreateProductData> => {
+    const findCategory = (name: string) =>
+      categories.find((c) => c.name?.toLowerCase() === name?.toLowerCase())?._id || "";
 
-    const variations = [];
-    if (row['Size'] || row['11. Size']) {
-       variations.push({ name: "Size", value: String(row['Size'] || row['11. Size']) });
-    }
-    if (row['Color'] || row['12. Color']) {
-       variations.push({ name: "Color", value: String(row['Color'] || row['12. Color']) });
-    }
+    const variations: { name: string; value: string }[] = [];
+    const sizeVal = rowCell(row, ["Size", "11. Size"]);
+    const colorVal = rowCell(row, ["Color", "12. Color"]);
+    if (sizeVal) variations.push({ name: "Size", value: sizeVal });
+    if (colorVal) variations.push({ name: "Color", value: colorVal });
 
-    // New Generic Variations Column
-    const rawVars = row['Variations'] || row['29. Variations'];
+    const rawVars = rowCell(row, ["Variations", "28. Variations"]);
     if (rawVars) {
-        String(rawVars).split(';').forEach(v => {
-            const [name, val] = v.split(':').map(s => s.trim());
-            if (name && val) {
-                variations.push({ name: name, value: val });
-            }
+      String(rawVars)
+        .split(";")
+        .forEach((v) => {
+          const [name, val] = v.split(":").map((s) => s.trim());
+          if (name && val) variations.push({ name, value: val });
         });
     }
 
     let unitPricing: { minQty: number; price: number }[] = [];
     try {
-        // Check for specific columns first (New Template Format)
-        const priceFor2 = parseFloat(row['27. Unit Price (Min Qty 2)'] || row['Unit Price (Min Qty 2)'] || row['27. Price (Min Qty 2)'] || row['Price (Min Qty 2)'] || "0");
-        const priceFor4 = parseFloat(row['28. Unit Price (Min Qty 4)'] || row['Unit Price (Min Qty 4)'] || row['28. Price (Min Qty 4)'] || row['Price (Min Qty 4)'] || "0");
-
-        if (priceFor2 > 0) unitPricing.push({ minQty: 2, price: priceFor2 });
-        if (priceFor4 > 0) unitPricing.push({ minQty: 4, price: priceFor4 });
-
-        // Fallback or additional rules from single column (Old Format)
-        const rawPricing = row['Unit Pricing'] || row['Tiered Pricing'] || row['Pricing Rules'] ||
-                          row['27. Unit Pricing Rules (e.g. 2=100; 5=90)'] || row['27. Unit Pricing Rules'] ||
-                          row['27. Pricing Rules'] || row['Unit Pricing Rules'];
-
-        if (rawPricing) {
-             const pricingStr = String(rawPricing).trim();
-
-             // 1. Try Simple Syntax: "2=100; 5=90"
-             if (pricingStr.includes('=') && !pricingStr.startsWith('[')) {
-                unitPricing = pricingStr.split(';').map(pair => {
-                    const [qty, price] = pair.split('=').map(s => s.trim());
-                    return { minQty: parseInt(qty), price: parseFloat(price) };
-                }).filter(p => !isNaN(p.minQty) && !isNaN(p.price));
-             }
-             // 2. Try JSON Syntax
-             else if (pricingStr.startsWith('[')) {
-                 unitPricing = JSON.parse(pricingStr);
-             }
-        }
-    } catch (e) {
-        console.warn("Failed to parse unit pricing for row", row);
+      const priceFor2 = safeNonNegativeNumber(
+        rowCell(row, [
+          "26. Unit Price (Min Qty 2)",
+          "Unit Price (Min Qty 2)",
+          "26. Price (Min Qty 2)",
+          "27. Price (Min Qty 2)",
+          "Price (Min Qty 2)",
+        ]),
+        0
+      );
+      const priceFor4 = safeNonNegativeNumber(
+        rowCell(row, [
+          "27. Unit Price (Min Qty 4)",
+          "Unit Price (Min Qty 4)",
+          "27. Price (Min Qty 4)",
+          "28. Price (Min Qty 4)",
+          "Price (Min Qty 4)",
+        ]),
+        0
+      );
+      if (priceFor2 > 0) unitPricing.push({ minQty: 2, price: priceFor2 });
+      if (priceFor4 > 0) unitPricing.push({ minQty: 4, price: priceFor4 });
+    } catch {
+      console.warn("Failed to parse unit pricing for row", row);
     }
 
+    const productName = rowCell(row, ["Product Name", "4. Product Name"]) || "";
+    const categoryName = rowCell(row, ["Category", "1. Category"]) || "";
+    const sku = rowCell(row, ["SKU", "5. SKU"]) || "";
+    const price = safeNonNegativeNumber(
+      rowCell(row, ["Sell Price", "17. Sell Price", "Selling Price", "Price"]),
+      0
+    );
+    const mrp = safeNonNegativeNumber(rowCell(row, ["MRP", "16. MRP"]), 0);
+    const stock = Math.floor(
+      safeNonNegativeNumber(rowCell(row, ["Stock", "19. Stock"]), 0)
+    );
+
     return {
-      category: findCategory(row['Category'] || row['1. Category']),
-      subcategory: row['Sub Cat'] || row['2. Sub Cat'] || "",
-      subSubCategory: row['Sub Sub Cat'] || row['3. Sub Sub Cat'] || "",
-      productName: row['Product Name'] || row['4. Product Name'] || "",
-      sku: row['SKU'] || row['5. SKU'] || "",
-      itemCode: row['SKU'] || row['5. SKU'] || "", // Map to sku/itemCode
-      rackNumber: row['Rack'] || row['6. Rack'] || "",
-      description: row['Desc'] || row['7. Desc'] || "",
-      barcode: row['Barcode'] || row['8. Barcode'] || "",
-      hsnCode: row['HSN'] || row['9. HSN'] || "",
-      pack: row['Unit'] || row['10. Unit'] || "",
+      category: findCategory(categoryName),
+      subcategory: rowCell(row, ["Sub Cat", "2. Sub Cat"]) || "",
+      subSubCategory: rowCell(row, ["Sub Sub Cat", "3. Sub Sub Cat"]) || "",
+      productName,
+      sku,
+      itemCode: sku,
+      rackNumber: rowCell(row, ["Rack", "6. Rack"]) || "",
+      description: rowCell(row, ["Desc", "7. Desc"]) || "",
+      barcode: rowCell(row, ["Barcode", "8. Barcode"]) || "",
+      hsnCode: rowCell(row, ["HSN", "9. HSN"]) || "",
+      pack: rowCell(row, ["Unit", "10. Unit"]) || "",
       variations: variations.length > 0 ? variations : undefined,
-      tax: row['Tax Cat'] || row['13. Tax Cat'] || "", // Assuming Tax Cat maps to tax field (string or ID)
-      // GST is usually calculated from tax category
-      purchasePrice: parseFloat(row['Pur. Price'] || row['16. Pur. Price'] || "0"),
-      compareAtPrice: parseFloat(row['MRP'] || row['17. MRP'] || "0"),
-      price: parseFloat(row['Sell Price'] || row['18. Sell Price'] || row['Selling Price'] || "0"),
-      deliveryTime: row['Del. Time'] || row['19. Del. Time'] || "",
-      stock: parseInt(row['Stock'] || row['20. Stock'] || "0"),
-      discPrice: parseFloat(row['Offer Price'] || row['21. Offer Price'] || "0"),
-      wholesalePrice: parseFloat(row['Wholesale Price'] || row['21. Wholesale Price'] || row['Unit Price'] || row['26. Unit Price'] || "0"),
-      lowStockQuantity: parseInt(row['Low Stock'] || row['22. Low Stock'] || "5"),
-      brand: row['Brand'] || row['23. Brand'] || "",
-      mfgDate: row['Mfg Date'] || row['29. Mfg Date'] || "",
-      expiryDate: row['Expiry Date'] || row['30. Expiry Date'] || "",
-      unitPricing: unitPricing.length > 0 ? unitPricing : undefined, // Add parsed unitPricing
-
-      publish: (row['Status'] || row['Status'] || "").toLowerCase() === 'active' || (row['Status'] || "").toLowerCase() === 'published' ? true : false,
-
-      mainImage: row['Image'] || row['Img'] || row['Main Image'] || "", // Map Image Column
+      tax: rowCell(row, ["Tax Cat", "13. Tax Cat"]) || "",
+      purchasePrice: safeNonNegativeNumber(
+        rowCell(row, ["Pur. Price", "15. Pur. Price"]),
+        0
+      ),
+      compareAtPrice: mrp,
+      price,
+      deliveryTime: rowCell(row, ["Del. Time", "18. Del. Time"]) || "",
+      stock,
+      discPrice: safeNonNegativeNumber(
+        rowCell(row, ["Offer Price", "20. Offer Price"]),
+        0
+      ),
+      wholesalePrice: safeNonNegativeNumber(
+        rowCell(row, ["Wholesale Price", "21. Wholesale Price"]),
+        0
+      ),
+      lowStockQuantity: Math.floor(
+        safeNonNegativeNumber(rowCell(row, ["Low Stock", "22. Low Stock"]), 5)
+      ),
+      brand: rowCell(row, ["Brand", "23. Brand"]) || "",
+      mfgDate: rowCell(row, ["Mfg Date", "29. Mfg Date"]) || "",
+      expiryDate: rowCell(row, ["Expiry Date", "30. Expiry Date"]) || "",
+      unitPricing: unitPricing.length > 0 ? unitPricing : undefined,
+      publish:
+        ((rowCell(row, ["Status"]) || "").toLowerCase() === "active" ||
+          (rowCell(row, ["Status"]) || "").toLowerCase() === "published"),
+      mainImage: rowCell(row, ["Image", "Img", "Main Image"]) || "",
       galleryImages: [],
     };
   };
@@ -170,12 +242,21 @@ export default function AdminStockBulkImport({
     // Given the requirement "pura data product list me bhi show hona chiaye", ensuring all valid are added is key.
 
     for (let i = 0; i < total; i++) {
-      const row = previewData[i];
+      const row = normalizeExcelRow(
+        previewData[i] && typeof previewData[i] === "object"
+          ? (previewData[i] as Record<string, unknown>)
+          : {}
+      );
       try {
         const productData = mapRowToProduct(row);
 
         // Basic validation
-        if (!productData.productName || !productData.category || !productData.price) {
+        if (
+          !String(productData.productName || "").trim() ||
+          !String(productData.category || "").trim() ||
+          !Number.isFinite(Number(productData.price)) ||
+          Number(productData.price) <= 0
+        ) {
            throw new Error("Missing required fields (Name, Category, Price)");
         }
 
