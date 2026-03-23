@@ -318,7 +318,7 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
   const updates = req.body;
 
   // Prevent updating sensitive fields directly
-  const restrictedFields = ["password", "mobile", "email", "status", "balance"];
+  const restrictedFields = ["password", "mobile", "email", "status", "balance", "canCreateCategories"];
   restrictedFields.forEach((field) => delete updates[field]);
 
   // Handle location update (convert lat/lng to GeoJSON)

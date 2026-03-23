@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getCategories, Category } from '../../../services/api/categoryService';
-import { getSellerById } from '../../../services/api/sellerService';
+import { getSellerProfile } from '../../../services/api/auth/sellerAuthService';
 import {
     getSellerOwnCategories as apiGetSellerOwnCategories,
     createSellerOwnCategory as apiCreateSellerOwnCategory,
@@ -12,10 +12,8 @@ import {
 import ThemedDropdown from '../components/ThemedDropdown';
 import SellerCategoryForm from './SellerCategoryForm';
 import { useToast } from '../../../context/ToastContext';
-import { useAuth } from '../../../context/AuthContext';
 
 export default function SellerCategory() {
-    const { user } = useAuth();
     const { showToast } = useToast();
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
@@ -30,15 +28,15 @@ export default function SellerCategory() {
     // Initial Data Loading
     useEffect(() => {
         const loadSellerPermission = async () => {
-            if (!user?.id) return;
             try {
-                const res = await getSellerById(user.id);
-                if (res.success && res.data) {
-                    setCanCreateCategories(res.data.canCreateCategories ?? true);
+                const res = await getSellerProfile();
+                if (res?.success && res?.data) {
+                    setCanCreateCategories(res.data.canCreateCategories === true);
+                } else {
+                    setCanCreateCategories(false);
                 }
             } catch (err) {
-                // Keep existing behavior as safe fallback
-                setCanCreateCategories(true);
+                setCanCreateCategories(false);
             }
         };
         loadSellerPermission();
@@ -62,7 +60,7 @@ export default function SellerCategory() {
             }
         };
         void loadOwnCategories();
-    }, [user?.id]);
+    }, []);
 
     // Fetch Admin Categories
     useEffect(() => {

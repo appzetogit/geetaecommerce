@@ -645,10 +645,26 @@ export const getSellerOwnCategories = asyncHandler(
   }
 );
 
+const ensureSellerCanCreateCategories = async (sellerId: string) => {
+  const seller = await Seller.findById(sellerId).select("canCreateCategories").lean();
+  if (!seller) {
+    const err: any = new Error("Seller not found");
+    err.statusCode = 404;
+    throw err;
+  }
+  if (!seller.canCreateCategories) {
+    const err: any = new Error("Category creation is disabled for this seller");
+    err.statusCode = 403;
+    throw err;
+  }
+};
+
 export const createSellerOwnCategory = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
     const payload = req.body || {};
+
+    await ensureSellerCanCreateCategories(sellerId);
 
     const created = await SellerOwnedCategory.create({
       seller: sellerId,
@@ -677,6 +693,8 @@ export const updateSellerOwnCategory = asyncHandler(
     const sellerId = (req as any).user.userId;
     const { id } = req.params;
     const payload = req.body || {};
+
+    await ensureSellerCanCreateCategories(sellerId);
 
     const updated = await SellerOwnedCategory.findOneAndUpdate(
       { _id: id, seller: sellerId },
@@ -714,6 +732,8 @@ export const deleteSellerOwnCategory = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
     const { id } = req.params;
+
+    await ensureSellerCanCreateCategories(sellerId);
 
     const deleted = await SellerOwnedCategory.findOneAndDelete({
       _id: id,
@@ -765,6 +785,8 @@ export const createSellerOwnSubCategory = asyncHandler(
   async (req: Request, res: Response) => {
     const sellerId = (req as any).user.userId;
     const payload = req.body || {};
+
+    await ensureSellerCanCreateCategories(sellerId);
 
     if (!payload.parentId || !payload.subcategoryName) {
       return res.status(400).json({

@@ -3,10 +3,9 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getAllSubcategories, SubCategory, Category } from '../../../services/api/categoryService';
 import ThemedDropdown from '../components/ThemedDropdown';
-import { useAuth } from '../../../context/AuthContext';
 import { uploadImage } from "../../../services/api/uploadService";
 import { validateImageFile, createImagePreview } from "../../../utils/imageUpload";
-import { getSellerById } from '../../../services/api/sellerService';
+import { getSellerProfile } from '../../../services/api/auth/sellerAuthService';
 import {
     getSellerOwnCategories as apiGetSellerOwnCategories,
     getSellerOwnSubcategories as apiGetSellerOwnSubcategories,
@@ -14,7 +13,6 @@ import {
 } from '../../../services/api/seller/sellerPurchaseService';
 
 export default function SellerSubCategory() {
-    const { user } = useAuth();
     const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
     const [ownSubcategories, setOwnSubcategories] = useState<SubCategory[]>([]);
     const [ownCategories, setOwnCategories] = useState<Category[]>([]);
@@ -76,18 +74,17 @@ export default function SellerSubCategory() {
 
     useEffect(() => {
         const loadSellerData = async () => {
-            if (!user?.id) return;
             try {
                 const [sellerRes, catRes, subRes] = await Promise.all([
-                    getSellerById(user.id),
+                    getSellerProfile(),
                     apiGetSellerOwnCategories(),
                     apiGetSellerOwnSubcategories(),
                 ]);
 
-                if (sellerRes.success && sellerRes.data) {
-                    setCanCreateSubcategories(sellerRes.data.canCreateCategories ?? true);
+                if (sellerRes?.success && sellerRes?.data) {
+                    setCanCreateSubcategories(sellerRes.data.canCreateCategories === true);
                 } else {
-                    setCanCreateSubcategories(true);
+                    setCanCreateSubcategories(false);
                 }
 
                 if (catRes.success && Array.isArray(catRes.data)) {
@@ -104,7 +101,7 @@ export default function SellerSubCategory() {
                 // fallback to local cache
             }
 
-            setCanCreateSubcategories(true);
+            setCanCreateSubcategories(false);
             const savedCategories = localStorage.getItem('seller_own_categories');
             if (savedCategories) {
                 setOwnCategories(JSON.parse(savedCategories));
@@ -116,7 +113,7 @@ export default function SellerSubCategory() {
             }
         };
         void loadSellerData();
-    }, [user?.id]);
+    }, []);
 
     useEffect(() => {
         if (!isAddModalOpen) {

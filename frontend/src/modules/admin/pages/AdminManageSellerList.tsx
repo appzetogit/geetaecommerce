@@ -426,6 +426,7 @@ export default function AdminManageSellerList() {
         if (!seller) return;
 
         const newPermission = !seller.canCreateCategories;
+        const permissionOn = !newPermission;
 
         try {
             const response = await updateSeller(id, { canCreateCategories: newPermission });
@@ -435,7 +436,7 @@ export default function AdminManageSellerList() {
             s._id === id ? { ...s, canCreateCategories: newPermission } : s
                     )
                 );
-        setSuccessMessage(`Category creation ${newPermission ? 'enabled' : 'disabled'} for ${seller.storeName}`);
+        setSuccessMessage(`Category permission ${permissionOn ? 'enabled' : 'disabled'} for ${seller.storeName}`);
         setTimeout(() => setSuccessMessage(''), 3000);
             } else {
                 setError('Failed to update category permission.');
@@ -685,19 +686,24 @@ export default function AdminManageSellerList() {
                                                 </button>
                                             </td>
                                             <td className="p-4 align-middle">
+                                                {(() => {
+                                                    const isPermissionOn = !seller.canCreateCategories;
+                                                    return (
                                                 <button
                                                     onClick={() => handleToggleCategoryPermission(seller._id)}
                                                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#f187b5] focus:ring-offset-2 ${
-                                                        seller.canCreateCategories ? 'bg-[#f187b5]' : 'bg-gray-200'
+                                                        isPermissionOn ? 'bg-[#f187b5]' : 'bg-gray-200'
                                                     }`}
-                                                    title={seller.canCreateCategories ? 'Can create categories' : 'Cannot create categories'}
+                                                    title={isPermissionOn ? 'Category permission enabled (cannot create)' : 'Category permission disabled (can create)'}
                                                 >
                                                     <span
                                                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                                            seller.canCreateCategories ? 'translate-x-6' : 'translate-x-1'
+                                                            isPermissionOn ? 'translate-x-6' : 'translate-x-1'
                                                         }`}
                                                     />
                                                 </button>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="p-4 align-middle">
                                                 <div className="flex items-center gap-2">
