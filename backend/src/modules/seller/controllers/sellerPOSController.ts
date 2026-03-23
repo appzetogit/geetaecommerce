@@ -666,6 +666,21 @@ export const createSellerOwnCategory = asyncHandler(
 
     await ensureSellerCanCreateCategories(sellerId);
 
+    if (payload.parentId) {
+      const parent = await SellerOwnedCategory.findOne({
+        _id: payload.parentId,
+        seller: sellerId,
+      })
+        .select("_id")
+        .lean();
+      if (!parent) {
+        return res.status(404).json({
+          success: false,
+          message: "Parent category not found",
+        });
+      }
+    }
+
     const created = await SellerOwnedCategory.create({
       seller: sellerId,
       name: payload.name?.trim(),
@@ -695,6 +710,27 @@ export const updateSellerOwnCategory = asyncHandler(
     const payload = req.body || {};
 
     await ensureSellerCanCreateCategories(sellerId);
+
+    if (payload.parentId) {
+      if (String(payload.parentId) === String(id)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid parent category",
+        });
+      }
+      const parent = await SellerOwnedCategory.findOne({
+        _id: payload.parentId,
+        seller: sellerId,
+      })
+        .select("_id")
+        .lean();
+      if (!parent) {
+        return res.status(404).json({
+          success: false,
+          message: "Parent category not found",
+        });
+      }
+    }
 
     const updated = await SellerOwnedCategory.findOneAndUpdate(
       { _id: id, seller: sellerId },

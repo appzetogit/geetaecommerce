@@ -131,10 +131,57 @@ export default function SellerSubCategory() {
         }
     }, [isAddModalOpen]);
 
-    const mergedSubcategories = useMemo(
-        () => [...subcategories, ...ownSubcategories],
-        [subcategories, ownSubcategories]
-    );
+    const sellerSubcategoriesFromOwnCategories = useMemo(() => {
+        // Seller-created subcategories via SellerCategory page are stored as "own categories" with a parentId.
+        // Convert them to SubCategory-like rows so they show in this listing.
+        const byId = new Map<string, any>();
+        (ownCategories || []).forEach((c: any) => {
+            if (c && c._id) byId.set(String(c._id), c);
+        });
+
+        const rows = (ownCategories || [])
+            .filter((c: any) => {
+                const parentId = c?.parentId;
+                return !!parentId;
+            })
+            .map((child: any) => {
+                const rawParent = child?.parentId;
+                const parentId =
+                    typeof rawParent === 'string'
+                        ? rawParent
+                        : rawParent && typeof rawParent === 'object'
+                        ? rawParent._id
+                        : '';
+                const parent = parentId ? byId.get(String(parentId)) : null;
+
+                return {
+                    _id: child?._id,
+                    categoryName: parent?.name || child?.categoryName || 'Category',
+                    subcategoryName: child?.name || child?.subcategoryName || 'Subcategory',
+                    subcategoryImage: child?.image || child?.subcategoryImage || '',
+                    totalProduct: 0,
+                    parentId: parentId || '',
+                } as any;
+            })
+            .filter((r: any) => r && r._id);
+
+        return rows;
+    }, [ownCategories]);
+
+    const mergedSubcategories = useMemo(() => {
+        const all = [
+            ...subcategories,
+            ...ownSubcategories,
+            ...sellerSubcategoriesFromOwnCategories,
+        ];
+        const map = new Map<string, any>();
+        for (const row of all) {
+            const id = row?._id ? String(row._id) : '';
+            if (!id) continue;
+            if (!map.has(id)) map.set(id, row);
+        }
+        return Array.from(map.values());
+    }, [subcategories, ownSubcategories, sellerSubcategoriesFromOwnCategories]);
 
     // Client-side sorting (if API doesn't handle it)
     const sortedSubcategories = [...mergedSubcategories];

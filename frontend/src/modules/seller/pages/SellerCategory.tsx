@@ -24,6 +24,8 @@ export default function SellerCategory() {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [ownCategories, setOwnCategories] = useState<Category[]>([]);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+    const [subcategoryParent, setSubcategoryParent] = useState<Category | null>(null);
+    const [navigationStack, setNavigationStack] = useState<Category[]>([]);
 
     // Initial Data Loading
     useEffect(() => {
@@ -89,15 +91,48 @@ export default function SellerCategory() {
         fetchCategories();
     }, [searchTerm]);
 
+    const normalizeParentId = (cat: any): string | null => {
+        const raw = cat?.parentId;
+        if (!raw) return null;
+        if (typeof raw === 'string') return raw;
+        if (typeof raw === 'object' && raw?._id) return String(raw._id);
+        return null;
+    };
+
+    const sellerCategoriesById = new Map<string, any>();
+    ownCategories.forEach((c: any) => {
+        if (c && c._id) sellerCategoriesById.set(String(c._id), c);
+    });
+
+    const sellerChildrenByParentId = new Map<string, any[]>();
+    ownCategories.forEach((c: any) => {
+        const parentId = normalizeParentId(c);
+        if (!parentId) return;
+        const existing = sellerChildrenByParentId.get(parentId) || [];
+        existing.push(c);
+        sellerChildrenByParentId.set(parentId, existing);
+    });
+
+    const isInSubcategoryView = navigationStack.length > 0;
+    const activeParent = isInSubcategoryView ? navigationStack[navigationStack.length - 1] : null;
+    const activeParentId = activeParent?._id ? String(activeParent._id) : null;
+
+    const sellerRootCategories = ownCategories.filter((c: any) => !normalizeParentId(c));
+    const sellerActiveChildren = activeParentId
+        ? (sellerChildrenByParentId.get(activeParentId) || [])
+        : [];
+
     // Merge and Filter Categories
     // We mark admin categories as read-only and seller categories as editable
-    const allCategories = [
-        ...categories.map(c => ({ ...c, type: 'admin' })),
-        ...ownCategories.map(c => ({ ...c, type: 'seller' }))
-    ];
+    const allCategories = isInSubcategoryView
+        ? sellerActiveChildren.map((c) => ({ ...c, type: 'seller' }))
+        : [
+            ...categories.map((c) => ({ ...c, type: 'admin' })),
+            ...sellerRootCategories.map((c) => ({ ...c, type: 'seller' })),
+        ];
 
-    const filteredCategories = allCategories.filter(cat =>
-        cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredCategories = allCategories.filter((cat: any) =>
+        String(cat?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Pagination
@@ -130,7 +165,25 @@ export default function SellerCategory() {
 
     const handleEdit = (category: Category) => {
         setEditingCategory(category);
+        setSubcategoryParent(null);
         setIsAddModalOpen(true);
+    };
+
+    const handleAddSubcategory = (parent: Category) => {
+        setEditingCategory(null);
+        setSubcategoryParent(parent);
+        setIsAddModalOpen(true);
+    };
+
+    const handleEnterCategory = (category: any) => {
+        if (!category?._id) return;
+        setSearchTerm('');
+        setNavigationStack((prev) => [...prev, category]);
+    };
+
+    const handleBack = () => {
+        setSearchTerm('');
+        setNavigationStack((prev) => prev.slice(0, -1));
     };
 
     const handleDelete = async (id: string) => {
@@ -210,7 +263,29 @@ export default function SellerCategory() {
             <div className="bg-white rounded-xl shadow-sm border border-neutral-200 flex-1 flex flex-col overflow-hidden">
                 {/* Header Section */}
                 <div className="p-5 border-b border-neutral-100 bg-neutral-50/50 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h2 className="text-lg font-semibold text-neutral-800">Category List</h2>
+                    <div className="flex items-center gap-3">
+                        {isInSubcategoryView && (
+                            <button
+                                type="button"
+                                onClick={handleBack}
+                                className="p-2 rounded-lg hover:bg-neutral-100 transition-colors"
+                                aria-label="Back"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M19 12H5"></path>
+                                    <path d="M12 19l-7-7 7-7"></path>
+                                </svg>
+                            </button>
+                        )}
+                        <div>
+                            <h2 className="text-lg font-semibold text-neutral-800">
+                                {isInSubcategoryView ? (activeParent?.name || 'Subcategories') : 'Category List'}
+                            </h2>
+                            {isInSubcategoryView && (
+                                <p className="text-xs text-neutral-500 mt-0.5">Subcategories</p>
+                            )}
+                        </div>
+                    </div>
 
                     {/* Controls */}
                     <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
@@ -252,14 +327,15 @@ export default function SellerCategory() {
                         </button>
 
                         {/* Add Category Button */}
-                        {canCreateCategories && (
+                        {canCreateCategories && !isInSubcategoryView && (
                             <button
                                 onClick={() => {
                                     setEditingCategory(null);
+                                     setSubcategoryParent(null);
                                     setIsAddModalOpen(true);
                                 }}
-                                className="w-full sm:w-auto bg-[#f187b5] hover:bg-[#e076a5] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
-                            >
+                                 className="w-full sm:w-auto bg-[#f187b5] hover:bg-[#e076a5] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
+                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                 Add Category
                             </button>
@@ -312,17 +388,37 @@ export default function SellerCategory() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-neutral-100 bg-white">
-                                {displayedCategories.map((category, index) => (
+                                {displayedCategories.map((category, index) => {
+                                    const childCount =
+                                        sellerChildrenByParentId.get(String(category._id))?.length || 0;
+                                    const canOpenSubcategories =
+                                        (category as any).type === 'seller' && childCount > 0;
+
+                                    return (
                                     <motion.tr
                                         key={category._id}
-                                        className="hover:bg-seller-50/30 transition-colors group text-sm text-neutral-700"
+                                        onClick={() => {
+                                            if (canOpenSubcategories) handleEnterCategory(category);
+                                        }}
+                                        className={`hover:bg-seller-50/30 transition-colors group text-sm text-neutral-700 ${
+                                            canOpenSubcategories ? 'cursor-pointer' : ''
+                                        }`}
                                         variants={itemVariants}
                                         custom={index}
                                     >
                                         <td className="p-4 px-6 align-middle font-mono text-neutral-500">
                                             {category._id.length > 8 ? '#' + category._id.slice(-6) : '#' + category._id}
                                         </td>
-                                        <td className="p-4 px-6 align-middle font-medium text-neutral-900">{category.name}</td>
+                                        <td className="p-4 px-6 align-middle font-medium text-neutral-900">
+                                            <span className={(category as any).type === 'seller' && childCount > 0 ? 'hover:underline decoration-[#f187b5] underline-offset-4' : ''}>
+                                                {category.name}
+                                            </span>
+                                            {(category as any).type === 'seller' && childCount > 0 && !isInSubcategoryView && (
+                                                <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-semibold bg-neutral-100 text-neutral-600">
+                                                    {childCount}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="p-4 px-6 align-middle">
                                             <div className="w-16 h-12 bg-white border border-neutral-200 rounded-lg p-1 flex items-center justify-center mx-auto shadow-sm group-hover:scale-110 transition-transform">
                                                 <img
@@ -349,15 +445,36 @@ export default function SellerCategory() {
                                         <td className="p-4 px-6 align-middle text-center">
                                             {(category as any).type === 'seller' && (
                                                 <div className="flex items-center justify-center gap-2">
+                                                    {canCreateCategories && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleAddSubcategory(category);
+                                                            }}
+                                                            className="p-1.5 text-[#f187b5] hover:bg-[#f187b5]/10 rounded transition-colors"
+                                                            title="Add Subcategory"
+                                                        >
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                            </svg>
+                                                        </button>
+                                                    )}
                                                     <button
-                                                        onClick={() => handleEdit(category)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleEdit(category);
+                                                        }}
                                                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                                                         title="Edit"
                                                     >
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDelete(category._id)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDelete(category._id);
+                                                        }}
                                                         className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
                                                         title="Delete"
                                                     >
@@ -370,7 +487,8 @@ export default function SellerCategory() {
                                             )}
                                         </td>
                                     </motion.tr>
-                                ))}
+                                    );
+                                })}
                                 {filteredCategories.length === 0 && (
                                     <tr>
                                         <td colSpan={5} className="p-12 text-center text-neutral-500">
@@ -401,12 +519,15 @@ export default function SellerCategory() {
             </footer>
 
             {/* Category Form Modal */}
-            <SellerCategoryForm
-                isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
-                onSave={handleSaveCategory}
-                editingCategory={editingCategory}
-            />
-        </motion.div>
-    );
+             <SellerCategoryForm
+                 isOpen={isAddModalOpen}
+                 onClose={() => setIsAddModalOpen(false)}
+                 onSave={handleSaveCategory}
+                 editingCategory={editingCategory}
+                 parentCategory={subcategoryParent}
+                 mode={subcategoryParent ? "create-subcategory" : editingCategory ? "edit" : "create"}
+                 ownCategories={ownCategories}
+             />
+         </motion.div>
+     );
 }

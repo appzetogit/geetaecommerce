@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useToast } from "../../../context/ToastContext";
-import {
-  Category,
-  getCategories,
-} from "../../../services/api/categoryService";
+import { Category } from "../../../services/api/categoryService";
 import { uploadImage } from "../../../services/api/uploadService";
 import {
   validateImageFile,
@@ -13,6 +10,7 @@ import {
   getAvailableParents,
   validateParentChange,
 } from "../../../utils/categoryUtils";
+import type { Category as AdminCategory } from "../../../services/api/admin/adminProductService";
 import {
   getHeaderCategoriesPublic,
   HeaderCategory,
@@ -23,6 +21,9 @@ interface SellerCategoryFormProps {
   onClose: () => void;
   editingCategory?: any | null; // Use any to avoid strict type conflicts with different Category interfaces
   onSave: (category: any) => void;
+  parentCategory?: any | null;
+  mode?: "create" | "edit" | "create-subcategory";
+  ownCategories?: Category[];
 }
 
 export default function SellerCategoryForm({
@@ -30,8 +31,13 @@ export default function SellerCategoryForm({
   onClose,
   editingCategory,
   onSave,
+  parentCategory = null,
+  mode = "create",
+  ownCategories = [],
 }: SellerCategoryFormProps) {
   const { showToast } = useToast();
+  const isCreateSubcategory =
+    mode === "create-subcategory" && !!parentCategory && !editingCategory;
   const [formData, setFormData] = useState({
     name: "",
     image: "",
@@ -52,15 +58,20 @@ export default function SellerCategoryForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [headerCategories, setHeaderCategories] = useState<HeaderCategory[]>([]);
-  const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [loadingHeaderCategories, setLoadingHeaderCategories] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const lockHeaderCategory = isCreateSubcategory && !!formData.headerCategoryId;
+
+  // Get available parent categories (seller-owned only)
+  const availableParents = getAvailableParents(
+    editingCategory?._id || null,
+    ownCategories as unknown as AdminCategory[]
+  );
 
   // Fetch data when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchHeaderCategories();
-      fetchAllCategories();
     }
   }, [isOpen]);
 
@@ -76,17 +87,6 @@ export default function SellerCategoryForm({
       console.error("Error fetching header categories:", error);
     } finally {
       setLoadingHeaderCategories(false);
-    }
-  };
-
-  const fetchAllCategories = async () => {
-    try {
-      const response = await getCategories();
-      if (response.success) {
-        setAllCategories(response.data);
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
     }
   };
 
@@ -106,6 +106,27 @@ export default function SellerCategoryForm({
           description: (editingCategory as any).description || "",
         });
         setImagePreview(editingCategory.image || "");
+      } else if (isCreateSubcategory && parentCategory) {
+        let inheritedHeaderCategoryId: string | null = null;
+        const raw = parentCategory.headerCategoryId;
+        if (typeof raw === "string") inheritedHeaderCategoryId = raw;
+        else if (raw && typeof raw === "object" && typeof raw._id === "string") {
+          inheritedHeaderCategoryId = raw._id;
+        }
+
+        setFormData({
+          name: "",
+          image: "",
+          order: 0,
+          parentId: parentCategory._id || null,
+          headerCategoryId: inheritedHeaderCategoryId,
+          status: "Active",
+          isBestseller: false,
+          hasWarning: false,
+          groupCategory: "",
+          description: "",
+        });
+        setImagePreview("");
       } else {
         setFormData({
           name: "",
@@ -125,7 +146,7 @@ export default function SellerCategoryForm({
       setErrors({});
       setShowAdvanced(false);
     }
-  }, [isOpen, editingCategory]);
+  }, [isOpen, editingCategory, isCreateSubcategory, parentCategory]);
 
   const handleInputChange = (
     e: React.ChangeEvent<
@@ -227,7 +248,7 @@ export default function SellerCategoryForm({
       const validation = validateParentChange(
         editingCategory._id,
         formData.parentId,
-        allCategories
+        ownCategories as unknown as AdminCategory[]
       );
       if (!validation.valid) {
         newErrors.parentId = validation.error || "Invalid parent selection";
@@ -253,12 +274,12 @@ export default function SellerCategoryForm({
         setUploading(false);
       }
 
-      const categoryData: Category = {
+      const categoryData = {
         _id: editingCategory?._id || `seller_${Date.now()}`,
         name: formData.name.trim(),
         image: imageUrl,
         order: formData.order,
-        parentId: formData.parentId,
+        parentId: formData.parentId || undefined,
         headerCategoryId: formData.headerCategoryId,
         status: formData.status,
         isBestseller: formData.isBestseller,
@@ -281,11 +302,6 @@ export default function SellerCategoryForm({
 
   if (!isOpen) return null;
 
-  const availableParents = getAvailableParents(
-    editingCategory?._id || null,
-    allCategories
-  );
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -299,7 +315,11 @@ export default function SellerCategoryForm({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
           <h2 className="text-lg font-semibold text-neutral-900">
-            {editingCategory ? "Edit Category" : "Add New Category"}
+            {isCreateSubcategory
+              ? "Create Subcategory"
+              : editingCategory
+              ? "Edit Category"
+              : "Add New Category"}
           </h2>
           <button
             onClick={onClose}
@@ -325,6 +345,17 @@ export default function SellerCategoryForm({
           {errors.submit && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
               {errors.submit}
+            </div>
+          )}
+
+          {isCreateSubcategory && parentCategory && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Parent Category
+              </label>
+              <div className="w-full px-3 py-2 border border-[#f187b5]/30 bg-[#f187b5]/10 rounded-lg text-[#f187b5] font-semibold">
+                {parentCategory.name}
+              </div>
             </div>
           )}
 
@@ -357,9 +388,10 @@ export default function SellerCategoryForm({
               name="headerCategoryId"
               value={formData.headerCategoryId || ""}
               onChange={handleInputChange}
+              disabled={lockHeaderCategory}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${
                 errors.headerCategoryId ? "border-red-300" : "border-neutral-300"
-              }`}
+              } ${lockHeaderCategory ? "bg-neutral-50 cursor-not-allowed" : ""}`}
             >
               <option value="">-- Select Header Category --</option>
               {headerCategories.map((hc) => (
@@ -368,6 +400,11 @@ export default function SellerCategoryForm({
                 </option>
               ))}
             </select>
+            {lockHeaderCategory && (
+              <p className="mt-1 text-xs text-[#f187b5]">
+                Inherited from parent category
+              </p>
+            )}
             {errors.headerCategoryId && (
               <p className="mt-1 text-xs text-red-600">
                 {errors.headerCategoryId}
@@ -444,25 +481,26 @@ export default function SellerCategoryForm({
             </label>
           </div>
 
-          {/* Parent Category */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-neutral-700 mb-2">
-              Parent Category
-            </label>
-            <select
-              name="parentId"
-              value={formData.parentId || ""}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]"
-            >
-              <option value="">None (Root Category)</option>
-              {availableParents.map((p) => (
-                <option key={p._id} value={p._id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!isCreateSubcategory && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Parent Category
+              </label>
+              <select
+                name="parentId"
+                value={formData.parentId || ""}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]"
+              >
+                <option value="">None (Root Category)</option>
+                {availableParents.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Display Order */}
           <div className="mb-4">
@@ -574,7 +612,13 @@ export default function SellerCategoryForm({
               disabled={submitting || uploading}
               className="px-6 py-2 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {submitting ? "Saving..." : editingCategory ? "Update Category" : "Create Category"}
+              {submitting
+                ? "Saving..."
+                : isCreateSubcategory
+                ? "Create Subcategory"
+                : editingCategory
+                ? "Update Category"
+                : "Create Category"}
             </button>
           </div>
         </form>
