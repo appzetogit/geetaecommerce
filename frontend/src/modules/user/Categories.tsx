@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getHomeContent } from "../../services/api/customerHomeService";
+import { getCategories } from "../../services/api/customerProductService";
 import { useLocation } from "../../hooks/useLocation";
 import CategoryTileSection from "./components/CategoryTileSection";
 import ProductCard from "./components/ProductCard";
@@ -23,9 +24,66 @@ export default function Categories() {
           location?.longitude
         );
 
-        let sections = [];
+        let sections: any[] = [];
         if (response.success && response.data) {
           sections = response.data.homeSections || [];
+        }
+
+        // Fallback 1: if admin homeSections are empty, render customer categories from /customer/home payload.
+        if (sections.length === 0 && response.success && Array.isArray(response.data?.categories)) {
+          const categories = response.data.categories
+            .filter((c: any) => c && (c._id || c.id) && c.name)
+            .map((c: any) => ({
+              id: c._id || c.id,
+              name: c.name,
+              image: c.image,
+              categoryId: c._id || c.id,
+              slug: c.slug,
+              type: "category",
+            }));
+          if (categories.length > 0) {
+            sections = [
+              {
+                id: "categories-fallback-home",
+                title: "Categories",
+                displayType: "category",
+                columns: 4,
+                data: categories,
+              },
+            ];
+          }
+        }
+
+        // Fallback 2: if still empty, fetch categories API directly.
+        if (sections.length === 0) {
+          try {
+            const categoryRes = await getCategories(false);
+            if (categoryRes.success && Array.isArray(categoryRes.data)) {
+              const categories = categoryRes.data
+                .filter((c: any) => c && (c._id || c.id) && c.name)
+                .map((c: any) => ({
+                  id: c._id || c.id,
+                  name: c.name,
+                  image: c.image,
+                  categoryId: c._id || c.id,
+                  slug: (c as any).slug,
+                  type: "category",
+                }));
+              if (categories.length > 0) {
+                sections = [
+                  {
+                    id: "categories-fallback-api",
+                    title: "Categories",
+                    displayType: "category",
+                    columns: 4,
+                    data: categories,
+                  },
+                ];
+              }
+            }
+          } catch (e) {
+            console.warn("Categories fallback API failed", e);
+          }
         }
 
         // Inject Seller Categories
@@ -58,7 +116,7 @@ export default function Categories() {
         }
 
         if (response.success || sections.length > 0) { // Allow if only seller cats exist too
-          setHomeData({ ...response.data, homeSections: sections });
+          setHomeData({ ...(response.data || {}), homeSections: sections });
         } else {
           setError("Failed to load categories. Please try again.");
         }
