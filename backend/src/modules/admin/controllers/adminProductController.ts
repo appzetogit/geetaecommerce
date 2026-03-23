@@ -796,6 +796,30 @@ export const deleteBrand = asyncHandler(async (req: Request, res: Response) => {
 
 // ==================== Product Controllers ====================
 
+function isValidObjectIdString(id: unknown): boolean {
+  if (id == null) return false;
+  const s = String(id).trim();
+  return /^[a-fA-F0-9]{24}$/.test(s);
+}
+
+function stripInvalidProductObjectIds(body: Record<string, unknown>): void {
+  const keys = [
+    "category",
+    "subcategory",
+    "brand",
+    "tax",
+    "headerCategoryId",
+    "seller",
+    "shopId",
+  ] as const;
+  for (const k of keys) {
+    const v = body[k];
+    if (v !== undefined && v !== null && v !== "" && !isValidObjectIdString(v)) {
+      delete body[k];
+    }
+  }
+}
+
 /**
  * Create a new product
  */
@@ -803,6 +827,7 @@ export const createProduct = asyncHandler(
   async (req: Request, res: Response) => {
     try {
       const productData = req.body;
+      stripInvalidProductObjectIds(productData);
 
       // If seller is not provided, use/create default Admin Store
       if (!productData.seller) {
@@ -850,6 +875,9 @@ export const createProduct = asyncHandler(
       }
       if (!productData.subcategory) {
         delete productData.subcategory;
+      }
+      if (!productData.tax) {
+        delete productData.tax;
       }
       if (!productData.headerCategoryId) {
         delete productData.headerCategoryId;
@@ -1050,6 +1078,7 @@ export const updateProduct = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const updateData = req.body;
+    stripInvalidProductObjectIds(updateData);
 
     // Handle sparse unique fields (like SKU) - if empty/null, unset them to avoid duplicate null/empty string errors
     const unsetFields: any = {};
@@ -1057,6 +1086,9 @@ export const updateProduct = asyncHandler(
       unsetFields.sku = 1;
       delete updateData.sku;
     }
+    if (!updateData.subcategory) unsetFields.subcategory = 1;
+    if (!updateData.brand) unsetFields.brand = 1;
+    if (!updateData.tax) unsetFields.tax = 1;
 
     const updateOperation: any = { $set: updateData };
     if (Object.keys(unsetFields).length > 0) {
