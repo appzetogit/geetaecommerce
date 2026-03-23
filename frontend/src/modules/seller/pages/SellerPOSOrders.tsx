@@ -2877,6 +2877,23 @@ const SellerPOSOrders = () => {
           if (res.success) {
               showToast("Order updated successfully", "success");
 
+              // Refresh visible POS catalog so edited-order stock changes reflect immediately (e.g. 18 -> 17)
+              try {
+                const activeSearch = (showMobileSearch ? mobileSearchQuery : searchQuery).trim();
+                if (activeSearch) {
+                  const refreshRes = await getProducts({
+                    search: activeSearch,
+                    category: !showMobileSearch ? (selectedCategory || undefined) : undefined,
+                    brand: !showMobileSearch ? (selectedBrand || undefined) : undefined,
+                  });
+                  if (refreshRes.success && refreshRes.data) {
+                    setProducts(expandSellerCatalogProductsForPOS(refreshRes.data));
+                  }
+                }
+              } catch (refreshErr) {
+                console.error("Failed to refresh products after order edit", refreshErr);
+              }
+
               // Set bill details for the success modal so user can print/share
               setLastBillDetails({
                   total: calculateTotal(),
