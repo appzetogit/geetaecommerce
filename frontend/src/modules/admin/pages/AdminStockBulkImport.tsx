@@ -176,7 +176,8 @@ export default function AdminStockBulkImport({
 
     const productName = rowCell(row, ["Product Name", "4. Product Name"]) || "";
     const categoryName = rowCell(row, ["Category", "1. Category"]) || "";
-    const sku = rowCell(row, ["SKU", "5. SKU"]) || "";
+    const skuRaw = rowCell(row, ["SKU", "5. SKU"]) || "";
+    const sku = skuRaw === "0" ? "" : skuRaw;
     const price = safeNonNegativeNumber(
       rowCell(row, ["Sell Price", "17. Sell Price", "Selling Price", "Price"]),
       0
@@ -191,8 +192,8 @@ export default function AdminStockBulkImport({
       subcategory: rowCell(row, ["Sub Cat", "2. Sub Cat"]) || "",
       subSubCategory: rowCell(row, ["Sub Sub Cat", "3. Sub Sub Cat"]) || "",
       productName,
-      sku,
-      itemCode: sku,
+      sku: sku || undefined,
+      itemCode: sku || undefined,
       rackNumber: rowCell(row, ["Rack", "6. Rack"]) || "",
       description: rowCell(row, ["Desc", "7. Desc"]) || "",
       barcode: rowCell(row, ["Barcode", "8. Barcode"]) || "",
