@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import axios from "axios";
 import * as XLSX from "xlsx";
 import {
   Category,
@@ -253,18 +254,30 @@ export default function AdminStockBulkImport({
         // Basic validation
         if (
           !String(productData.productName || "").trim() ||
-          !String(productData.category || "").trim() ||
           !Number.isFinite(Number(productData.price)) ||
           Number(productData.price) <= 0
         ) {
-           throw new Error("Missing required fields (Name, Category, Price)");
+           throw new Error("Missing required fields (Name, Price)");
         }
 
         // Call create API
         await createProduct(productData as any);
         successCount++;
       } catch (err) {
-        console.error("Failed to import row", i, row, err);
+        const apiMsg =
+          axios.isAxiosError(err) &&
+          err.response?.data &&
+          typeof err.response.data === "object" &&
+          err.response.data !== null &&
+          "message" in err.response.data
+            ? String((err.response.data as { message?: unknown }).message ?? "")
+            : "";
+        console.error(
+          "Failed to import row",
+          i + 1,
+          row,
+          apiMsg || err
+        );
         failedCount++;
       }
       setProgress(prev => ({ ...prev, current: i + 1, success: successCount, failed: failedCount }));

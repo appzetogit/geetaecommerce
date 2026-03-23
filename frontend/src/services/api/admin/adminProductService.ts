@@ -1,3 +1,4 @@
+import axios from "axios";
 import api from "../config";
 
 import { ApiResponse } from "./types";
@@ -515,11 +516,22 @@ export const deleteBrand = async (id: string): Promise<ApiResponse<void>> => {
 export const createProduct = async (
   data: CreateProductData
 ): Promise<ApiResponse<Product>> => {
-  const response = await api.post<ApiResponse<Product>>(
-    "/admin/products",
-    data
-  );
-  return response.data;
+  try {
+    const response = await api.post<ApiResponse<Product>>(
+      "/admin/products",
+      data
+    );
+    return response.data;
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      console.error("[API admin createProduct] request failed", {
+        status: err.response?.status,
+        body: err.response?.data,
+        productName: (data as { productName?: string })?.productName,
+      });
+    }
+    throw err;
+  }
 };
 
 /**
