@@ -72,6 +72,14 @@ function safeNonNegativeNumber(n: unknown, fallback = 0): number {
   return x;
 }
 
+function normalizeImportKeyPart(v: unknown): string {
+  const s = String(v ?? "").trim().toLowerCase();
+  if (!s || s === "0" || s === "-" || s === "--" || s === "na" || s === "n/a") {
+    return "";
+  }
+  return s;
+}
+
 /** Never send NaN in variations; collect human-readable issues for one console.warn per row. */
 function sanitizeImportVariations(
   variations: unknown[],
@@ -208,6 +216,49 @@ async function buildMongoVariationLookup(): Promise<
     page += 1;
   }
   return map;
+}
+
+async function buildSellerExistingImportKeySet(): Promise<Set<string>> {
+  const keys = new Set<string>();
+  let page = 1;
+  const limit = 200;
+  for (;;) {
+    const res = await getProducts({
+      page,
+      limit,
+      sortBy: "createdAt",
+      sortOrder: "desc",
+    });
+    if (!res.success || !res.data?.length) break;
+    for (const p of res.data as any[]) {
+      const sku = normalizeImportKeyPart(p?.itemCode ?? p?.sku);
+      if (sku) keys.add(`sku:${sku}`);
+
+      const topBarcodes = Array.isArray(p?.barcode) ? p.barcode : [p?.barcode];
+      for (const b of topBarcodes) {
+        const n = normalizeImportKeyPart(b);
+        if (n) keys.add(`barcode:${n}`);
+      }
+
+      const name = normalizeImportKeyPart(p?.productName);
+      if (name) keys.add(`name:${name}`);
+
+      const vars = Array.isArray(p?.variations) ? p.variations : [];
+      for (const v of vars) {
+        const vs = normalizeImportKeyPart(v?.sku);
+        if (vs) keys.add(`sku:${vs}`);
+        const vb = Array.isArray(v?.barcode) ? v.barcode : [v?.barcode];
+        for (const b of vb) {
+          const n = normalizeImportKeyPart(b);
+          if (n) keys.add(`barcode:${n}`);
+        }
+      }
+    }
+    const pages = (res as { pagination?: { pages?: number } }).pagination?.pages ?? 1;
+    if (page >= pages) break;
+    page += 1;
+  }
+  return keys;
 }
 
 export default function SellerStockBulkImport({
@@ -467,7 +518,7 @@ export default function SellerStockBulkImport({
         mongoVariationLookup = await buildMongoVariationLookup();
       }
     }
-    const seenImportKeys = new Set<string>();
+    const seenImportKeys = await buildSellerExistingImportKeySet();
 
     for (let i = 0; i < total; i++) {
         const row = normalizeExcelRow(
@@ -705,11 +756,11 @@ export default function SellerStockBulkImport({
                 lowStockQuantity: lowStockFinal,
             };
 
-            const skuKey = String(productPayload.itemCode ?? "").trim().toLowerCase();
-            const barcodeKey = String(rowCell(row, ["Barcode", "8. Barcode", "barcode"]) ?? "")
-              .trim()
-              .toLowerCase();
-            const nameKey = String(productPayload.productName ?? "").trim().toLowerCase();
+            const skuKey = normalizeImportKeyPart(productPayload.itemCode ?? "");
+            const barcodeKey = normalizeImportKeyPart(
+              rowCell(row, ["Barcode", "8. Barcode", "barcode"]) ?? ""
+            );
+            const nameKey = normalizeImportKeyPart(productPayload.productName ?? "");
             const importKey = skuKey
               ? `sku:${skuKey}`
               : barcodeKey

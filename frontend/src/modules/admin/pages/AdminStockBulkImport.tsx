@@ -63,6 +63,14 @@ function safeNonNegativeNumber(n: unknown, fallback = 0): number {
   return x;
 }
 
+function normalizeImportKeyPart(v: unknown): string {
+  const s = String(v ?? "").trim().toLowerCase();
+  if (!s || s === "0" || s === "-" || s === "--" || s === "na" || s === "n/a") {
+    return "";
+  }
+  return s;
+}
+
 export default function AdminStockBulkImport({
   categories,
   onClose,
@@ -75,6 +83,49 @@ export default function AdminStockBulkImport({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadInFlightRef = useRef(false);
   const { user } = useAuth(); // To get seller ID if needed, but admin creates for default admin store usually
+
+  const buildAdminExistingImportKeySet = async (): Promise<Set<string>> => {
+    const keys = new Set<string>();
+    let page = 1;
+    const limit = 200;
+    for (;;) {
+      const res = await getProducts({
+        page,
+        limit,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      } as any);
+      if (!res.success || !res.data?.length) break;
+      for (const p of res.data as any[]) {
+        const sku = normalizeImportKeyPart(p?.itemCode ?? p?.sku);
+        if (sku) keys.add(`sku:${sku}`);
+
+        const topBarcodes = Array.isArray(p?.barcode) ? p.barcode : [p?.barcode];
+        for (const b of topBarcodes) {
+          const n = normalizeImportKeyPart(b);
+          if (n) keys.add(`barcode:${n}`);
+        }
+
+        const name = normalizeImportKeyPart(p?.productName);
+        if (name) keys.add(`name:${name}`);
+
+        const vars = Array.isArray(p?.variations) ? p.variations : [];
+        for (const v of vars) {
+          const vs = normalizeImportKeyPart(v?.sku);
+          if (vs) keys.add(`sku:${vs}`);
+          const vb = Array.isArray(v?.barcode) ? v.barcode : [v?.barcode];
+          for (const b of vb) {
+            const n = normalizeImportKeyPart(b);
+            if (n) keys.add(`barcode:${n}`);
+          }
+        }
+      }
+      const pages = (res as { pagination?: { pages?: number } }).pagination?.pages ?? 1;
+      if (page >= pages) break;
+      page += 1;
+    }
+    return keys;
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -242,7 +293,7 @@ export default function AdminStockBulkImport({
     let successCount = 0;
     let failedCount = 0;
     setProgress({ total, current: 0, success: 0, failed: 0 });
-    const seenImportKeys = new Set<string>();
+    const seenImportKeys = await buildAdminExistingImportKeySet();
 
     // We can either send all at once or one by one. One by one allows better progress tracking and partial success.
     // Given the requirement "pura data product list me bhi show hona chiaye", ensuring all valid are added is key.
@@ -265,11 +316,9 @@ export default function AdminStockBulkImport({
            throw new Error("Missing required fields (Name, Price)");
         }
 
-        const skuKey = String((productData as any).itemCode || (productData as any).sku || "")
-          .trim()
-          .toLowerCase();
-        const barcodeKey = String((productData as any).barcode || "").trim().toLowerCase();
-        const nameKey = String(productData.productName || "").trim().toLowerCase();
+        const skuKey = normalizeImportKeyPart((productData as any).itemCode || (productData as any).sku || "");
+        const barcodeKey = normalizeImportKeyPart((productData as any).barcode || "");
+        const nameKey = normalizeImportKeyPart(productData.productName || "");
         const importKey = skuKey
           ? `sku:${skuKey}`
           : barcodeKey
