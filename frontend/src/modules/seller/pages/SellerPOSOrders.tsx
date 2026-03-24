@@ -2970,7 +2970,9 @@ const SellerPOSOrders = () => {
               // Refresh visible POS catalog so edited-order stock changes reflect immediately (e.g. 18 -> 17)
               try {
                 const activeSearch = (showMobileSearch ? mobileSearchQuery : searchQuery).trim();
-                if (activeSearch) {
+                if (!activeSearch) {
+                  setProducts([]);
+                } else {
                   const refreshRes = await getProducts({
                     search: activeSearch,
                     category: !showMobileSearch ? (selectedCategory || undefined) : undefined,

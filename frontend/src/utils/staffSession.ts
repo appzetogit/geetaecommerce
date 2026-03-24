@@ -243,3 +243,10 @@ export const appendPOSStaffBill = (
   localStorage.setItem(getPOSStaffBillKey(module), JSON.stringify([payload, ...existing]));
   return payload;
 };
+
+export const deletePOSStaffBills = (module: StaffModule, ids: string[]): void => {
+  const idSet = new Set(ids);
+  const existing = getPOSStaffBills(module);
+  const next = existing.filter((bill) => !idSet.has(bill.id));
+  localStorage.setItem(getPOSStaffBillKey(module), JSON.stringify(next));
+};

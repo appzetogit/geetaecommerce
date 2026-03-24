@@ -3031,6 +3031,54 @@ const AdminPOSOrders = () => {
           if (res.success) {
               showToast("Order updated successfully", "success");
 
+              // Refresh visible POS catalog so edited-order stock changes reflect immediately.
+              try {
+                const activeSearch = (showMobileSearch ? mobileSearchQuery : searchQuery).trim();
+                if (!activeSearch) {
+                  setProducts([]);
+                } else {
+                  const refreshRes = await getProducts({
+                    search: activeSearch,
+                    seller: !showMobileSearch ? (selectedSeller || undefined) : undefined,
+                    category: !showMobileSearch ? (selectedCategory || undefined) : undefined,
+                    brand: !showMobileSearch ? (selectedBrand || undefined) : undefined,
+                    limit: 1000,
+                  });
+                  if (refreshRes.success && refreshRes.data) {
+                    const expandedProducts: any[] = [];
+                    refreshRes.data.forEach((product: any) => {
+                      if (product.variations && product.variations.length > 0) {
+                        product.variations.forEach((variation: any) => {
+                          expandedProducts.push({
+                            ...product,
+                            _id: `${product._id}-${variation._id}`,
+                            originalProductId: product._id,
+                            productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || "Variation"}`,
+                            price: variation.price,
+                            compareAtPrice: variation.compareAtPrice || product.compareAtPrice,
+                            purchasePrice: variation.purchasePrice || product.purchasePrice,
+                            stock: variation.stock,
+                            sku: variation.sku || product.sku,
+                            isVariation: true,
+                            variationId: variation._id,
+                            wholesalePrice: Number(product.wholesalePrice || 0),
+                          });
+                        });
+                      } else {
+                        expandedProducts.push({
+                          ...product,
+                          originalProductId: product._id,
+                          wholesalePrice: product.wholesalePrice || 0,
+                        });
+                      }
+                    });
+                    setProducts(expandedProducts);
+                  }
+                }
+              } catch (refreshErr) {
+                console.error("Failed to refresh products after order edit", refreshErr);
+              }
+
               // Set bill details for the success modal so user can print/share
               setLastBillDetails({
                   total: calculateTotal(),

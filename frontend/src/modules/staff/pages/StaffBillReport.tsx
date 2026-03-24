@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { detectModuleFromPath } from "../../../utils/moduleAuth";
-import { getPOSStaffBills, StaffModule } from "../../../utils/staffSession";
+import { deletePOSStaffBills, getPOSStaffBills, StaffModule } from "../../../utils/staffSession";
+import { toast } from "react-hot-toast";
 
 const StaffBillReport: React.FC = () => {
   const moduleType = (detectModuleFromPath() === "seller" ? "seller" : "admin") as StaffModule;
@@ -8,6 +9,7 @@ const StaffBillReport: React.FC = () => {
   const [billSearch, setBillSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("all");
   const [selectedBill, setSelectedBill] = useState<any>(null);
+  const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
   const [refreshKey, setRefreshKey] = useState(0);
 
   const bills = useMemo(() => getPOSStaffBills(moduleType), [moduleType, refreshKey]);
@@ -46,6 +48,39 @@ const StaffBillReport: React.FC = () => {
 
   const totalAmount = filteredBills.reduce((sum, bill) => sum + Number(bill.totalAmount || 0), 0);
 
+  const allSelected =
+    filteredBills.length > 0 && filteredBills.every((bill) => selectedBillIds.has(bill.id));
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedBillIds(new Set(filteredBills.map((bill) => bill.id)));
+    } else {
+      setSelectedBillIds(new Set());
+    }
+  };
+
+  const handleSelectBill = (id: string) => {
+    setSelectedBillIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedBillIds.size === 0) return;
+    const ok = window.confirm(`Delete ${selectedBillIds.size} selected item(s)?`);
+    if (!ok) return;
+
+    const ids = Array.from(selectedBillIds);
+    deletePOSStaffBills(moduleType, ids);
+    setSelectedBillIds(new Set());
+    if (selectedBill?.id && ids.includes(selectedBill.id)) setSelectedBill(null);
+    setRefreshKey((k) => k + 1);
+    toast.success("Selected items deleted");
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6 bg-gray-50 min-h-screen">
       <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -55,12 +90,21 @@ const StaffBillReport: React.FC = () => {
             Separate report for staff-created POS bills
           </p>
         </div>
-        <button
-          onClick={() => setRefreshKey((k) => k + 1)}
-          className="px-4 py-2 rounded-xl bg-[#f187b5] text-white font-semibold hover:bg-[#db76a3] transition-colors"
-        >
-          Refresh
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleDeleteSelected}
+            disabled={selectedBillIds.size === 0}
+            className="px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Delete{selectedBillIds.size > 0 ? ` (${selectedBillIds.size})` : ""}
+          </button>
+          <button
+            onClick={() => setRefreshKey((k) => k + 1)}
+            className="px-4 py-2 rounded-xl bg-[#f187b5] text-white font-semibold hover:bg-[#db76a3] transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -116,6 +160,14 @@ const StaffBillReport: React.FC = () => {
           <table className="w-full text-left">
             <thead className="bg-gray-50/70">
               <tr>
+                <th className="px-5 py-3 text-[10px] font-bold text-gray-500 uppercase w-10">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="w-4 h-4 text-[#f187b5] rounded border-gray-300 focus:ring-[#f187b5]"
+                  />
+                </th>
                 <th className="px-5 py-3 text-[10px] font-bold text-gray-500 uppercase">Bill No</th>
                 <th className="px-5 py-3 text-[10px] font-bold text-gray-500 uppercase">Staff Name</th>
                 <th className="px-5 py-3 text-[10px] font-bold text-gray-500 uppercase">Date</th>
@@ -128,13 +180,21 @@ const StaffBillReport: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {filteredBills.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-sm text-gray-400">
+                  <td colSpan={8} className="px-5 py-10 text-center text-sm text-gray-400">
                     No staff bills found
                   </td>
                 </tr>
               ) : (
                 filteredBills.map((bill) => (
                   <tr key={bill.id} className="hover:bg-gray-50">
+                    <td className="px-5 py-3 w-10" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selectedBillIds.has(bill.id)}
+                        onChange={() => handleSelectBill(bill.id)}
+                        className="w-4 h-4 text-[#f187b5] rounded border-gray-300 focus:ring-[#f187b5]"
+                      />
+                    </td>
                     <td className="px-5 py-3 font-semibold text-gray-800">{bill.billNumber}</td>
                     <td className="px-5 py-3 text-sm text-gray-700">{bill.staffName}</td>
                     <td className="px-5 py-3 text-xs text-gray-500">
