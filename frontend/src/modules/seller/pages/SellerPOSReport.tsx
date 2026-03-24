@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getPOSReport, updateStockLedgerEntry, getPOSStockLedger } from '../../../services/api/orderService';
+import { deleteSellerPOSOrder, getPOSReport, updateStockLedgerEntry, getPOSStockLedger } from '../../../services/api/orderService';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { useToast } from '../../../context/ToastContext';
@@ -47,6 +47,7 @@ const SellerPOSReport = () => {
     const [selectedActionOrder, setSelectedActionOrder] = useState<any>(null);
     const [editingLedgerEntry, setEditingLedgerEntry] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
 
     // Filter State
     const [showFilterModal, setShowFilterModal] = useState(false);
@@ -155,8 +156,70 @@ const SellerPOSReport = () => {
     };
 
     const handleDeleteOrder = async (orderId: string) => {
-        if (window.confirm("Delete is disabled for Sellers in this view.")) {
-            // Disabled
+        if (window.confirm("Are you sure you want to delete this POS order? This will restore the stock.")) {
+            try {
+                setLoading(true);
+                const response = await deleteSellerPOSOrder(orderId);
+                if (response.success) {
+                    showToast("Order deleted and stock restored", "success");
+                    fetchData(dateRange.start || undefined, dateRange.end || undefined);
+                } else {
+                    showToast(response.message || "Failed to delete order", "error");
+                }
+            } catch (error) {
+                console.error("Error deleting order:", error);
+                showToast("An error occurred while deleting the order", "error");
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handleSelectAllOrders = (checked: boolean, orders: any[]) => {
+        if (checked) {
+            setSelectedOrderIds(new Set(orders.map((o) => o._id)));
+        } else {
+            setSelectedOrderIds(new Set());
+        }
+    };
+
+    const handleSelectOrder = (id: string) => {
+        setSelectedOrderIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleDeleteSelectedOrders = async () => {
+        if (selectedOrderIds.size === 0) return;
+        const ok = window.confirm(`Delete ${selectedOrderIds.size} selected item(s)?`);
+        if (!ok) return;
+
+        const ids = Array.from(selectedOrderIds);
+        const idSet = new Set(ids);
+
+        try {
+            setLoading(true);
+            const failed: string[] = [];
+            for (const id of ids) {
+                try {
+                    const response = await deleteSellerPOSOrder(id);
+                    if (!response.success) failed.push(id);
+                } catch {
+                    failed.push(id);
+                }
+            }
+
+            setSelectedOrderIds(new Set());
+            if (selectedActionOrder?._id && idSet.has(selectedActionOrder._id)) setSelectedActionOrder(null);
+            fetchData(dateRange.start || undefined, dateRange.end || undefined);
+
+            if (failed.length > 0) showToast(`Failed to delete ${failed.length} item(s)`, "error");
+            else showToast("Selected orders deleted and stock restored", "success");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -260,6 +323,15 @@ const SellerPOSReport = () => {
                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
                          {selectedPeriod}
                     </button>
+                    {activeTab === "orders" && (
+                        <button
+                          onClick={handleDeleteSelectedOrders}
+                          disabled={selectedOrderIds.size === 0}
+                          className="px-4 py-2 bg-rose-600 text-white rounded-xl font-semibold hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Delete{selectedOrderIds.size > 0 ? ` (${selectedOrderIds.size})` : ""}
+                        </button>
+                    )}
                     <button
                       onClick={() => fetchData(dateRange.start || undefined, dateRange.end || undefined)}
                       className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] rounded-xl font-semibold hover:bg-[#f187b5]/20 transition-colors flex items-center gap-2"
@@ -458,6 +530,14 @@ const SellerPOSReport = () => {
                             <table className="w-full text-left">
                                 <thead className="bg-gray-50/50">
                                     <tr>
+                                        <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-10">
+                                            <input
+                                                type="checkbox"
+                                                checked={filteredOrders.length > 0 && filteredOrders.every((o: any) => selectedOrderIds.has(o._id))}
+                                                onChange={(e) => handleSelectAllOrders(e.target.checked, filteredOrders)}
+                                                className="w-4 h-4 text-[#f187b5] rounded border-gray-300 focus:ring-[#f187b5]"
+                                            />
+                                        </th>
                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Order No</th>
                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Customer</th>
                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Amount</th>
@@ -469,7 +549,7 @@ const SellerPOSReport = () => {
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {filteredOrders.length === 0 ? (
-                                        <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">{searchTerm ? "No orders match your search" : "No orders found for today"}</td></tr>
+                                        <tr><td colSpan={8} className="px-6 py-12 text-center text-gray-400 italic">{searchTerm ? "No orders match your search" : "No orders found for today"}</td></tr>
                                     ) : (
                                         filteredOrders.map((order: any) => (
                                             <tr
@@ -477,6 +557,14 @@ const SellerPOSReport = () => {
                                                 className="hover:bg-gray-50/80 transition-colors cursor-pointer"
                                                 onClick={() => setSelectedActionOrder(order)}
                                             >
+                                                <td className="px-6 py-4 w-10" onClick={(e) => e.stopPropagation()}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedOrderIds.has(order._id)}
+                                                        onChange={() => handleSelectOrder(order._id)}
+                                                        className="w-4 h-4 text-[#f187b5] rounded border-gray-300 focus:ring-[#f187b5]"
+                                                    />
+                                                </td>
                                                 <td className="px-6 py-4 font-bold text-gray-800">#{order.orderNumber}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm font-medium text-gray-700">{order.customerName}</div>
@@ -498,7 +586,7 @@ const SellerPOSReport = () => {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <button
-                                                        onClick={() => handleDeleteOrder(order._id)}
+                                                        onClick={(e) => { e.stopPropagation(); handleDeleteOrder(order._id); }}
                                                         className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
                                                         title="Delete Order"
                                                     >

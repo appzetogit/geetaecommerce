@@ -44,6 +44,7 @@ const AdminPOSReport = () => {
     const [selectedActionOrder, setSelectedActionOrder] = useState<any>(null);
     const [editingLedgerEntry, setEditingLedgerEntry] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
 
     // Status Update State
     const [showStatusModal, setShowStatusModal] = useState(false);
@@ -174,6 +175,54 @@ const AdminPOSReport = () => {
             } finally {
                 setLoading(false);
             }
+        }
+    };
+
+    const handleSelectAllOrders = (checked: boolean, orders: any[]) => {
+        if (checked) {
+            setSelectedOrderIds(new Set(orders.map((o) => o._id)));
+        } else {
+            setSelectedOrderIds(new Set());
+        }
+    };
+
+    const handleSelectOrder = (id: string) => {
+        setSelectedOrderIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+        });
+    };
+
+    const handleDeleteSelectedOrders = async () => {
+        if (selectedOrderIds.size === 0) return;
+        const ok = window.confirm(`Delete ${selectedOrderIds.size} selected item(s)?`);
+        if (!ok) return;
+
+        const ids = Array.from(selectedOrderIds);
+        const idSet = new Set(ids);
+
+        try {
+            setLoading(true);
+            const failed: string[] = [];
+            for (const id of ids) {
+                try {
+                    const response = await deletePOSOrder(id);
+                    if (!response.success) failed.push(id);
+                } catch {
+                    failed.push(id);
+                }
+            }
+
+            setSelectedOrderIds(new Set());
+            if (selectedActionOrder?._id && idSet.has(selectedActionOrder._id)) setSelectedActionOrder(null);
+            fetchData(dateRange.start || undefined, dateRange.end || undefined);
+
+            if (failed.length > 0) showToast(`Failed to delete ${failed.length} item(s)`, "error");
+            else showToast("Selected orders deleted and stock restored", "success");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -437,6 +486,15 @@ const AdminPOSReport = () => {
                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
                          {selectedPeriod}
                     </button>
+                    {activeTab === "orders" && (
+                        <button
+                          onClick={handleDeleteSelectedOrders}
+                          disabled={selectedOrderIds.size === 0}
+                          className="px-4 py-2 bg-rose-600 text-white rounded-xl font-semibold hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Delete{selectedOrderIds.size > 0 ? ` (${selectedOrderIds.size})` : ""}
+                        </button>
+                    )}
                     <button
                       onClick={() => fetchData(dateRange.start || undefined, dateRange.end || undefined)}
                       className="px-4 py-2 bg-orange-50 text-orange-600 rounded-xl font-semibold hover:bg-orange-100 transition-colors flex items-center gap-2"
@@ -631,34 +689,50 @@ const AdminPOSReport = () => {
                            ))}
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50/50">
-                                    <tr>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Order No</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Customer</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Amount</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Method</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Time</th>
-                                        <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {filteredOrders.length === 0 ? (
-                                        <tr><td colSpan={7} className="px-6 py-12 text-center text-gray-400 italic">{searchTerm ? "No orders match your search" : "No orders found for today"}</td></tr>
-                                    ) : (
-                                        filteredOrders.map((order: any) => (
-                                            <tr
-                                                key={order._id}
-                                                className="hover:bg-gray-50/80 transition-colors cursor-pointer"
-                                                onClick={() => setSelectedActionOrder(order)}
-                                            >
-                                                <td className="px-6 py-4 font-bold text-gray-800">#{order.orderNumber}</td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm font-medium text-gray-700">{order.customerName}</div>
-                                                    <div className="text-[10px] text-gray-400">{order.customerPhone}</div>
-                                                </td>
+                         <div className="overflow-x-auto">
+                             <table className="w-full text-left">
+                                 <thead className="bg-gray-50/50">
+                                     <tr>
+                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider w-10">
+                                             <input
+                                                 type="checkbox"
+                                                 checked={filteredOrders.length > 0 && filteredOrders.every((o: any) => selectedOrderIds.has(o._id))}
+                                                 onChange={(e) => handleSelectAllOrders(e.target.checked, filteredOrders)}
+                                                 className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500"
+                                             />
+                                         </th>
+                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Order No</th>
+                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Customer</th>
+                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Amount</th>
+                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Method</th>
+                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Time</th>
+                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Action</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody className="divide-y divide-gray-50">
+                                     {filteredOrders.length === 0 ? (
+                                         <tr><td colSpan={8} className="px-6 py-12 text-center text-gray-400 italic">{searchTerm ? "No orders match your search" : "No orders found for today"}</td></tr>
+                                     ) : (
+                                         filteredOrders.map((order: any) => (
+                                             <tr
+                                                 key={order._id}
+                                                 className="hover:bg-gray-50/80 transition-colors cursor-pointer"
+                                                 onClick={() => setSelectedActionOrder(order)}
+                                             >
+                                                 <td className="px-6 py-4 w-10" onClick={(e) => e.stopPropagation()}>
+                                                     <input
+                                                         type="checkbox"
+                                                         checked={selectedOrderIds.has(order._id)}
+                                                         onChange={() => handleSelectOrder(order._id)}
+                                                         className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500"
+                                                     />
+                                                 </td>
+                                                 <td className="px-6 py-4 font-bold text-gray-800">#{order.orderNumber}</td>
+                                                 <td className="px-6 py-4">
+                                                     <div className="text-sm font-medium text-gray-700">{order.customerName}</div>
+                                                     <div className="text-[10px] text-gray-400">{order.customerPhone}</div>
+                                                 </td>
                                                 <td className="px-6 py-4 font-bold text-gray-900">₹{order.total.toLocaleString()}</td>
                                                 <td className="px-6 py-4">
                                                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentMethod === 'Cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -672,14 +746,14 @@ const AdminPOSReport = () => {
                                                 </td>
                                                 <td className="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">
                                                     {new Date(order.orderDate || order.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <button
-                                                        onClick={() => handleDeleteOrder(order._id)}
-                                                        className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                                                        title="Delete Order"
-                                                    >
-                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                 </td>
+                                                 <td className="px-6 py-4">
+                                                     <button
+                                                         onClick={(e) => { e.stopPropagation(); handleDeleteOrder(order._id); }}
+                                                         className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                                         title="Delete Order"
+                                                     >
+                                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                             <polyline points="3 6 5 6 21 6"></polyline>
                                                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                                                             <line x1="10" y1="11" x2="10" y2="17"></line>
