@@ -223,6 +223,7 @@ export default function SellerStockBulkImport({
     { row: number; label: string; message: string }[]
   >([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadInFlightRef = useRef(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -419,6 +420,8 @@ export default function SellerStockBulkImport({
 
   const handleUpload = async () => {
     if (!previewData.length) return;
+    if (uploadInFlightRef.current || uploading) return;
+    uploadInFlightRef.current = true;
     const apiBase =
       import.meta.env.VITE_API_BASE_URL ||
       (import.meta.env.DEV ? "/api/v1" : "https://api.geeta.today/api/v1");
@@ -464,6 +467,7 @@ export default function SellerStockBulkImport({
         mongoVariationLookup = await buildMongoVariationLookup();
       }
     }
+    const seenImportKeys = new Set<string>();
 
     for (let i = 0; i < total; i++) {
         const row = normalizeExcelRow(
@@ -701,6 +705,29 @@ export default function SellerStockBulkImport({
                 lowStockQuantity: lowStockFinal,
             };
 
+            const skuKey = String(productPayload.itemCode ?? "").trim().toLowerCase();
+            const barcodeKey = String(rowCell(row, ["Barcode", "8. Barcode", "barcode"]) ?? "")
+              .trim()
+              .toLowerCase();
+            const nameKey = String(productPayload.productName ?? "").trim().toLowerCase();
+            const importKey = skuKey
+              ? `sku:${skuKey}`
+              : barcodeKey
+                ? `barcode:${barcodeKey}`
+                : `name:${nameKey}`;
+            if (seenImportKeys.has(importKey)) {
+              const label = skuKey || nameKey || "—";
+              failures.push({
+                row: i + 1,
+                label,
+                message: `Duplicate row in file skipped (${importKey})`,
+              });
+              failedCount++;
+              setProgress(prev => ({ ...prev, current: i + 1, success: successCount, failed: failedCount }));
+              continue;
+            }
+            seenImportKeys.add(importKey);
+
             const res = await createProduct(productPayload);
             if (!res?.success) {
               throw new Error(res?.message || "Import failed");
@@ -751,6 +778,13 @@ export default function SellerStockBulkImport({
       onSuccess();
       onClose();
     }
+    uploadInFlightRef.current = false;
+  };
+
+  useEffect(() => {
+    return () => {
+      uploadInFlightRef.current = false;
+    };
   };
 
   const handleDownloadTemplate = () => {

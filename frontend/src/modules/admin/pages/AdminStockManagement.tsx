@@ -638,7 +638,7 @@ export default function AdminStockManagement() {
 
       if (product.variations && product.variations.length > 0) {
         product.variations.forEach((v: any, index) => {
-          const currentStock = Number(v.stock) || 0;
+          const currentStock = Number(v.stock ?? product.stock) || 0;
            // Detect Size/Color
           const isSize = (v.name || "").toLowerCase().includes("size");
           const isColor = (v.name || "").toLowerCase().includes("color");

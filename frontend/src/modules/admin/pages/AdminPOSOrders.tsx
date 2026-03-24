@@ -1739,6 +1739,34 @@ const AdminPOSOrders = () => {
     }
 
     if (purchaseMode === 'Purchase') {
+      // Persist purchase stock increments to product inventory so stock pages reflect the latest values.
+      for (const item of purchaseItems) {
+        try {
+          const productId = item.baseProductId || item.productId;
+          const qtyToAdd = Number(item.qty) || 0;
+          if (!productId || qtyToAdd <= 0 || String(productId).startsWith('quick-')) continue;
+
+          const res = await getProductById(productId);
+          if (!res.success || !res.data) continue;
+          const product = res.data as any;
+
+          if (item.isVariant && item.variationId && Array.isArray(product.variations) && product.variations.length > 0) {
+            const updatedVariations = product.variations.map((v: any) =>
+              String(v._id) === String(item.variationId)
+                ? { ...v, stock: (Number(v.stock) || 0) + qtyToAdd }
+                : v
+            );
+            const totalStock = updatedVariations.reduce((acc: number, curr: any) => acc + (Number(curr.stock) || 0), 0);
+            await updateProduct(productId, { variations: updatedVariations, stock: totalStock } as any);
+          } else {
+            const nextStock = (Number(product.stock) || 0) + qtyToAdd;
+            await updateProduct(productId, { stock: nextStock } as any);
+          }
+        } catch (err) {
+          console.error("Failed to increment stock for purchase:", err);
+        }
+      }
+
       setPurchaseItems((prev) => prev.map((item) => ({ ...item, currentQty: item.currentQty + item.qty })));
       showToast('Purchase saved & inventory updated', 'success');
       printPurchaseInvoice(entry);

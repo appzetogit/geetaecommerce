@@ -107,19 +107,33 @@ export default function SellerStockManagement() {
                     // Convert products to stock items
                     const items: StockItem[] = [];
                     response.data.forEach((product: Product) => {
-                        product.variations.forEach((variation, index) => {
+                        if (product.variations && product.variations.length > 0) {
+                            product.variations.forEach((variation, index) => {
+                                items.push({
+                                    variationId: variation._id || `${product._id}-${index}`,
+                                    productId: product._id,
+                                    name: product.productName,
+                                    seller: user?.storeName || '',
+                                    image: resolveImageUrl(product.mainImage || product.mainImageUrl),
+                                    variation: variation.title || variation.value || variation.name || 'Default',
+                                    stock: Number(variation.stock ?? product.stock) || 0,
+                                    status: product.publish ? 'Published' : 'Unpublished',
+                                    category: (product.category as any)?.name || 'Uncategorized',
+                                });
+                            });
+                        } else {
                             items.push({
-                                variationId: variation._id || `${product._id}-${index}`,
+                                variationId: `default-${product._id}`,
                                 productId: product._id,
                                 name: product.productName,
                                 seller: user?.storeName || '',
                                 image: resolveImageUrl(product.mainImage || product.mainImageUrl),
-                                variation: variation.title || variation.value || variation.name || 'Default',
-                                stock: variation.stock,
+                                variation: 'Default',
+                                stock: Number(product.stock) || 0,
                                 status: product.publish ? 'Published' : 'Unpublished',
                                 category: (product.category as any)?.name || 'Uncategorized',
                             });
-                        });
+                        }
                     });
                     setStockItems(items);
                     if ((response as any).pagination) {
@@ -147,7 +161,9 @@ export default function SellerStockManagement() {
     const handleStockUpdate = async (productId: string, variationId: string, newStock: number) => {
         setUpdatingStock(variationId);
         try {
-            const response = await updateStock(productId, variationId, newStock);
+            const response = variationId.startsWith('default-')
+                ? await updateProduct(productId, { stock: newStock })
+                : await updateStock(productId, variationId, newStock);
             if (response.success) {
                 // Update local state
                 setStockItems(prev => prev.map(item =>

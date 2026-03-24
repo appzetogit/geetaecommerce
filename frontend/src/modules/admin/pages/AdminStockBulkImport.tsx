@@ -73,6 +73,7 @@ export default function AdminStockBulkImport({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ total: 0, current: 0, success: 0, failed: 0 });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadInFlightRef = useRef(false);
   const { user } = useAuth(); // To get seller ID if needed, but admin creates for default admin store usually
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,11 +235,14 @@ export default function AdminStockBulkImport({
 
   const handleUpload = async () => {
     if (!previewData.length) return;
+    if (uploadInFlightRef.current || uploading) return;
+    uploadInFlightRef.current = true;
     setUploading(true);
     const total = previewData.length;
     let successCount = 0;
     let failedCount = 0;
     setProgress({ total, current: 0, success: 0, failed: 0 });
+    const seenImportKeys = new Set<string>();
 
     // We can either send all at once or one by one. One by one allows better progress tracking and partial success.
     // Given the requirement "pura data product list me bhi show hona chiaye", ensuring all valid are added is key.
@@ -260,6 +264,21 @@ export default function AdminStockBulkImport({
         ) {
            throw new Error("Missing required fields (Name, Price)");
         }
+
+        const skuKey = String((productData as any).itemCode || (productData as any).sku || "")
+          .trim()
+          .toLowerCase();
+        const barcodeKey = String((productData as any).barcode || "").trim().toLowerCase();
+        const nameKey = String(productData.productName || "").trim().toLowerCase();
+        const importKey = skuKey
+          ? `sku:${skuKey}`
+          : barcodeKey
+            ? `barcode:${barcodeKey}`
+            : `name:${nameKey}`;
+        if (seenImportKeys.has(importKey)) {
+          throw new Error(`Duplicate row in file skipped (${importKey})`);
+        }
+        seenImportKeys.add(importKey);
 
         // Call create API
         await createProduct(productData as any);
@@ -290,6 +309,7 @@ export default function AdminStockBulkImport({
         onSuccess();
         onClose();
     }
+    uploadInFlightRef.current = false;
   };
 
   const handleDownloadTemplate = () => {
