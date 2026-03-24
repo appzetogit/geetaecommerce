@@ -564,6 +564,72 @@ const SellerPOSOrders = () => {
     pincode: '',
     gst: ''
   });
+  // Add Customer Modal: search existing customers and auto-fill on pick
+  const [modalCustomerSearch, setModalCustomerSearch] = useState('');
+  const [modalCustomerResults, setModalCustomerResults] = useState([]);
+  const [showModalCustomerResults, setShowModalCustomerResults] = useState(false);
+  const [modalCustomerLoading, setModalCustomerLoading] = useState(false);
+  const [modalPickedCustomer, setModalPickedCustomer] = useState(null);
+
+  useEffect(() => {
+    if (!showAddCustomerModal) return;
+    // Reset modal-only state on open so results from last open don't leak.
+    setModalCustomerSearch('');
+    setModalCustomerResults([]);
+    setShowModalCustomerResults(false);
+    setModalCustomerLoading(false);
+    setModalPickedCustomer(null);
+  }, [showAddCustomerModal]);
+
+  useEffect(() => {
+    if (!showAddCustomerModal) return;
+
+    const q = (modalCustomerSearch || '').trim();
+    if (q.length < 2) {
+      setModalCustomerResults([]);
+      setShowModalCustomerResults(false);
+      setModalCustomerLoading(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setModalCustomerLoading(true);
+      try {
+        const res = await getAllCustomers({ search: q, limit: 10 });
+        if (res.success && res.data) {
+          setModalCustomerResults(res.data);
+        } else {
+          setModalCustomerResults([]);
+        }
+        setShowModalCustomerResults(true);
+      } catch (e) {
+        console.error(e);
+        setModalCustomerResults([]);
+        setShowModalCustomerResults(true);
+      } finally {
+        setModalCustomerLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [modalCustomerSearch, showAddCustomerModal]);
+
+  const pickCustomerFromModal = (c) => {
+    setModalPickedCustomer(c);
+    const displayName = c?.phone ? `${c?.name} (${c?.phone})` : (c?.name || '');
+    setModalCustomerSearch(displayName);
+    setShowModalCustomerResults(false);
+    setNewCustomer({
+      name: c?.name || '',
+      phone: c?.phone || '',
+      email: c?.email || '',
+      address: c?.address || '',
+      city: c?.city || '',
+      state: c?.state || '',
+      pincode: c?.pincode || '',
+      gst: c?.gst || ''
+    });
+  };
 
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
@@ -1125,6 +1191,30 @@ const SellerPOSOrders = () => {
 
   const submitAddCustomer = async (e: React.FormEvent) => {
       e.preventDefault();
+      // If an existing customer was picked from the modal search, just select it and close.
+      if (modalPickedCustomer) {
+          const customer = modalPickedCustomer;
+          const displayName = customer?.phone ? `${customer?.name} (${customer?.phone})` : (customer?.name || '');
+          updateActiveBill({
+              selectedCustomer: customer,
+              customerSearch: displayName,
+              paymentMethod: "Credit"
+          });
+          setCustomers([customer]);
+          setShowCustomerDropdown(false);
+          setShowAddCustomerModal(false);
+          setNewCustomer({
+              name: '',
+              phone: '',
+              email: '',
+              address: '',
+              city: '',
+              state: '',
+              pincode: '',
+              gst: ''
+          });
+          return;
+      }
       if (!newCustomer.name || !newCustomer.phone) {
           showToast("Name and Phone are required", "error");
           return;
@@ -5376,13 +5466,66 @@ const SellerPOSOrders = () => {
 
                 <form onSubmit={submitAddCustomer} className="p-6">
                     <div className="space-y-4">
+                        <div className="relative">
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Search Customer</label>
+                            <input
+                                type="text"
+                                value={modalCustomerSearch}
+                                onChange={(e) => {
+                                  setModalPickedCustomer(null);
+                                  setModalCustomerSearch(e.target.value);
+                                }}
+                                onFocus={() => {
+                                  if ((modalCustomerSearch || '').trim().length >= 2) setShowModalCustomerResults(true);
+                                }}
+                                onBlur={() => {
+                                  // Allow click on dropdown items before hiding.
+                                  setTimeout(() => setShowModalCustomerResults(false), 150);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') e.preventDefault();
+                                }}
+                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                placeholder="Search by name or phone"
+                            />
+                            {showModalCustomerResults && (
+                              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-20">
+                                {modalCustomerLoading ? (
+                                  <div className="px-4 py-3 text-sm text-gray-500">Searching...</div>
+                                ) : (modalCustomerResults || []).length > 0 ? (
+                                  <div className="max-h-56 overflow-auto">
+                                    {(modalCustomerResults || []).map((c) => (
+                                      <button
+                                        key={c?._id || `${c?.name}-${c?.phone}`}
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                          // Use mousedown so selection happens before the input blurs (blur can hide the list).
+                                          e.preventDefault();
+                                          pickCustomerFromModal(c);
+                                        }}
+                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors"
+                                      >
+                                        <div className="text-sm font-semibold text-gray-800">{c?.name}</div>
+                                        <div className="text-xs text-gray-500 font-mono">{c?.phone}{c?.email ? ` • ${c?.email}` : ''}</div>
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="px-4 py-3 text-sm text-gray-500">No customers found</div>
+                                )}
+                              </div>
+                            )}
+                        </div>
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Full Name *</label>
                             <input
                                 type="text"
                                 required
                                 value={newCustomer.name}
-                                onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+                                onChange={(e) => {
+                                  setModalPickedCustomer(null);
+                                  setNewCustomer({...newCustomer, name: e.target.value});
+                                }}
                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                                 placeholder="Enter customer name"
                             />
@@ -5396,61 +5539,74 @@ const SellerPOSOrders = () => {
                                     required
                                     maxLength={10}
                                     pattern="[0-9]{10}"
-                                    value={newCustomer.phone}
-                                    onChange={(e) => {
-                                        const val = e.target.value.replace(/\D/g, "");
-                                        if (val.length <= 10) {
-                                            setNewCustomer({...newCustomer, phone: val});
-                                        }
-                                    }}
-                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-mono"
-                                    placeholder="10 digit mobile"
-                                />
+                                     value={newCustomer.phone}
+                                     onChange={(e) => {
+                                         const val = e.target.value.replace(/\D/g, "");
+                                         if (val.length <= 10) {
+                                             setModalPickedCustomer(null);
+                                             setNewCustomer({...newCustomer, phone: val});
+                                         }
+                                     }}
+                                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all font-mono"
+                                     placeholder="10 digit mobile"
+                                 />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email (Optional)</label>
                                 <input
-                                    type="email"
-                                    value={newCustomer.email}
-                                    onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})}
-                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                                    placeholder="customer@email.com"
-                                />
-                            </div>
-                        </div>
+                                     type="email"
+                                     value={newCustomer.email}
+                                     onChange={(e) => {
+                                       setModalPickedCustomer(null);
+                                       setNewCustomer({...newCustomer, email: e.target.value});
+                                     }}
+                                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                     placeholder="customer@email.com"
+                                 />
+                             </div>
+                         </div>
 
                         <div>
-                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Address</label>
-                            <textarea
-                                value={newCustomer.address}
-                                onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all h-20 resize-none"
-                                placeholder="Street address, building, etc."
-                            />
-                        </div>
+                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Address</label>
+                             <textarea
+                                 value={newCustomer.address}
+                                 onChange={(e) => {
+                                   setModalPickedCustomer(null);
+                                   setNewCustomer({...newCustomer, address: e.target.value});
+                                 }}
+                                 className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all h-20 resize-none"
+                                 placeholder="Street address, building, etc."
+                             />
+                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">City</label>
-                                <input
-                                    type="text"
-                                    value={newCustomer.city}
-                                    onChange={(e) => setNewCustomer({...newCustomer, city: e.target.value})}
-                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                                    placeholder="City"
-                                />
-                            </div>
+                                     <input
+                                         type="text"
+                                         value={newCustomer.city}
+                                         onChange={(e) => {
+                                           setModalPickedCustomer(null);
+                                           setNewCustomer({...newCustomer, city: e.target.value});
+                                         }}
+                                         className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                         placeholder="City"
+                                     />
+                                 </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Pincode</label>
-                                <input
-                                    type="text"
-                                    value={newCustomer.pincode}
-                                    onChange={(e) => setNewCustomer({...newCustomer, pincode: e.target.value})}
-                                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                                    placeholder="6 digit PIN"
-                                />
-                            </div>
-                        </div>
+                                     <input
+                                         type="text"
+                                         value={newCustomer.pincode}
+                                         onChange={(e) => {
+                                           setModalPickedCustomer(null);
+                                           setNewCustomer({...newCustomer, pincode: e.target.value});
+                                         }}
+                                         className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                                         placeholder="6 digit PIN"
+                                     />
+                                 </div>
+                             </div>
 
                         <div>
                             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">GST Number (Optional)</label>
@@ -5458,17 +5614,18 @@ const SellerPOSOrders = () => {
                                 type="text"
                                 value={newCustomer.gst}
                                 maxLength={15}
-                                onChange={(e) => {
-                                    const gstValue = e.target.value
-                                      .toUpperCase()
-                                      .replace(/[^0-9A-Z]/g, '')
-                                      .slice(0, 15);
-                                    setNewCustomer({...newCustomer, gst: gstValue});
-                                }}
-                                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
-                                placeholder="Enter GSTIN"
-                            />
-                        </div>
+                                 onChange={(e) => {
+                                     const gstValue = e.target.value
+                                       .toUpperCase()
+                                       .replace(/[^0-9A-Z]/g, '')
+                                       .slice(0, 15);
+                                     setModalPickedCustomer(null);
+                                     setNewCustomer({...newCustomer, gst: gstValue});
+                                 }}
+                                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                 placeholder="Enter GSTIN"
+                             />
+                         </div>
                     </div>
 
                     <div className="mt-8 flex gap-3">
