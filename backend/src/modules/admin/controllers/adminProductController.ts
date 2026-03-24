@@ -820,6 +820,24 @@ function stripInvalidProductObjectIds(body: Record<string, unknown>): void {
   }
 }
 
+function normalizeDuplicateKeyPart(value: unknown): string {
+  const s = String(value ?? "").trim().toLowerCase();
+  if (!s || s === "0" || s === "-" || s === "--" || s === "na" || s === "n/a") {
+    return "";
+  }
+  return s;
+}
+
+function getDuplicateBarcodeValues(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => normalizeDuplicateKeyPart(v))
+      .filter(Boolean);
+  }
+  const one = normalizeDuplicateKeyPart(value);
+  return one ? [one] : [];
+}
+
 /**
  * Create a new product
  */
@@ -919,6 +937,47 @@ export const createProduct = asyncHandler(
         productData.publish = true;
       }
       productData.requiresApproval = false;
+
+      const duplicateSku = normalizeDuplicateKeyPart(
+        (productData.itemCode ?? productData.sku) as unknown
+      );
+      const duplicateName = normalizeDuplicateKeyPart(productData.productName);
+      const duplicateBarcodes = getDuplicateBarcodeValues(productData.barcode);
+
+      const duplicateOr: Record<string, unknown>[] = [];
+      if (duplicateSku) {
+        duplicateOr.push({ sku: duplicateSku });
+        duplicateOr.push({ itemCode: duplicateSku });
+        duplicateOr.push({ "variations.sku": duplicateSku });
+      }
+      if (duplicateBarcodes.length > 0) {
+        duplicateOr.push({ barcode: { $in: duplicateBarcodes } });
+        duplicateOr.push({ "variations.barcode": { $in: duplicateBarcodes } });
+      }
+      if (duplicateName) {
+        duplicateOr.push({
+          productName: {
+            $regex: `^${duplicateName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+            $options: "i",
+          },
+        });
+      }
+
+      if (duplicateOr.length > 0) {
+        const existingProduct = await Product.findOne({
+          seller: productData.seller,
+          $or: duplicateOr,
+        })
+          .select("_id productName sku itemCode")
+          .lean();
+
+        if (existingProduct?._id) {
+          return res.status(409).json({
+            success: false,
+            message: `Duplicate product skipped (already exists: ${existingProduct.productName || "Unnamed"})`,
+          });
+        }
+      }
 
       const product = await Product.create(productData);
 
