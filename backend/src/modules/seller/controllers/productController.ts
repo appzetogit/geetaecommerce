@@ -252,7 +252,8 @@ export const createProduct = asyncHandler(
       duplicateOr.push({ barcode: { $in: duplicateBarcodes } });
       duplicateOr.push({ "variations.barcode": { $in: duplicateBarcodes } });
     }
-    if (duplicateName) {
+    // Product-name duplicate check only as fallback when sku/barcode are not available.
+    if (!duplicateSku && duplicateBarcodes.length === 0 && duplicateName) {
       duplicateOr.push({
         productName: { $regex: `^${duplicateName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
       });

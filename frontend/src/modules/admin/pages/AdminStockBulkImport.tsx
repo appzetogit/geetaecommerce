@@ -82,7 +82,8 @@ function buildImportKeys(input: {
   const name = normalizeImportKeyPart(input.name);
   if (sku) keys.push(`sku:${sku}`);
   if (barcode) keys.push(`barcode:${barcode}`);
-  if (name) keys.push(`name:${name}`);
+  // Name fallback only when sku/barcode are missing, to avoid false duplicate blocks.
+  if (!sku && !barcode && name) keys.push(`name:${name}`);
   return keys;
 }
 
@@ -120,9 +121,6 @@ export default function AdminStockBulkImport({
           const n = normalizeImportKeyPart(b);
           if (n) keys.add(`barcode:${n}`);
         }
-
-        const name = normalizeImportKeyPart(p?.productName);
-        if (name) keys.add(`name:${name}`);
 
         const vars = Array.isArray(p?.variations) ? p.variations : [];
         for (const v of vars) {
