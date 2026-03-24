@@ -239,9 +239,8 @@ export default function AdminStockBulkImport({
       mfgDate: rowCell(row, ["Mfg Date", "29. Mfg Date"]) || "",
       expiryDate: rowCell(row, ["Expiry Date", "30. Expiry Date"]) || "",
       unitPricing: unitPricing.length > 0 ? unitPricing : undefined,
-      publish:
-        ((rowCell(row, ["Status"]) || "").toLowerCase() === "active" ||
-          (rowCell(row, ["Status"]) || "").toLowerCase() === "published"),
+      // Bulk-imported products should appear active immediately.
+      publish: true,
       mainImage: rowCell(row, ["Image", "Img", "Main Image"]) || "",
       galleryImages: [],
     };

@@ -704,7 +704,8 @@ export default function SellerStockBulkImport({
                   : undefined,
                 subSubCategoryId: rawData.subSubCategoryId,
                 brandId: isValidObjectIdString(rawData.brandId) ? rawData.brandId : undefined,
-                publish: !!rawData.publish,
+                // Bulk-imported products should appear active immediately.
+                publish: true,
                 popular: false,
                 dealOfDay: false,
                 isReturnable: false,
