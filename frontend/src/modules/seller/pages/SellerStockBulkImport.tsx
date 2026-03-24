@@ -80,6 +80,21 @@ function normalizeImportKeyPart(v: unknown): string {
   return s;
 }
 
+function buildImportKeys(input: {
+  sku?: unknown;
+  barcode?: unknown;
+  name?: unknown;
+}): string[] {
+  const keys: string[] = [];
+  const sku = normalizeImportKeyPart(input.sku);
+  const barcode = normalizeImportKeyPart(input.barcode);
+  const name = normalizeImportKeyPart(input.name);
+  if (sku) keys.push(`sku:${sku}`);
+  if (barcode) keys.push(`barcode:${barcode}`);
+  if (name) keys.push(`name:${name}`);
+  return keys;
+}
+
 /** Never send NaN in variations; collect human-readable issues for one console.warn per row. */
 function sanitizeImportVariations(
   variations: unknown[],
@@ -761,23 +776,27 @@ export default function SellerStockBulkImport({
               rowCell(row, ["Barcode", "8. Barcode", "barcode"]) ?? ""
             );
             const nameKey = normalizeImportKeyPart(productPayload.productName ?? "");
-            const importKey = skuKey
-              ? `sku:${skuKey}`
-              : barcodeKey
-                ? `barcode:${barcodeKey}`
-                : `name:${nameKey}`;
-            if (seenImportKeys.has(importKey)) {
+            const importKeys = buildImportKeys({
+              sku: skuKey,
+              barcode: barcodeKey,
+              name: nameKey,
+            });
+            if (importKeys.length === 0) {
+              importKeys.push("name:untitled");
+            }
+
+            if (importKeys.some((k) => seenImportKeys.has(k))) {
               const label = skuKey || nameKey || "—";
               failures.push({
                 row: i + 1,
                 label,
-                message: `Duplicate row in file skipped (${importKey})`,
+                message: `Duplicate row in file/database skipped (${importKeys.join(" | ")})`,
               });
               failedCount++;
               setProgress(prev => ({ ...prev, current: i + 1, success: successCount, failed: failedCount }));
               continue;
             }
-            seenImportKeys.add(importKey);
+            importKeys.forEach((k) => seenImportKeys.add(k));
 
             const res = await createProduct(productPayload);
             if (!res?.success) {

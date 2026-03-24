@@ -71,6 +71,21 @@ function normalizeImportKeyPart(v: unknown): string {
   return s;
 }
 
+function buildImportKeys(input: {
+  sku?: unknown;
+  barcode?: unknown;
+  name?: unknown;
+}): string[] {
+  const keys: string[] = [];
+  const sku = normalizeImportKeyPart(input.sku);
+  const barcode = normalizeImportKeyPart(input.barcode);
+  const name = normalizeImportKeyPart(input.name);
+  if (sku) keys.push(`sku:${sku}`);
+  if (barcode) keys.push(`barcode:${barcode}`);
+  if (name) keys.push(`name:${name}`);
+  return keys;
+}
+
 export default function AdminStockBulkImport({
   categories,
   onClose,
@@ -319,15 +334,16 @@ export default function AdminStockBulkImport({
         const skuKey = normalizeImportKeyPart((productData as any).itemCode || (productData as any).sku || "");
         const barcodeKey = normalizeImportKeyPart((productData as any).barcode || "");
         const nameKey = normalizeImportKeyPart(productData.productName || "");
-        const importKey = skuKey
-          ? `sku:${skuKey}`
-          : barcodeKey
-            ? `barcode:${barcodeKey}`
-            : `name:${nameKey}`;
-        if (seenImportKeys.has(importKey)) {
-          throw new Error(`Duplicate row in file skipped (${importKey})`);
+        const importKeys = buildImportKeys({
+          sku: skuKey,
+          barcode: barcodeKey,
+          name: nameKey,
+        });
+        if (importKeys.length === 0) importKeys.push("name:untitled");
+        if (importKeys.some((k) => seenImportKeys.has(k))) {
+          throw new Error(`Duplicate row in file/database skipped (${importKeys.join(" | ")})`);
         }
-        seenImportKeys.add(importKey);
+        importKeys.forEach((k) => seenImportKeys.add(k));
 
         // Call create API
         await createProduct(productData as any);
