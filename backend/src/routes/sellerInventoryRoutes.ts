@@ -6,7 +6,8 @@ import {
   getLowStockSummary,
   getOutOfStockSummary,
   getLossSummary,
-  createLossRecord
+  createLossRecord,
+  deleteLossRecord
 } from "../modules/seller/controllers/inventoryController";
 
 const router = express.Router();
@@ -22,5 +23,6 @@ router.get("/low-stock", getLowStockSummary);
 router.get("/out-of-stock", getOutOfStockSummary);
 router.get("/loss-summary", getLossSummary);
 router.post("/loss", createLossRecord);
+router.delete("/loss/:id", deleteLossRecord);
 
 export default router;

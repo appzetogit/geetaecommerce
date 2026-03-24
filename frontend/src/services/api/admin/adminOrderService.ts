@@ -366,3 +366,11 @@ export const deletePOSOrder = async (id: string): Promise<ApiResponse<any>> => {
   const response = await api.delete<ApiResponse<any>>(`/admin/orders/pos/${id}`);
   return response.data;
 };
+
+/**
+ * Delete Order (Online/Non-POS) and Restore Stock
+ */
+export const deleteOrder = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.delete<ApiResponse<any>>(`/admin/orders/${id}`);
+  return response.data;
+};

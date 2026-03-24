@@ -111,6 +111,17 @@ const AdminDueSummary = () => {
     setSelectedRows(newSelected);
   };
 
+  const handleDeleteSelected = () => {
+    if (selectedRows.size === 0) return;
+    const ok = window.confirm(`Delete ${selectedRows.size} selected item(s)?`);
+    if (!ok) return;
+
+    const idSet = new Set(selectedRows);
+    setData((prev) => prev.filter((row) => !idSet.has(row._id)));
+    setSelectedRows(new Set());
+    toast.success("Selected items deleted");
+  };
+
   const handleDateFilterChange = (type: DateFilterType) => {
     setDateFilterType(type);
     setPagination(prev => ({ ...prev, page: 1 }));
@@ -189,6 +200,14 @@ const AdminDueSummary = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
               </svg>
               {editMode ? 'Done Editing' : 'Bulk Edit'}
+            </button>
+
+            <button
+              onClick={handleDeleteSelected}
+              disabled={selectedRows.size === 0}
+              className="px-4 py-2 bg-rose-600 text-white rounded-xl font-semibold hover:bg-rose-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Delete{selectedRows.size > 0 ? ` (${selectedRows.size})` : ""}
             </button>
 
             <button
@@ -281,16 +300,14 @@ const AdminDueSummary = () => {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                {editMode && (
-                  <th className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selectedRows.size === data.length && data.length > 0}
-                      onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
-                    />
-                  </th>
-                )}
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.size === data.length && data.length > 0}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                  />
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Order No</th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Customer Name</th>
@@ -304,29 +321,27 @@ const AdminDueSummary = () => {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                   <td colSpan={editMode ? 9 : 8} className="px-6 py-12 text-center text-gray-500 italic">
+                   <td colSpan={9} className="px-6 py-12 text-center text-gray-500 italic">
                     Fetching due summary data...
                   </td>
                 </tr>
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={editMode ? 9 : 8} className="px-6 py-12 text-center text-gray-400 text-sm">
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-400 text-sm">
                     No due records found
                   </td>
                 </tr>
               ) : (
                 data.map((item) => (
                   <tr key={item._id} className="hover:bg-gray-50 transition-colors">
-                    {editMode && (
-                      <td className="px-4 py-3">
-                        <input
-                          type="checkbox"
-                          checked={selectedRows.has(item._id)}
-                          onChange={() => handleSelectRow(item._id)}
-                          className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
-                        />
-                      </td>
-                    )}
+                    <td className="px-4 py-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.has(item._id)}
+                        onChange={() => handleSelectRow(item._id)}
+                        className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       {editMode ? (
                         <input

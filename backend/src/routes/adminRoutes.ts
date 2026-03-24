@@ -11,6 +11,7 @@ import * as productController from "../modules/admin/controllers/adminProductCon
 // Order Controllers
 import * as orderController from "../modules/admin/controllers/adminOrderController";
 import * as deletePOSOrderController from "../modules/admin/controllers/deletePOSOrderController";
+import * as deleteOrderController from "../modules/admin/controllers/deleteOrderController";
 import * as updateStockLedgerController from "../modules/admin/controllers/updateStockLedgerController";
 import * as inventoryController from "../modules/admin/controllers/adminInventoryController";
 import * as adminPOSPurchaseEntryController from "../modules/admin/controllers/adminPOSPurchaseEntryController";
@@ -180,6 +181,7 @@ router.get("/inventory/return-exchange-report", inventoryController.getReturnExc
 router.get("/inventory/stock-sales-summary", inventoryController.getStockSalesSummary);
 router.get("/inventory/due-summary", inventoryController.getDueSummaryReport);
 router.post("/inventory/loss", inventoryController.createLossRecord);
+router.delete("/inventory/loss/:id", inventoryController.deleteLossRecord);
 
 // ==================== POS Routes ====================
 router.post("/orders/pos", orderController.createPOSOrder);
@@ -200,6 +202,7 @@ router.get("/orders/online", orderController.getOnlineOrders);
 router.get("/orders", orderController.getAllOrders);
 router.get("/orders/status/:status", orderController.getOrdersByStatus);
 router.get("/orders/:id", orderController.getOrderById);
+router.delete("/orders/:id", deleteOrderController.deleteOrder);
 router.patch("/orders/:id/status", orderController.updateOrderStatus);
 router.patch("/orders/:id/items", orderController.updateOrderItems);
 router.patch("/orders/:id/assign-delivery", orderController.assignDeliveryBoy);

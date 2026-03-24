@@ -4,6 +4,7 @@ import {
   getOrderById,
   updateOrderStatus,
 } from "../modules/seller/controllers/orderController";
+import * as deleteOrderController from "../modules/admin/controllers/deleteOrderController";
 import { authenticate, requireUserType, checkEnabled } from "../middleware/auth";
 
 const router = Router();
@@ -21,5 +22,8 @@ router.get("/:id", getOrderById);
 
 // Update order status
 router.patch("/:id/status", updateOrderStatus);
+
+// Delete order and restore stock
+router.delete("/:id", deleteOrderController.deleteOrder);
 
 export default router;

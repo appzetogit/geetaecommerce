@@ -142,6 +142,14 @@ export const createLossRecord = async (data: any): Promise<ApiResponse<LossData>
   return response.data;
 };
 
+/**
+ * Delete Loss Record
+ */
+export const deleteLossRecord = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.delete<ApiResponse<any>>(`/admin/inventory/loss/${id}`);
+  return response.data;
+};
+
 export interface GSTSalesData {
   _id: string;
   productName: string;

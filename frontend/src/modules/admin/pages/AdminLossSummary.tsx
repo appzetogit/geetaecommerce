@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getLossSummary, createLossRecord, LossData } from "../../../services/api/admin/adminInventoryService";
+import { getLossSummary, createLossRecord, deleteLossRecord, LossData } from "../../../services/api/admin/adminInventoryService";
 import { getProducts, Product } from "../../../services/api/admin/adminProductService";
 import { toast } from "react-hot-toast";
 
@@ -157,6 +157,35 @@ const AdminLossSummary = () => {
     setShowCustomDatePicker(type === 'custom');
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedRows.size === 0) return;
+    const ok = window.confirm(`Delete ${selectedRows.size} selected item(s)?`);
+    if (!ok) return;
+
+    const ids = Array.from(selectedRows);
+    const idSet = new Set(ids);
+
+    try {
+      const failed: string[] = [];
+      for (const id of ids) {
+        try {
+          await deleteLossRecord(id);
+        } catch (e: any) {
+          if (e?.response?.status !== 404) failed.push(id);
+        }
+      }
+
+      setData((prev) => prev.filter((row) => !idSet.has(row._id)));
+      setSelectedRows(new Set());
+
+      if (failed.length > 0) toast.error(`Failed to delete ${failed.length} item(s)`);
+      else toast.success("Selected items deleted");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.response?.data?.message || "Failed to delete items");
+    }
+  };
+
   const handleAddLoss = async () => {
     try {
       if (!newLoss.productId || newLoss.quantity <= 0) {
@@ -256,6 +285,14 @@ const AdminLossSummary = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
                 {editMode ? 'Done Editing' : 'Bulk Edit'}
+              </button>
+
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedRows.size === 0}
+                className="inline-flex items-center px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-lg hover:bg-rose-700 active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Delete{selectedRows.size > 0 ? ` (${selectedRows.size})` : ""}
               </button>
 
               <button
@@ -359,7 +396,13 @@ const AdminLossSummary = () => {
             <table className="w-full text-sm text-left">
               <thead>
                 <tr className="bg-gradient-to-r from-red-50 to-orange-50 border-b-2 border-red-200">
-                  {editMode && <th className="px-4 py-3"><input type="checkbox" onChange={(e) => handleSelectAll(e.target.checked)} /></th>}
+                  <th className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.size === data.length && data.length > 0}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                    />
+                  </th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Date</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Product Name</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Weight/UOM</th>
@@ -375,7 +418,13 @@ const AdminLossSummary = () => {
                 ) : (
                   data.map((item) => (
                     <tr key={item._id} className="hover:bg-red-50/30 transition-colors">
-                      {editMode && <td className="px-4 py-3"><input type="checkbox" checked={selectedRows.has(item._id)} onChange={() => handleSelectRow(item._id)} /></td>}
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.has(item._id)}
+                          onChange={() => handleSelectRow(item._id)}
+                        />
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap text-gray-600">{new Date(item.date).toLocaleDateString()}</td>
                       <td className="px-4 py-3 font-semibold text-gray-900">{item.productName}</td>
                       <td className="px-4 py-3"><span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">{item.weight}</span></td>

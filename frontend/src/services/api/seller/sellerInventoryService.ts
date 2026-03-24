@@ -144,6 +144,14 @@ export const createLossRecord = async (data: any): Promise<ApiResponse<LossData>
   return response.data;
 };
 
+/**
+ * Delete Loss Record for Seller
+ */
+export const deleteLossRecord = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.delete<ApiResponse<any>>(`/seller/inventory/loss/${id}`);
+  return response.data;
+};
+
 export interface SalesSummaryReportData {
   _id: string;
   date: string;
@@ -240,5 +248,4 @@ export const getDueSummaryReport = async (params?: GetStockSummaryParams): Promi
   const response = await api.get<ApiResponse<DueSummaryData[]>>("/seller/reports/due-summary", { params });
   return response.data;
 };
-
 

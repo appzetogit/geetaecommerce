@@ -3,6 +3,7 @@ import {
   getOnlineOrders,
   getSellerPOSOrders,
 } from "../modules/seller/controllers/orderController";
+import * as deletePOSOrderController from "../modules/admin/controllers/deletePOSOrderController";
 import { authenticate, requireUserType, checkEnabled } from "../middleware/auth";
 
 const router = Router();
@@ -17,5 +18,8 @@ router.get("/online", getOnlineOrders);
 
 // Get POS invoice report
 router.get("/pos-report", getSellerPOSOrders);
+
+// Delete POS order and restore stock
+router.delete("/pos/:id", deletePOSOrderController.deletePOSOrder);
 
 export default router;

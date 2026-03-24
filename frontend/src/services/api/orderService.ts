@@ -211,3 +211,19 @@ export const getSellerOrderById = async (id: string): Promise<ApiResponse<any>> 
   const response = await api.get<ApiResponse<any>>(`/seller/orders/pos/${id}`);
   return response.data;
 };
+
+/**
+ * Delete Seller Order (Online/Non-POS) and Restore Stock
+ */
+export const deleteSellerOrder = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.delete<ApiResponse<any>>(`/orders/${id}`);
+  return response.data;
+};
+
+/**
+ * Delete Seller POS Order and Restore Stock
+ */
+export const deleteSellerPOSOrder = async (id: string): Promise<ApiResponse<any>> => {
+  const response = await api.delete<ApiResponse<any>>(`/seller/orders/pos/${id}`);
+  return response.data;
+};

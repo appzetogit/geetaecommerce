@@ -801,6 +801,70 @@ export const createLossRecord = asyncHandler(
   }
 );
 
+/**
+ * Delete Loss Record and Restore Stock
+ */
+export const deleteLossRecord = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  const lossRecord = await InventoryLoss.findById(id);
+  if (!lossRecord) {
+    return res.status(404).json({
+      success: false,
+      message: "Loss record not found",
+    });
+  }
+
+  const product = await Product.findById(lossRecord.product);
+  if (!product) {
+    return res.status(404).json({
+      success: false,
+      message: "Product not found",
+    });
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const prevStock = product.stock;
+    const newStock = prevStock + lossRecord.quantity;
+    product.stock = newStock;
+
+    if (lossRecord.variationId && product.variations && product.variations.length > 0) {
+      const variation = product.variations.find(
+        (v) => v._id.toString() === lossRecord.variationId!.toString()
+      );
+      if (variation) {
+        const vPrevStock = variation.stock || 0;
+        variation.stock = vPrevStock + lossRecord.quantity;
+      }
+    }
+
+    await product.save({ session });
+
+    await StockLedger.deleteMany({ referenceId: lossRecord._id }).session(session);
+    await InventoryLoss.deleteOne({ _id: lossRecord._id }).session(session);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("stock-update", { productId: product._id, newStock: product.stock });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Loss record deleted and stock restored successfully",
+    });
+  } catch (error: any) {
+    await session.abortTransaction();
+    session.endSession();
+    throw error;
+  }
+});
+
 export const getGSTSalesReport = asyncHandler(
   async (req: Request, res: Response) => {
     const {
@@ -1668,4 +1732,3 @@ export const getDueSummaryReport = asyncHandler(
     }
   }
 );
-

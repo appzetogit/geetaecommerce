@@ -108,6 +108,17 @@ const AdminPaymentReport = () => {
     setSelectedRows(newSelected);
   };
 
+  const handleDeleteSelected = () => {
+    if (selectedRows.size === 0) return;
+    const ok = window.confirm(`Delete ${selectedRows.size} selected item(s)?`);
+    if (!ok) return;
+
+    const idSet = new Set(selectedRows);
+    setData((prev) => prev.filter((row) => !idSet.has(row._id)));
+    setSelectedRows(new Set());
+    toast.success("Selected items deleted");
+  };
+
   const handleDateFilterChange = (type: DateFilterType) => {
     setDateFilterType(type);
     setPagination(prev => ({ ...prev, page: 1 }));
@@ -183,6 +194,14 @@ const AdminPaymentReport = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
                 {editMode ? 'Done Editing' : 'Bulk Edit'}
+              </button>
+
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedRows.size === 0}
+                className="inline-flex items-center px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-lg hover:bg-rose-700 active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Delete{selectedRows.size > 0 ? ` (${selectedRows.size})` : ""}
               </button>
 
               <button
@@ -329,16 +348,14 @@ const AdminPaymentReport = () => {
             <table className="w-full text-sm leading-normal">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
-                  {editMode && (
-                    <th className="px-5 py-4 text-left">
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.size === data.length && data.length > 0}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                      />
-                    </th>
-                  )}
+                  <th className="px-5 py-4 text-left w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.size === data.length && data.length > 0}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                    />
+                  </th>
                   <th className="px-5 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
                   <th className="px-5 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Transaction ID</th>
                   <th className="px-5 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Order No</th>
@@ -352,29 +369,27 @@ const AdminPaymentReport = () => {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={editMode ? 9 : 8} className="px-6 py-12 text-center text-gray-500 text-sm italic">
+                    <td colSpan={9} className="px-6 py-12 text-center text-gray-500 text-sm italic">
                       Fetching report data...
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan={editMode ? 9 : 8} className="px-6 py-12 text-center text-gray-400 font-medium">
+                    <td colSpan={9} className="px-6 py-12 text-center text-gray-400 font-medium">
                       No payment transactions found
                     </td>
                   </tr>
                 ) : (
                   data.map((item) => (
                     <tr key={item._id} className="hover:bg-gray-50 transition-colors">
-                      {editMode && (
-                        <td className="px-5 py-4">
-                          <input
-                            type="checkbox"
-                            checked={selectedRows.has(item._id)}
-                            onChange={() => handleSelectRow(item._id)}
-                            className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                          />
-                        </td>
-                      )}
+                      <td className="px-5 py-4 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.has(item._id)}
+                          onChange={() => handleSelectRow(item._id)}
+                          className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                        />
+                      </td>
                       <td className="px-5 py-4 whitespace-nowrap text-gray-900 font-medium">{item.date}</td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">{item.paymentId}</span>

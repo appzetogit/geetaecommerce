@@ -108,6 +108,17 @@ const SellerGSTSalesReport = () => {
     setSelectedRows(newSelected);
   };
 
+  const handleDeleteSelected = () => {
+    if (selectedRows.size === 0) return;
+    const ok = window.confirm(`Delete ${selectedRows.size} selected item(s)?`);
+    if (!ok) return;
+
+    const idSet = new Set(selectedRows);
+    setData((prev) => prev.filter((row) => !idSet.has(row._id)));
+    setSelectedRows(new Set());
+    toast.success("Selected items deleted");
+  };
+
   const handleDateFilterChange = (type: DateFilterType) => {
     setDateFilterType(type);
     setPagination(prev => ({ ...prev, page: 1 }));
@@ -178,6 +189,14 @@ const SellerGSTSalesReport = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
                 {editMode ? 'Done Editing' : 'Bulk Edit'}
+              </button>
+
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedRows.size === 0}
+                className="inline-flex items-center px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-lg hover:bg-rose-700 active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Delete{selectedRows.size > 0 ? ` (${selectedRows.size})` : ""}
               </button>
 
               <button
@@ -272,17 +291,15 @@ const SellerGSTSalesReport = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gradient-to-r from-green-50 to-emerald-50 border-b-2 border-green-200">
-                  {editMode && (
-                    <th className="px-3 py-3 text-left sticky left-0 bg-green-50 z-10">
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.size === data.length && data.length > 0}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
-                      />
-                    </th>
-                  )}
-                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider sticky left-0 bg-green-50 z-10">Product Name</th>
+                  <th className="px-3 py-3 text-left sticky left-0 bg-green-50 z-20 w-10">
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.size === data.length && data.length > 0}
+                      onChange={(e) => handleSelectAll(e.target.checked)}
+                      className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
+                    />
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider sticky left-10 bg-green-50 z-10">Product Name</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">HSN Code</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Stock</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Price</th>
@@ -306,17 +323,15 @@ const SellerGSTSalesReport = () => {
                 ) : (
                   data.map((item) => (
                     <tr key={item._id} className="hover:bg-green-50/30 transition-colors">
-                      {editMode && (
-                        <td className="px-3 py-3 sticky left-0 bg-white">
-                          <input
-                            type="checkbox"
-                            checked={selectedRows.has(item._id)}
-                            onChange={() => handleSelectRow(item._id)}
-                            className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
-                          />
-                        </td>
-                      )}
-                      <td className="px-3 py-3 sticky left-0 bg-white">
+                      <td className="px-3 py-3 sticky left-0 bg-white z-10 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.has(item._id)}
+                          onChange={() => handleSelectRow(item._id)}
+                          className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
+                        />
+                      </td>
+                      <td className="px-3 py-3 sticky left-10 bg-white z-10">
                         {editMode ? (
                           <input
                             type="text"

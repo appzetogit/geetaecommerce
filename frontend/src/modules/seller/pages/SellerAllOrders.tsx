@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { getOrders, Order, GetOrdersParams } from '../../../services/api/orderService';
 import ThemedDropdown from '../components/ThemedDropdown';
+import { useToast } from '../../../context/ToastContext';
 
 type SortField = 'orderId' | 'deliveryDate' | 'orderDate' | 'status' | 'amount';
 type SortDirection = 'asc' | 'desc';
 
 export default function SellerAllOrders() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [dateRange, setDateRange] = useState('');
@@ -110,6 +113,45 @@ export default function SellerAllOrders() {
   const startIndex = (currentPage - 1) * entriesPerPageNum;
   const endIndex = startIndex + entriesPerPageNum;
   const paginatedOrders = orders.slice(startIndex, endIndex);
+
+  const selectedSet = useMemo(() => new Set(selectedRowIds), [selectedRowIds]);
+  const allSelected =
+    paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedSet.has(o.id));
+
+  const handleSelectAll = () => {
+    const idsOnPage = paginatedOrders.map((o) => o.id);
+    if (idsOnPage.length === 0) return;
+
+    setSelectedRowIds((prev) => {
+      const next = new Set(prev);
+      const allOnPageSelected = idsOnPage.every((id) => next.has(id));
+
+      if (allOnPageSelected) {
+        idsOnPage.forEach((id) => next.delete(id));
+        return Array.from(next);
+      }
+
+      idsOnPage.forEach((id) => next.add(id));
+      return Array.from(next);
+    });
+  };
+
+  const handleToggleRow = (id: string) => {
+    setSelectedRowIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedRowIds.length === 0) return;
+    const ok = window.confirm(`Delete ${selectedRowIds.length} selected order(s)?`);
+    if (!ok) return;
+
+    const idsSet = new Set(selectedRowIds);
+    setOrders((prev) => prev.filter((o) => !idsSet.has(o.id)));
+    setSelectedRowIds([]);
+    showToast('Selected orders deleted', 'success');
+  };
 
   const handlePreviousPage = () => {
     setCurrentPage(prev => Math.max(1, prev - 1));
@@ -292,6 +334,21 @@ export default function SellerAllOrders() {
           </div>
         </div>
 
+        <div className="px-5 py-3 border-b border-neutral-100 bg-white flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-neutral-600">
+            Selected:{' '}
+            <span className="font-semibold text-neutral-900">{selectedRowIds.length}</span> rows
+          </p>
+          <button
+            type="button"
+            onClick={handleDeleteSelected}
+            disabled={selectedRowIds.length === 0}
+            className="inline-flex items-center px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Delete
+          </button>
+        </div>
+
         {/* Loading and Error States */}
         {loading && (
           <div className="flex flex-col items-center justify-center p-12">
@@ -316,6 +373,14 @@ export default function SellerAllOrders() {
             <table className="w-full min-w-[800px]">
               <thead className="bg-neutral-50/80 border-b border-neutral-200">
                 <tr>
+                  <th className="px-6 py-4 text-left text-xs font-bold text-neutral-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={handleSelectAll}
+                      aria-label="Select all rows"
+                    />
+                  </th>
                   {[
                     { id: 'orderId', label: 'Order ID' },
                     { id: 'deliveryDate', label: 'Delivery Date' },
@@ -343,7 +408,7 @@ export default function SellerAllOrders() {
               <tbody className="divide-y divide-neutral-100 bg-white">
                 {paginatedOrders.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
+                    <td colSpan={7} className="px-6 py-12 text-center">
                        <div className="flex flex-col items-center justify-center">
                         <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mb-4">
                           <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 022-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
@@ -361,6 +426,14 @@ export default function SellerAllOrders() {
                       variants={itemVariants}
                       custom={index}
                     >
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedSet.has(order.id)}
+                          onChange={() => handleToggleRow(order.id)}
+                          aria-label={`Select ${order.orderId}`}
+                        />
+                      </td>
                       <td className="px-6 py-4 text-sm font-medium text-neutral-900">
                         <span className="font-mono text-seller-700 bg-seller-50 px-2 py-0.5 rounded border border-seller-100">#{order.orderId}</span>
                       </td>

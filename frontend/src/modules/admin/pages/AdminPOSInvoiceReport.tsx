@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getPOSOrders, updateOrderStatus, Order } from "../../../services/api/admin/adminOrderService";
+import { deletePOSOrder, getPOSOrders, updateOrderStatus, Order } from "../../../services/api/admin/adminOrderService";
 import { useAuth } from "../../../context/AuthContext";
 import { toast } from "react-hot-toast";
 
@@ -175,6 +175,37 @@ const AdminPOSInvoiceReport = () => {
     setSelectedRows(newSelected);
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedRows.size === 0) return;
+    const ok = window.confirm(`Delete ${selectedRows.size} selected invoice(s)?`);
+    if (!ok) return;
+
+    const ids = Array.from(selectedRows);
+    const idSet = new Set(ids);
+
+    try {
+      const failed: string[] = [];
+
+      for (const id of ids) {
+        try {
+          await deletePOSOrder(id);
+        } catch (e: any) {
+          // If it's already missing on server, treat as deleted.
+          if (e?.response?.status !== 404) failed.push(id);
+        }
+      }
+
+      setOrders((prev) => prev.filter((o) => !idSet.has(o._id)));
+      setSelectedRows(new Set());
+
+      if (failed.length > 0) toast.error(`Failed to delete ${failed.length} invoice(s)`);
+      else toast.success("Selected invoices deleted");
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.response?.data?.message || "Failed to delete invoices");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       <div className="bg-white border-b border-gray-200">
@@ -193,6 +224,14 @@ const AdminPOSInvoiceReport = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
                 {editMode ? 'Done Editing' : 'Bulk Edit'}
+              </button>
+
+              <button
+                onClick={handleDeleteSelected}
+                disabled={selectedRows.size === 0}
+                className="inline-flex items-center px-5 py-2 bg-rose-600 font-black text-xs rounded-lg hover:bg-rose-700 active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Delete{selectedRows.size > 0 ? ` (${selectedRows.size})` : ""}
               </button>
 
               <button

@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
+  deletePOSOrder,
   getAllOrders,
   type Order,
 } from "../../../services/api/admin/adminOrderService";
 import { useAuth } from "../../../context/AuthContext";
+import { useToast } from "../../../context/ToastContext";
 
 type SortField =
   | "orderId"
@@ -19,7 +21,9 @@ type SortDirection = "asc" | "desc";
 
 export default function AdminAllOrders() {
   const { isAuthenticated, token } = useAuth();
+  const { showToast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState("");
   const [seller, setSeller] = useState("All Sellers");
   const [status, setStatus] = useState("All Status");
@@ -220,6 +224,68 @@ export default function AdminAllOrders() {
   const startIndex = (currentPage - 1) * parseInt(entriesPerPage);
   const endIndex = startIndex + parseInt(entriesPerPage);
   const paginatedOrders = filteredAndSortedOrders.slice(startIndex, endIndex);
+
+  const selectedSet = useMemo(() => new Set(selectedRowIds), [selectedRowIds]);
+  const allSelected =
+    paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedSet.has(o._id));
+
+  const handleSelectAll = () => {
+    const idsOnPage = paginatedOrders.map((o) => o._id);
+    if (idsOnPage.length === 0) return;
+
+    setSelectedRowIds((prev) => {
+      const next = new Set(prev);
+      const allOnPageSelected = idsOnPage.every((id) => next.has(id));
+
+      if (allOnPageSelected) {
+        idsOnPage.forEach((id) => next.delete(id));
+        return Array.from(next);
+      }
+
+      idsOnPage.forEach((id) => next.add(id));
+      return Array.from(next);
+    });
+  };
+
+  const handleToggleRow = (id: string) => {
+    setSelectedRowIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedRowIds.length === 0) return;
+    const ok = window.confirm(`Delete ${selectedRowIds.length} selected order(s)?`);
+    if (!ok) return;
+
+    const idsToDelete = [...selectedRowIds];
+    const idsSet = new Set(idsToDelete);
+
+    try {
+      const failed: string[] = [];
+
+      for (const id of idsToDelete) {
+        try {
+          await deletePOSOrder(id);
+        } catch (e: any) {
+          // If it's already missing on server, treat as deleted.
+          if (e?.response?.status !== 404) failed.push(id);
+        }
+      }
+
+      setOrders((prev) => prev.filter((o) => !idsSet.has(o._id)));
+      setSelectedRowIds([]);
+
+      if (failed.length > 0) {
+        showToast(`Failed to delete ${failed.length} order(s)`, "error");
+      } else {
+        showToast("Selected orders deleted", "success");
+      }
+    } catch (e: any) {
+      console.error(e);
+      showToast(e?.response?.data?.message || "Failed to delete orders", "error");
+    }
+  };
 
   const handlePreviousPage = () => {
     setCurrentPage((prev) => Math.max(1, prev - 1));
@@ -457,11 +523,34 @@ export default function AdminAllOrders() {
             </div>
           </div>
 
+          <div className="px-3 sm:px-4 md:px-6 py-3 border-b border-neutral-200 bg-white flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs sm:text-sm text-neutral-700">
+              Selected:{" "}
+              <span className="font-semibold text-neutral-900">{selectedRowIds.length}</span> rows
+            </p>
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              disabled={selectedRowIds.length === 0}
+              className="inline-flex items-center px-4 py-2 bg-rose-600 text-white text-xs sm:text-sm font-semibold rounded hover:bg-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Delete
+            </button>
+          </div>
+
           {/* Table Section */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-neutral-200">
               <thead className="bg-neutral-50">
                 <tr>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={handleSelectAll}
+                      aria-label="Select all rows"
+                    />
+                  </th>
                   <th
                     onClick={() => handleSort("orderId")}
                     className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider cursor-pointer hover:bg-neutral-100">
@@ -735,7 +824,7 @@ export default function AdminAllOrders() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
                       Loading orders...
                     </td>
@@ -743,7 +832,7 @@ export default function AdminAllOrders() {
                 ) : error ? (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="px-4 sm:px-6 py-8 text-center text-sm text-red-600">
                       {error}
                     </td>
@@ -751,7 +840,7 @@ export default function AdminAllOrders() {
                 ) : paginatedOrders.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="px-4 sm:px-6 py-8 text-center text-sm text-neutral-500">
                       No data available in table
                     </td>
@@ -759,6 +848,14 @@ export default function AdminAllOrders() {
                 ) : (
                   paginatedOrders.map((order) => (
                     <tr key={order._id} className="hover:bg-neutral-50">
+                      <td className="px-4 sm:px-6 py-3" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedSet.has(order._id)}
+                          onChange={() => handleToggleRow(order._id)}
+                          aria-label={`Select ${order.orderNumber}`}
+                        />
+                      </td>
                       <td className="px-4 sm:px-6 py-3 text-sm text-neutral-900 flex items-center gap-2">
                         {order.orderNumber}
                         {order.items?.some((i: any) => i.isFreeGift) && (
