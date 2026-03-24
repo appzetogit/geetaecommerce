@@ -1209,25 +1209,29 @@ export default function AdminAddProduct() {
           setUploading(false);
           return;
         }
-      } else if (finalVariations.length === 1) {
-          // If there is exactly one variation (Simple Product mode), update it with the top form values
-          // This allows editing key fields without removing/re-adding the variation
-           if (compareAtPrice > 0 && price > compareAtPrice) {
-             setUploadError("Selling price cannot be greater than Maximum Retail Price (MRP)");
-             setUploading(false);
-             return;
-          }
+      } else if (
+        finalVariations.length === 1 &&
+        (!String(finalVariations[0]?.title || "").trim() ||
+          String(finalVariations[0]?.title || "").trim().toLowerCase() === "default")
+      ) {
+        // Keep top form -> variation sync only for true simple/default variation.
+        // For named variants (e.g. Chrome), preserve explicit variation pricing.
+        if (compareAtPrice > 0 && price > compareAtPrice) {
+          setUploadError("Selling price cannot be greater than Maximum Retail Price (MRP)");
+          setUploading(false);
+          return;
+        }
 
-          finalVariations[0] = {
-              ...finalVariations[0],
-              price,
-              compareAtPrice,
-              discPrice: calculatedDiscPrice,
-              stock,
-              offerPrice,
-              wholesalePrice,
-              image: finalVariations[0].image || variationForm.image || ""
-          };
+        finalVariations[0] = {
+          ...finalVariations[0],
+          price,
+          compareAtPrice,
+          discPrice: calculatedDiscPrice,
+          stock,
+          offerPrice,
+          wholesalePrice,
+          image: finalVariations[0].image || variationForm.image || ""
+        };
       }
 
       // Prepare product data for API

@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sendOTP, verifyOTP } from '../../../services/api/auth/deliveryAuthService';
 import OTPInput from '../../../components/OTPInput';
 import { useAuth } from '../../../context/AuthContext';
-import { removeAuthToken } from '../../../services/api/config';
 import { requestNotificationPermission } from '../../../services/pushNotificationService';
 
 export default function DeliveryLogin() {
@@ -15,11 +14,6 @@ export default function DeliveryLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isNotRegistered, setIsNotRegistered] = useState(false);
-
-  // Clear any existing token on mount to prevent role conflicts
-  useEffect(() => {
-    removeAuthToken();
-  }, []);
 
   const handleMobileLogin = async () => {
     if (mobileNumber.length !== 10) return;

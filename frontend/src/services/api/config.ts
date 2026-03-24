@@ -4,7 +4,6 @@ import {
   getCurrentModuleToken,
   setModuleAuthToken,
   removeModuleAuthToken,
-  ModuleType
 } from "../../utils/moduleAuth";
 
 // Base API URL - adjust based on your backend URL
@@ -88,56 +87,11 @@ api.interceptors.response.use(
     return response;
   },
   (error: any) => {
-    // Only handle 401 (Unauthorized) for auto-logout
-    // 403 (Forbidden) means user is authenticated but doesn't have permission - DO NOT LOGOUT
+    // Keep session persistent across refreshes and transient API failures.
+    // Do not auto-clear token or force-redirect on 401; only explicit logout should clear auth.
     if (error.response?.status === 401) {
-      // Check if this is an authentication endpoint (OTP verification, etc.)
-      // Don't redirect for auth endpoints - let the component handle the error
-      const isAuthEndpoint = error.config?.url?.includes("/auth/");
-
-      // Check if there was a token in the request (meaning user was logged in)
-      const hadToken = error.config?.headers?.Authorization;
-
-      // Only redirect if:
-      // 1. It's not an auth endpoint
-      // 2. There was a token in the request (user was logged in but token expired)
-      // 3. User is not already on login/signup pages
-      // 4. Request is not explicitly marked to skip auth redirect
-      if (!isAuthEndpoint && hadToken && !(error.config as any).skipAuthRedirect) {
-        const currentPath = window.location.pathname;
-
-        // Skip redirect if already on public auth pages (login/signup)
-        if (currentPath.includes("/login") || currentPath.includes("/signup")) {
-          return Promise.reject(error);
-        }
-
-        // Token expired or invalid - clear token and redirect to appropriate login
-        // STRICTLY check path to ensure correct redirect
-        const path = currentPath.toLowerCase();
-
-        let redirectPath = "/login";
-        let module: ModuleType = 'user';
-
-        if (path.startsWith('/admin') || path.includes('/admin/')) {
-          redirectPath = "/admin/login";
-          module = 'admin';
-        } else if (path.startsWith('/seller') || path.includes('/seller/')) {
-          redirectPath = "/seller/login";
-          module = 'seller';
-        } else if (path.startsWith('/delivery') || path.includes('/delivery/')) {
-          redirectPath = "/delivery/login";
-          module = 'delivery';
-        }
-
-        console.log(`🔒 Auth Error (401) on ${currentPath} -> Redirecting to ${redirectPath} (Module: ${module})`);
-
-        removeModuleAuthToken(module);
-        window.location.href = redirectPath;
-      }
-      // If no token was present, user is just browsing as guest - don't redirect
-      // Just reject the promise so the component can handle it gracefully
+      console.warn("⚠️ Received 401 response. Keeping session intact (manual logout only).");
     }
-    // For 403 and other errors, just reject the promise so the UI can handle it
     return Promise.reject(error);
   }
 );
