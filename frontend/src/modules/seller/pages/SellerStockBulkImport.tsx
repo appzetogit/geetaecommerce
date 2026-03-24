@@ -5,7 +5,6 @@ import {
   createProduct,
   CreateProductData,
   getProductById,
-  getProducts,
   updateStock,
 } from "../../../services/api/productService";
 import { Category } from "../../../services/api/categoryService";
@@ -80,20 +79,11 @@ function normalizeImportKeyPart(v: unknown): string {
   return s;
 }
 
-function buildImportKeys(input: {
-  sku?: unknown;
-  barcode?: unknown;
-  name?: unknown;
-}): string[] {
-  const keys: string[] = [];
-  const sku = normalizeImportKeyPart(input.sku);
-  const barcode = normalizeImportKeyPart(input.barcode);
-  const name = normalizeImportKeyPart(input.name);
-  if (sku) keys.push(`sku:${sku}`);
-  if (barcode) keys.push(`barcode:${barcode}`);
-  // Name fallback only when sku/barcode are missing, to avoid false duplicate blocks.
-  if (!sku && !barcode && name) keys.push(`name:${name}`);
-  return keys;
+function rowSignature(row: Record<string, unknown>): string {
+  const parts = Object.keys(row)
+    .sort((a, b) => a.localeCompare(b))
+    .map((k) => `${normalizeHeaderKey(k)}=${normalizeImportKeyPart(row[k])}`);
+  return parts.join("|");
 }
 
 /** Never send NaN in variations; collect human-readable issues for one console.warn per row. */
@@ -232,46 +222,6 @@ async function buildMongoVariationLookup(): Promise<
     page += 1;
   }
   return map;
-}
-
-async function buildSellerExistingImportKeySet(): Promise<Set<string>> {
-  const keys = new Set<string>();
-  let page = 1;
-  const limit = 200;
-  for (;;) {
-    const res = await getProducts({
-      page,
-      limit,
-      sortBy: "createdAt",
-      sortOrder: "desc",
-    });
-    if (!res.success || !res.data?.length) break;
-    for (const p of res.data as any[]) {
-      const sku = normalizeImportKeyPart(p?.itemCode ?? p?.sku);
-      if (sku) keys.add(`sku:${sku}`);
-
-      const topBarcodes = Array.isArray(p?.barcode) ? p.barcode : [p?.barcode];
-      for (const b of topBarcodes) {
-        const n = normalizeImportKeyPart(b);
-        if (n) keys.add(`barcode:${n}`);
-      }
-
-      const vars = Array.isArray(p?.variations) ? p.variations : [];
-      for (const v of vars) {
-        const vs = normalizeImportKeyPart(v?.sku);
-        if (vs) keys.add(`sku:${vs}`);
-        const vb = Array.isArray(v?.barcode) ? v.barcode : [v?.barcode];
-        for (const b of vb) {
-          const n = normalizeImportKeyPart(b);
-          if (n) keys.add(`barcode:${n}`);
-        }
-      }
-    }
-    const pages = (res as { pagination?: { pages?: number } }).pagination?.pages ?? 1;
-    if (page >= pages) break;
-    page += 1;
-  }
-  return keys;
 }
 
 export default function SellerStockBulkImport({
@@ -531,7 +481,7 @@ export default function SellerStockBulkImport({
         mongoVariationLookup = await buildMongoVariationLookup();
       }
     }
-    const seenImportKeys = await buildSellerExistingImportKeySet();
+    const seenImportKeys = new Set<string>();
 
     for (let i = 0; i < total; i++) {
         const row = normalizeExcelRow(
@@ -769,32 +719,22 @@ export default function SellerStockBulkImport({
                 lowStockQuantity: lowStockFinal,
             };
 
-            const skuKey = normalizeImportKeyPart(productPayload.itemCode ?? "");
-            const barcodeKey = normalizeImportKeyPart(
-              rowCell(row, ["Barcode", "8. Barcode", "barcode"]) ?? ""
-            );
-            const nameKey = normalizeImportKeyPart(productPayload.productName ?? "");
-            const importKeys = buildImportKeys({
-              sku: skuKey,
-              barcode: barcodeKey,
-              name: nameKey,
-            });
-            if (importKeys.length === 0) {
-              importKeys.push("name:untitled");
-            }
-
-            if (importKeys.some((k) => seenImportKeys.has(k))) {
-              const label = skuKey || nameKey || "—";
+            const signature = rowSignature(row);
+            if (seenImportKeys.has(signature)) {
+              const label =
+                rowCell(row, ["5. SKU", "SKU", "sku", "ITEM_CODE", "PRODUCT_SKU"]) ||
+                rowCell(row, ["4. Product Name", "Product Name", "PRODUCT_NAME"]) ||
+                "—";
               failures.push({
                 row: i + 1,
                 label,
-                message: `Duplicate row in file/database skipped (${importKeys.join(" | ")})`,
+                message: "Duplicate row in same import skipped",
               });
               failedCount++;
               setProgress(prev => ({ ...prev, current: i + 1, success: successCount, failed: failedCount }));
               continue;
             }
-            importKeys.forEach((k) => seenImportKeys.add(k));
+            seenImportKeys.add(signature);
 
             const res = await createProduct(productPayload);
             if (!res?.success) {

@@ -5,7 +5,6 @@ import {
   Category,
   CreateProductData,
   createProduct,
-  getProducts,
 } from "../../../services/api/admin/adminProductService";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -71,20 +70,11 @@ function normalizeImportKeyPart(v: unknown): string {
   return s;
 }
 
-function buildImportKeys(input: {
-  sku?: unknown;
-  barcode?: unknown;
-  name?: unknown;
-}): string[] {
-  const keys: string[] = [];
-  const sku = normalizeImportKeyPart(input.sku);
-  const barcode = normalizeImportKeyPart(input.barcode);
-  const name = normalizeImportKeyPart(input.name);
-  if (sku) keys.push(`sku:${sku}`);
-  if (barcode) keys.push(`barcode:${barcode}`);
-  // Name fallback only when sku/barcode are missing, to avoid false duplicate blocks.
-  if (!sku && !barcode && name) keys.push(`name:${name}`);
-  return keys;
+function rowSignature(row: Record<string, unknown>): string {
+  const parts = Object.keys(row)
+    .sort((a, b) => a.localeCompare(b))
+    .map((k) => `${normalizeHeaderKey(k)}=${normalizeImportKeyPart(row[k])}`);
+  return parts.join("|");
 }
 
 export default function AdminStockBulkImport({
@@ -99,46 +89,6 @@ export default function AdminStockBulkImport({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadInFlightRef = useRef(false);
   const { user } = useAuth(); // To get seller ID if needed, but admin creates for default admin store usually
-
-  const buildAdminExistingImportKeySet = async (): Promise<Set<string>> => {
-    const keys = new Set<string>();
-    let page = 1;
-    const limit = 200;
-    for (;;) {
-      const res = await getProducts({
-        page,
-        limit,
-        sortBy: "createdAt",
-        sortOrder: "desc",
-      } as any);
-      if (!res.success || !res.data?.length) break;
-      for (const p of res.data as any[]) {
-        const sku = normalizeImportKeyPart(p?.itemCode ?? p?.sku);
-        if (sku) keys.add(`sku:${sku}`);
-
-        const topBarcodes = Array.isArray(p?.barcode) ? p.barcode : [p?.barcode];
-        for (const b of topBarcodes) {
-          const n = normalizeImportKeyPart(b);
-          if (n) keys.add(`barcode:${n}`);
-        }
-
-        const vars = Array.isArray(p?.variations) ? p.variations : [];
-        for (const v of vars) {
-          const vs = normalizeImportKeyPart(v?.sku);
-          if (vs) keys.add(`sku:${vs}`);
-          const vb = Array.isArray(v?.barcode) ? v.barcode : [v?.barcode];
-          for (const b of vb) {
-            const n = normalizeImportKeyPart(b);
-            if (n) keys.add(`barcode:${n}`);
-          }
-        }
-      }
-      const pages = (res as { pagination?: { pages?: number } }).pagination?.pages ?? 1;
-      if (page >= pages) break;
-      page += 1;
-    }
-    return keys;
-  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -306,7 +256,7 @@ export default function AdminStockBulkImport({
     let successCount = 0;
     let failedCount = 0;
     setProgress({ total, current: 0, success: 0, failed: 0 });
-    const seenImportKeys = await buildAdminExistingImportKeySet();
+    const seenImportKeys = new Set<string>();
 
     // We can either send all at once or one by one. One by one allows better progress tracking and partial success.
     // Given the requirement "pura data product list me bhi show hona chiaye", ensuring all valid are added is key.
@@ -329,19 +279,11 @@ export default function AdminStockBulkImport({
            throw new Error("Missing required fields (Name, Price)");
         }
 
-        const skuKey = normalizeImportKeyPart((productData as any).itemCode || (productData as any).sku || "");
-        const barcodeKey = normalizeImportKeyPart((productData as any).barcode || "");
-        const nameKey = normalizeImportKeyPart(productData.productName || "");
-        const importKeys = buildImportKeys({
-          sku: skuKey,
-          barcode: barcodeKey,
-          name: nameKey,
-        });
-        if (importKeys.length === 0) importKeys.push("name:untitled");
-        if (importKeys.some((k) => seenImportKeys.has(k))) {
-          throw new Error(`Duplicate row in file/database skipped (${importKeys.join(" | ")})`);
+        const signature = rowSignature(row);
+        if (seenImportKeys.has(signature)) {
+          throw new Error("Duplicate row in same import skipped");
         }
-        importKeys.forEach((k) => seenImportKeys.add(k));
+        seenImportKeys.add(signature);
 
         // Call create API
         await createProduct(productData as any);
