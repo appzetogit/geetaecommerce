@@ -770,6 +770,7 @@ export default function SellerStockBulkImport({
         `Import finished.\nSuccess: ${successCount}\nFailed: ${failedCount}\n\nSee the red box below for the exact error on each row.`
       );
       if (successCount > 0) onSuccess();
+      uploadInFlightRef.current = false;
       return;
     }
 
@@ -785,7 +786,7 @@ export default function SellerStockBulkImport({
     return () => {
       uploadInFlightRef.current = false;
     };
-  };
+  }, []);
 
   const handleDownloadTemplate = () => {
     // 2-Row Header Structure for "Sub-Column" effect
