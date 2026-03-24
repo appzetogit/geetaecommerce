@@ -1,7 +1,11 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
-import { getSellerPurchaseEntries as apiGetSellerPurchaseEntries } from '../../../services/api/seller/sellerPurchaseService';
+import {
+  deleteSellerPurchaseEntry,
+  getSellerPurchaseEntries as apiGetSellerPurchaseEntries,
+  upsertSellerPurchaseEntry,
+} from '../../../services/api/seller/sellerPurchaseService';
 
 interface PurchaseItemRow {
   productName: string;
@@ -363,6 +367,93 @@ const SellerPurchaseReport: React.FC = () => {
     });
   };
 
+  const handleDeleteSelected = async () => {
+    if (selectedRowKeys.length === 0) return;
+    const ok = window.confirm(`Delete ${selectedRowKeys.length} selected item(s)?`);
+    if (!ok) return;
+
+    // Key format is `${entry.id}_${idx}` but entry.id itself can contain `_`,
+    // so we split by the last underscore to get the item index.
+    const byEntry = new Map<string, Set<number>>();
+    for (const key of selectedRowKeys) {
+      const last = key.lastIndexOf('_');
+      if (last <= 0) continue;
+      const entryId = key.slice(0, last);
+      const idx = Number(key.slice(last + 1));
+      if (!Number.isFinite(idx)) continue;
+      if (!byEntry.has(entryId)) byEntry.set(entryId, new Set<number>());
+      byEntry.get(entryId)!.add(idx);
+    }
+
+    const nextEntries: PurchaseReportEntry[] = [];
+    for (const entry of entries) {
+      if (entry.type !== 'purchase') {
+        nextEntries.push(entry);
+        continue;
+      }
+
+      const idxSet = byEntry.get(entry.id);
+      if (!idxSet || idxSet.size === 0) {
+        nextEntries.push(entry);
+        continue;
+      }
+
+      const nextItems = entry.items.filter((_, idx) => !idxSet.has(idx));
+      if (nextItems.length === 0) {
+        // Removing the last item removes the whole entry from report storage.
+        continue;
+      }
+
+      const gross = nextItems.reduce((sum, item) => sum + item.qty * item.purchasePrice, 0);
+      const tax = nextItems.reduce(
+        (sum, item) => sum + (item.qty * item.purchasePrice * item.gstPercent) / 100,
+        0
+      );
+      const discount = entry.totals.discount ?? entry.totals.discountAmount ?? 0;
+      const roundOff = entry.totals.roundOff ?? 0;
+      const net = gross - discount + tax + roundOff;
+
+      nextEntries.push({
+        ...entry,
+        items: nextItems,
+        totals: {
+          ...entry.totals,
+          gross,
+          grossAmount: gross,
+          discount,
+          discountAmount: discount,
+          tax,
+          taxAmount: tax,
+          roundOff,
+          net,
+          netAmount: net,
+        },
+      });
+    }
+
+    try {
+      // Sync deletion to backend per affected entry:
+      // - if entry becomes empty => delete entry
+      // - else => upsert updated entry payload
+      for (const entryId of Array.from(byEntry.keys())) {
+        const after = nextEntries.find((e) => e.id === entryId);
+        if (!after) {
+          await deleteSellerPurchaseEntry(entryId);
+          continue;
+        }
+        await upsertSellerPurchaseEntry(after);
+      }
+
+      setEntries(nextEntries);
+      localStorage.setItem('seller_pos_purchase_entries', JSON.stringify(nextEntries));
+      setSelectedRowKeys([]);
+      showToast('Selected items deleted', 'success');
+    } catch (e: any) {
+      console.error(e);
+      showToast(e?.response?.data?.message || 'Failed to delete from server', 'error');
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -384,6 +475,14 @@ const SellerPurchaseReport: React.FC = () => {
               }`}
             >
               {editMode ? 'Done Editing' : 'Bulk Edit'}
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              disabled={selectedRowKeys.length === 0}
+              className="inline-flex items-center px-5 py-2 bg-rose-600 text-white text-xs font-black rounded-lg hover:bg-rose-700 active:scale-95 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Delete
             </button>
             <button
               type="button"
@@ -662,4 +761,3 @@ const ActionItem: React.FC<ActionItemProps> = ({ icon, title, subtitle, onClick,
 };
 
 export default SellerPurchaseReport;
-

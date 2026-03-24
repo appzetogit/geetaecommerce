@@ -13,6 +13,7 @@ import * as orderController from "../modules/admin/controllers/adminOrderControl
 import * as deletePOSOrderController from "../modules/admin/controllers/deletePOSOrderController";
 import * as updateStockLedgerController from "../modules/admin/controllers/updateStockLedgerController";
 import * as inventoryController from "../modules/admin/controllers/adminInventoryController";
+import * as adminPOSPurchaseEntryController from "../modules/admin/controllers/adminPOSPurchaseEntryController";
 
 // Customer Controllers
 import * as customerController from "../modules/admin/controllers/adminCustomerController";
@@ -189,6 +190,9 @@ router.get("/pos/stock-ledger", orderController.getPOSStockLedger);
 router.put("/pos/stock-ledger/:id", updateStockLedgerController.updateStockLedgerEntry);
 router.post("/pos/exchange", orderController.processPOSExchange);
 router.delete("/orders/pos/:id", deletePOSOrderController.deletePOSOrder);
+router.get("/pos/purchase-entries", adminPOSPurchaseEntryController.getAdminPurchaseEntries);
+router.post("/pos/purchase-entries", adminPOSPurchaseEntryController.upsertAdminPurchaseEntry);
+router.delete("/pos/purchase-entries/:entryId", adminPOSPurchaseEntryController.deleteAdminPurchaseEntry);
 
 // ==================== Order Routes ====================
 router.get("/orders/pos-report", orderController.getPOSOrders);

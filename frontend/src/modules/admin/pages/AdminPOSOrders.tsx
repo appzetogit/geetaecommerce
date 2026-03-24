@@ -5,6 +5,7 @@ import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getOrderById,
 import { getAllSuppliers } from '../../../services/api/admin/supplierService';
 import { getAllCustomers, createCustomer, Customer } from '../../../services/api/admin/adminCustomerService';
 import { getAppSettings, AppSettings } from '../../../services/api/admin/adminSettingsService';
+import { upsertAdminPurchaseEntry } from '../../../services/api/admin/adminPosPurchaseEntryService';
 import { getCategories } from '../../../services/api/categoryService';
 import { getBrands } from '../../../services/api/brandService';
 import { useToast } from '../../../context/ToastContext';
@@ -1729,11 +1730,20 @@ const AdminPOSOrders = () => {
     }
     setSavedPurchaseEntries(nextEntries);
     localStorage.setItem('admin_pos_purchase_entries', JSON.stringify(nextEntries));
+    try {
+      // Persist purchase/quotation entry to backend for admin report actions (like delete).
+      await upsertAdminPurchaseEntry(entry);
+    } catch (e) {
+      // Keep existing local behaviour even if backend persistence fails.
+      console.error("Failed to persist admin purchase entry:", e);
+    }
 
     if (purchaseMode === 'Purchase') {
       setPurchaseItems((prev) => prev.map((item) => ({ ...item, currentQty: item.currentQty + item.qty })));
       showToast('Purchase saved & inventory updated', 'success');
       printPurchaseInvoice(entry);
+      // Clear current purchase entry items after saving so they don't show again when user comes back.
+      setPurchaseItemsStore([]);
     } else {
       // Stock deduction logic if toggled
       if (reduceStockOnQuotation) {
