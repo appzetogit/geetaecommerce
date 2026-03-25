@@ -413,11 +413,19 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
 
       {/* Category Tabs */}
       <div className="border-b border-neutral-400/40 w-full" style={{ paddingBottom: 0 }}>
-        <div
-          ref={tabsContainerRef}
-          className="relative flex md:justify-center gap-2 md:gap-3 overflow-x-auto scrollbar-hide -mx-4 md:mx-0 px-4 md:px-6 lg:px-8 scroll-smooth"
+          <div
+           ref={tabsContainerRef}
+          className="relative flex gap-2 md:gap-3 overflow-x-auto scrollbar-hide -mx-4 md:mx-0 px-4 md:px-6 lg:px-8 scroll-smooth"
           style={{ paddingBottom: '12px' }}
           data-padding-bottom="md:8px"
+          onWheel={(e) => {
+            // Web view: mouse wheel is vertical; use it to scroll categories horizontally.
+            if (window.innerWidth >= 768 && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.currentTarget.scrollLeft += e.deltaY;
+            }
+          }}
         >
           {indicatorStyle.width > 0 && (
             <div

@@ -2,6 +2,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { getProfile, CustomerProfile } from '../../services/api/customerService';
+import { getHeaderCategoriesPublic } from '../../services/api/headerCategoryService';
+import { getTheme } from '../../utils/themes';
 
 export default function Account() {
   const navigate = useNavigate();
@@ -11,6 +13,48 @@ export default function Account() {
   const [error, setError] = useState('');
   const [showGstModal, setShowGstModal] = useState(false);
   const [gstNumber, setGstNumber] = useState('');
+  const [allThemeKey, setAllThemeKey] = useState('all');
+
+  useEffect(() => {
+    const loadAllTheme = async () => {
+      try {
+        const cats = await getHeaderCategoriesPublic();
+        const allCat = Array.isArray(cats) ? cats.find((c: any) => c?.slug === 'all') : null;
+        if (allCat?.theme) setAllThemeKey(allCat.theme);
+      } catch {
+        // keep default
+      }
+    };
+
+    void loadAllTheme();
+  }, []);
+
+  const withAlpha = (color: string, alpha: number) => {
+    const c = (color || '').trim();
+    if (!c) return c;
+
+    const hex = c.startsWith('#') ? c.slice(1) : '';
+    if (hex.length === 3 || hex.length === 6) {
+      const full = hex.length === 3 ? hex.split('').map((ch) => ch + ch).join('') : hex;
+      const r = parseInt(full.slice(0, 2), 16);
+      const g = parseInt(full.slice(2, 4), 16);
+      const b = parseInt(full.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    const rgb = c.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+    if (rgb) return `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, ${alpha})`;
+
+    const rgba = c.match(/^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([0-9.]+)\s*\)$/i);
+    if (rgba) return `rgba(${rgba[1]}, ${rgba[2]}, ${rgba[3]}, ${alpha})`;
+
+    return c;
+  };
+
+  const allTheme = getTheme(allThemeKey || 'all');
+  const allBase = allTheme?.primary?.[0] || '#86efac';
+  // Keep same "halka" gradient feel, bas color All wali theme ka.
+  const accountHeaderGradient = `linear-gradient(to bottom, ${withAlpha(allBase, 0.25)}, ${withAlpha(allBase, 0.12)}, #ffffff)`;
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -67,7 +111,7 @@ export default function Account() {
   if (!user) {
     return (
       <div className="pb-24 md:pb-8 bg-white min-h-screen">
-        <div className="bg-gradient-to-b from-green-200 via-green-100 to-white pb-6 md:pb-8 pt-12 md:pt-16">
+        <div className="pb-6 md:pb-8 pt-12 md:pt-16" style={{ background: accountHeaderGradient }}>
           <div className="px-4 md:px-6 lg:px-8">
             <button onClick={() => navigate(-1)} className="mb-4 text-neutral-900" aria-label="Back">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -137,7 +181,7 @@ export default function Account() {
 
   return (
     <div className="pb-24 md:pb-8 bg-white min-h-screen">
-      <div className="bg-gradient-to-b from-green-200 via-green-100 to-white pb-6 md:pb-8 pt-12 md:pt-16">
+      <div className="pb-6 md:pb-8 pt-12 md:pt-16" style={{ background: accountHeaderGradient }}>
         <div className="px-4 md:px-6 lg:px-8">
           <button onClick={() => navigate(-1)} className="mb-4 text-neutral-900" aria-label="Back">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>

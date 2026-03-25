@@ -30,6 +30,17 @@ export default function Home() {
   const setActiveTab = setActiveCategory;
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Web view: always start Home with "All" selected (mobile jaisa default).
+  const didInitActiveTabRef = useRef(false);
+  useEffect(() => {
+    if (didInitActiveTabRef.current) return;
+    didInitActiveTabRef.current = true;
+
+    if (window.innerWidth >= 768 && activeTab !== "all") {
+      setActiveTab("all");
+    }
+  }, [activeTab, setActiveTab]);
+
   // State for dynamic data
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
