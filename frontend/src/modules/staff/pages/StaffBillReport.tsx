@@ -11,6 +11,17 @@ const StaffBillReport: React.FC = () => {
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [selectedBillIds, setSelectedBillIds] = useState<Set<string>>(new Set());
   const [refreshKey, setRefreshKey] = useState(0);
+  const [editMode, setEditMode] = useState(false);
+  const [draftById, setDraftById] = useState<
+    Record<
+      string,
+      {
+        staffName?: string;
+        paymentMode?: string;
+        totalAmount?: number;
+      }
+    >
+  >({});
 
   const bills = useMemo(() => getPOSStaffBills(moduleType), [moduleType, refreshKey]);
 
@@ -81,6 +92,45 @@ const StaffBillReport: React.FC = () => {
     toast.success("Selected items deleted");
   };
 
+  const updateDraft = (
+    id: string,
+    patch: { staffName?: string; paymentMode?: string; totalAmount?: number }
+  ) => {
+    setDraftById((prev) => ({ ...prev, [id]: { ...(prev[id] || {}), ...patch } }));
+  };
+
+  const handleToggleEditMode = () => {
+    if (!editMode) {
+      setEditMode(true);
+      return;
+    }
+
+    const editedIds = Object.keys(draftById);
+    if (editedIds.length === 0) {
+      setEditMode(false);
+      return;
+    }
+
+    const storageKey = `${moduleType}_pos_staff_bills`;
+    const existing = getPOSStaffBills(moduleType);
+    const next = existing.map((bill) => {
+      const draft = draftById[bill.id];
+      if (!draft) return bill;
+      return {
+        ...bill,
+        ...(draft.staffName !== undefined ? { staffName: draft.staffName } : {}),
+        ...(draft.paymentMode !== undefined ? { paymentMode: draft.paymentMode } : {}),
+        ...(draft.totalAmount !== undefined ? { totalAmount: draft.totalAmount } : {}),
+      };
+    });
+
+    localStorage.setItem(storageKey, JSON.stringify(next));
+    setDraftById({});
+    setEditMode(false);
+    setRefreshKey((k) => k + 1);
+    toast.success("Bills updated");
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6 bg-gray-50 min-h-screen">
       <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -91,6 +141,17 @@ const StaffBillReport: React.FC = () => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleToggleEditMode}
+            className={`inline-flex items-center px-4 py-2 text-xs font-black rounded-xl active:scale-95 transition-all shadow-sm text-white ${
+              editMode ? "bg-indigo-700" : "bg-indigo-600 hover:bg-indigo-700"
+            }`}
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            {editMode ? "Done Editing" : "Bulk Edit"}
+          </button>
           <button
             onClick={handleDeleteSelected}
             disabled={selectedBillIds.size === 0}
@@ -196,13 +257,55 @@ const StaffBillReport: React.FC = () => {
                       />
                     </td>
                     <td className="px-5 py-3 font-semibold text-gray-800">{bill.billNumber}</td>
-                    <td className="px-5 py-3 text-sm text-gray-700">{bill.staffName}</td>
+                    <td className="px-5 py-3 text-sm text-gray-700">
+                      {editMode ? (
+                        <input
+                          value={draftById[bill.id]?.staffName ?? bill.staffName ?? ""}
+                          onChange={(e) => updateDraft(bill.id, { staffName: e.target.value })}
+                          className="w-full max-w-[220px] border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                        />
+                      ) : (
+                        bill.staffName
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-xs text-gray-500">
                       {new Date(bill.createdAt).toLocaleString("en-IN")}
                     </td>
                     <td className="px-5 py-3 text-sm text-gray-700">{bill.numberOfProducts}</td>
-                    <td className="px-5 py-3 text-sm text-gray-700">{bill.paymentMode}</td>
-                    <td className="px-5 py-3 font-semibold text-gray-900">Rs {Number(bill.totalAmount || 0).toLocaleString()}</td>
+                    <td className="px-5 py-3 text-sm text-gray-700">
+                      {editMode ? (
+                        <select
+                          value={draftById[bill.id]?.paymentMode ?? bill.paymentMode ?? ""}
+                          onChange={(e) => updateDraft(bill.id, { paymentMode: e.target.value })}
+                          className="w-full max-w-[180px] border border-gray-200 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                        >
+                          <option value="">Select</option>
+                          <option value="Cash">Cash</option>
+                          <option value="UPI">UPI</option>
+                          <option value="Card">Card</option>
+                          <option value="Net Banking">Net Banking</option>
+                        </select>
+                      ) : (
+                        bill.paymentMode
+                      )}
+                    </td>
+                    <td className="px-5 py-3 font-semibold text-gray-900">
+                      {editMode ? (
+                        <div className="flex items-center gap-2 max-w-[180px]">
+                          <span className="text-gray-500 font-bold">Rs</span>
+                          <input
+                            type="number"
+                            value={draftById[bill.id]?.totalAmount ?? Number(bill.totalAmount || 0)}
+                            onChange={(e) =>
+                              updateDraft(bill.id, { totalAmount: Number(e.target.value || 0) })
+                            }
+                            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                          />
+                        </div>
+                      ) : (
+                        <>Rs {Number(bill.totalAmount || 0).toLocaleString()}</>
+                      )}
+                    </td>
                     <td className="px-5 py-3">
                       <button
                         onClick={() => setSelectedBill(bill)}
