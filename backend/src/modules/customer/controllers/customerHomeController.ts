@@ -193,9 +193,10 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .lean();
 
     // For each bestseller card, get 4 products from the associated category
-    const bestsellers = await Promise.all(
+    const bestsellers = (await Promise.all(
       bestsellerCards.map(async (card: any) => {
-        const categoryId = card.category?._id || card.category;
+        const categoryId = card?.category?._id ?? card?.category;
+        if (!categoryId) return null;
 
         // Build product query for images (ignore location to show category preview)
         const productQuery: any = {
@@ -240,13 +241,13 @@ export const getHomeContent = async (req: Request, res: Response) => {
 
         return {
           id: card._id.toString(),
-          categoryId: categoryId.toString(),
+          categoryId: String(categoryId),
           name: card.name,
           productImages: productImages.slice(0, 4),
           productCount: categoryProducts.length,
         };
       })
-    );
+    )).filter(Boolean);
 
     // 2. Lowest Prices Products - Get admin-selected products
     // We fetch these irrespective of location radius to show preview on home page
