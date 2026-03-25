@@ -66,12 +66,16 @@ interface ProductVariation {
 const STATUS_OPTIONS = ["All Products", "Published", "Unpublished"];
 const STOCK_OPTIONS = ["All Products", "In Stock", "Out of Stock", "Unlimited"];
 
+const PRODUCTS_CACHE_TTL_MS = 5 * 60 * 1000;
+const productsCache = new Map<string, { products: Product[]; savedAt: number }>();
+
 export default function AdminStockManagement() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, token } = useAuth();
   const lastFetchKeyRef = useRef<string>("");
   const staticDataFetchKeyRef = useRef<string>("");
+  const fetchSeqRef = useRef(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -149,17 +153,38 @@ export default function AdminStockManagement() {
   };
 
   // Fetch products and categories
-  const fetchData = async () => {
+  const fetchData = async (opts?: { force?: boolean; silent?: boolean }) => {
+    const force = Boolean(opts?.force);
+    const silent = Boolean(opts?.silent);
+    const cacheKey = `${token || ""}|${debouncedSearchTerm}|${filterCategory}|${filterStatus}`;
+    const cached = productsCache.get(cacheKey);
+    if (
+      !force &&
+      cached &&
+      cached.products.length > 0 &&
+      Date.now() - cached.savedAt < PRODUCTS_CACHE_TTL_MS
+    ) {
+      setError(null);
+      setHasUnsavedChanges(false);
+      setChangedProductIds(new Set());
+      setProducts(cached.products);
+      setLoading(false);
+
+      // Stale-while-revalidate: show cached immediately, then refresh in background
+      // so updates made on other pages reflect without manual refresh.
+      void fetchData({ force: true, silent: true });
+      return;
+    }
+
+    const seq = (fetchSeqRef.current += 1);
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       setHasUnsavedChanges(false);
       setChangedProductIds(new Set());
 
-      // Fetch products
-      const params: any = {
-        limit: 1000, // Fetch all products (increase if you have more than 1000)
-      };
+      // Fetch products (page through all results; the API is paginated)
+      const params: any = {};
 
       if (debouncedSearchTerm) {
         params.search = debouncedSearchTerm;
@@ -173,25 +198,67 @@ export default function AdminStockManagement() {
         params.publish = filterStatus === "Published";
       }
 
-      const response = await getProducts(params);
-      if (response.success) {
-        setProducts(response.data);
+      const pageSize = 500;
+      let page = 1;
+      let totalPages = 1;
+      const allProducts: Product[] = [];
+
+      do {
+        const response = await getProducts({ ...params, page, limit: pageSize });
+        if (!response.success) {
+          if (page === 1) {
+            if (!silent) {
+              setError(
+                (response as any)?.message ||
+                  "Failed to load products. Please try again."
+              );
+              setProducts([]);
+            }
+            return;
+          }
+          break;
+        }
+
+        allProducts.push(...(response.data || []));
+
+        const pagination = (response as any)?.pagination as
+          | { pages?: number; total?: number; limit?: number }
+          | undefined;
+
+        if (pagination?.pages) {
+          totalPages = pagination.pages;
+        } else if (pagination?.total) {
+          totalPages = Math.ceil(pagination.total / pageSize);
+        } else {
+          totalPages = 1;
+        }
+
+        page += 1;
+      } while (page <= totalPages);
+
+      if (fetchSeqRef.current === seq) {
+        setProducts(allProducts);
+        productsCache.set(cacheKey, { products: allProducts, savedAt: Date.now() });
       }
     } catch (err) {
       console.error("Error fetching products:", err);
-      if (err && typeof err === "object" && "response" in err) {
-        const axiosError = err as {
-          response?: { data?: { message?: string } };
-        };
-        setError(
-          axiosError.response?.data?.message ||
-          "Failed to load products. Please try again."
-        );
-      } else {
+      if (!silent) {
+        if (err && typeof err === "object" && "response" in err) {
+          const axiosError = err as {
+            response?: { data?: { message?: string } };
+          };
+          setError(
+            axiosError.response?.data?.message ||
+              "Failed to load products. Please try again."
+          );
+        } else {
+          setError("Failed to load products. Please try again.");
+        }
+      } else if (!products.length) {
         setError("Failed to load products. Please try again.");
       }
     } finally {
-      setLoading(false);
+      if (!silent && fetchSeqRef.current === seq) setLoading(false);
     }
   };
 
@@ -219,6 +286,17 @@ export default function AdminStockManagement() {
     filterStatus,
     location.key,
   ]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) return;
+
+    const handleFocus = () => {
+      void fetchData({ force: true, silent: true });
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [isAuthenticated, token, debouncedSearchTerm, filterCategory, filterStatus]);
 
   // Handle Barcode Scan
   const onScanSuccess = (decodedText: string) => {
@@ -287,7 +365,7 @@ export default function AdminStockManagement() {
         const response = await deleteProduct(productId);
         if (response.success || response.message === "Product deleted successfully") {
           alert("Product deleted successfully");
-          fetchData();
+          fetchData({ force: true });
         } else {
           alert("Failed to delete product");
         }
@@ -359,7 +437,7 @@ export default function AdminStockManagement() {
         setChangedProductIds(new Set());
         setHasUnsavedChanges(false);
         alert("Changes saved successfully!");
-        fetchData(); // Refresh to ensure sync
+        fetchData({ force: true }); // Refresh to ensure sync
     } catch (error) {
         console.error("Failed to save changes:", error);
         alert("Failed to save some changes. Please try again.");
@@ -373,6 +451,7 @@ export default function AdminStockManagement() {
           const response = await updateProduct(productId, { publish: !currentStatus });
           if (response.success) {
               setProducts(prev => prev.map(p => p._id === productId ? { ...p, publish: !currentStatus } : p));
+              fetchData({ force: true, silent: true });
           } else {
               alert("Failed to update status");
           }
@@ -1695,7 +1774,7 @@ export default function AdminStockManagement() {
           products={products}
           categories={categories}
           onClose={() => setShowBulkEdit(false)}
-          onSave={fetchData}
+          onSave={() => fetchData({ force: true })}
         />
       )}
 
@@ -1704,7 +1783,7 @@ export default function AdminStockManagement() {
            categories={categories}
            onClose={() => setShowBulkImport(false)}
            onSuccess={() => {
-              fetchData();
+              fetchData({ force: true });
            }}
         />
       )}
@@ -1990,14 +2069,14 @@ export default function AdminStockManagement() {
                         }
                      }
 
-                     const res = await updateProduct(selectedProductDetails.productId, updateData);
-                     if (res.success) {
-                        alert("Product updated successfully!");
-                        fetchData();
-                        setSelectedProductDetails(null);
-                     } else {
-                        alert("Failed to update product");
-                     }
+                      const res = await updateProduct(selectedProductDetails.productId, updateData);
+                      if (res.success) {
+                         alert("Product updated successfully!");
+                         fetchData({ force: true });
+                         setSelectedProductDetails(null);
+                      } else {
+                         alert("Failed to update product");
+                      }
                    } catch (err) {
                      console.error(err);
                      alert("An error occurred");

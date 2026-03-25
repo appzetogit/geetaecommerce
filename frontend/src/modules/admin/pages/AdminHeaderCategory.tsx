@@ -497,6 +497,7 @@ export default function AdminHeaderCategory() {
               <label className="block text-sm font-medium text-neutral-700 mb-2">
                 Select Theme Color:
               </label>
+              {/** Custom hex is stored directly in `selectedTheme` as "#RRGGBB" */}
               <div className="grid grid-cols-4 gap-3 bg-neutral-50 p-3 rounded border border-neutral-200">
                 {themeOptions.map(themeKey => {
                   const themeObj = themes[themeKey];
@@ -546,12 +547,14 @@ export default function AdminHeaderCategory() {
 
                 {/* Custom Color Option */}
                 <div
-                  onClick={() => setSelectedTheme('custom')}
+                  onClick={() =>
+                    setSelectedTheme(selectedTheme?.startsWith("#") ? selectedTheme : "#15b24a")
+                  }
                   title="Custom Color"
                   className={`
-                    cursor-pointer flex flex-col items-center gap-1 p-2 rounded transition-all
-                    ${selectedTheme === 'custom' ? 'ring-2 ring-[#f187b5] bg-white shadow-sm' : 'hover:bg-neutral-200'}
-                  `}
+                     cursor-pointer flex flex-col items-center gap-1 p-2 rounded transition-all
+                     ${(selectedTheme === 'custom' || selectedTheme?.startsWith('#')) ? 'ring-2 ring-[#f187b5] bg-white shadow-sm' : 'hover:bg-neutral-200'}
+                   `}
                 >
                   <div className="w-8 h-8 rounded-full shadow-sm border border-black/10 bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500" />
                   <span className="text-[10px] text-neutral-600 font-medium capitalize text-center leading-tight">
@@ -561,7 +564,7 @@ export default function AdminHeaderCategory() {
               </div>
 
               {/* Custom Hex Color Input */}
-              {selectedTheme === 'custom' && (
+              {(selectedTheme === 'custom' || selectedTheme?.startsWith('#')) && (
                 <div className="mt-3 p-3 bg-white border border-neutral-300 rounded">
                   <label className="block text-xs font-medium text-neutral-700 mb-2">
                     Enter Custom Hex Color:
@@ -569,13 +572,13 @@ export default function AdminHeaderCategory() {
                   <div className="flex gap-2 items-center">
                     <input
                       type="color"
-                      value={selectedTheme.startsWith('#') ? selectedTheme : '#15b24a'}
+                      value={selectedTheme?.startsWith('#') ? selectedTheme : '#15b24a'}
                       onChange={(e) => setSelectedTheme(e.target.value)}
                       className="w-12 h-10 rounded border border-neutral-300 cursor-pointer"
                     />
                     <input
                       type="text"
-                      value={selectedTheme.startsWith('#') ? selectedTheme : '#15b24a'}
+                      value={selectedTheme?.startsWith('#') ? selectedTheme : '#15b24a'}
                       onChange={(e) => {
                         const value = e.target.value;
                         if (value.startsWith('#') && value.length <= 7) {
@@ -822,7 +825,12 @@ export default function AdminHeaderCategory() {
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-100 text-neutral-800 capitalize border border-neutral-200">
                           <div
                             className="w-2 h-2 rounded-full mr-1.5"
-                            style={{ background: themes[category.theme || category.slug]?.primary[0] || '#ccc' }}
+                            style={{
+                              background:
+                                (String(category.theme || category.slug).startsWith("#")
+                                  ? String(category.theme || category.slug)
+                                  : themes[category.theme || category.slug]?.primary[0]) || "#ccc",
+                            }}
                           />
                           {category.theme || category.slug}
                         </span>

@@ -137,6 +137,49 @@ export const themes: Record<string, Theme> = {
   },
 };
 
+const isHexColor = (value: string): boolean => {
+  const s = value.trim();
+  return /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(s);
+};
+
+const hexToRgb = (hex: string): { r: number; g: number; b: number } | null => {
+  const s = hex.trim().replace("#", "");
+  if (s.length === 3) {
+    const r = parseInt(s[0] + s[0], 16);
+    const g = parseInt(s[1] + s[1], 16);
+    const b = parseInt(s[2] + s[2], 16);
+    return { r, g, b };
+  }
+  if (s.length === 6) {
+    const r = parseInt(s.slice(0, 2), 16);
+    const g = parseInt(s.slice(2, 4), 16);
+    const b = parseInt(s.slice(4, 6), 16);
+    return { r, g, b };
+  }
+  return null;
+};
+
+const pickReadableTextColor = (bgHex: string): string => {
+  const rgb = hexToRgb(bgHex);
+  if (!rgb) return "#1a1a1a";
+  // Relative luminance (simple)
+  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+  return luminance > 0.6 ? "#1a1a1a" : "#ffffff";
+};
+
 export const getTheme = (tabId: string): Theme => {
+  if (tabId && isHexColor(tabId)) {
+    const headerTextColor = pickReadableTextColor(tabId);
+    const textColor = headerTextColor === "#ffffff" ? "#ffffff" : "#1a1a1a";
+    return {
+      primary: [tabId, tabId, tabId, tabId],
+      secondary: [tabId, tabId, tabId],
+      textColor,
+      accentColor: tabId,
+      bannerText: "CUSTOM",
+      saleText: "SALE",
+      headerTextColor,
+    };
+  }
   return themes[tabId] || themes.all;
 };

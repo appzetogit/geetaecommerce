@@ -1800,7 +1800,11 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
                       <ul className="mt-1 space-y-1 ml-4">
                         {item.submenuItems &&
                           item.submenuItems.map((subItem) => {
-                            const subActive = location.pathname === subItem.path || location.pathname.startsWith(subItem.path + '/');
+                            const subActive =
+                              location.pathname === subItem.path ||
+                              location.pathname === subItem.path + "/" ||
+                              (subItem.path !== "/admin/category" &&
+                                location.pathname.startsWith(subItem.path + "/"));
                             const subExpanded = isExpanded(subItem.path);
                             return (
                               <li key={subItem.path}>
