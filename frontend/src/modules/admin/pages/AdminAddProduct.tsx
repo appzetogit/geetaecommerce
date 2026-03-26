@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { uploadImage, uploadImages } from "../../../services/api/uploadService";
 import {
@@ -203,6 +203,7 @@ export default function AdminAddProduct() {
   const [unitPricingModal, setUnitPricingModal] = useState<{ isOpen: boolean, variationIndex: number | null }>({ isOpen: false, variationIndex: null });
   // Temp state for editing in modal
   const [tempTieredPrices, setTempTieredPrices] = useState<{ minQty: number, price: number }[]>([]);
+  const prevHeaderCategoryRef = useRef<string>("");
 
   useEffect(() => {
     if (enableAttributes) {
@@ -643,6 +644,8 @@ export default function AdminAddProduct() {
 
   // Clear category and subcategory when header category changes
   useEffect(() => {
+    const prevHeaderCategory = prevHeaderCategoryRef.current;
+    prevHeaderCategoryRef.current = formData.headerCategory || "";
     if (formData.headerCategory) {
       // Header category selected - check if current category belongs to it
       const currentCategory = categories.find(
@@ -664,15 +667,18 @@ export default function AdminAddProduct() {
           setSubcategories([]);
           setSubSubCategories([]);
         }
+       }
+     } else {
+      // Header category cleared by user action - clear dependent selections.
+      // Do not clear on initial load/edit mode when headerCategory is empty but category is valid.
+      if (prevHeaderCategory) {
+        setFormData((prev) => ({
+          ...prev,
+          category: "",
+          subcategory: "",
+        }));
+        setSubcategories([]);
       }
-    } else {
-      // Header category cleared - clear category and subcategory
-      setFormData((prev) => ({
-        ...prev,
-        category: "",
-        subcategory: "",
-      }));
-      setSubcategories([]);
     }
   }, [formData.headerCategory, categories]);
 

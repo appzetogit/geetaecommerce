@@ -6,11 +6,13 @@ import {
   getCategories,
   getBrands,
   getSubCategories,
+  getSellers,
   deleteProduct,
   updateProduct,
   type Product,
   type Category,
   type Brand,
+  type Seller,
   type SubCategory,
 } from "../../../services/api/admin/adminProductService";
 import { useAuth } from "../../../context/AuthContext";
@@ -18,6 +20,41 @@ import AdminStockBulkEdit from "./AdminStockBulkEdit";
 import AdminStockBulkImport from "./AdminStockBulkImport";
 import { getAppSettings } from "../../../services/api/admin/adminSettingsService";
 import VariationDropdown from "../../../components/VariationDropdown";
+
+function fixLikelyMojibake(input: unknown): string {
+  let s = String(input ?? "");
+  if (!s) return s;
+
+  // Remove zero-width and non-breaking spaces that can appear from copy/paste.
+  s = s.replace(/[\u200B-\u200D\uFEFF]/g, "").replace(/\u00A0/g, " ");
+
+  // Best-effort fix for UTF-8 bytes mis-decoded as Latin-1 (common: Ã, Â, â sequences).
+  const looksMojibake = /[ÃÂâ]/.test(s);
+  const isLatin1Only = [...s].every((ch) => ch.charCodeAt(0) <= 0xff);
+  if (looksMojibake && isLatin1Only && typeof TextDecoder !== "undefined") {
+    try {
+      const bytes = Uint8Array.from([...s].map((ch) => ch.charCodeAt(0)));
+      const decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+      if (decoded && decoded !== s) s = decoded;
+    } catch {
+      // ignore
+    }
+  }
+
+  // Common leftover sequences after bad encodings.
+  s = s
+    .replace(/Â/g, "")
+    .replace(/â€™/g, "'")
+    .replace(/â€˜/g, "'")
+    .replace(/â€œ/g, '"')
+    .replace(/â€/g, '"')
+    .replace(/â€“/g, "-")
+    .replace(/â€”/g, "-")
+    .replace(/â€¦/g, "...")
+    .replace(/â„¢/g, "™");
+
+  return s.trim();
+}
 
 interface ProductVariation {
   id: string;
@@ -67,7 +104,14 @@ const STATUS_OPTIONS = ["All Products", "Published", "Unpublished"];
 const STOCK_OPTIONS = ["All Products", "In Stock", "Out of Stock", "Unlimited"];
 
 const PRODUCTS_CACHE_TTL_MS = 5 * 60 * 1000;
-const productsCache = new Map<string, { products: Product[]; savedAt: number }>();
+const productsCache = new Map<
+  string,
+  {
+    products: Product[];
+    pagination?: { page?: number; limit?: number; total?: number; pages?: number };
+    savedAt: number;
+  }
+>();
 
 export default function AdminStockManagement() {
   const navigate = useNavigate();
@@ -78,6 +122,9 @@ export default function AdminStockManagement() {
   const fetchSeqRef = useRef(0);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [serverPagination, setServerPagination] = useState<
+    { page: number; limit: number; total: number; pages: number } | null
+  >(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -112,6 +159,7 @@ export default function AdminStockManagement() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedProductDetails, setSelectedProductDetails] = useState<ProductVariation | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [sellersList, setSellersList] = useState<Seller[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
   const [selectedProductIdsForShare, setSelectedProductIdsForShare] = useState<Set<string>>(new Set());
@@ -128,22 +176,19 @@ export default function AdminStockManagement() {
 
   const fetchStaticData = async () => {
     try {
-      const categoriesResponse = await getCategories();
-      if (categoriesResponse.success) {
-        setCategories(categoriesResponse.data);
-      }
+      const [categoriesResponse, brandsResponse, sellersResponse, subCategoriesResponse, settingsRes] =
+        await Promise.all([
+          getCategories(),
+          getBrands(),
+          getSellers(),
+          getSubCategories({ limit: 1000 } as any),
+          getAppSettings(),
+        ]);
 
-      const brandsResponse = await getBrands();
-      if (brandsResponse.success) {
-        setBrands(brandsResponse.data);
-      }
-
-      const subCategoriesResponse = await getSubCategories({ limit: 1000 } as any);
-      if (subCategoriesResponse.success) {
-        setSubCategories(subCategoriesResponse.data);
-      }
-
-      const settingsRes = await getAppSettings();
+      if (categoriesResponse.success) setCategories(categoriesResponse.data);
+      if (brandsResponse.success) setBrands(brandsResponse.data);
+      if (sellersResponse.success) setSellersList(sellersResponse.data);
+      if (subCategoriesResponse.success) setSubCategories(subCategoriesResponse.data);
       if (settingsRes.success && settingsRes.data.barcodeSettings) {
         setBarcodeSettings(settingsRes.data.barcodeSettings);
       }
@@ -156,7 +201,7 @@ export default function AdminStockManagement() {
   const fetchData = async (opts?: { force?: boolean; silent?: boolean }) => {
     const force = Boolean(opts?.force);
     const silent = Boolean(opts?.silent);
-    const cacheKey = `${token || ""}|${debouncedSearchTerm}|${filterCategory}|${filterStatus}`;
+    const cacheKey = `${token || ""}|${debouncedSearchTerm}|${filterCategory}|${filterSeller}|${filterStatus}|${currentPage}|${rowsPerPage}`;
     const cached = productsCache.get(cacheKey);
     if (
       !force &&
@@ -168,6 +213,14 @@ export default function AdminStockManagement() {
       setHasUnsavedChanges(false);
       setChangedProductIds(new Set());
       setProducts(cached.products);
+      if (cached.pagination?.pages) {
+        setServerPagination({
+          page: Number(cached.pagination.page ?? currentPage),
+          limit: Number(cached.pagination.limit ?? rowsPerPage),
+          total: Number(cached.pagination.total ?? 0),
+          pages: Number(cached.pagination.pages ?? 1),
+        });
+      }
       setLoading(false);
 
       // Stale-while-revalidate: show cached immediately, then refresh in background
@@ -183,7 +236,7 @@ export default function AdminStockManagement() {
       setHasUnsavedChanges(false);
       setChangedProductIds(new Set());
 
-      // Fetch products (page through all results; the API is paginated)
+      // Server-side pagination: fetch only the current page
       const params: any = {};
 
       if (debouncedSearchTerm) {
@@ -198,47 +251,44 @@ export default function AdminStockManagement() {
         params.publish = filterStatus === "Published";
       }
 
-      const pageSize = 500;
-      let page = 1;
-      let totalPages = 1;
-      const allProducts: Product[] = [];
+      if (filterSeller !== "All Sellers") {
+        params.seller = filterSeller;
+      }
 
-      do {
-        const response = await getProducts({ ...params, page, limit: pageSize });
-        if (!response.success) {
-          if (page === 1) {
-            if (!silent) {
-              setError(
-                (response as any)?.message ||
-                  "Failed to load products. Please try again."
-              );
-              setProducts([]);
-            }
-            return;
-          }
-          break;
+      const response = await getProducts({
+        ...params,
+        page: currentPage,
+        limit: rowsPerPage,
+      });
+
+      if (!response.success) {
+        if (!silent) {
+          setError(
+            (response as any)?.message ||
+              "Failed to load products. Please try again."
+          );
+          setProducts([]);
         }
+        return;
+      }
 
-        allProducts.push(...(response.data || []));
-
-        const pagination = (response as any)?.pagination as
-          | { pages?: number; total?: number; limit?: number }
-          | undefined;
-
-        if (pagination?.pages) {
-          totalPages = pagination.pages;
-        } else if (pagination?.total) {
-          totalPages = Math.ceil(pagination.total / pageSize);
-        } else {
-          totalPages = 1;
-        }
-
-        page += 1;
-      } while (page <= totalPages);
+      const pagination = ((response as any)?.pagination as
+        | { page?: number; limit?: number; total?: number; pages?: number }
+        | undefined) || { page: currentPage, limit: rowsPerPage, total: 0, pages: 1 };
 
       if (fetchSeqRef.current === seq) {
-        setProducts(allProducts);
-        productsCache.set(cacheKey, { products: allProducts, savedAt: Date.now() });
+        setProducts(response.data || []);
+        setServerPagination({
+          page: Number(pagination.page ?? currentPage),
+          limit: Number(pagination.limit ?? rowsPerPage),
+          total: Number(pagination.total ?? 0),
+          pages: Number(pagination.pages ?? 1),
+        });
+        productsCache.set(cacheKey, {
+          products: response.data || [],
+          pagination,
+          savedAt: Date.now(),
+        });
       }
     } catch (err) {
       console.error("Error fetching products:", err);
@@ -274,7 +324,7 @@ export default function AdminStockManagement() {
       fetchStaticData();
     }
 
-    const fetchKey = `${token}|${debouncedSearchTerm}|${filterCategory}|${filterStatus}|${location.key}`;
+    const fetchKey = `${token}|${debouncedSearchTerm}|${filterCategory}|${filterSeller}|${filterStatus}|${currentPage}|${rowsPerPage}|${location.key}`;
     if (lastFetchKeyRef.current === fetchKey) return;
     lastFetchKeyRef.current = fetchKey;
     fetchData();
@@ -283,7 +333,10 @@ export default function AdminStockManagement() {
     token,
     debouncedSearchTerm,
     filterCategory,
+    filterSeller,
     filterStatus,
+    currentPage,
+    rowsPerPage,
     location.key,
   ]);
 
@@ -296,7 +349,7 @@ export default function AdminStockManagement() {
 
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [isAuthenticated, token, debouncedSearchTerm, filterCategory, filterStatus]);
+  }, [isAuthenticated, token, debouncedSearchTerm, filterCategory, filterSeller, filterStatus, currentPage, rowsPerPage]);
 
   // Handle Barcode Scan
   const onScanSuccess = (decodedText: string) => {
@@ -682,13 +735,20 @@ export default function AdminStockManagement() {
       const taxName = typeof p.tax === "object" ? p.tax?.name || "-" : "-";
       const gstVal = typeof p.tax === "object" ? p.tax?.percentage + "%" || "-" : "-";
 
-      const sellerName = typeof product.seller === "object" && product.seller ? (product.seller as any).storeName || (product.seller as any).sellerName : "Unknown";
-      const sellerId = typeof product.seller === "object" ? "" : product.seller || "";
+      const sellerObj: any = (product as any).seller;
+      const sellerName =
+        typeof sellerObj === "object" && sellerObj
+          ? sellerObj.storeName || sellerObj.sellerName || "Unknown"
+          : "Unknown";
+      const sellerId =
+        typeof sellerObj === "object" && sellerObj
+          ? String(sellerObj._id || "")
+          : String(sellerObj || "");
 
       // Base fields
       const baseVariation = {
         productId: product._id,
-        name: product.productName,
+        name: fixLikelyMojibake(product.productName),
         seller: sellerName,
         sellerId: sellerId,
         image: product.mainImage || product.galleryImages[0] || "",
@@ -776,16 +836,18 @@ export default function AdminStockManagement() {
     </span>
   );
 
-  // Get unique sellers from products
-  const sellers = useMemo(() => {
-    const sellerSet = new Set<string>();
-    productVariations.forEach((p) => {
-      if (p.seller && p.seller !== "Unknown Seller") {
-        sellerSet.add(p.seller);
-      }
-    });
-    return ["All Sellers", ...Array.from(sellerSet).sort()];
-  }, [productVariations]);
+  const sellerOptions = useMemo(() => {
+    const opts = (sellersList || []).map((s: any) => ({
+      value: String(s._id || ""),
+      label: String(s.storeName || s.sellerName || s._id || "").trim(),
+    }));
+    const uniq = new Map<string, { value: string; label: string }>();
+    for (const o of opts) {
+      if (!o.value) continue;
+      if (!uniq.has(o.value)) uniq.set(o.value, o);
+    }
+    return [{ value: "All Sellers", label: "All Sellers" }, ...Array.from(uniq.values())];
+  }, [sellersList]);
 
   // Filter products
   const filteredProducts = useMemo(() => {
@@ -794,7 +856,7 @@ export default function AdminStockManagement() {
         filterCategory === "All Category" ||
         product.categoryId === filterCategory;
       const matchesSeller =
-        filterSeller === "All Sellers" || product.seller === filterSeller;
+        filterSeller === "All Sellers" || product.sellerId === filterSeller;
       const matchesStatus =
         filterStatus === "All Products" || product.status === filterStatus;
       const matchesStock =
@@ -876,10 +938,15 @@ export default function AdminStockManagement() {
     });
   }, [filteredProducts, sortColumn, sortDirection]);
 
-  const totalPages = Math.ceil(sortedProducts.length / rowsPerPage);
+  const totalPages = Math.max(
+    1,
+    Number(serverPagination?.pages || Math.ceil(sortedProducts.length / rowsPerPage) || 1)
+  );
+  const displayedProducts = sortedProducts;
+
+  const totalCount = Number(serverPagination?.total ?? sortedProducts.length);
   const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const displayedProducts = sortedProducts.slice(startIndex, endIndex);
+  const endIndex = startIndex + displayedProducts.length;
 
   const displayedProductIds = useMemo(() => {
     const ids = displayedProducts
@@ -1098,9 +1165,9 @@ export default function AdminStockManagement() {
                     setCurrentPage(1);
                   }}
                   className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
-                  {sellers.map((seller) => (
-                    <option key={seller} value={seller}>
-                      {seller}
+                  {sellerOptions.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
                     </option>
                   ))}
                 </select>
@@ -1696,13 +1763,12 @@ export default function AdminStockManagement() {
             </div>
           )}
 
-          {/* Pagination Footer */}
-          <div className="px-4 sm:px-6 py-3 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
-            <div className="text-xs sm:text-sm text-neutral-700">
-              Showing {startIndex + 1} to{" "}
-              {Math.min(endIndex, sortedProducts.length)} of{" "}
-              {sortedProducts.length} entries
-            </div>
+            {/* Pagination Footer */}
+            <div className="px-4 sm:px-6 py-3 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+             <div className="text-xs sm:text-sm text-neutral-700">
+              Showing {totalCount === 0 ? 0 : startIndex + 1} to{" "}
+              {Math.min(endIndex, totalCount)} of {totalCount} entries
+             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
@@ -1773,6 +1839,14 @@ export default function AdminStockManagement() {
         <AdminStockBulkEdit
           products={products}
           categories={categories}
+          initialPage={currentPage}
+          initialLimit={rowsPerPage}
+          initialParams={{
+            ...(debouncedSearchTerm ? { search: debouncedSearchTerm } : {}),
+            ...(filterCategory !== "All Category" ? { category: filterCategory } : {}),
+            ...(filterSeller !== "All Sellers" ? { seller: filterSeller } : {}),
+            ...(filterStatus !== "All Products" ? { publish: filterStatus === "Published" } : {}),
+          }}
           onClose={() => setShowBulkEdit(false)}
           onSave={() => fetchData({ force: true })}
         />
