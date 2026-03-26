@@ -3,6 +3,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import {
   Product,
   Category,
+  getProducts,
   updateProduct,
   createProduct,
   deleteProduct as deleteAdminProduct,
@@ -20,6 +21,8 @@ import VariationDropdown from "../../../components/VariationDropdown";
 interface AdminStockBulkEditProps {
   products: Product[];
   categories: Category[];
+  initialPage?: number;
+  initialLimit?: number;
   onClose: () => void;
   onSave: () => void;
 }
@@ -126,13 +129,24 @@ interface EditableProduct {
 export default function AdminStockBulkEdit({
   products,
   categories,
+  initialPage = 1,
+  initialLimit = 10,
   onClose,
   onSave,
 }: AdminStockBulkEditProps) {
   const [editableProducts, setEditableProducts] = useState<EditableProduct[]>([]);
+  const [page, setPage] = useState(initialPage);
+  const [pageLimit, setPageLimit] = useState(initialLimit);
+  const [serverPagination, setServerPagination] = useState<
+    { page: number; limit: number; total: number; pages: number } | null
+  >(null);
+  const [pageLoading, setPageLoading] = useState(false);
+  const editedCacheRef = useRef<Map<string, EditableProduct>>(new Map());
+  const [changesVersion, setChangesVersion] = useState(0);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [productNameSearch, setProductNameSearch] = useState("");
   const [activePricingModalIndex, setActivePricingModalIndex] = useState<number | null>(null); // For modal
@@ -144,6 +158,125 @@ export default function AdminStockBulkEdit({
   const [isScanning, setIsScanning] = useState(false);
   const [scanIndex, setScanIndex] = useState<number | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
+    return () => clearTimeout(handle);
+  }, [searchTerm]);
+
+  const upsertEditedCache = (p: EditableProduct) => {
+    if (!p.id) return;
+    if (p.isChanged || p.isNew) {
+      editedCacheRef.current.set(p.id, p);
+      setChangesVersion((v) => v + 1);
+    }
+  };
+
+  const fetchPage = async (nextPage: number, nextLimit: number) => {
+    setPageLoading(true);
+    try {
+      const res = await getProducts({
+        ...(debouncedSearchTerm ? { search: debouncedSearchTerm } : {}),
+        page: nextPage,
+        limit: nextLimit,
+      } as any);
+
+      if (!res.success) {
+        alert((res as any)?.message || "Failed to load products");
+        return;
+      }
+
+      const pagination = ((res as any)?.pagination as
+        | { page?: number; limit?: number; total?: number; pages?: number }
+        | undefined) || { page: nextPage, limit: nextLimit, total: 0, pages: 1 };
+
+      setServerPagination({
+        page: Number(pagination.page ?? nextPage),
+        limit: Number(pagination.limit ?? nextLimit),
+        total: Number(pagination.total ?? 0),
+        pages: Number(pagination.pages ?? 1),
+      });
+
+      setEditableProducts((prev) => {
+        const newRows = prev.filter((x) => x.isNew);
+        const initialized = (res.data || []).map((p: any) => {
+          const cached = editedCacheRef.current.get(p._id);
+          if (cached) return { ...cached, original: cached.original || p };
+          // Reuse existing initializer by stashing into cache temporarily via same shape.
+          return {
+            id: p._id,
+            original: p,
+            productName: p.productName,
+            categoryId:
+              typeof p.category === "object" && p.category ? p.category._id : p.category || "",
+            compareAtPrice: p.compareAtPrice || 0,
+            price: p.price,
+             stock: p.stock,
+             publish: p.publish,
+            images: [
+              ...(p.mainImage
+                ? [{ id: `main-${p._id}`, url: p.mainImage }]
+                : []),
+              ...((p.galleryImages || []).map((url: string, i: number) => ({
+                id: `gal-${p._id}-${i}`,
+                url,
+              }))),
+            ],
+             isChanged: false,
+            itemCode: (p as any).itemCode || p.sku || "",
+            rackNumber: (p as any).rackNumber || "",
+            description: p.smallDescription || p.description || "",
+            barcode: Array.isArray((p as any).barcode)
+              ? (p as any).barcode
+              : (p as any).barcode
+                ? [(p as any).barcode]
+                : [],
+            hsnCode: (p as any).hsnCode || "",
+            pack: (p as any).pack || "",
+            purchasePrice: (p as any).purchasePrice || 0,
+            mfgDate: (p as any).mfgDate || "",
+            expiryDate: (p as any).expiryDate || "",
+            weight: (p as any).weight || "",
+            deliveryTime: (p as any).deliveryTime || "",
+            lowStockQuantity: (p as any).lowStockQuantity || 5,
+            wholesalePrice: (p as any).wholesalePrice || 0,
+            subSubCategory: (p as any).subSubCategory || "",
+            subCategoryId:
+              typeof (p as any).subcategory === "object" && (p as any).subcategory
+                ? (p as any).subcategory._id
+                : (p as any).subcategory || "",
+            brand: typeof p.brand === "object" ? (p.brand as any).name : "-",
+            brandId:
+              typeof p.brand === "object" && p.brand ? (p.brand as any)._id : p.brand || "",
+            tax: p.tax || "",
+            offerPrice: p.discPrice || 0,
+            unitPricing:
+              p.unitPricing && p.unitPricing.length > 0
+                ? p.unitPricing
+                : [{ minQty: 1, price: 0 }],
+            attributes: [],
+            variations: p.variations || [],
+            variationName: (p as any).variationName || "",
+            isNew: false,
+          } as EditableProduct;
+        });
+        return [...newRows, ...initialized];
+      });
+
+      setPage(nextPage);
+      setPageLimit(nextLimit);
+    } catch (e: any) {
+      console.error("Bulk edit fetch failed", e);
+      alert(e?.response?.data?.message || e?.message || "Failed to load products");
+    } finally {
+      setPageLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void fetchPage(page, pageLimit);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageLimit, debouncedSearchTerm]);
 
   const createEmptyProduct = (): EditableProduct => ({
     id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -242,12 +375,15 @@ export default function AdminStockBulkEdit({
 
   // Initialize editable products
   useEffect(() => {
-    const initialized = products.map((p) => {
+    if (serverPagination) return;
+    const initialized = products.map((p: any) => {
+      const cached = editedCacheRef.current.get(p._id);
+      if (cached) return { ...cached, original: cached.original || p };
       let categoryId = "";
       if (p.category) {
          if (typeof p.category === "object" && p.category !== null) {
-          categoryId = p.category._id || "";
-        } else if (typeof p.category === "string") {
+           categoryId = p.category._id || "";
+         } else if (typeof p.category === "string") {
           categoryId = p.category;
         }
       }
@@ -318,8 +454,8 @@ export default function AdminStockBulkEdit({
         isNew: false,
       };
     });
-    setEditableProducts(initialized);
-  }, [products]);
+    setEditableProducts((prev) => [...prev.filter((x) => x.isNew), ...initialized]);
+  }, [products, serverPagination]);
 
   const handleFieldChange = (
     index: number,
@@ -329,6 +465,7 @@ export default function AdminStockBulkEdit({
     setEditableProducts((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value, isChanged: true };
+      upsertEditedCache(updated[index]);
       return updated;
     });
   };
@@ -351,6 +488,7 @@ export default function AdminStockBulkEdit({
               images: [...currentProduct.images, ...newImages],
               isChanged: true
           };
+          upsertEditedCache(updated[index]);
 
           return updated;
       });
@@ -366,14 +504,16 @@ export default function AdminStockBulkEdit({
         images: currentProduct.images.filter((img) => img.id !== imageId),
         isChanged: true,
       };
+      upsertEditedCache(updated[productIndex]);
 
       return updated;
     });
   };
 
   const handleSave = async () => {
-    const changedExisting = editableProducts.filter((p) => p.isChanged && !p.isNew);
-    const newProducts = editableProducts.filter((p) => p.isNew && p.isChanged);
+    const allEdited = Array.from(editedCacheRef.current.values());
+    const changedExisting = allEdited.filter((p) => p.isChanged && !p.isNew);
+    const newProducts = allEdited.filter((p) => p.isNew && p.isChanged);
 
     if (changedExisting.length === 0 && newProducts.length === 0) {
       onClose();
@@ -516,6 +656,8 @@ export default function AdminStockBulkEdit({
       });
 
       await Promise.all([...updatePromises, ...createPromises]);
+      editedCacheRef.current.clear();
+      setChangesVersion(0);
       onSave(); // Trigger refresh in parent
       onClose();
     } catch (error: any) {
@@ -1175,6 +1317,14 @@ export default function AdminStockBulkEdit({
     }
   };
 
+  const hasAnyChanges = useMemo(
+    () => editedCacheRef.current.size > 0,
+    [changesVersion]
+  );
+  const totalEntries = Number(serverPagination?.total ?? 0);
+  const startEntry = totalEntries === 0 ? 0 : (page - 1) * pageLimit + 1;
+  const endEntry = Math.min(page * pageLimit, totalEntries);
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[90vh] flex flex-col">
@@ -1206,7 +1356,10 @@ export default function AdminStockBulkEdit({
                 placeholder="Search products..."
                 className="flex-1 min-w-[160px] px-3 py-1.5 text-sm text-black rounded border-none focus:ring-2 focus:ring-[#f187b5]"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
               />
             </div>
           </div>
@@ -1257,7 +1410,60 @@ export default function AdminStockBulkEdit({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-neutral-200 flex justify-end gap-3 bg-neutral-50 rounded-b-lg">
+        <div className="px-6 py-4 border-t border-neutral-200 flex items-center justify-between gap-3 bg-neutral-50 rounded-b-lg">
+          <div className="flex items-center gap-2 text-sm text-neutral-700">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-neutral-600">Show</span>
+              <select
+                value={pageLimit}
+                onChange={(e) => {
+                  setPageLimit(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer"
+                disabled={pageLoading}
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={pageLoading || page <= 1}
+              className={`px-3 py-1.5 border rounded ${
+                pageLoading || page <= 1
+                  ? "bg-neutral-200 text-neutral-500 cursor-not-allowed border-neutral-200"
+                  : "bg-white hover:bg-neutral-100 border-neutral-300"
+              }`}
+            >
+              Prev
+            </button>
+            <span className="text-xs sm:text-sm">
+              Page {page} / {serverPagination?.pages || 1} • Showing {startEntry} to{" "}
+              {endEntry} of {totalEntries}
+              {pageLoading ? " (Loading...)" : ""}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                setPage((p) => Math.min(serverPagination?.pages || 1, p + 1))
+              }
+              disabled={pageLoading || page >= (serverPagination?.pages || 1)}
+              className={`px-3 py-1.5 border rounded ${
+                pageLoading || page >= (serverPagination?.pages || 1)
+                  ? "bg-neutral-200 text-neutral-500 cursor-not-allowed border-neutral-200"
+                  : "bg-white hover:bg-neutral-100 border-neutral-300"
+              }`}
+            >
+              Next
+            </button>
+          </div>
+
+          <div className="flex justify-end gap-3">
           <button
             onClick={handleDeleteSelected}
             disabled={deleting || saving || selectedProductIds.size === 0}
@@ -1277,9 +1483,9 @@ export default function AdminStockBulkEdit({
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || !editableProducts.some((p) => p.isChanged)}
+            disabled={saving || !hasAnyChanges}
             className={`px-4 py-2 rounded text-white text-sm flex items-center gap-2 ${
-              saving || !editableProducts.some((p) => p.isChanged)
+              saving || !hasAnyChanges
                 ? "bg-neutral-400 cursor-not-allowed"
                 : "bg-[#f187b5] hover:bg-[#e076a5]"
             }`}
@@ -1312,6 +1518,7 @@ export default function AdminStockBulkEdit({
               "Save Changes"
             )}
           </button>
+          </div>
         </div>
       </div>
 

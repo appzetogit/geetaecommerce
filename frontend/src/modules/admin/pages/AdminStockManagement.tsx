@@ -120,6 +120,12 @@ export default function AdminStockManagement() {
   const lastFetchKeyRef = useRef<string>("");
   const staticDataFetchKeyRef = useRef<string>("");
   const fetchSeqRef = useRef(0);
+  const prevQueryRef = useRef<{
+    search: string;
+    category: string;
+    seller: string;
+    status: string;
+  } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [serverPagination, setServerPagination] = useState<
@@ -327,7 +333,25 @@ export default function AdminStockManagement() {
     const fetchKey = `${token}|${debouncedSearchTerm}|${filterCategory}|${filterSeller}|${filterStatus}|${currentPage}|${rowsPerPage}|${location.key}`;
     if (lastFetchKeyRef.current === fetchKey) return;
     lastFetchKeyRef.current = fetchKey;
-    fetchData();
+
+    const nextQuery = {
+      search: debouncedSearchTerm,
+      category: filterCategory,
+      seller: filterSeller,
+      status: filterStatus,
+    };
+    const prevQuery = prevQueryRef.current;
+    prevQueryRef.current = nextQuery;
+
+    const onlyPagingChanged =
+      Boolean(prevQuery) &&
+      prevQuery.search === nextQuery.search &&
+      prevQuery.category === nextQuery.category &&
+      prevQuery.seller === nextQuery.seller &&
+      prevQuery.status === nextQuery.status;
+
+    // Keep scroll position stable: don't swap table with "Loading..." on page changes.
+    fetchData({ silent: onlyPagingChanged && products.length > 0 });
   }, [
     isAuthenticated,
     token,
@@ -1841,12 +1865,6 @@ export default function AdminStockManagement() {
           categories={categories}
           initialPage={currentPage}
           initialLimit={rowsPerPage}
-          initialParams={{
-            ...(debouncedSearchTerm ? { search: debouncedSearchTerm } : {}),
-            ...(filterCategory !== "All Category" ? { category: filterCategory } : {}),
-            ...(filterSeller !== "All Sellers" ? { seller: filterSeller } : {}),
-            ...(filterStatus !== "All Products" ? { publish: filterStatus === "Published" } : {}),
-          }}
           onClose={() => setShowBulkEdit(false)}
           onSave={() => fetchData({ force: true })}
         />
