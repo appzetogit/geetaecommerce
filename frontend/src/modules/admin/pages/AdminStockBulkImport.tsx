@@ -36,7 +36,12 @@ function normalizeExcelRow(row: Record<string, unknown>): Record<string, unknown
 function rowCell(row: Record<string, unknown>, keys: string[]): string | undefined {
   const pick = (v: unknown) => {
     if (v === undefined || v === null) return undefined;
-    if (typeof v === "number" && !Number.isNaN(v)) return String(v);
+    if (typeof v === "number" && !Number.isNaN(v)) {
+      const s = String(v);
+      // Avoid Excel/JS scientific notation (e.g. 1.23e+15) for IDs like SKU/Barcode.
+      if (/[eE][+-]?\d+/.test(s)) return XLSX.SSF.format("0", v);
+      return s;
+    }
     const s = String(v).trim();
     return s !== "" ? s : undefined;
   };
@@ -201,6 +206,18 @@ export default function AdminStockBulkImport({
     const stock = Math.floor(
       safeNonNegativeNumber(rowCell(row, ["Stock", "19. Stock"]), 0)
     );
+    const barcodeRaw = rowCell(row, ["Barcode", "8. Barcode"]) || "";
+    const barcodeStr = String(barcodeRaw).trim();
+    const isScientific = /^[+-]?\d+(?:\.\d+)?[eE][+-]?\d+$/.test(barcodeStr);
+    const barcodeParts = isScientific ? [barcodeStr] : barcodeStr.split(/[+,;|\n]+/g);
+    const barcodes = barcodeParts
+      .map((b) => b.trim())
+      .filter((b) => {
+        if (!b) return false;
+        const bl = b.toLowerCase();
+        return b !== "-" && b !== "--" && bl !== "na" && bl !== "n/a";
+      });
+    const uniqueBarcodes = Array.from(new Set(barcodes));
 
     return {
       category: findCategory(categoryName),
@@ -211,7 +228,7 @@ export default function AdminStockBulkImport({
       itemCode: sku || undefined,
       rackNumber: rowCell(row, ["Rack", "6. Rack"]) || "",
       description: rowCell(row, ["Desc", "7. Desc"]) || "",
-      barcode: rowCell(row, ["Barcode", "8. Barcode"]) || "",
+      barcode: uniqueBarcodes,
       hsnCode: rowCell(row, ["HSN", "9. HSN"]) || "",
       pack: rowCell(row, ["Unit", "10. Unit"]) || "",
       variations: variations.length > 0 ? variations : undefined,

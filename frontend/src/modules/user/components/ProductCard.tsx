@@ -54,6 +54,7 @@ export default function ProductCard({
   const isOperationPendingRef = useRef(false);
 
   useEffect(() => {
+    if (!showHeartIcon) return;
     // Only check wishlist if user is authenticated
     if (!isAuthenticated) {
       setIsWishlisted(false);
@@ -77,7 +78,7 @@ export default function ProductCard({
       }
     };
     checkWishlist();
-  }, [product.id, product._id, isAuthenticated, location?.latitude, location?.longitude]);
+  }, [product.id, product._id, isAuthenticated, location?.latitude, location?.longitude, showHeartIcon]);
 
   const toggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();

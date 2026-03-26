@@ -488,7 +488,23 @@ export default function CategoryPage() {
           {/* Scrollable Content */}
           <div ref={productsContainerRef} className="flex-1 overflow-y-auto scrollbar-hide bg-white">
             {/* Products Grid */}
-            {categoryProducts.length > 0 ? (
+            {loading ? (
+              <div className="px-3 md:px-6 lg:px-8 py-4 md:py-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl border border-neutral-200 bg-white p-3 animate-pulse"
+                    >
+                      <div className="aspect-square w-full rounded-lg bg-neutral-100" />
+                      <div className="mt-3 h-3 w-4/5 rounded bg-neutral-100" />
+                      <div className="mt-2 h-3 w-2/3 rounded bg-neutral-100" />
+                      <div className="mt-3 h-8 w-full rounded-lg bg-neutral-100" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : categoryProducts.length > 0 ? (
               <div className="px-3 md:px-6 lg:px-8 py-4 md:py-6">
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-4">
                   {categoryProducts.map((product) => (
