@@ -1343,8 +1343,8 @@ export default function SellerStockBulkEdit({
   const endEntry = Math.min(page * pageLimit, totalEntries);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-[98vw] sm:max-w-7xl h-[94vh] sm:h-[90vh] flex flex-col">
           {/* Header */}
           <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-200 bg-[#f187b5] text-white rounded-t-lg">
             <div className="flex items-start justify-between gap-3">
@@ -1427,8 +1427,8 @@ export default function SellerStockBulkEdit({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-neutral-200 flex items-center justify-between gap-3 bg-neutral-50 rounded-b-lg">
-          <div className="flex items-center gap-2 text-sm text-neutral-700">
+        <div className="px-6 py-4 border-t border-neutral-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-neutral-50 rounded-b-lg">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-700 w-full sm:w-auto">
             <div className="flex items-center gap-2">
               <span className="text-sm text-neutral-600">Show</span>
               <select
@@ -1480,11 +1480,11 @@ export default function SellerStockBulkEdit({
             </button>
           </div>
 
-          <div className="flex justify-end gap-3">
+          <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:justify-end sm:gap-3">
           <button
             onClick={handleDeleteSelected}
             disabled={deleting || saving || selectedProductIds.size === 0}
-            className={`px-4 py-2 rounded text-sm text-white ${
+            className={`w-full min-w-0 px-2 py-2 rounded text-xs sm:text-sm text-white text-center leading-snug whitespace-normal break-words sm:px-4 ${
               deleting || saving || selectedProductIds.size === 0
                 ? "bg-red-300 cursor-not-allowed"
                 : "bg-red-500 hover:bg-red-600"
@@ -1494,14 +1494,14 @@ export default function SellerStockBulkEdit({
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-neutral-300 rounded hover:bg-neutral-100 transition-colors"
+            className="w-full min-w-0 px-2 py-2 border border-neutral-300 rounded text-xs sm:text-sm hover:bg-neutral-100 transition-colors sm:px-4"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving || !hasAnyChanges}
-            className={`px-6 py-2 rounded text-white font-medium flex items-center gap-2 ${saving || !hasAnyChanges ? "bg-neutral-400 cursor-not-allowed" : "bg-[#f187b5] hover:bg-[#e076a5] shadow-sm transform hover:-translate-y-0.5 transition-all"}`}
+            className={`w-full min-w-0 px-2 py-2 rounded text-white text-xs sm:text-sm font-medium flex items-center justify-center gap-2 sm:px-6 ${saving || !hasAnyChanges ? "bg-neutral-400 cursor-not-allowed" : "bg-[#f187b5] hover:bg-[#e076a5] shadow-sm transform hover:-translate-y-0.5 transition-all"}`}
           >
             {saving ? (
               <>
