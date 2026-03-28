@@ -1346,49 +1346,128 @@ const SellerPOSOrders = () => {
   }, [showPurchaseSearch, purchaseSearchQuery, selectedCategory, selectedBrand]);
 
   // Barcode Scanner Handler
+  const submitScanQuery = async (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) return;
+
+    const query = trimmed.toLowerCase();
+
+    // Helper to check for match
+    const findMatch = (list: any[]) => list.find(p => {
+      const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
+      return barcodes.some((b: string) => String(b).toLowerCase() === query) ||
+        (p.sku && String(p.sku).toLowerCase() === query) ||
+        (p.itemCode && String(p.itemCode).toLowerCase() === query);
+    });
+
+    let exactMatch = findMatch(products);
+
+    if (exactMatch) {
+      addToCart(exactMatch as CartItem);
+      setSearchQuery(''); // Clear for next scan
+      return;
+    }
+
+    // If not found in current products (maybe due to debounce or filter), fetch immediately
+    try {
+      const res = await getProducts({
+        search: trimmed,
+        category: selectedCategory || undefined,
+        brand: selectedBrand || undefined,
+        limit: 100,
+        page: 1,
+      });
+      if (res.success && res.data && res.data.length > 0) {
+        const expanded = expandSellerCatalogProductsForPOS(res.data);
+
+        exactMatch = findMatch(expanded);
+        if (exactMatch) {
+          if (addToCartRef.current) addToCartRef.current(exactMatch as CartItem);
+          setSearchQuery('');
+        }
+      }
+    } catch (err) {
+      console.error("Direct barcode search failed", err);
+    }
+  };
+
+  const submitScanQueryRef = useRef<(raw: string) => void>(() => {});
+  useEffect(() => {
+    submitScanQueryRef.current = submitScanQuery;
+  });
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)'); // web/desktop only
+    const scanBufferRef = { current: '' as string };
+    const lastAtRef = { current: 0 as number };
+    let listening = false;
+
+    const isEditableTarget = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      if (!el) return false;
+      if ((el as any).isContentEditable) return true;
+      const tag = el.tagName?.toLowerCase();
+      return tag === 'input' || tag === 'textarea' || tag === 'select';
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!mq.matches) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isEditableTarget(e.target)) return;
+
+      const now = Date.now();
+      if (now - lastAtRef.current > 120) {
+        scanBufferRef.current = '';
+      }
+
+      if (e.key === 'Enter') {
+        const code = scanBufferRef.current.trim();
+        scanBufferRef.current = '';
+        lastAtRef.current = 0;
+        if (code.length >= 3) submitScanQueryRef.current(code);
+        return;
+      }
+
+      if (e.key.length === 1) {
+        scanBufferRef.current += e.key;
+        lastAtRef.current = now;
+      }
+    };
+
+    const updateListener = () => {
+      if (mq.matches && !listening) {
+        window.addEventListener('keydown', onKeyDown);
+        listening = true;
+      } else if (!mq.matches && listening) {
+        window.removeEventListener('keydown', onKeyDown);
+        listening = false;
+        scanBufferRef.current = '';
+        lastAtRef.current = 0;
+      }
+    };
+
+    updateListener();
+    const onChange = () => updateListener();
+    if ('addEventListener' in mq) {
+      mq.addEventListener('change', onChange);
+    } else {
+      (mq as any).addListener(onChange);
+    }
+
+    return () => {
+      if (listening) window.removeEventListener('keydown', onKeyDown);
+      if ('removeEventListener' in mq) {
+        mq.removeEventListener('change', onChange);
+      } else {
+        (mq as any).removeListener(onChange);
+      }
+    };
+  }, []);
+
   const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
-        const query = searchQuery.trim().toLowerCase();
-
-        // Helper to check for match
-        const findMatch = (list: any[]) => list.find(p => {
-            const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
-            return barcodes.some((b: string) => String(b).toLowerCase() === query) ||
-                   (p.sku && String(p.sku).toLowerCase() === query) ||
-                   (p.itemCode && String(p.itemCode).toLowerCase() === query);
-        });
-
-        let exactMatch = findMatch(products);
-
-        if (exactMatch) {
-            e.preventDefault();
-            addToCart(exactMatch as CartItem);
-            setSearchQuery(''); // Clear for next scan
-            return;
-        }
-
-        // If not found in current products (maybe due to debounce or filter), fetch immediately
-        try {
-            const res = await getProducts({
-              search: searchQuery.trim(),
-              category: selectedCategory || undefined,
-              brand: selectedBrand || undefined,
-              limit: 100,
-              page: 1,
-            });
-            if (res.success && res.data && res.data.length > 0) {
-                const expanded = expandSellerCatalogProductsForPOS(res.data);
-
-                exactMatch = findMatch(expanded);
-                if (exactMatch) {
-                    e.preventDefault();
-                    if (addToCartRef.current) addToCartRef.current(exactMatch as CartItem);
-                    setSearchQuery('');
-                }
-            }
-        } catch (err) {
-            console.error("Direct barcode search failed", err);
-        }
+      e.preventDefault();
+      await submitScanQuery(searchQuery);
     }
   };
 

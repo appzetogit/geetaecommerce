@@ -1354,69 +1354,148 @@ const AdminPOSOrders = () => {
   }, [showPurchaseSearch, purchaseSearchQuery]);
 
   // Barcode Scanner Handler
-  const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
-        const query = searchQuery.trim().toLowerCase();
+  const submitScanQuery = async (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed) return;
 
-        // Helper to check for match
-        const findMatch = (list: any[]) => list.find(p => {
-            const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
-            return barcodes.some((b: string) => String(b).toLowerCase() === query) ||
-                   (p.sku && String(p.sku).toLowerCase() === query) ||
-                   (p.itemCode && String(p.itemCode).toLowerCase() === query);
+    const query = trimmed.toLowerCase();
+
+    // Helper to check for match
+    const findMatch = (list: any[]) => list.find(p => {
+      const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
+      return barcodes.some((b: string) => String(b).toLowerCase() === query) ||
+        (p.sku && String(p.sku).toLowerCase() === query) ||
+        (p.itemCode && String(p.itemCode).toLowerCase() === query);
+    });
+
+    let exactMatch = findMatch(products);
+
+    if (exactMatch) {
+      addToCart(exactMatch as CartItem);
+      setSearchQuery(''); // Clear for next scan
+      return;
+    }
+
+    // If not found in current products (maybe due to debounce or filter), fetch immediately
+    try {
+      const res = await getProducts({ search: trimmed, limit: 50 });
+      if (res.success && res.data && res.data.length > 0) {
+        const expanded: any[] = [];
+        res.data.forEach((product: any) => {
+          if (product.variations && product.variations.length > 0) {
+            product.variations.forEach((variation: any) => {
+              expanded.push({
+                ...product,
+                _id: `${product._id}-${variation._id}`,
+                originalProductId: product._id,
+                productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || 'Variation'}`,
+                price: variation.price,
+                compareAtPrice: variation.compareAtPrice || product.compareAtPrice,
+                purchasePrice: variation.purchasePrice || product.purchasePrice,
+                stock: variation.stock,
+                sku: variation.sku || product.sku,
+                isVariation: true,
+                variationId: variation._id,
+                wholesalePrice: Number(product.wholesalePrice || 0)
+              });
+            });
+          } else {
+            expanded.push({
+              ...product,
+              originalProductId: product._id,
+              wholesalePrice: product.wholesalePrice || 0
+            });
+          }
         });
 
-        let exactMatch = findMatch(products);
-
+        exactMatch = findMatch(expanded);
         if (exactMatch) {
-            e.preventDefault();
-            addToCart(exactMatch as CartItem);
-            setSearchQuery(''); // Clear for next scan
-            return;
+          if (addToCartRef.current) addToCartRef.current(exactMatch as CartItem);
+          setSearchQuery('');
         }
+      }
+    } catch (err) {
+      console.error("Direct barcode search failed", err);
+    }
+  };
 
-        // If not found in current products (maybe due to debounce or filter), fetch immediately
-        try {
-            const res = await getProducts({ search: searchQuery.trim(), limit: 50 });
-            if (res.success && res.data && res.data.length > 0) {
-                const expanded: any[] = [];
-                res.data.forEach((product: any) => {
-                    if (product.variations && product.variations.length > 0) {
-                        product.variations.forEach((variation: any) => {
-                            expanded.push({
-                                ...product,
-                                _id: `${product._id}-${variation._id}`,
-                                originalProductId: product._id,
-                                productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || 'Variation'}`,
-                                price: variation.price,
-                                compareAtPrice: variation.compareAtPrice || product.compareAtPrice,
-                                purchasePrice: variation.purchasePrice || product.purchasePrice,
-                                stock: variation.stock,
-                                sku: variation.sku || product.sku,
-                                isVariation: true,
-                                variationId: variation._id,
-                                wholesalePrice: Number(product.wholesalePrice || 0)
-                            });
-                        });
-                    } else {
-                        expanded.push({
-                            ...product,
-                            originalProductId: product._id,
-                            wholesalePrice: product.wholesalePrice || 0
-                        });
-                    }
-                });
+  const submitScanQueryRef = useRef<(raw: string) => void>(() => {});
+  useEffect(() => {
+    submitScanQueryRef.current = submitScanQuery;
+  });
 
-                exactMatch = findMatch(expanded);
-                if (exactMatch) {
-                    e.preventDefault();
-                    if (addToCartRef.current) addToCartRef.current(exactMatch as CartItem);
-                    setSearchQuery('');
-                }
-            }
-        } catch (err) {
-            console.error("Direct barcode search failed", err);
-        }
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)'); // web/desktop only
+    const scanBufferRef = { current: '' as string };
+    const lastAtRef = { current: 0 as number };
+    let listening = false;
+
+    const isEditableTarget = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      if (!el) return false;
+      if ((el as any).isContentEditable) return true;
+      const tag = el.tagName?.toLowerCase();
+      return tag === 'input' || tag === 'textarea' || tag === 'select';
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!mq.matches) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (isEditableTarget(e.target)) return;
+
+      const now = Date.now();
+      if (now - lastAtRef.current > 120) {
+        scanBufferRef.current = '';
+      }
+
+      if (e.key === 'Enter') {
+        const code = scanBufferRef.current.trim();
+        scanBufferRef.current = '';
+        lastAtRef.current = 0;
+        if (code.length >= 3) submitScanQueryRef.current(code);
+        return;
+      }
+
+      if (e.key.length === 1) {
+        scanBufferRef.current += e.key;
+        lastAtRef.current = now;
+      }
+    };
+
+    const updateListener = () => {
+      if (mq.matches && !listening) {
+        window.addEventListener('keydown', onKeyDown);
+        listening = true;
+      } else if (!mq.matches && listening) {
+        window.removeEventListener('keydown', onKeyDown);
+        listening = false;
+        scanBufferRef.current = '';
+        lastAtRef.current = 0;
+      }
+    };
+
+    updateListener();
+    const onChange = () => updateListener();
+    if ('addEventListener' in mq) {
+      mq.addEventListener('change', onChange);
+    } else {
+      (mq as any).addListener(onChange);
+    }
+
+    return () => {
+      if (listening) window.removeEventListener('keydown', onKeyDown);
+      if ('removeEventListener' in mq) {
+        mq.removeEventListener('change', onChange);
+      } else {
+        (mq as any).removeListener(onChange);
+      }
+    };
+  }, []);
+
+  const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      e.preventDefault();
+      await submitScanQuery(searchQuery);
     }
   };
 
