@@ -182,13 +182,16 @@ export default function SellerStockBulkEdit({
   };
 
   const onSearchScanSuccess = (decodedText: string) => {
+    const cleaned = (decodedText || "").trim();
+    if (!cleaned) return;
+
     const now = Date.now();
-    if (decodedText === lastSearchScanRef.current.code && now - lastSearchScanRef.current.time < 2000) {
+    if (cleaned === lastSearchScanRef.current.code && now - lastSearchScanRef.current.time < 2000) {
       return;
     }
-    lastSearchScanRef.current = { code: decodedText, time: now };
+    lastSearchScanRef.current = { code: cleaned, time: now };
 
-    setSearchTerm(decodedText);
+    setSearchTerm(cleaned);
     setPage(1);
     void stopSearchScanning();
   };

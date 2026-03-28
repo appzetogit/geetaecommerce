@@ -259,6 +259,7 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
       { rackNumber: { $regex: search, $options: "i" } },
       { hsnCode: { $regex: search, $options: "i" } },
       { "variations.sku": { $regex: search, $options: "i" } },
+      { "variations.barcode": { $regex: search, $options: "i" } },
     ];
   }
 
