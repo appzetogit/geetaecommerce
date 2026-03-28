@@ -1416,9 +1416,9 @@ const SellerPOSOrders = () => {
           newItem.customPrice = product.wholesalePrice;
       }
 
-      return [...prev, newItem];
-    });
-  };
+       return [newItem, ...prev];
+     });
+   };
 
   const removeFromCart = (id: string) => {
     setCart(prev => prev.filter(item => item._id !== id));

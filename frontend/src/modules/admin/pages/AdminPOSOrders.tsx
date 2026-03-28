@@ -1444,9 +1444,9 @@ const AdminPOSOrders = () => {
           newItem.customPrice = product.wholesalePrice;
       }
 
-      return [...prev, newItem];
-    });
-  };
+       return [newItem, ...prev];
+     });
+   };
 
   const removeFromCart = (id: string) => {
     setCart(prev => prev.filter(item => item._id !== id));
@@ -3510,7 +3510,7 @@ const AdminPOSOrders = () => {
                           : 'space-y-2 flex flex-col'
                       }>
                   {/* Desktop Header Row */}
-                  <div className="hidden md:grid grid-cols-12 gap-2 text-xs font-bold text-gray-400 pb-2 border-b border-gray-100 px-2 sticky top-0 bg-white z-10">
+                  <div className="hidden md:grid grid-cols-12 gap-2 text-xs font-bold text-black pb-2 border-b border-gray-100 px-2 sticky top-0 bg-white z-10">
                       <div className="col-span-1 text-center">Sr.no</div>
                       <div className="col-span-1 text-center">Edit</div>
                       <div className="col-span-1 text-center">Image</div>
