@@ -2041,6 +2041,15 @@ const AdminPOSOrders = () => {
       return;
     }
 
+    // Barcode readability on label/thermal printers depends heavily on:
+    // - Quiet zone (white margin around bars)
+    // - Avoiding fractional bar widths (fractional widths get anti-aliased and scanners often fail)
+    // If barcode is stored like "a, b", print the first clean token.
+    const cleanedBarcodeVal = value.split(",")[0].trim();
+    const isNumericBarcode = /^[0-9]+$/.test(cleanedBarcodeVal);
+    // Prefer EAN13 for 13-digit numeric codes to reduce density on small labels.
+    const barcodeFormat = isNumericBarcode && cleanedBarcodeVal.length === 13 ? "EAN13" : "CODE128";
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       alert("Please allow popups to print barcodes");
@@ -2082,7 +2091,7 @@ const AdminPOSOrders = () => {
         barcodeHeight = 32;
         fontSize = 10;
         productNameSize = 10;
-        barcodeModuleWidth = 1.5;
+        barcodeModuleWidth = 2;
       } else if (savedSize === 'large') {
         containerWidth = 320;
         pageWidthMm = 60;
@@ -2097,14 +2106,17 @@ const AdminPOSOrders = () => {
         barcodeHeight = 36;
         fontSize = 10;
         productNameSize = 11;
-        barcodeModuleWidth = 1.7;
+        barcodeModuleWidth = 2;
       }
     }
 
     barcodeTextSize = Math.max(9, Math.min(12, Math.round(fontSize * 1.0)));
     if (isCustom && customSettings?.width) {
-      barcodeModuleWidth = customSettings.width <= 50 ? 1.7 : 2;
+      barcodeModuleWidth = customSettings.width <= 50 ? 2 : 3;
     }
+
+    // Force integer bar width; we'll auto-fallback thinner in the print window if needed.
+    const initialBarWidth = Math.max(1, Math.round(barcodeModuleWidth));
 
     let styleContent = '';
     if (isCustom && customSettings) {
@@ -2160,7 +2172,7 @@ const AdminPOSOrders = () => {
     }
 
     const safeName = item.productName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    const safeBarcode = value.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeBarcode = cleanedBarcodeVal.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const mrp = Number(item.mrp || 0);
     const sp = Number(item.retailPrice || 0);
 
@@ -2197,12 +2209,15 @@ const AdminPOSOrders = () => {
             }
             .price-item { white-space: nowrap; }
             svg.barcode {
-              width: 100%;
+              width: auto;
               height: ${barcodeHeight}px;
               max-width: 100%;
               display: block;
               align-self: center;
+              margin: 0 auto;
+              shape-rendering: crispEdges;
             }
+            svg.barcode * { shape-rendering: crispEdges; }
           </style>
           <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
         </head>
@@ -2211,17 +2226,17 @@ const AdminPOSOrders = () => {
             <div class="barcode-container">
               <div class="product-name">${safeName}</div>
               <svg class="barcode"
-                jsbarcode-format="CODE128"
+                jsbarcode-format="${barcodeFormat}"
                 jsbarcode-value="${safeBarcode}"
-                jsbarcode-width="${barcodeModuleWidth}"
+                jsbarcode-width="${initialBarWidth}"
                 jsbarcode-height="${barcodeHeight}"
                 jsbarcode-textmargin="1"
                 jsbarcode-fontoptions="bold"
                 jsbarcode-displayValue="true"
                 jsbarcode-fontSize="${barcodeTextSize}"
-                jsbarcode-margin="0"
-                jsbarcode-marginBottom="0"
-                jsbarcode-marginTop="0">
+                jsbarcode-background="#ffffff"
+                jsbarcode-lineColor="#000000"
+                jsbarcode-margin="8">
               </svg>
               <div class="price-row">
                 ${customSettings?.mrpLabel ? `<div class="price-item">${customSettings.mrpLabel}:${mrp}</div>` : mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
@@ -2230,7 +2245,54 @@ const AdminPOSOrders = () => {
             </div>
           </div>
           <script>
-            JsBarcode(".barcode").init();
+            (function () {
+              var svg = document.querySelector("svg.barcode");
+              var container = document.querySelector(".barcode-container");
+              if (!svg || !container || typeof JsBarcode === "undefined") return;
+
+              var value = ${JSON.stringify(cleanedBarcodeVal)};
+              var format = ${JSON.stringify(barcodeFormat)};
+              var height = ${barcodeHeight};
+              var fontSize = ${barcodeTextSize};
+              var textMargin = 1;
+
+              // Try a small set of integer widths/margins, picking the first that fits the label.
+              // This avoids browser scaling (anti-aliased bars) while keeping quiet-zone when possible.
+              var tries = [
+                { w: ${initialBarWidth}, m: 8 },
+                { w: Math.max(1, ${initialBarWidth} - 1), m: 8 },
+                { w: 1, m: 6 },
+                { w: 1, m: 0 }
+              ];
+
+              function render(cfg) {
+                JsBarcode(svg, value, {
+                  format: format,
+                  width: cfg.w,
+                  height: height,
+                  displayValue: true,
+                  fontSize: fontSize,
+                  fontOptions: "bold",
+                  textMargin: textMargin,
+                  background: "#ffffff",
+                  lineColor: "#000000",
+                  margin: cfg.m
+                });
+              }
+
+              function getSvgAttrWidth() {
+                var w = svg.getAttribute("width");
+                var n = w ? parseFloat(w) : NaN;
+                return isFinite(n) ? n : 0;
+              }
+
+              var available = container.getBoundingClientRect().width;
+              for (var i = 0; i < tries.length; i++) {
+                render(tries[i]);
+                var rendered = getSvgAttrWidth();
+                if (rendered > 0 && rendered <= available) break;
+              }
+            })();
             setTimeout(() => {
               window.print();
               window.close();
