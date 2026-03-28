@@ -3242,7 +3242,7 @@ const AdminPOSOrders = () => {
 
 
       <div className="flex-1 flex flex-col min-h-0 w-full md:max-w-6xl md:mx-auto md:pb-8 md:h-auto md:block md:overflow-visible">
-        <div className="bg-white flex flex-col flex-1 h-full min-h-0 w-full relative transition-all duration-300 md:rounded-2xl md:shadow-xl md:border md:border-gray-200 md:min-h-[85vh] md:h-auto md:overflow-visible">
+        <div className="bg-white flex flex-col flex-1 h-full min-h-0 w-full relative transition-all duration-300 md:rounded-2xl md:shadow-xl md:border md:border-gray-200 md:h-[90vh] md:overflow-hidden">
 
           {/* Top Header Section */}
           <div className="flex-none px-3 py-1.5 md:px-6 md:py-2 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center bg-white md:rounded-t-2xl gap-2 md:gap-4">
@@ -3583,7 +3583,7 @@ const AdminPOSOrders = () => {
               <div className="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden relative">
                   {/* Cart Items List */}
                   <div className="flex-1 min-h-0 overflow-hidden w-full flex flex-col">
-                  <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-40 md:p-0 md:pb-0 md:overflow-visible custom-pos-scroll">
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 pb-40 md:p-0 md:pb-0 md:overflow-y-auto custom-pos-scroll">
                       <div className={mobileCartView === 'grid'
                           ? 'grid grid-cols-2 gap-2 md:flex md:flex-col'
                           : 'space-y-2 flex flex-col'
