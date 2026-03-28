@@ -585,19 +585,23 @@ export default function AdminStockManagement() {
           showPrice = customSettings.showPrice ?? true;
       }
 
-      if (!isCustom) {
-          if (savedSize === 'small') {
-              containerWidth = 200;
-              barcodeHeight = 40;
-              fontSize = 12;
-              productNameSize = 12;
-          } else if (savedSize === 'large') {
-              containerWidth = 320;
-              barcodeHeight = 75;
-              fontSize = 16;
-              productNameSize = 16;
-          }
-      }
+       if (!isCustom) {
+           if (savedSize === 'small') {
+               containerWidth = 200;
+               barcodeHeight = 40;
+               fontSize = 12;
+               productNameSize = 12;
+           } else if (savedSize === 'large') {
+               containerWidth = 320;
+               barcodeHeight = 75;
+               fontSize = 16;
+               productNameSize = 16;
+           }
+       }
+
+       const maxNameChars = isCustom ? 40 : (savedSize === 'small' ? 22 : savedSize === 'large' ? 45 : 30);
+       const fullName = (name || '').toString().trim();
+       const displayName = fullName.length > maxNameChars ? `${fullName.slice(0, maxNameChars)}…` : fullName;
 
       const printWindow = window.open('', '_blank');
       if(!printWindow) {
@@ -661,17 +665,19 @@ export default function AdminStockManagement() {
               @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
               body { font-family: 'Inter', sans-serif; }
               ${styleContent}
-              .product-name {
-                  font-size: ${productNameSize}px;
-                  font-weight: 600;
-                  margin-bottom: 2px;
-                  color: #000;
-                  line-height: 1.1;
-                  text-transform: capitalize;
-                  max-width: 100%;
-                  word-wrap: break-word;
-                  display: ${showName ? 'block' : 'none'};
-              }
+               .product-name {
+                   font-size: ${productNameSize}px;
+                   font-weight: 600;
+                   margin-bottom: 2px;
+                   color: #000;
+                   line-height: 1.1;
+                   text-transform: capitalize;
+                   max-width: 100%;
+                   white-space: nowrap;
+                   overflow: hidden;
+                   text-overflow: ellipsis;
+                   display: ${showName ? 'block' : 'none'};
+               }
               .price-row {
                   display: ${showPrice ? 'flex' : 'none'};
                   gap: 15px;
@@ -693,18 +699,18 @@ export default function AdminStockManagement() {
             <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
           </head>
           <body>
-            <div class="${isCustom ? '' : 'barcode-grid'}">
-              <div class="barcode-container">
-                <div class="product-name">${name || ''}</div>
-                <svg class="barcode"
-                  jsbarcode-format="CODE128"
-                  jsbarcode-value="${barcodeVal}"
-                  jsbarcode-width="2"
-                  jsbarcode-height="${barcodeHeight}"
-                  jsbarcode-textmargin="0"
-                  jsbarcode-fontoptions="bold"
-                  jsbarcode-displayValue="true"
-                  jsbarcode-fontSize="${fontSize}"
+               <div class="${isCustom ? '' : 'barcode-grid'}">
+                 <div class="barcode-container">
+                 <div class="product-name">${displayName}</div>
+                 <svg class="barcode"
+                   jsbarcode-format="CODE128"
+                   jsbarcode-value="${barcodeVal}"
+                   jsbarcode-width="3"
+                   jsbarcode-height="${barcodeHeight}"
+                   jsbarcode-textmargin="0"
+                   jsbarcode-fontoptions="bold"
+                   jsbarcode-displayValue="true"
+                   jsbarcode-fontSize="${fontSize}"
                   jsbarcode-marginBottom="2"
                   jsbarcode-marginTop="2">
                 </svg>
