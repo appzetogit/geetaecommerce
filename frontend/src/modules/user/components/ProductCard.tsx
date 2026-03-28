@@ -135,6 +135,14 @@ export default function ProductCard({
   // Calculate dynamic unit price based on cart quantity
   const currentUnitPrice = getApplicableUnitPrice(product, undefined, Math.max(1, inCartQty));
 
+  const deliveryTimeText = (() => {
+    const raw = (product as any)?.deliveryTime;
+    const text = raw === undefined || raw === null ? '' : String(raw).trim();
+    if (!text) return '14 MINS';
+    if (/^\d+(\.\d+)?$/.test(text)) return `${text} MINS`;
+    return text;
+  })();
+
   const handleCardClick = () => {
     navigate(`/product/${((product as any).id || product._id) as string}`);
   };
@@ -416,13 +424,13 @@ export default function ProductCard({
               </div>
 
               {/* 3. Time */}
-              <p className="text-[9px] text-neutral-600 mb-0.5 flex items-center gap-0.5 leading-tight">
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                  <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                <span>14 MINS</span>
-              </p>
+               <p className="text-[9px] text-neutral-600 mb-0.5 flex items-center gap-0.5 leading-tight">
+                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+                   <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                 </svg>
+                 <span>{deliveryTimeText}</span>
+               </p>
 
               {/* 4. Tiered Pricing Static Display (Multi-Row) */}
               {tieredPrices.length > 0 ? (

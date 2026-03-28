@@ -348,6 +348,13 @@ export default function ProductDetail() {
     addToCart(productWithVariant, addButtonRef.current);
   };
 
+  const formatDeliveryTime = (raw: unknown, fallback: string) => {
+    const text = raw === undefined || raw === null ? "" : String(raw).trim();
+    if (!text) return fallback;
+    if (/^\d+(\.\d+)?$/.test(text)) return `${text} MINS`;
+    return text;
+  };
+
   return (
     <div className="min-h-screen bg-white pb-24">
       {/* Header with back button and search */}
@@ -667,7 +674,7 @@ export default function ProductDetail() {
               />
             </svg>
             <span className="text-sm text-neutral-700 font-medium">
-              17 MINS
+              {formatDeliveryTime((product as any)?.deliveryTime, "17 MINS")}
             </span>
           </div>
 
@@ -1257,7 +1264,7 @@ export default function ProductDetail() {
                               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
                               <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                             </svg>
-                            <span>{similarProduct.deliveryTime || 15} MINS</span>
+                            <span>{formatDeliveryTime((similarProduct as any)?.deliveryTime, "15 MINS")}</span>
                           </p>
                         </div>
 
