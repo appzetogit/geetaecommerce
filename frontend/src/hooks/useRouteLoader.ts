@@ -12,6 +12,11 @@ const useRouteLoader = () => {
     const isBackofficeRoute = path.startsWith('/admin') || path.startsWith('/seller');
     const isUserAppRoute = !path.startsWith('/admin') && !path.startsWith('/seller') && !path.startsWith('/delivery');
     const isDeliveryAuthRoute = path === '/delivery/login' || path === '/delivery/signup';
+    const isDeliveryTabRoute =
+      path === '/delivery' ||
+      path === '/delivery/orders' ||
+      path === '/delivery/notifications' ||
+      path === '/delivery/menu';
 
     // On initial mount, the LoadingProvider started route loading (count=1).
     // We must always stop it once after first paint, otherwise the app can remain in a "loading" state.
@@ -33,6 +38,12 @@ const useRouteLoader = () => {
     // Delivery auth: avoid full-screen loader when switching between login/signup
     // (it makes the page look like a full refresh).
     if (isDeliveryAuthRoute) {
+      return;
+    }
+
+    // Delivery bottom nav: avoid full-screen loader when switching tabs
+    // (it makes SPA navigation look like full reload).
+    if (isDeliveryTabRoute) {
       return;
     }
 
