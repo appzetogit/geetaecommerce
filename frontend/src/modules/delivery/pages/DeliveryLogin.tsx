@@ -89,8 +89,8 @@ export default function DeliveryLogin() {
       {/* Login Card */}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header Section */}
-        <div className="px-6 py-4 text-center border-b border-green-700" style={{ backgroundColor: 'rgb(21 178 74 / var(--tw-bg-opacity, 1))' }}>
-          <div className="mb-2">
+        <div className="px-6 py-6 text-center border-b border-green-700" style={{ backgroundColor: 'rgb(21 178 74 / var(--tw-bg-opacity, 1))' }}>
+          <div className="mb-4">
             <img
               src="/assets/geetastoreslogo.png"
               alt="Geeta Stores"
