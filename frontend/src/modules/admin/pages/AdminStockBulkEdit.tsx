@@ -158,11 +158,94 @@ export default function AdminStockBulkEdit({
   const [isScanning, setIsScanning] = useState(false);
   const [scanIndex, setScanIndex] = useState<number | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const [showSearchScanner, setShowSearchScanner] = useState(false);
+  const [searchScannerKey, setSearchScannerKey] = useState(0);
+  const searchScannerRef = useRef<Html5Qrcode | null>(null);
+  const lastSearchScanRef = useRef<{ code: string; time: number }>({ code: "", time: 0 });
 
   useEffect(() => {
     const handle = setTimeout(() => setDebouncedSearchTerm(searchTerm), 300);
     return () => clearTimeout(handle);
   }, [searchTerm]);
+
+  const stopSearchScanning = async () => {
+    try {
+      if (searchScannerRef.current) {
+        const scanner = searchScannerRef.current;
+        if (scanner.isScanning) {
+          await scanner.stop();
+        }
+        scanner.clear();
+        searchScannerRef.current = null;
+      }
+    } catch (e) {
+      console.warn("Search scanner stop error", e);
+    } finally {
+      setShowSearchScanner(false);
+    }
+  };
+
+  const onSearchScanSuccess = (decodedText: string) => {
+    const now = Date.now();
+    if (decodedText === lastSearchScanRef.current.code && now - lastSearchScanRef.current.time < 2000) {
+      return;
+    }
+    lastSearchScanRef.current = { code: decodedText, time: now };
+
+    setSearchTerm(decodedText);
+    setPage(1);
+    void stopSearchScanning();
+  };
+
+  useEffect(() => {
+    const startScanner = async () => {
+      if (!showSearchScanner) return;
+
+      await new Promise((r) => setTimeout(r, 300));
+      const readerId = `bulk-search-reader-${searchScannerKey}`;
+      const element = document.getElementById(readerId);
+      if (!element) return;
+
+      try {
+        if (searchScannerRef.current) {
+          try {
+            if (searchScannerRef.current.isScanning) {
+              await searchScannerRef.current.stop();
+            }
+            searchScannerRef.current.clear();
+          } catch (e) {
+            console.warn("Search scanner cleanup error", e);
+          }
+        }
+
+        const scanner = new Html5Qrcode(readerId);
+        searchScannerRef.current = scanner;
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
+          onSearchScanSuccess,
+          () => {}
+        );
+      } catch (err) {
+        console.error("Search scanner error:", err);
+        alert("Failed to start camera. Please check permissions.");
+        setShowSearchScanner(false);
+      }
+    };
+
+    if (showSearchScanner) {
+      void startScanner();
+    }
+
+    return () => {
+      if (searchScannerRef.current) {
+        const scanner = searchScannerRef.current;
+        if (scanner.isScanning) {
+          scanner.stop().then(() => scanner.clear()).catch(console.error);
+        }
+      }
+    };
+  }, [showSearchScanner, searchScannerKey]);
 
   const upsertEditedCache = (p: EditableProduct) => {
     if (!p.id) return;
@@ -1449,16 +1532,33 @@ export default function AdminStockBulkEdit({
               >
                 + Add Row
               </button>
-              <input
-                type="text"
-                placeholder="Search products..."
-                className="flex-1 min-w-[160px] px-3 py-1.5 text-sm text-black rounded border-none focus:ring-2 focus:ring-[#f187b5]"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setPage(1);
-                }}
-              />
+              <div className="relative flex-1 min-w-[160px]">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  className="w-full px-3 pr-10 py-1.5 text-sm text-black rounded border-none focus:ring-2 focus:ring-[#f187b5]"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPage(1);
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (isScanning) stopScanning();
+                    setSearchScannerKey((prev) => prev + 1);
+                    setShowSearchScanner(true);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-[#f187b5] transition-colors"
+                  title="Scan Barcode"
+                  type="button"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M7 12h10" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1660,6 +1760,32 @@ export default function AdminStockBulkEdit({
                   </div>
               </div>
           </div>
+      )}
+
+      {showSearchScanner && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80">
+          <div className="bg-white rounded-lg overflow-hidden w-full max-w-sm shadow-2xl">
+            <div className="bg-[#f187b5] p-3 text-white flex justify-between items-center">
+              <h3 className="font-bold flex items-center gap-2">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M7 12h10" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Scan Barcode
+              </h3>
+              <button onClick={() => void stopSearchScanning()} className="hover:bg-white/20 p-1 rounded-full" type="button">&times;</button>
+            </div>
+            <div className="aspect-square bg-gray-900 border-y border-gray-700">
+              <div id={`bulk-search-reader-${searchScannerKey}`} className="w-full h-full"></div>
+            </div>
+            <div className="p-4 bg-gray-50 text-center">
+              <p className="text-xs text-gray-500 mb-3">Place the barcode inside the frame</p>
+              <button onClick={() => void stopSearchScanning()} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold text-xs transition-colors" type="button">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
