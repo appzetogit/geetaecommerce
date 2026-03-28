@@ -669,22 +669,73 @@ export default function AdminStockBulkEdit({
   };
 
   const [categorySearch, setCategorySearch] = useState("");
+  const [columnSearch, setColumnSearch] = useState<Record<string, string>>({});
 
   // Column Resizing Logic
   // Column filtering logic
   const filteredProducts = useMemo(() => {
-     return editableProducts.filter(p => {
-        if (p.isNew) return true;
-        const nameMatch = p.productName.toLowerCase().includes(searchTerm.toLowerCase());
-        const colProductNameMatch = p.productName.toLowerCase().includes(productNameSearch.toLowerCase());
+    const getColumnText = (key: string, p: EditableProduct) => {
+      switch (key) {
+        case "category":
+          return categories.find(c => c._id === p.categoryId)?.name || "";
+        case "subCategory":
+          return subCategories.find(sc => sc._id === (p.subCategoryId || ""))?.name || "";
+        case "brand": {
+          const brandName =
+            brands.find(b => b._id === (p.brandId || ""))?.name ||
+            p.brand ||
+            "";
+          return brandName;
+        }
+        case "status":
+          return p.publish ? "Active" : "Inactive";
+        case "barcode":
+          return Array.isArray(p.barcode) ? p.barcode.join(",") : String((p as any).barcode || "");
+        case "attributes":
+          return Array.isArray(p.attributes) ? p.attributes.join(",") : "";
+        case "variations":
+          return Array.isArray(p.variations) ? String(p.variations.length) : "";
+        case "valMrp":
+          return String((p.compareAtPrice || 0) * (p.stock || 0));
+        case "valPur":
+          return String((p.purchasePrice || 0) * (p.stock || 0));
+        case "unitPrice":
+          return Array.isArray(p.unitPricing) ? p.unitPricing.map(s => `${s.minQty}:${s.price}`).join(",") : "";
+        default: {
+          const val = (p as any)[key] ?? (p.original as any)?.[key];
+          if (val === null || val === undefined) return "";
+          if (Array.isArray(val)) return val.join(",");
+          if (typeof val === "object") return JSON.stringify(val);
+          return String(val);
+        }
+      }
+    };
 
-        // Resolve category name for filtering
-        const catName = categories.find(c => c._id === p.categoryId)?.name || "";
-        const catMatch = catName.toLowerCase().includes(categorySearch.toLowerCase());
+    const norm = (v: string) => v.toLowerCase();
+    const term = norm(searchTerm);
+    const productTerm = norm(productNameSearch);
+    const catTerm = norm(categorySearch);
+    const extraFilters = Object.entries(columnSearch).filter(([, v]) => v.trim() !== "");
 
-        return nameMatch && colProductNameMatch && catMatch;
-     });
-  }, [editableProducts, searchTerm, productNameSearch, categorySearch, categories]);
+    return editableProducts.filter(p => {
+      if (p.isNew) return true;
+
+      const nameMatch = norm(p.productName).includes(term);
+      const colProductNameMatch = norm(p.productName).includes(productTerm);
+
+      // Resolve category name for filtering
+      const catName = categories.find(c => c._id === p.categoryId)?.name || "";
+      const catMatch = norm(catName).includes(catTerm);
+
+      const extraMatch = extraFilters.every(([key, value]) => {
+        if (key === "productName" || key === "category") return true;
+        const cell = norm(getColumnText(key, p));
+        return cell.includes(norm(value));
+      });
+
+      return nameMatch && colProductNameMatch && catMatch && extraMatch;
+    });
+  }, [editableProducts, searchTerm, productNameSearch, categorySearch, columnSearch, categories, subCategories, brands]);
 
   // Column Resizing Logic
 
@@ -876,6 +927,24 @@ export default function AdminStockBulkEdit({
             className="w-full text-[11px] px-2 py-1 border border-gray-300 rounded font-normal focus:ring-1 focus:ring-[#f187b5] focus:outline-none"
             value={productNameSearch}
             onChange={(e) => setProductNameSearch(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()} // Prevent focus loss on drag start
+          />
+        </div>
+      );
+    }
+
+    const searchable = key !== "index" && key !== "image";
+    if (searchable && key !== "category" && key !== "productName") {
+      content = (
+        <div className="flex flex-col gap-2 w-full">
+          <span>{COLUMN_LABELS[key]}</span>
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full text-[11px] px-2 py-1 border border-gray-300 rounded font-normal focus:ring-1 focus:ring-[#f187b5] focus:outline-none"
+            value={columnSearch[key] || ""}
+            onChange={(e) => setColumnSearch((prev) => ({ ...prev, [key]: e.target.value }))}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()} // Prevent focus loss on drag start
           />
