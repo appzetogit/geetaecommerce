@@ -806,7 +806,8 @@ export default function AdminStockBulkEdit({
     return editableProducts.filter(p => {
       if (p.isNew) return true;
 
-      const nameMatch = norm(p.productName).includes(term);
+      const barcodeMatch = norm(getColumnText("barcode", p)).includes(term);
+      const nameMatch = norm(p.productName).includes(term) || barcodeMatch;
       const colProductNameMatch = norm(p.productName).includes(productTerm);
 
       // Resolve category name for filtering
