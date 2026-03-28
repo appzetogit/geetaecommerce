@@ -3646,9 +3646,9 @@ const SellerPOSOrders = () => {
                                           )}
 
                                           {/* --- DESKTOP VIEW (Table Row Style) --- */}
-                                          <div className="hidden md:grid grid-cols-12 gap-2 items-center p-2 border-b border-gray-50 hover:bg-gray-50/80 transition-all even:bg-gray-50/20">
+                                          <div className="hidden md:grid grid-cols-12 gap-2 items-center py-0.5 px-2 border-b border-gray-100 hover:bg-gray-50/80 transition-all even:bg-gray-50/20">
                                                {/* Sr No */}
-                                               <div className="col-span-1 text-center text-gray-400 text-xs font-bold">
+                                               <div className="col-span-1 text-center text-gray-500 text-sm font-bold">
                                                    {index + 1}
                                                </div>
 
@@ -3658,31 +3658,31 @@ const SellerPOSOrders = () => {
                                                       onClick={() => openEditModal(item)}
                                                       className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex"
                                                    >
-                                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                                    </button>
                                                </div>
 
                                                {/* Image */}
                                                <div className="col-span-1 flex justify-center">
-                                                   <div className="w-10 h-10 bg-white rounded border border-gray-200 flex items-center justify-center p-0.5 overflow-hidden shadow-sm">
+                                                   <div className="w-14 h-14 bg-white rounded-lg border border-gray-200 flex items-center justify-center p-1 overflow-hidden shadow-sm">
                                                        {item.mainImage ? (
                                                            <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
                                                        ) : (
-                                                           <span className="text-[8px] text-gray-300 font-bold">IMG</span>
+                                                           <span className="text-[10px] text-gray-300 font-bold">IMG</span>
                                                        )}
                                                    </div>
                                                </div>
 
                                                {/* Name */}
                                                 <div className="col-span-3 min-w-0">
-                                                    <h4 className="text-sm font-semibold text-gray-800 truncate" title={item.productName}>{item.productName}</h4>
+                                                    <h4 className="text-base font-bold text-gray-900 truncate" title={item.productName}>{item.productName}</h4>
                                                     {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
-                                                        <div className="text-[10px] text-[#f187b5] font-bold mt-0.5">
+                                                        <div className="text-xs text-[#f187b5] font-bold mt-0.5">
                                                             {(item as any).warrantyType}: {(item as any).warrantyDuration}
                                                         </div>
                                                     )}
                                                    {showProfit && (
-                                                       <span className={`text-[10px] ${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                                       <span className={`text-[11px] ${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                                                            Profit: {profitPercent}%
                                                        </span>
                                                    )}
@@ -3694,23 +3694,23 @@ const SellerPOSOrders = () => {
                                                          type="number"
                                                          value={mrp}
                                                          onChange={(e) => updateItemDetails(item._id, { compareAtPrice: parseFloat(e.target.value) || 0 })}
-                                                         className="w-full text-center text-sm border border-transparent hover:border-gray-200 focus:border-[#f187b5] bg-transparent focus:bg-white rounded px-1 py-1 outline-none transition-all"
+                                                         className="w-full text-center text-base border border-transparent hover:border-gray-200 focus:border-[#f187b5] bg-transparent focus:bg-white rounded px-1 py-1 outline-none transition-all"
                                                      />
                                                 </div>
 
                                                {/* Quantity */}
                                                <div className="col-span-2 flex justify-center">
-                                                   <div className="flex items-center bg-white border border-gray-200 rounded h-7 w-20 shadow-sm">
+                                                   <div className="flex items-center bg-white border border-gray-200 rounded-lg h-9 w-24 shadow-sm">
                                                         <button
                                                           onClick={() => updateQuantity(item._id, -1)}
-                                                          className="w-6 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors"
+                                                          className="w-8 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors text-xl font-bold"
                                                         >−</button>
-                                                        <div className="flex-1 h-full flex items-center justify-center text-sm font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
+                                                        <div className="flex-1 h-full flex items-center justify-center text-base font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
                                                             {item.qty}
                                                         </div>
                                                         <button
                                                           onClick={() => updateQuantity(item._id, 1)}
-                                                          className="w-6 h-full flex items-center justify-center text-[#f187b5] hover:bg-gray-50 rounded-r transition-colors font-bold"
+                                                          className="w-8 h-full flex items-center justify-center text-[#f187b5] hover:bg-gray-50 rounded-r transition-colors font-bold text-xl"
                                                         >+</button>
                                                    </div>
                                                </div>
@@ -3721,12 +3721,12 @@ const SellerPOSOrders = () => {
                                                          type="number"
                                                          value={sp}
                                                          onChange={(e) => updateItemDetails(item._id, { customPrice: parseFloat(e.target.value) || 0 })}
-                                                         className="w-full text-center text-sm font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all"
+                                                         className="w-full text-center text-base font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all"
                                                      />
                                                 </div>
 
                                                {/* Sub Total */}
-                                               <div className="col-span-1 text-center font-bold text-gray-900 text-sm">
+                                               <div className="col-span-1 text-center font-bold text-gray-900 text-base">
                                                    ₹{sp * item.qty}
                                                </div>
 
@@ -3737,7 +3737,7 @@ const SellerPOSOrders = () => {
                                                       className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex"
                                                       title="Remove Item"
                                                    >
-                                                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                    </button>
                                                </div>
                                           </div>
