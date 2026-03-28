@@ -1098,10 +1098,39 @@ export default function SellerStockBulkEdit({
     document.body.style.cursor = "col-resize";
   };
 
+  const handleResizeStartTouch = (e: React.TouchEvent<HTMLDivElement>, key: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startX = e.touches[0]?.pageX ?? 0;
+    const startWidth = columnWidths[key];
+
+    const onTouchMove = (moveEvent: TouchEvent) => {
+      moveEvent.preventDefault();
+      const currentX = moveEvent.touches[0]?.pageX ?? startX;
+      const diff = currentX - startX;
+      setColumnWidths((prev) => ({
+        ...prev,
+        [key]: Math.max(50, startWidth + diff),
+      }));
+    };
+
+    const onTouchEnd = () => {
+      document.removeEventListener("touchmove", onTouchMove as any);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
+    };
+
+    document.addEventListener("touchmove", onTouchMove as any, { passive: false });
+    document.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("touchcancel", onTouchEnd);
+  };
+
   const ResizeHandle = ({ columnKey }: { columnKey: string }) => (
     <div
       className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-[#f187b5] z-20"
       onMouseDown={(e) => handleResizeStart(e, columnKey)}
+      onTouchStart={(e) => handleResizeStartTouch(e, columnKey)}
       onClick={(e) => e.stopPropagation()}
     />
   );
