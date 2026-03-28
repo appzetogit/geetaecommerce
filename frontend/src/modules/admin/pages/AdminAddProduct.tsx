@@ -1701,7 +1701,7 @@ const applySearchedImage = () => {
 
             {/* 3. Prices (Simulating Variation Form for consistency) */}
             <div className="grid grid-cols-2 gap-4">
-                 <div>
+                 <div className="order-2">
                     <label className="block text-sm font-semibold text-neutral-700 mb-1">
                       Selling Price <span className="text-red-500">*</span>
                     </label>
@@ -1717,10 +1717,10 @@ const applySearchedImage = () => {
                         />
                     </div>
                  </div>
-                 <div>
-                    <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                      Maximum Retail Price
-                    </label>
+                  <div className="order-1">
+                     <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                       Maximum Retail Price
+                     </label>
                     <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                         <input
@@ -1739,8 +1739,8 @@ const applySearchedImage = () => {
                   {shouldShowField('online_offer_price') && (
                   <div>
                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                       Offer Price (Online)
-                     </label>
+                        Offer Price (Online)
+                      </label>
                      <div className="relative">
                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
                          <input

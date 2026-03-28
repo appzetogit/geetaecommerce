@@ -1610,10 +1610,10 @@ export default function SellerAddProduct() {
 
             {/* 3. Pricing & Stock (Top Level - Matches Admin) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                      Selling Price <span className="text-red-500">*</span>
-                    </label>
+                <div className="order-2">
+                     <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                       Selling Price <span className="text-red-500">*</span>
+                     </label>
                     <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
                         <input
@@ -1626,7 +1626,7 @@ export default function SellerAddProduct() {
                         />
                     </div>
                 </div>
-                <div>
+                <div className="order-1">
                    <label className="block text-sm font-semibold text-neutral-700 mb-1">
                      Maximum Retail Price
                    </label>
@@ -1643,10 +1643,10 @@ export default function SellerAddProduct() {
                    </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-semibold text-neutral-700 mb-1">
-                      Offer Price (Online)
-                    </label>
+                <div className="order-3">
+                     <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                       Offer Price (Online)
+                     </label>
                     <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">₹</span>
                         <input
@@ -1659,7 +1659,7 @@ export default function SellerAddProduct() {
                         />
                     </div>
                 </div>
-                <div>
+                <div className="order-4">
                    <label className="block text-sm font-semibold text-neutral-700 mb-1">
                      Wholesale Price
                    </label>
@@ -3111,9 +3111,9 @@ export default function SellerAddProduct() {
 
                 {shouldShowField('mfg_date') && (
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Mfg Date
-                  </label>
+                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                     Mfg Date
+                   </label>
                   <input
                     type="date"
                     name="mfgDate"
@@ -3126,9 +3126,9 @@ export default function SellerAddProduct() {
 
                 {shouldShowField('expiry_date') && (
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Expiry Date
-                  </label>
+                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                     Expiry Date
+                   </label>
                   <input
                     type="date"
                     name="expiryDate"
@@ -3140,9 +3140,9 @@ export default function SellerAddProduct() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Weight
-                  </label>
+                   <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                     Weight
+                   </label>
                   <input
                     type="text"
                     name="weight"
