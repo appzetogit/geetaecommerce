@@ -497,7 +497,7 @@ export default function AdminStockBulkEdit({
         images.push({ id: `main-${p._id}`, url: p.mainImage });
       }
       if (p.galleryImages && p.galleryImages.length > 0) {
-        p.galleryImages.forEach((url, i) => {
+        p.galleryImages.forEach((url: string, i: number) => {
            images.push({ id: `gal-${p._id}-${i}`, url });
         });
       }
@@ -661,7 +661,7 @@ export default function AdminStockBulkEdit({
           weight: p.weight || undefined,
           deliveryTime: p.deliveryTime,
           lowStockQuantity: p.lowStockQuantity,
-          discPrice: p.offerPrice,
+          discPrice: p.offerPrice || p.price,
           wholesalePrice: p.wholesalePrice,
           // Conditionally add relations if they exist
           // ...(p.tax ? { tax: p.tax } : {}), // Exclude tax because it causes CastError (text input vs ObjectId)
@@ -671,7 +671,7 @@ export default function AdminStockBulkEdit({
           ...(p.brandId ? { brand: p.brandId } : {}),
            variations: p.variations.map((v: any) => ({
              ...v,
-             discPrice: v.offerPrice || v.discPrice || p.offerPrice
+             discPrice: v.offerPrice || v.discPrice || p.offerPrice || p.price
            })),
           unitPricing: p.unitPricing, // Include unitPricing in payload
           variationName: p.variationName,
@@ -711,7 +711,7 @@ export default function AdminStockBulkEdit({
           price: p.price,
           compareAtPrice: p.compareAtPrice,
           stock: p.stock,
-          discPrice: p.offerPrice,
+          discPrice: p.offerPrice || p.price,
           wholesalePrice: p.wholesalePrice,
           mainImage: mainImage || undefined,
           galleryImages: galleryImages.length ? galleryImages : undefined,
@@ -734,7 +734,7 @@ export default function AdminStockBulkEdit({
             ? {
                 variations: p.variations.map((v: any) => ({
                   ...v,
-                  discPrice: v.offerPrice || v.discPrice || p.offerPrice,
+                  discPrice: v.offerPrice || v.discPrice || p.offerPrice || p.price,
                 })),
               }
             : {}),

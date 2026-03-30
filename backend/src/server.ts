@@ -9,6 +9,7 @@ import connectDB from "./config/db";
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder('ipv4first');
 }
+dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 import routes from "./routes";
 import { errorHandler } from "./middleware/errorHandler";
 import { notFound } from "./middleware/notFound";

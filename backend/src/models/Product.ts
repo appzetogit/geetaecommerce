@@ -420,6 +420,11 @@ ProductSchema.pre("save", function (next) {
       this.compareAtPrice = this.variations[0].compareAtPrice;
     }
 
+    // Sync discPrice from first variation with fallback to price
+    this.discPrice = (this.variations[0].discPrice && this.variations[0].discPrice !== 0) 
+      ? this.variations[0].discPrice 
+      : this.variations[0].price || this.price;
+
     // Calculate total stock as sum of all variation stocks
     this.stock = this.variations.reduce(
       (acc: number, curr: any) => acc + (Number(curr.stock) || 0),
@@ -437,6 +442,11 @@ ProductSchema.pre("save", function (next) {
   if (this.compareAtPrice && this.compareAtPrice > this.price) {
     this.discount = Math.round(
       ((this.compareAtPrice - this.price) / this.compareAtPrice) * 100
+    );
+  } else if (this.compareAtPrice && this.compareAtPrice > (this.discPrice || 0)) {
+     // fallback to discPrice for discount % calculation if price is somehow not reflective
+     this.discount = Math.round(
+      ((this.compareAtPrice - (this.discPrice || 0)) / this.compareAtPrice) * 100
     );
   } else {
     this.discount = 0;

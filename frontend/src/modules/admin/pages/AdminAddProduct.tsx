@@ -1343,13 +1343,9 @@ export default function AdminAddProduct() {
           setUploading(false);
           return;
         }
-      } else if (
-        finalVariations.length === 1 &&
-        (!String(finalVariations[0]?.title || "").trim() ||
-          String(finalVariations[0]?.title || "").trim().toLowerCase() === "default")
-      ) {
-        // Keep top form -> variation sync only for true simple/default variation.
-        // For named variants (e.g. Chrome), preserve explicit variation pricing.
+      } else if (finalVariations.length === 1) {
+        // If there's only one variation, ensure it stays in sync with top-level pricing edits.
+        // This handles cases where user edits the top form but the product has a single named variation.
         if (compareAtPrice > 0 && price > compareAtPrice) {
           setUploadError("Selling price cannot be greater than Maximum Retail Price (MRP)");
           setUploading(false);
@@ -1379,6 +1375,8 @@ export default function AdminAddProduct() {
       const variationsWithImages = finalVariations.map((v: any) => ({
         ...v,
         image: v.image || mainImageUrl || "",
+        // Ensure discPrice is always synced from offerPrice or price
+        discPrice: v.offerPrice || v.price || v.discPrice,
       }));
 
       const productData = {
@@ -1463,6 +1461,7 @@ export default function AdminAddProduct() {
               seoImageAlt: "",
               seoDescription: "",
               variationType: "",
+              variationName: "",
               manufacturer: "",
               madeIn: "",
               tax: "",
@@ -3045,10 +3044,12 @@ const applySearchedImage = () => {
                                                 className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
                                                 value={v.price}
                                                 onChange={e => {
-                                                    const val = e.target.value;
+                                                    const val = parseFloat(e.target.value) || 0;
                                                     setVariations(prev => {
                                                         const n = [...prev];
-                                                        n[idx].price = parseFloat(val) || 0;
+                                                        n[idx].price = val;
+                                                        // Sync discPrice: use offerPrice if available, else use price
+                                                        n[idx].discPrice = n[idx].offerPrice || val;
                                                         return n;
                                                     });
                                                 }}
@@ -3060,10 +3061,12 @@ const applySearchedImage = () => {
                                                 className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[#f187b5] focus:outline-none"
                                                 value={v.offerPrice}
                                                 onChange={e => {
-                                                    const val = e.target.value;
+                                                    const val = parseFloat(e.target.value) || 0;
                                                     setVariations(prev => {
                                                         const n = [...prev];
-                                                        n[idx].offerPrice = parseFloat(val) || 0;
+                                                        n[idx].offerPrice = val;
+                                                        // Sync discPrice: use offerPrice if > 0, else use price
+                                                        n[idx].discPrice = val || n[idx].price;
                                                         return n;
                                                     });
                                                 }}

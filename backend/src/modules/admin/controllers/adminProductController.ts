@@ -1097,10 +1097,29 @@ export const updateProduct = asyncHandler(
         updateOperation.$unset = unsetFields;
     }
 
-    const product = await Product.findByIdAndUpdate(id, updateOperation, {
-      new: true,
-      runValidators: true,
-    })
+    let product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    // Apply updates
+    Object.keys(updateData).forEach((key) => {
+      (product as any)[key] = updateData[key];
+    });
+
+    // Handle unsets manually
+    Object.keys(unsetFields).forEach((key) => {
+      (product as any)[key] = undefined;
+    });
+
+    await product.save();
+
+    // Re-fetch with populations
+    product = await Product.findById(id)
       .populate("category", "name")
       .populate("subcategory", "name")
       .populate("brand", "name")

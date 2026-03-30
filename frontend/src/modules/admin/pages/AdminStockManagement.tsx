@@ -343,12 +343,13 @@ export default function AdminStockManagement() {
     const prevQuery = prevQueryRef.current;
     prevQueryRef.current = nextQuery;
 
-    const onlyPagingChanged =
-      Boolean(prevQuery) &&
-      prevQuery.search === nextQuery.search &&
-      prevQuery.category === nextQuery.category &&
-      prevQuery.seller === nextQuery.seller &&
-      prevQuery.status === nextQuery.status;
+    const onlyPagingChanged = !!(
+      prevQuery &&
+      prevQuery?.search === nextQuery.search &&
+      prevQuery?.category === nextQuery.category &&
+      prevQuery?.seller === nextQuery.seller &&
+      prevQuery?.status === nextQuery.status
+    );
 
     // Keep scroll position stable: don't swap table with "Loading..." on page changes.
     fetchData({ silent: onlyPagingChanged && products.length > 0 });
@@ -504,7 +505,7 @@ export default function AdminStockManagement() {
                 price: product.price,
                 stock: product.stock,
                 publish: product.publish,
-                discPrice: (product as any).offerPrice || product.discPrice,
+                discPrice: (product as any).offerPrice || product.price,
             };
 
             await updateProduct(productId, updateData);
