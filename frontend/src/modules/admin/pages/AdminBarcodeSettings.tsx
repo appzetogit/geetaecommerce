@@ -8,6 +8,7 @@ interface BarcodeSettings {
     height: number;
     fontSize: number;
     barcodeHeight: number;
+    barcodeWidth: number;
     productNameSize: number;
     showPrice: boolean;
     showName: boolean;
@@ -20,6 +21,7 @@ const DEFAULT_SETTINGS: BarcodeSettings = {
     height: 25, // mm
     fontSize: 10, // px
     barcodeHeight: 40, // px
+    barcodeWidth: 2, // px (bar width)
     productNameSize: 10,
     showPrice: true,
     showName: true,
@@ -200,6 +202,17 @@ export default function AdminBarcodeSettings() {
                                     type="number"
                                     name="barcodeHeight"
                                     value={settings.barcodeHeight}
+                                    onChange={handleChange}
+                                    disabled={!canEdit}
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-neutral-700 mb-2">Barcode Line Width (px)</label>
+                                <input
+                                    type="number"
+                                    name="barcodeWidth"
+                                    value={settings.barcodeWidth}
                                     onChange={handleChange}
                                     disabled={!canEdit}
                                     className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"

@@ -179,6 +179,7 @@ export interface IAppSettings extends Document {
         height: number;
         fontSize: number;
         barcodeHeight: number;
+        barcodeWidth: number;
         productNameSize: number;
         showPrice: boolean;
         showName: boolean;
@@ -570,6 +571,7 @@ const AppSettingsSchema = new Schema<IAppSettings>(
         height: { type: Number, default: 25 },
         fontSize: { type: Number, default: 10 },
         barcodeHeight: { type: Number, default: 40 },
+        barcodeWidth: { type: Number, default: 2 },
         productNameSize: { type: Number, default: 10 },
         showPrice: { type: Boolean, default: true },
         showName: { type: Boolean, default: true },

@@ -119,6 +119,7 @@ export interface AppSettings {
     height: number;
     fontSize: number;
     barcodeHeight: number;
+    barcodeWidth: number;
     productNameSize: number;
     showPrice: boolean;
     showName: boolean;

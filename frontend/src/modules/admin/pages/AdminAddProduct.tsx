@@ -270,12 +270,16 @@ export default function AdminAddProduct() {
     const isNumericBarcode = /^[0-9]+$/.test(cleanedBarcodeVal);
     // Prefer EAN13 for 13-digit numeric codes to reduce density on small labels.
     const barcodeFormat = isNumericBarcode && cleanedBarcodeVal.length === 13 ? "EAN13" : "CODE128";
+    const showBarcodeValueInSvg = barcodeFormat !== "EAN13";
 
     if (customSettings) {
         isCustom = true;
         barcodeHeight = customSettings.barcodeHeight;
         fontSize = customSettings.fontSize;
         productNameSize = customSettings.productNameSize;
+        if (typeof customSettings.barcodeWidth === 'number') {
+            barcodeModuleWidth = customSettings.barcodeWidth;
+        }
         showName = customSettings.showName ?? true;
         showPrice = customSettings.showPrice ?? true;
         pageWidthMm = customSettings.width;
@@ -287,6 +291,9 @@ export default function AdminAddProduct() {
             barcodeHeight = customSettings.barcodeHeight;
             fontSize = customSettings.fontSize;
             productNameSize = customSettings.productNameSize;
+            if (typeof customSettings.barcodeWidth === 'number') {
+                barcodeModuleWidth = customSettings.barcodeWidth;
+            }
             showName = customSettings.showName ?? true;
             showPrice = customSettings.showPrice ?? true;
             pageWidthMm = customSettings.width;
@@ -322,12 +329,17 @@ export default function AdminAddProduct() {
     }
 
     barcodeTextSize = Math.max(9, Math.min(12, Math.round(fontSize * 1.0)));
-    if (isCustom && customSettings?.width) {
-        barcodeModuleWidth = customSettings.width <= 50 ? 2 : 3;
+    if (isCustom) {
+        if (typeof customSettings?.barcodeWidth === 'number') {
+            barcodeModuleWidth = customSettings.barcodeWidth;
+        } else if (customSettings?.width) {
+            barcodeModuleWidth = customSettings.width <= 50 ? 2 : 3;
+        }
     }
 
     // Force integer bar width; we'll auto-fallback thinner in the print window if needed.
     const initialBarWidth = Math.max(1, Math.round(barcodeModuleWidth));
+    const hasUserBarcodeWidth = isCustom && typeof (customSettings as any)?.barcodeWidth === 'number';
 
     const printWindow = window.open('', '_blank');
     if(!printWindow) {
@@ -423,16 +435,24 @@ export default function AdminAddProduct() {
                  align-items: center;
                  white-space: nowrap;
              }
-              svg.barcode {
-                  width: auto;
-                  height: ${barcodeHeight}px;
-                  max-width: 100%;
-                  display: block;
-                  align-self: center;
-                  margin: 0 auto;
-                  shape-rendering: crispEdges;
-              }
-              svg.barcode * { shape-rendering: crispEdges; }
+             .barcode-text {
+                 font-size: ${barcodeTextSize}px;
+                 font-weight: 700;
+                 color: #000;
+                 text-align: center;
+                 line-height: 1;
+                 margin-top: 1px;
+             }
+               svg.barcode {
+                   width: auto;
+                   height: ${barcodeHeight}px;
+                   max-width: 100%;
+                   display: block;
+                   align-self: center;
+                   margin: 0 auto;
+                   shape-rendering: crispEdges;
+               }
+               svg.barcode * { shape-rendering: crispEdges; }
            </style>
            <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
          </head>
@@ -454,11 +474,12 @@ export default function AdminAddProduct() {
                   jsbarcode-lineColor="#000000"
                   jsbarcode-margin="8">
                 </svg>
-              <div class="price-row">
-                  ${barcodeSettings?.mrpLabel ? `<div class="price-item">${barcodeSettings.mrpLabel}:${mrp}</div>` : mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
-                  ${barcodeSettings?.spLabel ? `<div class="price-item">${barcodeSettings.spLabel}:${sp}</div>` : sp ? `<div class="price-item">SP:${sp}</div>` : ''}
-              </div>
-            </div>
+               ${showBarcodeValueInSvg ? '' : `<div class="barcode-text">${cleanedBarcodeVal}</div>`}
+               <div class="price-row">
+                   ${barcodeSettings?.mrpLabel ? `<div class="price-item">${barcodeSettings.mrpLabel}:${mrp}</div>` : mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
+                   ${barcodeSettings?.spLabel ? `<div class="price-item">${barcodeSettings.spLabel}:${sp}</div>` : sp ? `<div class="price-item">SP:${sp}</div>` : ''}
+               </div>
+             </div>
           `).join('')}
           </div>
           <script>
@@ -472,29 +493,39 @@ export default function AdminAddProduct() {
               var fontSize = ${barcodeTextSize};
               var textMargin = 1;
 
-              // Try a small set of integer widths/margins, picking the first that fits each label.
-              // This avoids browser scaling (anti-aliased bars) while keeping quiet-zone when possible.
-              var tries = [
-                { w: ${initialBarWidth}, m: 8 },
-                { w: Math.max(1, ${initialBarWidth} - 1), m: 8 },
-                { w: 1, m: 6 },
-                { w: 1, m: 0 }
-              ];
+               // Try a small set of integer widths/margins, picking the first that fits each label.
+               // If user explicitly set bar width, keep width fixed and only adjust margins.
+               // This avoids browser scaling (anti-aliased bars) while keeping quiet-zone when possible.
+               var tries;
+               if (${hasUserBarcodeWidth ? 'true' : 'false'}) {
+                 tries = [
+                   { w: ${initialBarWidth}, m: 8 },
+                   { w: ${initialBarWidth}, m: 6 },
+                   { w: ${initialBarWidth}, m: 0 }
+                 ];
+               } else {
+                 tries = [
+                   { w: ${initialBarWidth}, m: 8 },
+                   { w: Math.max(1, ${initialBarWidth} - 1), m: 8 },
+                   { w: 1, m: 6 },
+                   { w: 1, m: 0 }
+                 ];
+               }
 
-              function render(svg, cfg) {
-                JsBarcode(svg, value, {
-                  format: format,
-                  width: cfg.w,
-                  height: height,
-                  displayValue: true,
-                  fontSize: fontSize,
-                  fontOptions: "bold",
-                  textMargin: textMargin,
-                  background: "#ffffff",
-                  lineColor: "#000000",
-                  margin: cfg.m
-                });
-              }
+               function render(svg, cfg) {
+                 JsBarcode(svg, value, {
+                   format: format,
+                   width: cfg.w,
+                   height: height,
+                   displayValue: ${showBarcodeValueInSvg ? 'true' : 'false'},
+                   fontSize: fontSize,
+                   fontOptions: "bold",
+                   textMargin: textMargin,
+                   background: "#ffffff",
+                   lineColor: "#000000",
+                   margin: cfg.m
+                 });
+               }
 
               function getSvgAttrWidth(svg) {
                 var w = svg.getAttribute("width");

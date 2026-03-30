@@ -612,6 +612,9 @@ export default function SellerAddProduct() {
         barcodeHeight = customSettings.barcodeHeight;
         fontSize = customSettings.fontSize;
         productNameSize = customSettings.productNameSize;
+        if (typeof customSettings.barcodeWidth === 'number') {
+            barcodeModuleWidth = customSettings.barcodeWidth;
+        }
         showName = customSettings.showName ?? true;
         showPrice = customSettings.showPrice ?? true;
         pageWidthMm = customSettings.width;
@@ -623,6 +626,9 @@ export default function SellerAddProduct() {
             barcodeHeight = customSettings.barcodeHeight;
             fontSize = customSettings.fontSize;
             productNameSize = customSettings.productNameSize;
+            if (typeof customSettings.barcodeWidth === 'number') {
+                barcodeModuleWidth = customSettings.barcodeWidth;
+            }
             showName = customSettings.showName ?? true;
             showPrice = customSettings.showPrice ?? true;
             pageWidthMm = customSettings.width;
@@ -658,8 +664,12 @@ export default function SellerAddProduct() {
     }
 
     barcodeTextSize = Math.max(9, Math.min(12, Math.round(fontSize * 1.0)));
-    if (isCustom && customSettings?.width) {
-        barcodeModuleWidth = customSettings.width <= 50 ? 1.7 : 2;
+    if (isCustom) {
+        if (typeof customSettings?.barcodeWidth === 'number') {
+            barcodeModuleWidth = customSettings.barcodeWidth;
+        } else if (customSettings?.width) {
+            barcodeModuleWidth = customSettings.width <= 50 ? 1.7 : 2;
+        }
     }
 
     const printWindow = window.open('', '_blank');
@@ -756,13 +766,16 @@ export default function SellerAddProduct() {
                  align-items: center;
                  white-space: nowrap;
              }
-             svg.barcode {
-                 width: 100%;
-                 height: ${barcodeHeight}px;
-                 max-width: 100%;
-                 display: block;
-                 align-self: center;
-             }
+              svg.barcode {
+                  width: auto;
+                  height: ${barcodeHeight}px;
+                  max-width: 100%;
+                  display: block;
+                  align-self: center;
+                  margin: 0 auto;
+                  shape-rendering: crispEdges;
+              }
+              svg.barcode * { shape-rendering: crispEdges; }
           </style>
           <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
         </head>

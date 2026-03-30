@@ -2049,6 +2049,7 @@ const AdminPOSOrders = () => {
     const isNumericBarcode = /^[0-9]+$/.test(cleanedBarcodeVal);
     // Prefer EAN13 for 13-digit numeric codes to reduce density on small labels.
     const barcodeFormat = isNumericBarcode && cleanedBarcodeVal.length === 13 ? "EAN13" : "CODE128";
+    const showBarcodeValueInSvg = barcodeFormat !== "EAN13";
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -2077,6 +2078,9 @@ const AdminPOSOrders = () => {
       barcodeHeight = customSettings.barcodeHeight;
       fontSize = customSettings.fontSize;
       productNameSize = customSettings.productNameSize;
+      if (typeof customSettings.barcodeWidth === 'number') {
+        barcodeModuleWidth = customSettings.barcodeWidth;
+      }
       showName = customSettings.showName ?? true;
       showPrice = customSettings.showPrice ?? true;
       pageWidthMm = customSettings.width;
@@ -2111,12 +2115,17 @@ const AdminPOSOrders = () => {
     }
 
     barcodeTextSize = Math.max(9, Math.min(12, Math.round(fontSize * 1.0)));
-    if (isCustom && customSettings?.width) {
-      barcodeModuleWidth = customSettings.width <= 50 ? 2 : 3;
+    if (isCustom) {
+      if (typeof customSettings?.barcodeWidth === 'number') {
+        barcodeModuleWidth = customSettings.barcodeWidth;
+      } else if (customSettings?.width) {
+        barcodeModuleWidth = customSettings.width <= 50 ? 2 : 3;
+      }
     }
 
     // Force integer bar width; we'll auto-fallback thinner in the print window if needed.
     const initialBarWidth = Math.max(1, Math.round(barcodeModuleWidth));
+    const hasUserBarcodeWidth = isCustom && typeof (customSettings as any)?.barcodeWidth === 'number';
 
     let styleContent = '';
     if (isCustom && customSettings) {
@@ -2208,6 +2217,14 @@ const AdminPOSOrders = () => {
               width: 100%;
             }
             .price-item { white-space: nowrap; }
+            .barcode-text {
+              font-size: ${barcodeTextSize}px;
+              font-weight: 700;
+              color: #000;
+              text-align: center;
+              line-height: 1;
+              margin-top: 1px;
+            }
             svg.barcode {
               width: auto;
               height: ${barcodeHeight}px;
@@ -2238,6 +2255,7 @@ const AdminPOSOrders = () => {
                 jsbarcode-lineColor="#000000"
                 jsbarcode-margin="8">
               </svg>
+              ${showBarcodeValueInSvg ? '' : `<div class="barcode-text">${cleanedBarcodeVal}</div>`}
               <div class="price-row">
                 ${customSettings?.mrpLabel ? `<div class="price-item">${customSettings.mrpLabel}:${mrp}</div>` : mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
                 ${customSettings?.spLabel ? `<div class="price-item">${customSettings.spLabel}:${sp}</div>` : sp ? `<div class="price-item">SP:${sp}</div>` : ''}
@@ -2257,20 +2275,30 @@ const AdminPOSOrders = () => {
               var textMargin = 1;
 
               // Try a small set of integer widths/margins, picking the first that fits the label.
+              // If user explicitly set bar width, keep width fixed and only adjust margins.
               // This avoids browser scaling (anti-aliased bars) while keeping quiet-zone when possible.
-              var tries = [
-                { w: ${initialBarWidth}, m: 8 },
-                { w: Math.max(1, ${initialBarWidth} - 1), m: 8 },
-                { w: 1, m: 6 },
-                { w: 1, m: 0 }
-              ];
+              var tries;
+              if (${hasUserBarcodeWidth ? 'true' : 'false'}) {
+                tries = [
+                  { w: ${initialBarWidth}, m: 8 },
+                  { w: ${initialBarWidth}, m: 6 },
+                  { w: ${initialBarWidth}, m: 0 }
+                ];
+              } else {
+                tries = [
+                  { w: ${initialBarWidth}, m: 8 },
+                  { w: Math.max(1, ${initialBarWidth} - 1), m: 8 },
+                  { w: 1, m: 6 },
+                  { w: 1, m: 0 }
+                ];
+              }
 
               function render(cfg) {
                 JsBarcode(svg, value, {
                   format: format,
                   width: cfg.w,
                   height: height,
-                  displayValue: true,
+                  displayValue: ${showBarcodeValueInSvg ? 'true' : 'false'},
                   fontSize: fontSize,
                   fontOptions: "bold",
                   textMargin: textMargin,
