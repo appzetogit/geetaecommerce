@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { deleteSellerPOSOrder, getPOSReport, updateStockLedgerEntry, getPOSStockLedger } from '../../../services/api/orderService';
+import { deleteSellerPOSOrder, getPOSReport, updateStockLedgerEntry, getPOSStockLedger, getOrderById } from '../../../services/api/orderService';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { useToast } from '../../../context/ToastContext';
+import { readSellerPosBillSettings } from "../../../utils/sellerPosBillSettings";
 
 const FiTrendingUp = ({ className }: { className?: string }) => (
   <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -221,6 +222,182 @@ const SellerPOSReport = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const escapeHtml = (value: unknown) => {
+        const str = String(value ?? "");
+        return str
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    };
+
+    const openOrderReceiptPrintWindow = (order: any) => {
+        const printWindow = window.open("", "_blank", "width=980,height=760");
+        if (!printWindow) {
+            showToast("Please allow popups to print bill.", "error");
+            return;
+        }
+
+        const billSettings = (readSellerPosBillSettings() as any) || {};
+        const shopName = billSettings.shopName || "GEETA";
+        const address = billSettings.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001";
+        const phone = billSettings.phone || "7898111456";
+
+        const createdAt = new Date(order.orderDate || order.createdAt || Date.now());
+        const dateStr = createdAt.toLocaleDateString("en-IN");
+        const timeStr = createdAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+        const invoiceNum = order.orderNumber || order.invoiceNum || order.billNo || (order._id ? String(order._id).slice(-6).toUpperCase() : "-");
+
+        const items: any[] = order.items || order.cart || order.orderItems || [];
+        let totalQty = 0;
+        let totalMRP = 0;
+        let computedTotal = 0;
+
+        const rowsHtml = items
+            .map((item: any, idx: number) => {
+                const itemName = item.productName || item.product?.productName || item.name || "Item";
+                const qty = Number(item.quantity ?? item.qty ?? 0) || 0;
+                const sp = Number(item.unitPrice ?? item.price ?? item.sellingPrice ?? 0) || 0;
+                const mrp = Number(item.mrp ?? item.compareAtPrice ?? sp) || 0;
+                const amt = Number(item.total ?? (sp * qty)) || 0;
+
+                totalQty += qty;
+                totalMRP += mrp * qty;
+                computedTotal += amt;
+
+                return `
+                  <tr>
+                    <td colspan="5" class="name">${idx + 1}. ${escapeHtml(itemName)}</td>
+                  </tr>
+                  <tr class="meta">
+                    <td class="right">${escapeHtml(qty)}PC</td>
+                    <td class="right">${escapeHtml(mrp.toFixed(2))}</td>
+                    <td class="right">${escapeHtml(sp.toFixed(2))}</td>
+                    <td class="right" colspan="2">${escapeHtml(amt.toFixed(2))}</td>
+                  </tr>
+                `;
+            })
+            .join("");
+
+        const total = Number(order.total ?? order.grandTotal ?? computedTotal) || 0;
+        const savings = Math.max(totalMRP - total, 0);
+        const savingsPercent = totalMRP > 0 ? ((savings / totalMRP) * 100).toFixed(1) : "0";
+
+        const qrCode = billSettings.qrCode
+            ? `<div class="qr"><img src="${escapeHtml(billSettings.qrCode)}" alt="QR" /></div>`
+            : "";
+
+        const html = `
+          <html>
+            <head>
+              <title>Bill - ${escapeHtml(invoiceNum)}</title>
+              <style>
+                * { box-sizing: border-box; }
+                body { margin: 0; padding: 0; color: #000; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+                .receipt { width: 80mm; margin: 0 auto; padding: 8px; font-weight: 600; }
+                .h1 { font-size: 18px; font-weight: 800; text-transform: uppercase; }
+                .small { font-size: 11px; font-weight: 500; white-space: pre-wrap; line-height: 1.2; }
+                .hr { border-top: 1px solid #000; margin: 8px 0; }
+                .dhr { border-top: 1px dashed #000; margin: 8px 0; }
+                .row { display: flex; justify-content: space-between; font-size: 12px; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { padding: 0; font-size: 12px; vertical-align: top; }
+                th { text-align: left; font-weight: 800; }
+                .right { text-align: right; }
+                .name { padding-top: 2px; }
+                .meta td { font-size: 11px; }
+                .saved { display: flex; justify-content: space-between; background: #e5e5e5; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 4px; margin: 6px 0; font-weight: 800; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                .total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin-top: 6px; }
+                .paid { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; margin-top: 6px; }
+                .qr { display: flex; justify-content: center; margin-top: 12px; }
+                .qr img { width: 128px; height: 128px; object-fit: contain; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                @page { size: auto; margin: 6mm; }
+              </style>
+            </head>
+            <body>
+              <div class="receipt">
+                <div class="h1">${escapeHtml(shopName)}</div>
+                <div class="small">${escapeHtml(address)}</div>
+                <div class="small">${escapeHtml(phone)}</div>
+
+                <div class="hr"></div>
+
+                <div class="row"><span>MEMO</span><span>${escapeHtml(timeStr)}</span></div>
+                <div class="row"><span>${escapeHtml(dateStr)}</span><span>Bill No: ${escapeHtml(invoiceNum)}</span></div>
+
+                <div class="dhr"></div>
+
+                <table>
+                  <thead>
+                    <tr>
+                      <th colspan="5">Item Name</th>
+                    </tr>
+                    <tr>
+                      <th class="right">Qty</th>
+                      <th class="right">MRP</th>
+                      <th class="right">SP</th>
+                      <th class="right" colspan="2">Amt</th>
+                    </tr>
+                  </thead>
+                </table>
+
+                <div class="dhr"></div>
+
+                <table>
+                  <tbody>
+                    ${rowsHtml || ""}
+                  </tbody>
+                </table>
+
+                <div class="dhr"></div>
+
+                <div class="row" style="font-weight:800;font-size:11px;">
+                  <span>Total Qty.: ${escapeHtml(totalQty)}</span>
+                  <span>Total MRP: Rs ${escapeHtml(totalMRP.toFixed(2))}</span>
+                </div>
+
+                ${savings > 0 ? `<div class="saved"><span>You Saved ${escapeHtml(savingsPercent)} %</span><span>${escapeHtml(savings.toFixed(2))}</span></div>` : ""}
+
+                <div class="total"><span>Total Payable Amount</span><span>${escapeHtml(total.toFixed(2))}</span></div>
+                <div class="paid"><span>${escapeHtml(order.paymentMethod || "Cash")} Paid</span><span>${escapeHtml(total.toFixed(2))}</span></div>
+
+                <div class="dhr"></div>
+
+                ${qrCode}
+              </div>
+              <script>
+                window.onload = function () { setTimeout(function () { window.print(); }, 350); };
+                window.onafterprint = function () { window.close(); };
+              </script>
+            </body>
+          </html>
+        `;
+
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+    };
+
+    const handlePrintBill = async (order: any) => {
+        if (!order) return;
+
+        let fullOrder = order;
+        try {
+            setLoading(true);
+            const res = await getOrderById(order._id);
+            if (res.success) fullOrder = res.data;
+        } catch (e) {
+            console.error("Error fetching full order for print", e);
+            showToast("Could not fetch full order details for print.", "error");
+        } finally {
+            setLoading(false);
+        }
+
+        openOrderReceiptPrintWindow(fullOrder);
+        setSelectedActionOrder(null);
     };
 
     const handleUpdateLedger = async (e: React.FormEvent) => {
@@ -717,10 +894,10 @@ const SellerPOSReport = () => {
 
                                 <button
                                     className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
-                                     onClick={() => {
-                                        showToast("View Bill feature coming soon", "success");
-                                        setSelectedActionOrder(null);
-                                    }}
+                                      onClick={() => {
+                                         showToast("View Bill feature coming soon", "success");
+                                         setSelectedActionOrder(null);
+                                     }}
                                 >
                                     <div className="w-10 h-10 rounded-full bg-[#f187b5]/10 text-[#f187b5] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -730,12 +907,26 @@ const SellerPOSReport = () => {
                                         <div className="text-xs text-gray-400">Preview order invoice</div>
                                     </div>
                                     <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                                </button>
+                                 </button>
 
-                                <button
-                                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
-                                    onClick={() => {
-                                        navigate(`/admin/pos/orders?edit=${selectedActionOrder._id}`);
+                                 <button
+                                     className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
+                                     onClick={() => handlePrintBill(selectedActionOrder)}
+                                 >
+                                     <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10z" /></svg>
+                                     </div>
+                                     <div>
+                                         <div className="font-semibold text-gray-700">Print</div>
+                                         <div className="text-xs text-gray-400">Print order receipt</div>
+                                     </div>
+                                     <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                 </button>
+
+                                 <button
+                                     className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
+                                     onClick={() => {
+                                         navigate(`/admin/pos/orders?edit=${selectedActionOrder._id}`);
                                         setSelectedActionOrder(null);
                                     }}
                                 >
