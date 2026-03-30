@@ -1545,6 +1545,27 @@ const menuSections: MenuSection[] = [
 
 ];
 
+const orderedMenuSections: MenuSection[] = (() => {
+  const productIndex = menuSections.findIndex((s) => s.title === "Product Section");
+  const posIndex = menuSections.findIndex((s) => s.title === "POS SECTION");
+  const staffIndex = menuSections.findIndex((s) => s.title === "Staff Section");
+
+  if (productIndex === -1 || posIndex === -1 || staffIndex === -1) {
+    return menuSections;
+  }
+
+  const isAlreadyBetween = productIndex > posIndex && productIndex < staffIndex;
+  if (isAlreadyBetween) {
+    return menuSections;
+  }
+
+  const next = [...menuSections];
+  const [productSection] = next.splice(productIndex, 1);
+  const newStaffIndex = next.findIndex((s) => s.title === "Staff Section");
+  next.splice(newStaffIndex === -1 ? next.length : newStaffIndex, 0, productSection);
+  return next;
+})();
+
 export default function AdminSidebar({ onClose }: AdminSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -1589,7 +1610,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
   };
 
   const isExpanded = (path: string) => {
-    const menuItem = menuSections
+    const menuItem = orderedMenuSections
       .flatMap((section) => section.items)
       .find((item) => item.path === path);
     return (
@@ -1600,7 +1621,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
 
   // Filter menu items based on search query
   const visibleSections = isStaffMode
-    ? menuSections
+    ? orderedMenuSections
         .map((section) => ({
           ...section,
           items: section.items.filter((item) =>
@@ -1608,7 +1629,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
           ),
         }))
         .filter((section) => section.items.length > 0)
-    : menuSections;
+    : orderedMenuSections;
 
   const filteredSections = visibleSections
     .map((section) => ({

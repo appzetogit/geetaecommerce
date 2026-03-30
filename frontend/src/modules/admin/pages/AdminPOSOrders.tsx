@@ -3368,7 +3368,7 @@ const AdminPOSOrders = () => {
         <div className="bg-white flex flex-col flex-1 h-full min-h-0 w-full relative transition-all duration-300 md:rounded-2xl md:shadow-xl md:border md:border-gray-200 md:h-[90vh] md:overflow-hidden">
 
           {/* Top Header Section */}
-          <div className="flex-none px-3 py-1.5 md:px-6 md:py-2 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center bg-white md:rounded-t-2xl gap-2 md:gap-4">
+          <div className="flex-none px-3 py-1.5 md:px-6 md:py-2 border-b border-gray-100 md:border-[#0d055a] flex flex-col md:flex-row justify-between items-center bg-white md:rounded-t-2xl gap-2 md:gap-4">
              <div className="flex items-center gap-2.5 md:gap-4">
                  <h2 className="hidden md:block text-base md:text-lg font-bold text-gray-800 tracking-tight">Billing & POS</h2>
                 <div className="hidden md:flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
@@ -3720,10 +3720,10 @@ const AdminPOSOrders = () => {
                       <div className="col-span-1 text-center">Sr.no</div>
                       <div className="col-span-1 text-center">Edit</div>
                       <div className="col-span-1 text-center">Image</div>
-                      <div className="col-span-3">Name</div>
+                      <div className="col-span-2">Name</div>
                       <div className="col-span-1 text-center">MRP</div>
                       <div className="col-span-2 text-center">Quantity</div>
-                      <div className="col-span-1 text-center">Retail Price</div>
+                      <div className="col-span-2 text-center">Retail Price</div>
                       <div className="col-span-1 text-center">Sub Total</div>
                       <div className="col-span-1 text-center">Delete</div>
                   </div>
@@ -3893,7 +3893,7 @@ const AdminPOSOrders = () => {
                                     </div>
 
                                     {/* Name */}
-                                     <div className="col-span-3 min-w-0">
+                                     <div className="col-span-2 min-w-0">
                                          <h4 className="text-base font-bold text-gray-900 truncate" title={item.productName}>{item.productName}</h4>
                                          {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
                                              <div className="text-xs text-[#f187b5] font-bold mt-0.5">
@@ -3919,7 +3919,7 @@ const AdminPOSOrders = () => {
 
                                     {/* Quantity */}
                                     <div className="col-span-2 flex justify-center">
-                                        <div className="flex items-center bg-white border border-gray-200 rounded-lg h-9 w-24 shadow-sm">
+                                        <div className="flex items-center bg-white border border-gray-200 rounded-lg h-9 w-28 shadow-sm">
                                              <button
                                                onClick={() => updateQuantity(item._id, -1)}
                                                className="w-8 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors text-xl font-bold"
@@ -3935,12 +3935,12 @@ const AdminPOSOrders = () => {
                                     </div>
 
                                     {/* Retail Price (SP) Input */}
-                                    <div className="col-span-1">
+                                    <div className="col-span-2">
                                          <input
                                               type="number"
                                               value={sp}
                                               onChange={(e) => updateItemDetails(item._id, { customPrice: parseFloat(e.target.value) || 0 })}
-                                              className="w-full text-center text-base font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all"
+                                              className="w-full text-center text-base font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                           />
                                      </div>
 
@@ -3980,25 +3980,25 @@ const AdminPOSOrders = () => {
                             <div className="grid grid-cols-2 gap-1.5">
                                 <button
                                   onClick={() => setShowQuickAdd(true)}
-                                  className="flex items-center gap-2 p-1.5 bg-white border border-gray-200 rounded-xl hover:border-[#f187b5] hover:shadow-md transition-all group"
+                                  className="flex items-center gap-2 p-1.5 bg-[#0d055a] border border-[#0d055a] rounded-xl hover:shadow-md transition-all group"
                                 >
-                                    <div className="w-7 h-7 bg-[#f187b5]/10 text-[#f187b5] rounded-lg flex items-center justify-center group-hover:bg-[#f187b5] group-hover:text-white transition-colors">
+                                    <div className="w-7 h-7 bg-white/10 text-white rounded-lg flex items-center justify-center group-hover:bg-white group-hover:text-[#0d055a] transition-colors">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
                                     </div>
                                     <div className="text-left">
-                                        <p className="text-[11px] font-bold text-gray-800">Quick Add</p>
+                                        <p className="text-[11px] font-bold text-white">Quick Add</p>
                                     </div>
                                 </button>
 
                                 <button
                                   onClick={() => setShowAddCustomerModal(true)}
-                                  className="flex items-center gap-2 p-1.5 bg-white border border-gray-200 rounded-xl hover:border-teal-500 hover:shadow-md transition-all group"
+                                  className="flex items-center gap-2 p-1.5 bg-[#0d055a] border border-[#0d055a] rounded-xl hover:shadow-md transition-all group"
                                 >
-                                    <div className="w-7 h-7 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center group-hover:bg-teal-500 group-hover:text-white transition-colors">
+                                    <div className="w-7 h-7 bg-white/10 text-white rounded-lg flex items-center justify-center group-hover:bg-white group-hover:text-[#0d055a] transition-colors">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
                                     </div>
                                     <div className="text-left">
-                                        <p className="text-[11px] font-bold text-gray-800">Add Cust.</p>
+                                        <p className="text-[11px] font-bold text-white">Add Cust.</p>
                                     </div>
                                 </button>
 
