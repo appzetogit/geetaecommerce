@@ -811,8 +811,9 @@ export default function AdminStockManagement() {
                   } else {
                     tries = [
                       { w: ${initialBarWidth}, m: 8 },
-                      { w: Math.max(1, ${initialBarWidth} - 1), m: 8 },
-                      { w: 1, m: 6 },
+                      { w: ${initialBarWidth}, m: 6 },
+                      { w: ${initialBarWidth}, m: 0 },
+                      { w: Math.max(1, ${initialBarWidth} - 1), m: 0 },
                       { w: 1, m: 0 }
                     ];
                   }
