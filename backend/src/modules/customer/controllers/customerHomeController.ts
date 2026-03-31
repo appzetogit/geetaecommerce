@@ -113,6 +113,10 @@ async function fetchSectionData(
           image: p.mainImage,
           mainImage: p.mainImage,
           price: p.price,
+          discPrice: p.discPrice,
+          variations: p.variations || [],
+          unitPricing: p.unitPricing || [],
+          mrp: p.mrp || p.price,
           discount:
             p.discount ||
             (p.mrp && p.price
@@ -294,6 +298,9 @@ export const getHomeContent = async (req: Request, res: Response) => {
           mainImage: product.mainImage,
           imageUrl: product.mainImage,
           price: product.price,
+          discPrice: product.discPrice,
+          variations: product.variations || [],
+          unitPricing: product.unitPricing || [],
           mrp: product.mrp || product.price,
           discount: product.discount || (product.mrp && product.price ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0),
           categoryId: product.category?.toString() || "",
