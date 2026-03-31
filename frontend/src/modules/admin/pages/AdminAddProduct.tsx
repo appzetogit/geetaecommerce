@@ -883,12 +883,20 @@ export default function AdminAddProduct() {
         (cat: any) => (cat._id || cat.id) === formData.category
       );
       if (currentCategory) {
-        const catHeaderId =
-          typeof currentCategory.headerCategoryId === "string"
-            ? currentCategory.headerCategoryId
-            : currentCategory.headerCategoryId?._id;
+        // Robust comparison for Header Category (ID or Name)
+        const catHeaderId = String(currentCategory.headerCategoryId?._id || currentCategory.headerCategoryId || "").trim().toLowerCase();
+        const selectedHeaderRef = String(formData.headerCategory || "").trim().toLowerCase();
+        
+        const isMatch = (catHeaderId === selectedHeaderRef) || (() => {
+            const hMatch = headerCategories.find(hc => 
+                String(hc._id).toLowerCase() === selectedHeaderRef || 
+                String(hc.name).toLowerCase() === selectedHeaderRef
+            );
+            return hMatch && (String(hMatch._id).toLowerCase() === catHeaderId || String(hMatch.name).toLowerCase() === catHeaderId);
+        })();
+
         // If current category doesn't belong to selected header category, clear it
-        if (catHeaderId !== formData.headerCategory) {
+        if (selectedHeaderRef && !isMatch) {
           setFormData((prev) => ({
             ...prev,
             category: "",
@@ -898,11 +906,12 @@ export default function AdminAddProduct() {
           setSubcategories([]);
           setSubSubCategories([]);
         }
-       }
-     } else {
+      }
+    } else {
       // Header category cleared by user action - clear dependent selections.
       // Do not clear on initial load/edit mode when headerCategory is empty but category is valid.
-      if (prevHeaderCategory) {
+      const selectedHeaderRef = String(formData.headerCategory || "").trim().toLowerCase();
+      if (prevHeaderCategory && !selectedHeaderRef) {
         setFormData((prev) => ({
           ...prev,
           category: "",
