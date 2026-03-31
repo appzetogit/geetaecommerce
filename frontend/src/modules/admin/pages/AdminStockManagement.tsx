@@ -2254,11 +2254,23 @@ export default function AdminStockManagement() {
                      const product = products.find(p => p._id === selectedProductDetails.productId);
                      if (!product) return;
                      
+                     const variations = Array.isArray(product.variations) ? [...product.variations] : [];
+                     if (variations.length > 0 && variations[0]) {
+                        variations[0] = {
+                          ...variations[0],
+                          price: Number(selectedProductDetails.price),
+                          compareAtPrice: Number(selectedProductDetails.compareAtPrice),
+                          stock: Number(selectedProductDetails.stock) || 0,
+                          discPrice: Number(selectedProductDetails.offerPrice) || Number(selectedProductDetails.price),
+                          wholesalePrice: Number(selectedProductDetails.wholesalePrice) || 0,
+                        };
+                     }
+                     
                      const updateData: any = {
                         productName: selectedProductDetails.name,
                         price: Number(selectedProductDetails.price),
                         compareAtPrice: Number(selectedProductDetails.compareAtPrice),
-                        stock: selectedProductDetails.stock,
+                        stock: Number(selectedProductDetails.stock) || 0,
                         publish: selectedProductDetails.publish,
                         category: selectedProductDetails.categoryId,
                         subcategory: subCategories.find(s => s.name === selectedProductDetails.subCategory)?._id || undefined,
@@ -2273,8 +2285,9 @@ export default function AdminStockManagement() {
                         smallDescription: selectedProductDetails.description,
                         description: selectedProductDetails.description,
                         wholesalePrice: Number(selectedProductDetails.wholesalePrice),
-                        discPrice: Number(selectedProductDetails.offerPrice),
+                        discPrice: Number(selectedProductDetails.offerPrice) || Number(selectedProductDetails.price),
                         barcode: typeof selectedProductDetails.barcode === 'string' ? selectedProductDetails.barcode.split(',').map(b => b.trim()).filter(b => b) : selectedProductDetails.barcode,
+                        variations: variations.length > 0 ? variations : undefined,
                      };
 
                      // Handle variation updates if needed

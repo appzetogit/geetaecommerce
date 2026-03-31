@@ -242,6 +242,74 @@ export default function AdminAddProduct() {
     fetchSettings();
   }, []);
 
+  // Synchronize root pricing/stock with first variation (for single-variation products)
+  useEffect(() => {
+    if (variations.length === 1) {
+      const v = variations[0];
+      const rootPriceNum = parseFloat(formData.price || "0") || 0;
+      const rootCompareAtPriceNum = parseFloat(formData.compareAtPrice || "0") || 0;
+      const rootStockNum = parseInt(formData.stock || "0") || 0;
+      const rootOfferPriceNum = formData.offerPrice ? (parseFloat(formData.offerPrice) || 0) : undefined;
+      const rootWholesalePriceNum = parseFloat(formData.wholesalePrice || "0") || 0;
+
+      if (
+        v.price !== rootPriceNum ||
+        v.compareAtPrice !== rootCompareAtPriceNum ||
+        v.stock !== rootStockNum ||
+        v.offerPrice !== rootOfferPriceNum ||
+        v.wholesalePrice !== rootWholesalePriceNum
+      ) {
+        setVariations(prev => {
+          if (prev.length !== 1) return prev;
+          const updatedVar = { 
+            ...prev[0], 
+            price: rootPriceNum, 
+            compareAtPrice: rootCompareAtPriceNum, 
+            stock: rootStockNum,
+            offerPrice: rootOfferPriceNum,
+            wholesalePrice: rootWholesalePriceNum,
+            discPrice: rootOfferPriceNum || rootPriceNum
+          };
+          // Deep check to prevent loops
+          if (
+            prev[0].price === updatedVar.price &&
+            prev[0].compareAtPrice === updatedVar.compareAtPrice &&
+            prev[0].stock === updatedVar.stock &&
+            prev[0].offerPrice === updatedVar.offerPrice &&
+            prev[0].wholesalePrice === updatedVar.wholesalePrice &&
+            prev[0].discPrice === updatedVar.discPrice
+          ) return prev;
+          return [updatedVar];
+        });
+      }
+    }
+  }, [formData.price, formData.compareAtPrice, formData.stock, formData.offerPrice, formData.wholesalePrice, variations.length]);
+
+  // Synchronize variation edits back to root fields (for single-variation products)
+  useEffect(() => {
+    if (variations.length === 1) {
+      const v = variations[0];
+      const updates: any = {};
+      
+      const vPriceStr = v.price?.toString() || "0";
+      const vCompareAtPriceStr = v.compareAtPrice?.toString() || "0";
+      const vStockStr = (v.stock ?? 0).toString();
+      const vOfferPriceStr = v.offerPrice?.toString() || "";
+      const vWholesalePriceStr = v.wholesalePrice?.toString() || "0";
+
+      if (formData.price !== vPriceStr) updates.price = vPriceStr;
+      if (formData.compareAtPrice !== vCompareAtPriceStr) updates.compareAtPrice = vCompareAtPriceStr;
+      if (formData.stock !== vStockStr) updates.stock = vStockStr;
+      if (formData.offerPrice !== vOfferPriceStr) updates.offerPrice = vOfferPriceStr;
+      if (formData.wholesalePrice !== vWholesalePriceStr) updates.wholesalePrice = vWholesalePriceStr;
+
+      if (Object.keys(updates).length > 0) {
+        setFormData(prev => ({ ...prev, ...updates }));
+      }
+    }
+  }, [variations]);
+
+
   const handlePrintBarcode = (barcodeVal: string, qty: number, name?: string, sp?: number, mrp?: number) => {
     if(!barcodeVal) return;
 
