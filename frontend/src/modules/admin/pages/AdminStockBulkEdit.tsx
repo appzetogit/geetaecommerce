@@ -1394,17 +1394,30 @@ export default function AdminStockBulkEdit({
             <select className="w-full h-full px-2 py-2 bg-transparent border-none text-sm cursor-pointer" value={product.subCategoryId || ""} onChange={(e) => handleFieldChange(originalIndex, 'subCategoryId', e.target.value)}>
               <option value="">-</option>
               {subCategories.filter(sub => { 
-                const subCatObj = sub.category; 
-                const subCatId = (typeof subCatObj === 'object' && subCatObj) ? String((subCatObj as any)._id || "") : String(subCatObj || ""); 
+                const subCatProp = sub.category; // From subcategory object
+                const subCatId = String((typeof subCatProp === 'object' && subCatProp) ? (subCatProp as any)._id : (subCatProp || "")).trim().toLowerCase();
+                const subCatName = String((typeof subCatProp === 'object' && subCatProp) ? (subCatProp as any).name || (subCatProp as any).categoryName : (subCatProp || "")).trim().toLowerCase();
                 
-                let rowCatId = String(product.categoryId || "").toLowerCase();
-                const isId = /^[0-9a-fA-F]{24}$/.test(rowCatId);
-                if (!isId && rowCatId) {
-                  const matchedCat = categories.find(c => String(c.name || (c as any).categoryName || "").toLowerCase() === rowCatId);
-                  if (matchedCat) rowCatId = String(matchedCat._id).toLowerCase();
+                const rowCatRef = String(product.categoryId || "").trim().toLowerCase();
+                const isRowCatId = /^[0-9a-fA-F]{24}$/.test(rowCatRef);
+
+                // Match logic:
+                // 1. Exact ID match
+                if (isRowCatId && subCatId === rowCatRef) return true;
+                // 2. Exact Name match
+                if (subCatName === rowCatRef && rowCatRef) return true;
+                
+                // 3. Resolved match (Lookup ID for Name or vice versa)
+                if (isRowCatId) {
+                   const catObj = categories.find(c => c._id.toLowerCase() === rowCatRef);
+                   const catName = String(catObj?.name || (catObj as any)?.categoryName || "").trim().toLowerCase();
+                   if (catName && subCatName === catName) return true;
+                } else if (rowCatRef) {
+                   const matchedCatObj = categories.find(c => String(c.name || (c as any).categoryName || "").trim().toLowerCase() === rowCatRef);
+                   if (matchedCatObj && subCatId === matchedCatObj._id.toLowerCase()) return true;
                 }
 
-                return !rowCatId || subCatId.toLowerCase() === rowCatId; 
+                return !rowCatRef; 
               }).map(sub => (
                 <option key={sub._id} value={sub._id}>
                   {String((sub as any).name || (sub as any).subcategoryName || (sub as any).name || "-")}

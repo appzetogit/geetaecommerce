@@ -2172,18 +2172,30 @@ export default function AdminStockManagement() {
                   { label: "Unit (Pack)", value: selectedProductDetails.unit, key: 'unit' },
                   { label: "Sub Category", value: String(selectedProductDetails.subCategory || ""), key: 'subCategory', type: 'select', 
                     options: subCategories.filter(s => {
-                      const catProp = s.category;
-                      const catId = String((typeof catProp === 'object' && catProp) ? (catProp as any)._id : (catProp || "")).toLowerCase();
+                      const subCatProp = s.category; // From subcategory object
+                      const subCatId = String((typeof subCatProp === 'object' && subCatProp) ? (subCatProp as any)._id : (subCatProp || "")).trim().toLowerCase();
+                      const subCatName = String((typeof subCatProp === 'object' && subCatProp) ? (subCatProp as any).name || (subCatProp as any).categoryName : (subCatProp || "")).trim().toLowerCase();
                       
-                      // Resolve product's category ID (might be name or ID)
-                      let targetId = String(selectedProductDetails.categoryId || "").toLowerCase();
-                      const isTargetId = /^[0-9a-fA-F]{24}$/.test(targetId);
-                      if (!isTargetId && targetId) {
-                        const matchedCat = categories.find(c => c.name?.toLowerCase() === targetId || (c as any).categoryName?.toLowerCase() === targetId);
-                        if (matchedCat) targetId = matchedCat._id.toLowerCase();
+                      const prodCatRef = String(selectedProductDetails.categoryId || "").trim().toLowerCase();
+                      const isProdCatId = /^[0-9a-fA-F]{24}$/.test(prodCatRef);
+
+                      // Match logic:
+                      // 1. Exact ID match
+                      if (isProdCatId && subCatId === prodCatRef) return true;
+                      // 2. Exact Name match
+                      if (subCatName === prodCatRef && prodCatRef) return true;
+                      
+                      // 3. Resolved match (Lookup ID for Name or vice versa)
+                      if (isProdCatId) {
+                         const catObj = categories.find(c => c._id.toLowerCase() === prodCatRef);
+                         const catName = String(catObj?.name || (catObj as any)?.categoryName || "").trim().toLowerCase();
+                         if (catName && subCatName === catName) return true;
+                      } else if (prodCatRef) {
+                         const matchedCatObj = categories.find(c => String(c.name || (c as any).categoryName || "").trim().toLowerCase() === prodCatRef);
+                         if (matchedCatObj && subCatId === matchedCatObj._id.toLowerCase()) return true;
                       }
 
-                      return !targetId || catId === targetId;
+                      return !prodCatRef;
                     }).map(s => ({ 
                       id: s._id, 
                       label: String((s as any).name || (s as any).subcategoryName || (s as any).name || "-"), 

@@ -800,23 +800,28 @@ export default function AdminAddProduct() {
   useEffect(() => {
     const fetchSubs = async () => {
       if (formData.category) {
-        // Failsafe: If formData.category is a name (not an ID), find the ID first
-        let catId = String(formData.category || "");
-        const isId = /^[0-9a-fA-F]{24}$/.test(catId);
-        if (!isId && catId) {
-          const foundCat = categories.find(c => String(c.name || (c as any).categoryName || "").toLowerCase() === catId.toLowerCase());
-          if (foundCat) catId = foundCat._id;
+        let catIdOrName = String(formData.category || "").trim();
+        const isId = /^[0-9a-fA-F]{24}$/.test(catIdOrName);
+        
+        // Resolved ID to use for API call
+        let resolvedId = isId ? catIdOrName : "";
+        if (!isId && catIdOrName) {
+          const found = categories.find(c => 
+            String(c.name || (c as any).categoryName || "").trim().toLowerCase() === catIdOrName.toLowerCase()
+          );
+          if (found) resolvedId = found._id;
         }
 
         try {
-          const res = await getSubCategoriesAdmin({ category: catId });
+          // If we couldn't resolve an ID from a name, still try passing the name as a fallback
+          const finalParam = resolvedId || catIdOrName;
+          const res = await getSubCategoriesAdmin({ category: finalParam });
           if (res.success) setSubcategories(res.data as any);
         } catch (err) {
           console.error("Error fetching subcategories:", err);
         }
       } else {
         setSubcategories([]);
-        // Clear subcategory selection when category is cleared
         setFormData((prev) => ({ ...prev, subcategory: "" }));
       }
     };
@@ -825,7 +830,7 @@ export default function AdminAddProduct() {
     if (formData.category) {
       fetchSubs();
     }
-  }, [formData.category]);
+  }, [formData.category, categories]);
 
   useEffect(() => {
     const fetchSubSubs = async () => {
