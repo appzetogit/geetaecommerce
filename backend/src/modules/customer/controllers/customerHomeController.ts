@@ -96,7 +96,7 @@ async function fetchSectionData(
       const products = await Product.find(query)
         .sort({ createdAt: -1 }) // Show newest items first
         .limit(limit || 8)
-        .select("productName mainImage price mrp discount rating reviewsCount pack seller")
+        .select("productName mainImage price discPrice variations unitPricing mrp discount rating reviewsCount pack seller")
         .lean();
 
       return products.map((p: any) => {
@@ -265,7 +265,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
       .populate({
         path: "product",
         select:
-          "productName mainImage price mrp discount status publish category subcategory seller",
+          "productName mainImage price discPrice variations unitPricing mrp discount status publish category subcategory seller",
         match: {
           status: "Active",
           publish: true,
@@ -524,7 +524,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
         endDate: { $gte: now },
       })
         .populate("categoryCards.categoryId", "name slug image")
-        .populate("featuredProducts", "productName mainImage mainImageUrl galleryImageUrls galleryImages price mrp compareAtPrice discount rating reviewsCount seller")
+        .populate("featuredProducts", "productName mainImage mainImageUrl galleryImageUrls galleryImages price discPrice variations unitPricing mrp compareAtPrice discount rating reviewsCount seller")
         .sort({ order: 1 })
         .lean();
 
