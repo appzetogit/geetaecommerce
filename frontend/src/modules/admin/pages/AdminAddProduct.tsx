@@ -242,72 +242,75 @@ export default function AdminAddProduct() {
     fetchSettings();
   }, []);
 
-  // Synchronize root pricing/stock with first variation (for single-variation products)
-  useEffect(() => {
-    if (variations.length === 1) {
-      const v = variations[0];
-      const rootPriceNum = parseFloat(formData.price || "0") || 0;
-      const rootCompareAtPriceNum = parseFloat(formData.compareAtPrice || "0") || 0;
-      const rootStockNum = parseInt(formData.stock || "0") || 0;
-      const rootOfferPriceNum = formData.offerPrice ? (parseFloat(formData.offerPrice) || 0) : undefined;
-      const rootWholesalePriceNum = parseFloat(formData.wholesalePrice || "0") || 0;
+  // Reference to track who initiated the last update to prevent infinite loops and race conditions
+  const lastSyncInitiatorRef = useRef<"root" | "variation" | null>(null);
 
-      if (
-        v.price !== rootPriceNum ||
-        v.compareAtPrice !== rootCompareAtPriceNum ||
-        v.stock !== rootStockNum ||
-        v.offerPrice !== rootOfferPriceNum ||
-        v.wholesalePrice !== rootWholesalePriceNum
-      ) {
+  // Consolidated Product-Variation Synchronization
+  // This effect ensures that for single-variation products (Simple Products),
+  // the top-level pricing/stock fields stay in sync with the variation's fields.
+  useEffect(() => {
+    if (variations.length !== 1) {
+        lastSyncInitiatorRef.current = null;
+        return;
+    }
+    
+    const v = variations[0];
+    const rootPriceNum = parseFloat(formData.price || "0") || 0;
+    const rootCompareAtPriceNum = parseFloat(formData.compareAtPrice || "0") || 0;
+    const rootStockNum = parseInt(formData.stock || "0") || 0;
+    const rootOfferPriceNum = formData.offerPrice ? (parseFloat(formData.offerPrice) || 0) : undefined;
+    const rootWholesalePriceNum = parseFloat(formData.wholesalePrice || "0") || 0;
+
+    // Check if Root is different from Variation
+    const isDifferent = 
+      v.price !== rootPriceNum ||
+      v.compareAtPrice !== rootCompareAtPriceNum ||
+      v.stock !== rootStockNum ||
+      v.offerPrice !== rootOfferPriceNum ||
+      v.wholesalePrice !== rootWholesalePriceNum;
+
+    if (!isDifferent) {
+        lastSyncInitiatorRef.current = null;
+        return;
+    }
+
+    // Determine target based on what changed (or use initiator if set)
+    // If we just added/modified a variation explicitly in the variation form/list,
+    // we should trust the variation and update the root.
+    // If the user modified the top-level form, we update the variation.
+    
+    // Safety check: If variation has a custom title (not Default), and price is 0/empty in top level,
+    // definitely sync from variation to root.
+    const isCustomVar = v.title && v.title !== "Default";
+    
+    if (lastSyncInitiatorRef.current === "variation" || (isCustomVar && rootPriceNum === 0)) {
+        // Sync Variation -> Root
+        setFormData(prev => ({
+            ...prev,
+            price: (v.price || 0).toString(),
+            compareAtPrice: (v.compareAtPrice || 0).toString(),
+            stock: (v.stock || 0).toString(),
+            offerPrice: (v.offerPrice || "").toString(),
+            wholesalePrice: (v.wholesalePrice || 0).toString()
+        }));
+        lastSyncInitiatorRef.current = null;
+    } else {
+        // Default: Sync Root -> Variation (handles top-form edits)
         setVariations(prev => {
           if (prev.length !== 1) return prev;
-          const updatedVar = { 
-            ...prev[0], 
-            price: rootPriceNum, 
-            compareAtPrice: rootCompareAtPriceNum, 
+          return [{
+            ...prev[0],
+            price: rootPriceNum,
+            compareAtPrice: rootCompareAtPriceNum,
             stock: rootStockNum,
             offerPrice: rootOfferPriceNum,
             wholesalePrice: rootWholesalePriceNum,
             discPrice: rootOfferPriceNum || rootPriceNum
-          };
-          // Deep check to prevent loops
-          if (
-            prev[0].price === updatedVar.price &&
-            prev[0].compareAtPrice === updatedVar.compareAtPrice &&
-            prev[0].stock === updatedVar.stock &&
-            prev[0].offerPrice === updatedVar.offerPrice &&
-            prev[0].wholesalePrice === updatedVar.wholesalePrice &&
-            prev[0].discPrice === updatedVar.discPrice
-          ) return prev;
-          return [updatedVar];
+          }];
         });
-      }
+        lastSyncInitiatorRef.current = null;
     }
-  }, [formData.price, formData.compareAtPrice, formData.stock, formData.offerPrice, formData.wholesalePrice, variations.length]);
-
-  // Synchronize variation edits back to root fields (for single-variation products)
-  useEffect(() => {
-    if (variations.length === 1) {
-      const v = variations[0];
-      const updates: any = {};
-      
-      const vPriceStr = v.price?.toString() || "0";
-      const vCompareAtPriceStr = v.compareAtPrice?.toString() || "0";
-      const vStockStr = (v.stock ?? 0).toString();
-      const vOfferPriceStr = v.offerPrice?.toString() || "";
-      const vWholesalePriceStr = v.wholesalePrice?.toString() || "0";
-
-      if (formData.price !== vPriceStr) updates.price = vPriceStr;
-      if (formData.compareAtPrice !== vCompareAtPriceStr) updates.compareAtPrice = vCompareAtPriceStr;
-      if (formData.stock !== vStockStr) updates.stock = vStockStr;
-      if (formData.offerPrice !== vOfferPriceStr) updates.offerPrice = vOfferPriceStr;
-      if (formData.wholesalePrice !== vWholesalePriceStr) updates.wholesalePrice = vWholesalePriceStr;
-
-      if (Object.keys(updates).length > 0) {
-        setFormData(prev => ({ ...prev, ...updates }));
-      }
-    }
-  }, [variations]);
+  }, [formData.price, formData.compareAtPrice, formData.stock, formData.offerPrice, formData.wholesalePrice, variations]);
 
 
   const handlePrintBarcode = (barcodeVal: string, qty: number, name?: string, sp?: number, mrp?: number) => {
@@ -758,14 +761,18 @@ export default function AdminAddProduct() {
               compareAtPrice: product.compareAtPrice?.toString() || "",
               discPrice: product.discPrice?.toString() || "0",
               stock: product.stock?.toString() || "0",
-              offerPrice: (product as any).offerPrice?.toString() || "",
+              // Ensure offerPrice is correctly populated from discPrice if an discount was active
+              offerPrice: (product as any).offerPrice?.toString() || 
+                         ((product.discPrice && product.discPrice < product.price) ? product.discPrice.toString() : ""),
               wholesalePrice: product.wholesalePrice?.toString() || "",
             });
             const vars = (product.variations || []).map((v: any) => ({
               ...v,
               price: v.price || 0,
-              discPrice: v.discPrice || 0,
               compareAtPrice: v.compareAtPrice || 0,
+              // If discPrice is 0 but price is set, discPrice should be price
+              discPrice: v.discPrice || v.price || 0,
+              offerPrice: v.offerPrice || (v.discPrice < v.price ? v.discPrice : undefined),
               stock: v.stock || 0,
               barcode: v.barcode || [],
               status: (v.status as "Available" | "Sold out" | "In stock") || "Available"
@@ -1041,6 +1048,7 @@ export default function AdminAddProduct() {
     };
 
     setVariations([...variations, newVariation]);
+    lastSyncInitiatorRef.current = "variation";
     setVariationForm({
       title: "",
       price: "",
@@ -1455,25 +1463,6 @@ export default function AdminAddProduct() {
           setUploading(false);
           return;
         }
-      } else if (finalVariations.length === 1) {
-        // If there's only one variation, ensure it stays in sync with top-level pricing edits.
-        // This handles cases where user edits the top form but the product has a single named variation.
-        if (compareAtPrice > 0 && price > compareAtPrice) {
-          setUploadError("Selling price cannot be greater than Maximum Retail Price (MRP)");
-          setUploading(false);
-          return;
-        }
-
-        finalVariations[0] = {
-          ...finalVariations[0],
-          price,
-          compareAtPrice,
-          discPrice: calculatedDiscPrice,
-          stock,
-          offerPrice,
-          wholesalePrice,
-          image: finalVariations[0].image || variationForm.image || ""
-        };
       }
 
       // Prepare product data for API
@@ -3182,6 +3171,7 @@ const applySearchedImage = () => {
                                                     setVariations(prev => {
                                                         const n = [...prev];
                                                         n[idx].compareAtPrice = parseFloat(val) || 0;
+                                                        lastSyncInitiatorRef.current = "variation";
                                                         return n;
                                                     });
                                                 }}
@@ -3199,6 +3189,7 @@ const applySearchedImage = () => {
                                                         n[idx].price = val;
                                                         // Sync discPrice: use offerPrice if available, else use price
                                                         n[idx].discPrice = n[idx].offerPrice || val;
+                                                        lastSyncInitiatorRef.current = "variation";
                                                         return n;
                                                     });
                                                 }}
@@ -3216,6 +3207,7 @@ const applySearchedImage = () => {
                                                         n[idx].offerPrice = val;
                                                         // Sync discPrice: use offerPrice if > 0, else use price
                                                         n[idx].discPrice = val || n[idx].price;
+                                                        lastSyncInitiatorRef.current = "variation";
                                                         return n;
                                                     });
                                                 }}
@@ -3231,6 +3223,7 @@ const applySearchedImage = () => {
                                                     setVariations(prev => {
                                                         const n = [...prev];
                                                         n[idx].wholesalePrice = parseFloat(val) || 0;
+                                                        lastSyncInitiatorRef.current = "variation";
                                                         return n;
                                                     });
                                                 }}
@@ -3246,6 +3239,7 @@ const applySearchedImage = () => {
                                                     setVariations(prev => {
                                                         const n = [...prev];
                                                         n[idx].stock = parseInt(val) || 0;
+                                                        lastSyncInitiatorRef.current = "variation";
                                                         return n;
                                                     });
                                                 }}
