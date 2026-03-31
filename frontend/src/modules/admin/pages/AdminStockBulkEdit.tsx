@@ -1393,31 +1393,27 @@ export default function AdminStockBulkEdit({
           <td key={key} className="p-0 border-r border-neutral-200">
             <select className="w-full h-full px-2 py-2 bg-transparent border-none text-sm cursor-pointer" value={product.subCategoryId || ""} onChange={(e) => handleFieldChange(originalIndex, 'subCategoryId', e.target.value)}>
               <option value="">-</option>
-              {subCategories.filter(sub => { 
-                const subCatProp = sub.category; // From subcategory object
+              {subCategories.filter(sc => { 
+                const subCatProp = sc.category; 
                 const subCatId = String((typeof subCatProp === 'object' && subCatProp) ? (subCatProp as any)._id : (subCatProp || "")).trim().toLowerCase();
                 const subCatName = String((typeof subCatProp === 'object' && subCatProp) ? (subCatProp as any).name || (subCatProp as any).categoryName : (subCatProp || "")).trim().toLowerCase();
                 
-                const rowCatRef = String(product.categoryId || "").trim().toLowerCase();
-                const isRowCatId = /^[0-9a-fA-F]{24}$/.test(rowCatRef);
-
-                // Match logic:
-                // 1. Exact ID match
-                if (isRowCatId && subCatId === rowCatRef) return true;
-                // 2. Exact Name match
-                if (subCatName === rowCatRef && rowCatRef) return true;
+                const targetCatRef = String(product.categoryId || "").trim().toLowerCase();
+                if (!targetCatRef) return true;
                 
-                // 3. Resolved match (Lookup ID for Name or vice versa)
-                if (isRowCatId) {
-                   const catObj = categories.find(c => c._id.toLowerCase() === rowCatRef);
-                   const catName = String(catObj?.name || (catObj as any)?.categoryName || "").trim().toLowerCase();
-                   if (catName && subCatName === catName) return true;
-                } else if (rowCatRef) {
-                   const matchedCatObj = categories.find(c => String(c.name || (c as any).categoryName || "").trim().toLowerCase() === rowCatRef);
-                   if (matchedCatObj && subCatId === matchedCatObj._id.toLowerCase()) return true;
+                const isId = /^[0-9a-fA-F]{24}$/.test(targetCatRef);
+                if (isId && subCatId === targetCatRef) return true;
+                if (subCatName === targetCatRef) return true;
+                
+                const matchedCat = categories.find(c => 
+                  String(c._id).toLowerCase() === targetCatRef || 
+                  String(c.name || (c as any).categoryName || "").trim().toLowerCase() === targetCatRef
+                );
+                if (matchedCat) {
+                  if (subCatId === matchedCat._id.toLowerCase()) return true;
+                  if (subCatName === String(matchedCat.name || (matchedCat as any).categoryName || "").trim().toLowerCase()) return true;
                 }
-
-                return !rowCatRef; 
+                return false;
               }).map(sub => (
                 <option key={sub._id} value={sub._id}>
                   {String((sub as any).name || (sub as any).subcategoryName || (sub as any).name || "-")}
