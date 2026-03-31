@@ -590,32 +590,61 @@ export const createSubCategory = asyncHandler(
  */
 export const getSubCategories = asyncHandler(
   async (req: Request, res: Response) => {
-    const { category, search, sortBy = "order", sortOrder = "asc" } = req.query;
+    const { category: categoryId, search, sortBy = "order", sortOrder = "asc" } = req.query;
 
-    const query: any = {};
-    if (category) {
-      query.category = category;
+    // 1. Fetch from legacy SubCategory model
+    const subQuery: any = {};
+    if (categoryId) {
+      subQuery.category = categoryId;
     }
     if (search) {
-      query.name = { $regex: search as string, $options: "i" };
+      subQuery.name = { $regex: search as string, $options: "i" };
     }
 
     const sort: any = {};
     sort[sortBy as string] = sortOrder === "desc" ? -1 : 1;
 
-    const subcategories = await SubCategory.find(query)
+    const legacySubcategories = await SubCategory.find(subQuery)
       .populate("category", "name")
       .sort(sort);
 
-    // Get product counts for each subcategory
-    const subcategoriesWithCounts = await Promise.all(
-      subcategories.map(async (subcategory) => {
+    // 2. Fetch hierarchical subcategories from Category model (where parentId matches categoryId)
+    const catQuery: any = {};
+    if (categoryId) {
+      catQuery.parentId = categoryId;
+    } else {
+      catQuery.parentId = { $ne: null }; // Only get children if no category specified
+    }
+
+    if (search) {
+      catQuery.name = { $regex: search as string, $options: "i" };
+    }
+
+    const hierarchicalCategories = await Category.find(catQuery)
+      .populate("parentId", "name")
+      .sort(sort);
+
+    // 3. Map hierarchical categories to subcategory format
+    const mappedHierarchical = hierarchicalCategories.map((cat) => {
+      const obj = cat.toObject();
+      return {
+        ...obj,
+        category: obj.parentId, // Map parentId to 'category' for frontend compatibility
+      };
+    });
+
+    // 4. Combine both
+    const allSubcategories = [...legacySubcategories, ...mappedHierarchical];
+
+    // 5. Get product counts for each subcategory
+    const resultsWithCounts = await Promise.all(
+      allSubcategories.map(async (subcategory: any) => {
         const productCount = await Product.countDocuments({
           subcategory: subcategory._id,
         });
 
         return {
-          ...subcategory.toObject(),
+          ...subcategory,
           totalProduct: productCount,
         };
       })
@@ -624,7 +653,7 @@ export const getSubCategories = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Subcategories fetched successfully",
-      data: subcategoriesWithCounts,
+      data: resultsWithCounts,
     });
   }
 );
