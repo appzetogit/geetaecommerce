@@ -17,13 +17,13 @@ import {
   uploadImage as uploadImageLegacy,
   Product,
   getProducts as fetchProducts,
+  getSubCategories as getSubCategoriesAdmin,
 } from "../../../services/api/admin/adminProductService";
 import { getAttributes } from "../../../services/api/admin/attributeService";
 import { getVariationTypes } from "../../../services/api/admin/adminVariationTypeService";
 import { ProductVariation, Shop, searchProductImage } from "../../../services/api/productService";
 import {
   getCategories,
-  getSubcategories,
   getSubSubCategories,
   Category,
   SubCategory,
@@ -801,8 +801,8 @@ export default function AdminAddProduct() {
     const fetchSubs = async () => {
       if (formData.category) {
         try {
-          const res = await getSubcategories(formData.category);
-          if (res.success) setSubcategories(res.data);
+          const res = await getSubCategoriesAdmin({ category: formData.category });
+          if (res.success) setSubcategories(res.data as any);
         } catch (err) {
           console.error("Error fetching subcategories:", err);
         }

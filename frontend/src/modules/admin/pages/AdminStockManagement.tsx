@@ -500,6 +500,7 @@ export default function AdminStockManagement() {
              // productName, category, compareAtPrice, price, stock, publish.
             const updateData = {
                 productName: product.productName,
+                subCategory: typeof product.subcategory === 'object' ? String(product.subcategory?._id || "") : String(product.subcategory || ""),
                 category: typeof product.category === 'object' && product.category ? product.category._id : product.category,
                 compareAtPrice: product.compareAtPrice,
                 price: product.price,
@@ -2169,12 +2170,18 @@ export default function AdminStockManagement() {
                 {[
                   { label: "SKU", value: selectedProductDetails.sku, key: 'sku' },
                   { label: "Unit (Pack)", value: selectedProductDetails.unit, key: 'unit' },
-                  { label: "Sub Category", value: selectedProductDetails.subCategory, key: 'subCategory', type: 'select', options: subCategories.filter(s => {
-                    const catProp = s.category;
-                    const catId = (typeof catProp === 'object' && catProp) ? String((catProp as any)._id || "") : String(catProp || "");
-                    const targetId = String(selectedProductDetails.categoryId || "");
-                    return !targetId || catId === targetId;
-                  }).map(s => String((s as any).name || (s as any).subcategoryName || "-")) },
+                  { label: "Sub Category", value: String(selectedProductDetails.subCategory || ""), key: 'subCategory', type: 'select', 
+                    options: subCategories.filter(s => {
+                      const catProp = s.category;
+                      const catId = String((typeof catProp === 'object' && catProp) ? (catProp as any)._id : (catProp || "")).toLowerCase();
+                      const targetId = String(selectedProductDetails.categoryId || "").toLowerCase();
+                      return !targetId || catId === targetId;
+                    }).map(s => ({ 
+                      id: s._id, 
+                      label: String((s as any).name || (s as any).subcategoryName || (s as any).name || "-"), 
+                      value: s._id 
+                    })) 
+                  },
                   { label: "Brand", value: selectedProductDetails.brand, key: 'brand', type: 'select', options: brands.map(b => b.name) },
                   { label: "Rack Number", value: selectedProductDetails.rackNumber, key: 'rackNumber' },
                   { label: "Barcode", value: selectedProductDetails.barcode, key: 'barcode' },
@@ -2202,7 +2209,11 @@ export default function AdminStockManagement() {
                           onChange={(e) => setSelectedProductDetails({...selectedProductDetails, [item.key!]: e.target.value})}
                         >
                           <option value="-">-</option>
-                          {item.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                          {item.options?.map((opt: any) => {
+                            const val = typeof opt === 'object' ? opt.value : opt;
+                            const label = typeof opt === 'object' ? opt.label : opt;
+                            return <option key={val} value={val}>{label}</option>;
+                          })}
                         </select>
                       ) : (
                         <input 
