@@ -698,11 +698,11 @@ export default function AdminAddProduct() {
               headerCategory:
                 (typeof product.headerCategoryId === 'object' ? product.headerCategoryId?._id : product.headerCategoryId) || "",
               category:
-                (typeof product.category === 'object' ? product.category?._id : product.category) || product.categoryId || "",
+                String((typeof product.category === 'object' ? product.category?._id : product.category) || product.categoryId || ""),
               subcategory:
-                (typeof product.subcategory === 'object' ? product.subcategory?._id : product.subcategory) ||
+                String((typeof product.subcategory === 'object' ? product.subcategory?._id : product.subcategory) ||
                 product.subcategoryId ||
-                "",
+                ""),
               subSubCategory:
                 product.subSubCategory || "",
               publish: product.publish ? "Yes" : "No",
@@ -2168,7 +2168,7 @@ const applySearchedImage = () => {
                         SubCategory
                       </label>
                       <ThemedDropdown
-                        options={subcategories.map(sub => ({ id: sub._id, label: sub.subcategoryName, value: sub._id }))}
+                        options={subcategories.map(sub => ({ id: sub._id, label: (sub as any).name || sub.subcategoryName, value: sub._id }))}
                         value={formData.subcategory}
                         onChange={(val) => setFormData(prev => ({ ...prev, subcategory: val }))}
                         placeholder={formData.category ? "Select Subcategory" : "Select Category First"}

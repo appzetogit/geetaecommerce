@@ -882,7 +882,14 @@ export default function AdminStockManagement() {
       }
 
       // SubCategory
-      const subCategoryName = typeof p.subcategory === "object" ? p.subcategory?.name || "-" : "-";
+      let subCategoryName = "-";
+      if (typeof p.subcategory === "object" && p.subcategory) {
+        subCategoryName = p.subcategory.name || (p.subcategory as any).subcategoryName || "-";
+      } else if (typeof p.subcategory === "string" && p.subcategory && p.subcategory !== "-") {
+         // Attempt lookup in subCategories list
+         const subObj = subCategories.find(sc => sc._id === p.subcategory);
+         subCategoryName = subObj?.name || (subObj as any)?.subcategoryName || p.subcategory;
+      }
       // SubSubCategory
       const subSubCategoryName = p.subSubCategory || "-";
       // Brand
@@ -2162,7 +2169,12 @@ export default function AdminStockManagement() {
                 {[
                   { label: "SKU", value: selectedProductDetails.sku, key: 'sku' },
                   { label: "Unit (Pack)", value: selectedProductDetails.unit, key: 'unit' },
-                  { label: "Sub Category", value: selectedProductDetails.subCategory, key: 'subCategory', type: 'select', options: subCategories.filter(s => typeof s.category === 'object' ? (s.category as any)._id === selectedProductDetails.categoryId : s.category === selectedProductDetails.categoryId).map(s => s.name) },
+                  { label: "Sub Category", value: selectedProductDetails.subCategory, key: 'subCategory', type: 'select', options: subCategories.filter(s => {
+                    const catProp = s.category;
+                    const catId = (typeof catProp === 'object' && catProp) ? String((catProp as any)._id || "") : String(catProp || "");
+                    const targetId = String(selectedProductDetails.categoryId || "");
+                    return !targetId || catId === targetId;
+                  }).map(s => String((s as any).name || (s as any).subcategoryName || "-")) },
                   { label: "Brand", value: selectedProductDetails.brand, key: 'brand', type: 'select', options: brands.map(b => b.name) },
                   { label: "Rack Number", value: selectedProductDetails.rackNumber, key: 'rackNumber' },
                   { label: "Barcode", value: selectedProductDetails.barcode, key: 'barcode' },
