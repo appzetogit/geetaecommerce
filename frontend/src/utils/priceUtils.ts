@@ -76,7 +76,6 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
 
   // Resolve variation
   let variation = typeof variationSelector === 'object' ? variationSelector : undefined;
-
   if (!variation) {
       if (typeof variationSelector === 'number') {
         variation = product.variations?.[variationSelector];
@@ -90,49 +89,52 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
     variation = product.variations[0];
   }
 
+  const { mrp: baseMrp } = calculateProductPrice(product, variationSelector);
+  let finalPrice = 0;
+
   // 1. Check for unitPricing in main product (New Standard - Prioritized)
-  // This ensures rules set in the new Bulk Import/Edit system take precedence
   if (product.unitPricing && Array.isArray(product.unitPricing) && product.unitPricing.length > 0) {
        const applicableTier = product.unitPricing
           .filter((t: any) => quantity >= (t.minQty || 0))
-          .sort((a: any, b: any) => b.minQty - a.minQty)[0];
+          .sort((a: any, b: any) => (b.minQty || 0) - (a.minQty || 0))[0];
 
-        if (applicableTier) {
-            return parseFloat(applicableTier.price);
+        if (applicableTier && parseFloat(applicableTier.price) > 0) {
+            finalPrice = parseFloat(applicableTier.price);
         }
   }
 
   // 2. Check for tiered pricing in variation (Legacy/Specific)
-  if (variation?.tieredPrices && Array.isArray(variation.tieredPrices) && variation.tieredPrices.length > 0) {
-      // Find the highest tier where quantity >= minQty
+  if (finalPrice <= 0 && variation?.tieredPrices && Array.isArray(variation.tieredPrices) && variation.tieredPrices.length > 0) {
       const applicableTier = variation.tieredPrices
           .filter((t: any) => quantity >= (t.minQty || 0))
-          .sort((a: any, b: any) => b.minQty - a.minQty)[0];
+          .sort((a: any, b: any) => (b.minQty || 0) - (a.minQty || 0))[0];
 
-      if (applicableTier) {
-          return parseFloat(applicableTier.price);
+      if (applicableTier && parseFloat(applicableTier.price) > 0) {
+          finalPrice = parseFloat(applicableTier.price);
       }
   }
 
   // 3. Check for tiered pricing in main product (Legacy fallbacks)
-  if (product.tieredPrices && Array.isArray(product.tieredPrices) && product.tieredPrices.length > 0) {
+  if (finalPrice <= 0 && product.tieredPrices && Array.isArray(product.tieredPrices) && product.tieredPrices.length > 0) {
        const applicableTier = product.tieredPrices
           .filter((t: any) => quantity >= (t.minQty || 0))
-          .sort((a: any, b: any) => b.minQty - a.minQty)[0];
+          .sort((a: any, b: any) => (b.minQty || 0) - (a.minQty || 0))[0];
 
-        if (applicableTier) {
-            return parseFloat(applicableTier.price);
+        if (applicableTier && parseFloat(applicableTier.price) > 0) {
+            finalPrice = parseFloat(applicableTier.price);
         }
   }
 
-  // 3. Fallback to standard price logic with Safety Layer
-  const { displayPrice, mrp } = calculateProductPrice(product, variationSelector);
-  
-  // Safety rule: If any logic resulted in 0 but MRP exists, show MRP
-  // This is a global fix for the "₹0 / 100% OFF" bug across all views
-  if (displayPrice <= 0 && mrp > 0) {
-    return mrp;
+  // 4. Default to standard price calculation if no tier found or tier price was 0
+  if (finalPrice <= 0) {
+      const { displayPrice } = calculateProductPrice(product, variationSelector);
+      finalPrice = displayPrice;
   }
-  
-  return displayPrice;
+
+  // FINAL SAFETY FALLBACK: Never show 0 if MRP exists
+  if (finalPrice <= 0 && baseMrp > 0) {
+    return baseMrp;
+  }
+
+  return finalPrice;
 };
