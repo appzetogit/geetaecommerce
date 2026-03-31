@@ -288,7 +288,7 @@ import { useThemeContext } from '../../../context/ThemeContext';
 export default function LowestPricesEver({ activeTab = 'all', products: adminProducts }: LowestPricesEverProps) {
   const { currentTheme: theme } = useThemeContext();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const { cart } = useCart();
+  const { cart, addToCart, updateQuantity } = useCart();
   const [fontLoaded, setFontLoaded] = useState(false);
 
   // Preload and wait for font to load to prevent FOUT
@@ -378,9 +378,6 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
 
   const discountedProducts = getFilteredProducts();
 
-  // Get cart functions once at parent level
-  const { addToCart, updateQuantity } = useCart();
-
   // Memoize callbacks to prevent ProductCard re-renders
   const handleAddToCart = useCallback((product: Product, element?: HTMLElement | null) => {
     addToCart(product, element);
@@ -389,6 +386,10 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
   const handleUpdateQuantity = useCallback((productId: string, quantity: number, variantId?: string, variantTitle?: string) => {
     updateQuantity(productId, quantity, variantId, variantTitle);
   }, [updateQuantity]);
+
+  if (!discountedProducts || discountedProducts.length === 0) {
+    return null;
+  }
 
   return (
     <div
@@ -505,4 +506,3 @@ export default function LowestPricesEver({ activeTab = 'all', products: adminPro
     </div>
   );
 }
-

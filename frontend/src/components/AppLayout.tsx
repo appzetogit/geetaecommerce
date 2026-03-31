@@ -6,6 +6,7 @@ import { useLocation as useLocationContext } from '../hooks/useLocation';
 import LocationPermissionRequest from './LocationPermissionRequest';
 import { useThemeContext } from '../context/ThemeContext';
 import QRScannerModal from './QRScannerModal';
+import { useAppContext } from '../context/AppContext';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -24,6 +25,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [showLocationChangeModal, setShowLocationChangeModal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const { currentTheme } = useThemeContext();
+  const { config } = useAppContext();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -208,12 +210,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Top Navigation Bar - Desktop Only */}
           {showFooter && (
             <nav
-              className="hidden md:flex items-center justify-center gap-8 px-6 lg:px-8 py-3 shadow-sm transition-colors duration-300"
+              className="hidden md:flex items-center px-6 lg:px-8 py-3 shadow-sm transition-colors duration-300"
               style={{
                 background: `linear-gradient(to right, ${currentTheme.primary[0]}, ${currentTheme.primary[1]})`,
                 borderBottom: `1px solid ${currentTheme.primary[0]}`
               }}
             >
+              {/* Logo - Desktop Only */}
+              <Link to="/" className="flex items-center flex-shrink-0">
+                <img
+                  src={config?.appLogo || "/assets/geetastoreslogo.png"}
+                  alt={config?.appName || "Geeta Stores"}
+                  className="h-12 w-auto object-contain"
+                />
+              </Link>
+
+              <div className="flex items-center justify-center gap-8 flex-1">
               {/* Home */}
               <Link
                 to="/"
@@ -375,6 +387,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 </svg>
                 <span className="font-medium text-sm">Profile</span>
               </Link>
+              </div>
             </nav>
           )}
 

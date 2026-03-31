@@ -363,7 +363,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
         transition: 'background-color 0.3s ease',
       }}
     >
-      <div className="px-4 md:px-6 lg:px-8 pt-2 md:pt-2 pb-2 md:pb-2">
+      <div className={`px-4 md:px-6 lg:px-8 pt-2 ${isSticky ? 'md:pt-2.5' : 'md:pt-0'} pb-2 md:pb-2`}>
         {/* Search Bar */}
         <div
           onClick={() => navigate('/search')}
@@ -485,9 +485,9 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
     >
       {/* Top section with logo - NOT sticky */}
       <div>
-        <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-3 md:pt-4 pb-2">
+        <div ref={topSectionRef} className="px-4 md:px-6 lg:px-8 pt-3 md:pt-0 pb-2 md:pb-0">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 md:invisible">
               <img
                 src={config?.appLogo || "/assets/geetastoreslogo.png"}
                 alt={config?.appName || "Geeta Stores"}

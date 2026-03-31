@@ -27,6 +27,13 @@ export default function AdminLowestPrices() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
+    const getLowestPricesProductId = (lp: LowestPricesProduct): string | null => {
+        const productRef = lp.product;
+        if (!productRef) return null;
+        if (typeof productRef === "string") return productRef;
+        return productRef._id || null;
+    };
+
     // Pagination
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [currentPage, setCurrentPage] = useState(1);
@@ -65,12 +72,11 @@ export default function AdminLowestPrices() {
     };
 
     // Filter products based on search term and exclude already added products
-    const filteredProducts = availableProducts.filter((product) => {
-        // Get IDs of products already in lowest prices
-        const existingProductIds = lowestPricesProducts.map((lp) =>
-            typeof lp.product === "string" ? lp.product : lp.product._id
-        );
+    const existingProductIds = lowestPricesProducts
+        .map(getLowestPricesProductId)
+        .filter((id): id is string => Boolean(id));
 
+    const filteredProducts = availableProducts.filter((product) => {
         // Exclude already added products
         if (existingProductIds.includes(product._id)) {
             return false;
@@ -135,9 +141,11 @@ export default function AdminLowestPrices() {
     };
 
     const handleEdit = (lowestPricesProduct: LowestPricesProduct) => {
-        const productId = typeof lowestPricesProduct.product === "string"
-            ? lowestPricesProduct.product
-            : lowestPricesProduct.product._id;
+        const productId = getLowestPricesProductId(lowestPricesProduct);
+        if (!productId) {
+            setError("This item has no product reference (it may have been deleted).");
+            return;
+        }
         setSelectedProduct(productId);
         setOrder(lowestPricesProduct.order);
         setIsActive(lowestPricesProduct.isActive);
@@ -556,4 +564,3 @@ export default function AdminLowestPrices() {
         </div>
     );
 }
-

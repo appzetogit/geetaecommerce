@@ -1,17 +1,23 @@
 import api from "../config";
 
+export type LowestPricesProductRef =
+    | string
+    | {
+          _id: string;
+          productName: string;
+          mainImage?: string;
+          price: number;
+          mrp?: number;
+          discount?: number;
+          status: string;
+          publish: boolean;
+      }
+    | null;
+
 export interface LowestPricesProduct {
     _id: string;
-    product: {
-        _id: string;
-        productName: string;
-        mainImage?: string;
-        price: number;
-        mrp?: number;
-        discount?: number;
-        status: string;
-        publish: boolean;
-    };
+    // Backend may return populated product, an id string, or null (if product was deleted/unavailable).
+    product: LowestPricesProductRef;
     order: number;
     isActive: boolean;
     createdAt: string;
@@ -89,4 +95,3 @@ export const reorderLowestPricesProducts = async (
     );
     return response.data;
 };
-

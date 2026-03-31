@@ -268,24 +268,22 @@ export default function Home() {
         <FeaturedDeal />
 
         {/* Bestsellers Section (Moved here as requested) */}
-        {activeTab === "all" && (
+        {activeTab === "all" && homeData.bestsellers && homeData.bestsellers.length > 0 && (
             <div className="mt-2 md:mt-4">
               <CategoryTileSection
                 title="Bestsellers"
                 tiles={
-                  homeData.bestsellers && homeData.bestsellers.length > 0
-                    ? homeData.bestsellers
-                      .slice(0, 6)
-                      .map((card: any) => {
-                        return {
-                          id: card.id,
-                          categoryId: card.categoryId,
-                          name: card.name || "Category",
-                          productImages: card.productImages || [],
-                          productCount: card.productCount || 0,
-                        };
-                      })
-                    : []
+                  homeData.bestsellers
+                    .slice(0, 6)
+                    .map((card: any) => {
+                      return {
+                        id: card.id,
+                        categoryId: card.categoryId,
+                        name: card.name || "Category",
+                        productImages: card.productImages || [],
+                        productCount: card.productCount || 0,
+                      };
+                    })
                 }
                 columns={3}
                 showProductCount={true}
