@@ -125,8 +125,14 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
         }
   }
 
-  // 3. Fallback to standard price logic
-  // Use calculateProductPrice to get the standard selling price (discounted or regular)
-  const { displayPrice } = calculateProductPrice(product, variationSelector);
+  // 3. Fallback to standard price logic with Safety Layer
+  const { displayPrice, mrp } = calculateProductPrice(product, variationSelector);
+  
+  // Safety rule: If any logic resulted in 0 but MRP exists, show MRP
+  // This is a global fix for the "₹0 / 100% OFF" bug across all views
+  if (displayPrice <= 0 && mrp > 0) {
+    return mrp;
+  }
+  
   return displayPrice;
 };
