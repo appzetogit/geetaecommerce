@@ -31,13 +31,27 @@ export const calculateProductPrice = (product: any, variationSelector?: number |
     variation = product.variations[0];
   }
 
-  const displayPrice = (variation?.discPrice && variation.discPrice > 0)
-    ? variation.discPrice
-    : (product.discPrice && product.discPrice > 0)
-    ? product.discPrice
-    : (variation?.price || product.price || 0);
+  const vPrice = parseFloat(variation?.price || 0);
+  const vDiscPrice = parseFloat(variation?.discPrice || 0);
+  const pPrice = parseFloat(product.price || 0);
+  const pDiscPrice = parseFloat(product.discPrice || 0);
 
-  const mrp = variation?.compareAtPrice || variation?.mrp || product.compareAtPrice || product.mrp || variation?.price || product.price || 0;
+  let displayPrice = (vDiscPrice > 0)
+    ? vDiscPrice
+    : (pDiscPrice > 0)
+    ? pDiscPrice
+    : (vPrice > 0)
+    ? vPrice
+    : (pPrice > 0)
+    ? pPrice
+    : 0;
+
+  let mrp = parseFloat(variation?.compareAtPrice || variation?.mrp || product.compareAtPrice || product.mrp || variation?.price || product.price || 0);
+
+  // Safety layer: Never show 0 price if MRP exists
+  if (displayPrice <= 0 && mrp > 0) {
+    displayPrice = mrp;
+  }
 
   const hasDiscount = mrp > displayPrice;
   const discount = hasDiscount ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0;
