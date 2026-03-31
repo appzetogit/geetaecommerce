@@ -432,10 +432,29 @@ ProductSchema.pre("save", function (next) {
     );
 
     // Sync unitPricing from first variation (if present) to root for easier access
-    // BUT only if unitPricing is not explicitly set/modified to avoid overwriting admin edits
     if ((!this.unitPricing || this.unitPricing.length === 0) && this.variations[0].tieredPrices && this.variations[0].tieredPrices.length > 0) {
       this.unitPricing = this.variations[0].tieredPrices;
     }
+  }
+
+  // FINAL PRICE SANITY CHECK: Never allow price or discPrice to stay 0 if we have an MRP
+  // This is a safety layer for the "₹0 / 100% OFF" bug
+  if ((!this.price || this.price === 0) && this.compareAtPrice && this.compareAtPrice > 0) {
+    this.price = this.compareAtPrice;
+  }
+  if (!this.discPrice || this.discPrice === 0) {
+    this.discPrice = (this.variations && this.variations.length > 0 && this.variations[0].price) 
+      ? this.variations[0].price 
+      : (this.price || this.compareAtPrice || 0);
+  }
+
+  // Ensure variations also don't have 0 prices if root has one
+  if (this.variations && this.variations.length > 0) {
+    this.variations.forEach(v => {
+      if (!v.price || v.price === 0) v.price = this.price || this.compareAtPrice;
+      if (!v.discPrice || v.discPrice === 0) v.discPrice = v.price;
+      if (!v.compareAtPrice || v.compareAtPrice === 0) v.compareAtPrice = this.compareAtPrice;
+    });
   }
 
   // Calculate discount
@@ -444,7 +463,6 @@ ProductSchema.pre("save", function (next) {
       ((this.compareAtPrice - this.price) / this.compareAtPrice) * 100
     );
   } else if (this.compareAtPrice && this.compareAtPrice > (this.discPrice || 0)) {
-     // fallback to discPrice for discount % calculation if price is somehow not reflective
      this.discount = Math.round(
       ((this.compareAtPrice - (this.discPrice || 0)) / this.compareAtPrice) * 100
     );

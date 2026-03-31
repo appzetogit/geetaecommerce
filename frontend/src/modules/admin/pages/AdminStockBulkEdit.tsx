@@ -671,7 +671,11 @@ export default function AdminStockBulkEdit({
           ...(p.brandId ? { brand: p.brandId } : {}),
            variations: p.variations.map((v: any) => ({
              ...v,
-             discPrice: v.offerPrice || v.discPrice || p.offerPrice || p.price
+              price: p.price || p.compareAtPrice || v.price,
+              compareAtPrice: p.compareAtPrice || v.compareAtPrice,
+              stock: Number(p.stock) || 0,
+              discPrice: (v.offerPrice || v.discPrice || p.offerPrice || p.price || p.compareAtPrice) || 0,
+             wholesalePrice: p.wholesalePrice || v.wholesalePrice || 0
            })),
           unitPricing: p.unitPricing, // Include unitPricing in payload
           variationName: p.variationName,
@@ -734,7 +738,11 @@ export default function AdminStockBulkEdit({
             ? {
                 variations: p.variations.map((v: any) => ({
                   ...v,
-                  discPrice: v.offerPrice || v.discPrice || p.offerPrice || p.price,
+                  price: p.price || p.compareAtPrice || v.price,
+                  compareAtPrice: p.compareAtPrice || v.compareAtPrice,
+                  stock: Number(p.stock) || 0,
+                  discPrice: (v.offerPrice || v.discPrice || p.offerPrice || p.price || p.compareAtPrice) || 0,
+                  wholesalePrice: p.wholesalePrice || v.wholesalePrice || 0
                 })),
               }
             : {}),
