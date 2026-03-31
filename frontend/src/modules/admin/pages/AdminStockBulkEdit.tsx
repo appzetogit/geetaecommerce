@@ -1393,7 +1393,24 @@ export default function AdminStockBulkEdit({
           <td key={key} className="p-0 border-r border-neutral-200">
             <select className="w-full h-full px-2 py-2 bg-transparent border-none text-sm cursor-pointer" value={product.subCategoryId || ""} onChange={(e) => handleFieldChange(originalIndex, 'subCategoryId', e.target.value)}>
               <option value="">-</option>
-              {subCategories.filter(sub => { const subCatObj = sub.category; const subCatId = (typeof subCatObj === 'string') ? subCatObj : subCatObj._id; return !product.categoryId || subCatId === product.categoryId; }).map(sub => <option key={sub._id} value={sub._id}>{sub.name}</option>)}
+              {subCategories.filter(sub => { 
+                const subCatObj = sub.category; 
+                const subCatId = (typeof subCatObj === 'object' && subCatObj) ? String((subCatObj as any)._id || "") : String(subCatObj || ""); 
+                const rowCatId = String(product.categoryId || "");
+                return !rowCatId || subCatId === rowCatId; 
+              }).map(sub => (
+                <option key={sub._id} value={sub._id}>
+                  {String((sub as any).name || (sub as any).subcategoryName || (sub as any).name || "-")}
+                </option>
+              ))}
+              {/* Fallback for current value if not matching filter */}
+              {product.subCategoryId && !subCategories.some(s => s._id === product.subCategoryId && (
+                  !product.categoryId || String(typeof s.category === 'object' ? (s.category as any)?._id : s.category) === String(product.categoryId)
+              )) && (
+                  <option value={product.subCategoryId}>
+                    {subCategories.find(s => s._id === product.subCategoryId)?.name || (subCategories.find(s => s._id === product.subCategoryId) as any)?.subcategoryName || "Current"}
+                  </option>
+              )}
             </select>
           </td>
         );
