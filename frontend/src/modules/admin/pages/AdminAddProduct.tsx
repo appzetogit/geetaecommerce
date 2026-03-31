@@ -642,6 +642,20 @@ export default function AdminAddProduct() {
           setCategories(results[0].value.data);
         }
 
+        // Fetch subcategories as global fallback
+        try {
+          const subRes = await getSubCategoriesAdmin({ limit: 1000 } as any);
+          if (subRes.success && subRes.data) {
+            setSubcategories((prev: any[]) => {
+              const existingIds = new Set(prev.map(s => s._id || (s as any).id));
+              const newSubs = (subRes.data as any[]).filter(s => !existingIds.has(s._id || s.id));
+              return [...prev, ...newSubs];
+            });
+          }
+        } catch (e) {
+          console.warn("Global subcategory fetch failed:", e);
+        }
+
         // Handle taxes
         if (results[1].status === "fulfilled" && results[1].value.success) {
           setTaxes(results[1].value.data);
@@ -803,35 +817,31 @@ export default function AdminAddProduct() {
         let catRef = String(formData.category || "").trim();
         const isId = /^[0-9a-fA-F]{24}$/.test(catRef);
         
-        // Resolve target ID and Name for dual-matching
         let targetId = isId ? catRef : "";
-        let targetName = !isId ? catRef : "";
         
         if (isId) {
           const match = categories.find(c => String(c._id).toLowerCase() === catRef.toLowerCase());
-          if (match) targetName = String(match.name || (match as any).categoryName || "").trim();
+          if (match) targetId = match._id;
         } else {
           const match = categories.find(c => String(c.name || (c as any).categoryName || "").trim().toLowerCase() === catRef.toLowerCase());
           if (match) targetId = match._id;
         }
 
         try {
-          // Attempt specific fetch, but we already have fallback data from mount
           const finalId = targetId || catRef;
           const res = await getSubCategoriesAdmin({ category: finalId });
           if (res.success && res.data && res.data.length > 0) {
-            setSubcategories(res.data as any);
-          } else if (subcategories.length > 0) {
-             // If specific fetch returns nothing, we keep the fallback data
-             // and our map() logic in the render will handle the filtering
+             setSubcategories((prev: any[]) => {
+                const existing = new Map(prev.map(s => [s._id || (s as any).id, s]));
+                (res.data as any[]).forEach(s => existing.set(s._id || s.id, s));
+                return Array.from(existing.values());
+             });
           }
         } catch (err) {
           console.error("Error fetching subcategories:", err);
         }
       }
     };
-    // Only fetch if category changed and user is interacting (or initial load)
-    // For edit mode, we want to load subcategories for the selected category
     if (formData.category) {
       fetchSubs();
     }
@@ -2192,19 +2202,42 @@ const applySearchedImage = () => {
                           if (!selectedCatRef) return true;
                           
                           const isId = /^[0-9a-fA-F]{24}$/.test(selectedCatRef);
-                          if (isId && subCatId === selectedCatRef) return true;
-                          if (subCatName === selectedCatRef) return true;
                           
+                          // 1. Direct ID Match
+                          if (isId && subCatId === selectedCatRef) return true;
+                          
+                          // 2. Direct Name Match
+                          if (!isId && subCatName === selectedCatRef) return true;
+
+                          // 3. Resolve Selected Category and Match
                           const matchedCat = categories.find(c => 
                             String(c._id).toLowerCase() === selectedCatRef || 
                             String(c.name || (c as any).categoryName || "").trim().toLowerCase() === selectedCatRef
                           );
+
                           if (matchedCat) {
-                            if (subCatId === matchedCat._id.toLowerCase()) return true;
-                            if (subCatName === String(matchedCat.name || (matchedCat as any).categoryName || "").trim().toLowerCase()) return true;
+                            const mId = String(matchedCat._id).toLowerCase();
+                            const mName = String(matchedCat.name || (matchedCat as any).categoryName || "").trim().toLowerCase();
+                            if (subCatId === mId) return true;
+                            if (subCatName === mName) return true;
                           }
+
+                          // 4. Resolve SubCategory's Category and Match
+                          // If subCatProp is an ID, find the category object
+                          if (/^[0-9a-fA-F]{24}$/.test(subCatId)) {
+                            const subParentCat = categories.find(c => String(c._id).toLowerCase() === subCatId);
+                            if (subParentCat) {
+                                const spName = String(subParentCat.name || (subParentCat as any).categoryName || "").trim().toLowerCase();
+                                if (spName === selectedCatRef) return true;
+                            }
+                          }
+
                           return false;
-                        }).map((sub: any) => ({ id: sub._id, label: sub.name || sub.subcategoryName, value: sub._id }))}
+                        }).map((sub: any) => ({ 
+                           id: sub._id, 
+                           label: String(sub.name || sub.subcategoryName || sub.name || "-"), 
+                           value: sub._id 
+                        }))}
                         value={formData.subcategory}
                         onChange={(val) => setFormData(prev => ({ ...prev, subcategory: val }))}
                         placeholder={formData.category ? "Select Subcategory" : "Select Category First"}

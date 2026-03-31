@@ -1402,17 +1402,35 @@ export default function AdminStockBulkEdit({
                 if (!targetCatRef) return true;
                 
                 const isId = /^[0-9a-fA-F]{24}$/.test(targetCatRef);
-                if (isId && subCatId === targetCatRef) return true;
-                if (subCatName === targetCatRef) return true;
                 
+                // 1. Direct ID Match
+                if (isId && subCatId === targetCatRef) return true;
+                
+                // 2. Direct Name Match
+                if (!isId && subCatName === targetCatRef) return true;
+
+                // 3. Resolve Selected Category and Match
                 const matchedCat = categories.find(c => 
                   String(c._id).toLowerCase() === targetCatRef || 
                   String(c.name || (c as any).categoryName || "").trim().toLowerCase() === targetCatRef
                 );
+
                 if (matchedCat) {
-                  if (subCatId === matchedCat._id.toLowerCase()) return true;
-                  if (subCatName === String(matchedCat.name || (matchedCat as any).categoryName || "").trim().toLowerCase()) return true;
+                  const mId = String(matchedCat._id).toLowerCase();
+                  const mName = String(matchedCat.name || (matchedCat as any).categoryName || "").trim().toLowerCase();
+                  if (subCatId === mId) return true;
+                  if (subCatName === mName) return true;
                 }
+
+                // 4. Resolve SubCategory's Category and Match
+                if (/^[0-9a-fA-F]{24}$/.test(subCatId)) {
+                  const subParentCat = categories.find(c => String(c._id).toLowerCase() === subCatId);
+                  if (subParentCat) {
+                      const spName = String(subParentCat.name || (subParentCat as any).categoryName || "").trim().toLowerCase();
+                      if (spName === targetCatRef) return true;
+                  }
+                }
+
                 return false;
               }).map(sub => (
                 <option key={sub._id} value={sub._id}>
