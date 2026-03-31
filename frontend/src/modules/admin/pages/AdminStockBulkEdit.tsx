@@ -1394,40 +1394,34 @@ export default function AdminStockBulkEdit({
             <select className="w-full h-full px-2 py-2 bg-transparent border-none text-sm cursor-pointer" value={product.subCategoryId || ""} onChange={(e) => handleFieldChange(originalIndex, 'subCategoryId', e.target.value)}>
               <option value="">-</option>
               {subCategories.filter(sc => { 
-                const subCatProp = sc.category; 
-                const subCatId = String((typeof subCatProp === 'object' && subCatProp) ? (subCatProp as any)._id : (subCatProp || "")).trim().toLowerCase();
-                const subCatName = String((typeof subCatProp === 'object' && subCatProp) ? (subCatProp as any).name || (subCatProp as any).categoryName : (subCatProp || "")).trim().toLowerCase();
+                const subCatProperty = sc.category; 
+                const sCatId = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any)._id : (subCatProperty || "")).trim().toLowerCase();
+                const sCatName = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any).name || (subCatProperty as any).categoryName : (subCatProperty || "")).trim().toLowerCase();
                 
-                const targetCatRef = String(product.categoryId || "").trim().toLowerCase();
-                if (!targetCatRef) return true;
+                const tRef = String(product.categoryId || "").trim().toLowerCase();
+                if (!tRef) return true;
                 
-                const isId = /^[0-9a-fA-F]{24}$/.test(targetCatRef);
-                
-                // 1. Direct ID Match
-                if (isId && subCatId === targetCatRef) return true;
-                
-                // 2. Direct Name Match
-                if (!isId && subCatName === targetCatRef) return true;
+                // 1. Direct match with ID or Name
+                if (sCatId === tRef || sCatName === tRef) return true;
 
-                // 3. Resolve Selected Category and Match
-                const matchedCat = categories.find(c => 
-                  String(c._id).toLowerCase() === targetCatRef || 
-                  String(c.name || (c as any).categoryName || "").trim().toLowerCase() === targetCatRef
+                // 2. Cross-resolve through master categories list
+                const targetCat = categories.find(c => 
+                  String(c._id).toLowerCase().trim() === tRef || 
+                  String(c.name || (c as any).categoryName || "").trim().toLowerCase() === tRef
                 );
 
-                if (matchedCat) {
-                  const mId = String(matchedCat._id).toLowerCase();
-                  const mName = String(matchedCat.name || (matchedCat as any).categoryName || "").trim().toLowerCase();
-                  if (subCatId === mId) return true;
-                  if (subCatName === mName) return true;
+                if (targetCat) {
+                  const tId = String(targetCat._id).toLowerCase().trim();
+                  const tName = String(targetCat.name || (targetCat as any).categoryName || "").trim().toLowerCase();
+                  if (sCatId === tId || sCatName === tName) return true;
                 }
 
-                // 4. Resolve SubCategory's Category and Match
-                if (/^[0-9a-fA-F]{24}$/.test(subCatId)) {
-                  const subParentCat = categories.find(c => String(c._id).toLowerCase() === subCatId);
+                // 3. Last resort: Resolve subcategory's category and check name match
+                if (/^[0-9a-fA-F]{24}$/.test(sCatId)) {
+                  const subParentCat = categories.find(c => String(c._id).toLowerCase().trim() === sCatId);
                   if (subParentCat) {
                       const spName = String(subParentCat.name || (subParentCat as any).categoryName || "").trim().toLowerCase();
-                      if (spName === targetCatRef) return true;
+                      if (spName === tRef) return true;
                   }
                 }
 

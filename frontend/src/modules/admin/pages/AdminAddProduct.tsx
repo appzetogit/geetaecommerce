@@ -646,11 +646,11 @@ export default function AdminAddProduct() {
         try {
           const subRes = await getSubCategoriesAdmin({ limit: 1000 } as any);
           if (subRes.success && subRes.data) {
-            setSubcategories((prev: any[]) => {
-              const existingIds = new Set(prev.map(s => s._id || (s as any).id));
-              const newSubs = (subRes.data as any[]).filter(s => !existingIds.has(s._id || s.id));
-              return [...prev, ...newSubs];
-            });
+             setSubcategories((prev: any[]) => {
+                const existing = new Map(prev.map(s => [s._id || s.id, s]));
+                (subRes.data as any[]).forEach(s => existing.set(s._id || s.id, s));
+                return Array.from(existing.values());
+             });
           }
         } catch (e) {
           console.warn("Global subcategory fetch failed:", e);
@@ -832,10 +832,20 @@ export default function AdminAddProduct() {
           const res = await getSubCategoriesAdmin({ category: finalId });
           if (res.success && res.data && res.data.length > 0) {
              setSubcategories((prev: any[]) => {
-                const existing = new Map(prev.map(s => [s._id || (s as any).id, s]));
+                const existing = new Map(prev.map(s => [s._id || s.id, s]));
                 (res.data as any[]).forEach(s => existing.set(s._id || s.id, s));
                 return Array.from(existing.values());
              });
+          } else {
+             // If specific fetch returns nothing, we try fetching EVERYTHING as a safety measure
+             const fallbackRes = await getSubCategoriesAdmin({ limit: 1000 } as any);
+             if (fallbackRes.success && fallbackRes.data) {
+                setSubcategories((prev: any[]) => {
+                  const existing = new Map(prev.map(s => [s._id || s.id, s]));
+                  (fallbackRes.data as any[]).forEach(s => existing.set(s._id || s.id, s));
+                  return Array.from(existing.values());
+                });
+             }
           }
         } catch (err) {
           console.error("Error fetching subcategories:", err);
@@ -2194,44 +2204,37 @@ const applySearchedImage = () => {
                       </label>
                       <ThemedDropdown
                         options={subcategories.filter((sub: any) => {
-                          const subCatProp = sub.category;
-                          const subCatId = String((typeof subCatProp === 'object' && subCatProp) ? (subCatProp as any)._id : (subCatProp || "")).trim().toLowerCase();
-                          const subCatName = String((typeof subCatProp === 'object' && subCatProp) ? (subCatProp as any).name || (subCatProp as any).categoryName : (subCatProp || "")).trim().toLowerCase();
+                          const subCatProperty = sub.category;
+                          const sCatId = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any)._id : (subCatProperty || "")).trim().toLowerCase();
+                          const sCatName = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any).name || (subCatProperty as any).categoryName : (subCatProperty || "")).trim().toLowerCase();
                           
-                          const selectedCatRef = String(formData.category || "").trim().toLowerCase();
-                          if (!selectedCatRef) return true;
+                          const tRef = String(formData.category || "").trim().toLowerCase();
+                          if (!tRef) return true;
                           
-                          const isId = /^[0-9a-fA-F]{24}$/.test(selectedCatRef);
-                          
-                          // 1. Direct ID Match
-                          if (isId && subCatId === selectedCatRef) return true;
-                          
-                          // 2. Direct Name Match
-                          if (!isId && subCatName === selectedCatRef) return true;
+                          // 1. Direct match with ID or Name
+                          if (sCatId === tRef || sCatName === tRef) return true;
 
-                          // 3. Resolve Selected Category and Match
-                          const matchedCat = categories.find(c => 
-                            String(c._id).toLowerCase() === selectedCatRef || 
-                            String(c.name || (c as any).categoryName || "").trim().toLowerCase() === selectedCatRef
+                          // 2. Cross-resolve through master categories list
+                          const targetCat = categories.find(c => 
+                            String(c._id).toLowerCase().trim() === tRef || 
+                            String(c.name || (c as any).categoryName || "").trim().toLowerCase() === tRef
                           );
 
-                          if (matchedCat) {
-                            const mId = String(matchedCat._id).toLowerCase();
-                            const mName = String(matchedCat.name || (matchedCat as any).categoryName || "").trim().toLowerCase();
-                            if (subCatId === mId) return true;
-                            if (subCatName === mName) return true;
+                          if (targetCat) {
+                            const tId = String(targetCat._id).toLowerCase().trim();
+                            const tName = String(targetCat.name || (targetCat as any).categoryName || "").trim().toLowerCase();
+                            if (sCatId === tId || sCatName === tName) return true;
                           }
 
-                          // 4. Resolve SubCategory's Category and Match
-                          // If subCatProp is an ID, find the category object
-                          if (/^[0-9a-fA-F]{24}$/.test(subCatId)) {
-                            const subParentCat = categories.find(c => String(c._id).toLowerCase() === subCatId);
+                          // 3. Last resort: Resolve subcategory's category and check name match
+                          if (/^[0-9a-fA-F]{24}$/.test(sCatId)) {
+                            const subParentCat = categories.find(c => String(c._id).toLowerCase().trim() === sCatId);
                             if (subParentCat) {
                                 const spName = String(subParentCat.name || (subParentCat as any).categoryName || "").trim().toLowerCase();
-                                if (spName === selectedCatRef) return true;
+                                if (spName === tRef) return true;
                             }
                           }
-
+                          
                           return false;
                         }).map((sub: any) => ({ 
                            id: sub._id, 
