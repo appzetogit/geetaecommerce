@@ -194,6 +194,10 @@ export interface IAppSettings extends Document {
   updatedAt: Date;
 }
 
+export interface IAppSettingsModel extends mongoose.Model<IAppSettings> {
+  getSettings(): Promise<IAppSettings>;
+}
+
 const AppSettingsSchema = new Schema<IAppSettings>(
   {
     // App Info
@@ -626,7 +630,7 @@ AppSettingsSchema.statics.getSettings = async function () {
 // Indexes
 AppSettingsSchema.index({ appName: 1 });
 
-const AppSettings = mongoose.model<IAppSettings>(
+const AppSettings = mongoose.model<IAppSettings, IAppSettingsModel>(
   "AppSettings",
   AppSettingsSchema
 );

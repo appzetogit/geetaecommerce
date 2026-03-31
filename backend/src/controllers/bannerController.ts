@@ -108,14 +108,16 @@ export const deleteBanner = asyncHandler(async (req: Request, res: Response) => 
  * @access  Public
  */
 export const getFlashDeals = asyncHandler(async (req: Request, res: Response) => {
-  let settings = await AppSettings.findOne().select('flashDeal dealOfTheDay featuredDeal');
+  let settings: any = await AppSettings.findOne().select('flashDeal dealOfTheDay featuredDeal');
 
   if (!settings) {
      settings = await AppSettings.getSettings();
   }
 
   const data = {
-    flashDealTargetDate: settings.flashDeal?.targetDate || new Date(Date.now() + 86400000).toISOString(),
+    flashDealTargetDate: settings.flashDeal?.targetDate 
+      ? new Date(settings.flashDeal.targetDate).toISOString() 
+      : new Date(Date.now() + 86400000).toISOString(),
     flashDealImage: settings.flashDeal?.image || '',
     isActive: settings.flashDeal?.active ?? true,
     // Flash Deal Products (separate from Deal of the Day)
@@ -140,7 +142,7 @@ export const getFlashDeals = asyncHandler(async (req: Request, res: Response) =>
 export const updateFlashDeals = asyncHandler(async (req: Request, res: Response) => {
   const { flashDealTargetDate, flashDealImage, isActive, flashDealProductIds, dealOfTheDayProductIds, featuredDealProductIds } = req.body;
 
-  let settings = await AppSettings.findOne();
+  let settings: any = await AppSettings.findOne();
   if (!settings) {
       settings = await AppSettings.create({
           appName: "Geeta Stores",
@@ -178,7 +180,7 @@ export const updateFlashDeals = asyncHandler(async (req: Request, res: Response)
   await settings.save();
 
   const data = {
-    flashDealTargetDate: settings.flashDeal?.targetDate,
+    flashDealTargetDate: settings.flashDeal?.targetDate?.toISOString(),
     flashDealImage: settings.flashDeal?.image,
     isActive: settings.flashDeal?.active,
     flashDealProductIds: settings.flashDeal?.productIds,
