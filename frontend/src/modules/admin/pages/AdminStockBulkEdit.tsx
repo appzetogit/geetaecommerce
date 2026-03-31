@@ -1396,8 +1396,15 @@ export default function AdminStockBulkEdit({
               {subCategories.filter(sub => { 
                 const subCatObj = sub.category; 
                 const subCatId = (typeof subCatObj === 'object' && subCatObj) ? String((subCatObj as any)._id || "") : String(subCatObj || ""); 
-                const rowCatId = String(product.categoryId || "");
-                return !rowCatId || subCatId === rowCatId; 
+                
+                let rowCatId = String(product.categoryId || "").toLowerCase();
+                const isId = /^[0-9a-fA-F]{24}$/.test(rowCatId);
+                if (!isId && rowCatId) {
+                  const matchedCat = categories.find(c => String(c.name || (c as any).categoryName || "").toLowerCase() === rowCatId);
+                  if (matchedCat) rowCatId = String(matchedCat._id).toLowerCase();
+                }
+
+                return !rowCatId || subCatId.toLowerCase() === rowCatId; 
               }).map(sub => (
                 <option key={sub._id} value={sub._id}>
                   {String((sub as any).name || (sub as any).subcategoryName || (sub as any).name || "-")}

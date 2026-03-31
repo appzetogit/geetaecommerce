@@ -800,8 +800,16 @@ export default function AdminAddProduct() {
   useEffect(() => {
     const fetchSubs = async () => {
       if (formData.category) {
+        // Failsafe: If formData.category is a name (not an ID), find the ID first
+        let catId = String(formData.category || "");
+        const isId = /^[0-9a-fA-F]{24}$/.test(catId);
+        if (!isId && catId) {
+          const foundCat = categories.find(c => String(c.name || (c as any).categoryName || "").toLowerCase() === catId.toLowerCase());
+          if (foundCat) catId = foundCat._id;
+        }
+
         try {
-          const res = await getSubCategoriesAdmin({ category: formData.category });
+          const res = await getSubCategoriesAdmin({ category: catId });
           if (res.success) setSubcategories(res.data as any);
         } catch (err) {
           console.error("Error fetching subcategories:", err);

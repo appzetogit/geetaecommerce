@@ -2174,7 +2174,15 @@ export default function AdminStockManagement() {
                     options: subCategories.filter(s => {
                       const catProp = s.category;
                       const catId = String((typeof catProp === 'object' && catProp) ? (catProp as any)._id : (catProp || "")).toLowerCase();
-                      const targetId = String(selectedProductDetails.categoryId || "").toLowerCase();
+                      
+                      // Resolve product's category ID (might be name or ID)
+                      let targetId = String(selectedProductDetails.categoryId || "").toLowerCase();
+                      const isTargetId = /^[0-9a-fA-F]{24}$/.test(targetId);
+                      if (!isTargetId && targetId) {
+                        const matchedCat = categories.find(c => c.name?.toLowerCase() === targetId || (c as any).categoryName?.toLowerCase() === targetId);
+                        if (matchedCat) targetId = matchedCat._id.toLowerCase();
+                      }
+
                       return !targetId || catId === targetId;
                     }).map(s => ({ 
                       id: s._id, 
