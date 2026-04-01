@@ -32,7 +32,7 @@ const SellerInvoiceReport = () => {
     if (isAuthenticated && token) {
       fetchOrders();
     }
-  }, [token, isAuthenticated, pagination.page, dateFilterType, customDateRange, paymentMethodFilter, debouncedSearchTerm]);
+  }, [token, isAuthenticated, pagination.page, pagination.limit, dateFilterType, customDateRange, paymentMethodFilter, debouncedSearchTerm]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -312,6 +312,18 @@ const SellerInvoiceReport = () => {
                 placeholder="Search by Invoice No, Customer, Phone or Payment Method..."
                 className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm font-semibold focus:border-seller-500 focus:ring-4 focus:ring-seller-50 transition-all outline-none shadow-sm"
                 />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest min-w-fit">Show</label>
+              <select
+                value={pagination.limit}
+                onChange={(e) => setPagination(prev => ({ ...prev, limit: parseInt(e.target.value), page: 1 }))}
+                className="px-3 py-2.5 bg-white border border-gray-100 rounded-xl text-sm font-black text-gray-700 outline-none focus:border-seller-500 transition-all min-w-[80px]">
+                {[10, 20, 50, 100, 500].map(l => (
+                  <option key={l} value={l}>{l}</option>
+                ))}
+              </select>
             </div>
 
             <select

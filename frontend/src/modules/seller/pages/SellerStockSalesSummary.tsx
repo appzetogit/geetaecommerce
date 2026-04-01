@@ -325,6 +325,38 @@ const SellerStockSalesSummary = () => {
         </div>
       </div>
 
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Items</p>
+          <p className="text-3xl font-black text-gray-900 mt-2">
+            {pagination.total}
+          </p>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Units Sold (Page)</p>
+          <p className="text-3xl font-black text-blue-600 mt-2">
+            {totalUnits}
+          </p>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Revenue (Page)</p>
+          <p className="text-3xl font-black text-purple-600 mt-2">
+            ₹{totalRevenue.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Profit (Page)</p>
+          <p className="text-3xl font-black text-green-600 mt-2">
+            ₹{totalProfit.toLocaleString()}
+          </p>
+        </div>
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -428,35 +460,7 @@ const SellerStockSalesSummary = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Items</p>
-          <p className="text-3xl font-black text-gray-900 mt-2">
-            {pagination.total}
-          </p>
-        </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Units Sold (Page)</p>
-          <p className="text-3xl font-black text-blue-600 mt-2">
-            {totalUnits}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Revenue (Page)</p>
-          <p className="text-3xl font-black text-purple-600 mt-2">
-            ₹{totalRevenue.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Profit (Page)</p>
-          <p className="text-3xl font-black text-green-600 mt-2">
-            ₹{totalProfit.toLocaleString()}
-          </p>
-        </div>
-      </div>
     </div>
   );
 };

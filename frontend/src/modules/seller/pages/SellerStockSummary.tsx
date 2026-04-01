@@ -386,6 +386,36 @@ const SellerStockSummary = () => {
 
       {/* Table Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Products</p>
+            <p className="text-3xl font-black text-gray-900 mt-2">
+              {pagination.total}
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Stock Quantity</p>
+            <p className="text-3xl font-black text-blue-600 mt-2">
+              {data.reduce((sum, item) => sum + item.quantity, 0)}
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Stock Value (MRP)</p>
+            <p className="text-3xl font-black text-purple-600 mt-2">
+              ₹{data.reduce((sum, item) => sum + item.totalMRP, 0).toLocaleString()}
+            </p>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Potential Revenue (SP)</p>
+            <p className="text-3xl font-black text-green-600 mt-2">
+              ₹{data.reduce((sum, item) => sum + item.totalSP, 0).toLocaleString()}
+            </p>
+          </div>
+        </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -748,36 +778,7 @@ const SellerStockSummary = () => {
           </div>
         </div>
 
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Products</p>
-            <p className="text-3xl font-black text-gray-900 mt-2">
-              {pagination.total}
-            </p>
-          </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Stock Quantity</p>
-            <p className="text-3xl font-black text-blue-600 mt-2">
-              {data.reduce((sum, item) => sum + item.quantity, 0)}
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Stock Value (MRP)</p>
-            <p className="text-3xl font-black text-purple-600 mt-2">
-              ₹{data.reduce((sum, item) => sum + item.totalMRP, 0).toLocaleString()}
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Potential Revenue (SP)</p>
-            <p className="text-3xl font-black text-green-600 mt-2">
-              ₹{data.reduce((sum, item) => sum + item.totalSP, 0).toLocaleString()}
-            </p>
-          </div>
-        </div>
 
         {/* Pagination Controls */}
         {pagination.pages > 1 && (
