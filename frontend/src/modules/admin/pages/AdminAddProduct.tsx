@@ -152,6 +152,7 @@ export default function AdminAddProduct() {
   const [scanTargetIndex, setScanTargetIndex] = useState<number | null>(null);
   const scannerRef = React.useRef<Html5Qrcode | null>(null);
   const [foundProduct, setFoundProduct] = useState<any>(null);
+  const [editingVariationIndex, setEditingVariationIndex] = useState<number | null>(null);
   const [showProductFoundModal, setShowProductFoundModal] = useState(false);
   const [currentBarcode, setCurrentBarcode] = useState("");
   const [currentVarBarcode, setCurrentVarBarcode] = useState("");
@@ -253,7 +254,7 @@ export default function AdminAddProduct() {
         lastSyncInitiatorRef.current = null;
         return;
     }
-    
+
     const v = variations[0];
     const rootPriceNum = parseFloat(formData.price || "0") || 0;
     const rootCompareAtPriceNum = parseFloat(formData.compareAtPrice || "0") || 0;
@@ -262,7 +263,7 @@ export default function AdminAddProduct() {
     const rootWholesalePriceNum = parseFloat(formData.wholesalePrice || "0") || 0;
 
     // Check if Root is different from Variation
-    const isDifferent = 
+    const isDifferent =
       v.price !== rootPriceNum ||
       v.compareAtPrice !== rootCompareAtPriceNum ||
       v.stock !== rootStockNum ||
@@ -278,11 +279,11 @@ export default function AdminAddProduct() {
     // If we just added/modified a variation explicitly in the variation form/list,
     // we should trust the variation and update the root.
     // If the user modified the top-level form, we update the variation.
-    
+
     // Safety check: If variation has a custom title (not Default), and price is 0/empty in top level,
     // definitely sync from variation to root.
     const isCustomVar = v.title && v.title !== "Default";
-    
+
     if (lastSyncInitiatorRef.current === "variation" || (isCustomVar && rootPriceNum === 0)) {
         // Sync Variation -> Root
         setFormData(prev => ({
@@ -762,7 +763,7 @@ export default function AdminAddProduct() {
               discPrice: product.discPrice?.toString() || "0",
               stock: product.stock?.toString() || "0",
               // Ensure offerPrice is correctly populated from discPrice if an discount was active
-              offerPrice: (product as any).offerPrice?.toString() || 
+              offerPrice: (product as any).offerPrice?.toString() ||
                          ((product.discPrice && product.discPrice < product.price) ? product.discPrice.toString() : ""),
               wholesalePrice: product.wholesalePrice?.toString() || "",
             });
@@ -823,9 +824,9 @@ export default function AdminAddProduct() {
       if (formData.category && categories.length > 0) {
         let catRef = String(formData.category || "").trim();
         const isId = /^[0-9a-fA-F]{24}$/.test(catRef);
-        
+
         let targetId = isId ? catRef : "";
-        
+
         if (isId) {
           const match = categories.find(c => String(c._id).toLowerCase() === catRef.toLowerCase());
           if (match) targetId = match._id;
@@ -893,10 +894,10 @@ export default function AdminAddProduct() {
         // Robust comparison for Header Category (ID or Name)
         const catHeaderId = String(currentCategory.headerCategoryId?._id || currentCategory.headerCategoryId || "").trim().toLowerCase();
         const selectedHeaderRef = String(formData.headerCategory || "").trim().toLowerCase();
-        
+
         const isMatch = (catHeaderId === selectedHeaderRef) || (() => {
-            const hMatch = headerCategories.find(hc => 
-                String(hc._id).toLowerCase() === selectedHeaderRef || 
+            const hMatch = headerCategories.find(hc =>
+                String(hc._id).toLowerCase() === selectedHeaderRef ||
                 String(hc.name).toLowerCase() === selectedHeaderRef
             );
             return hMatch && (String(hMatch._id).toLowerCase() === catHeaderId || String(hMatch.name).toLowerCase() === catHeaderId);
@@ -1047,7 +1048,14 @@ export default function AdminAddProduct() {
       image: variationForm.image
     };
 
-    setVariations([...variations, newVariation]);
+    if (editingVariationIndex !== null) {
+        const next = [...variations];
+        next[editingVariationIndex] = newVariation;
+        setVariations(next);
+        setEditingVariationIndex(null);
+    } else {
+        setVariations([...variations, newVariation]);
+    }
     lastSyncInitiatorRef.current = "variation";
     setVariationForm({
       title: "",
@@ -1063,6 +1071,43 @@ export default function AdminAddProduct() {
       image: "",
     });
     setUploadError("");
+  };
+
+  const handleEditVariation = (index: number) => {
+    const v = variations[index];
+    setVariationForm({
+      title: v.title || v.name || "",
+      price: String(v.price || ""),
+      compareAtPrice: String(v.compareAtPrice || ""),
+      discPrice: String(v.discPrice || "0"),
+      stock: String(v.stock || "0"),
+      status: v.status || "Available",
+      barcode: v.barcode || [],
+      offerPrice: String(v.offerPrice || ""),
+      wholesalePrice: String(v.wholesalePrice || ""),
+      tieredPrices: (v.tieredPrices || []).map((t: any) => ({ minQty: String(t.minQty), price: String(t.price) })),
+      image: v.image || "",
+    });
+    setEditingVariationIndex(index);
+    const el = document.getElementById('variation-form-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const cancelVariationEdit = () => {
+    setEditingVariationIndex(null);
+    setVariationForm({
+        title: "",
+        price: "",
+        compareAtPrice: "",
+        discPrice: "0",
+        stock: "0",
+        status: "Available",
+        barcode: [],
+        offerPrice: "",
+        wholesalePrice: "",
+        tieredPrices: [],
+        image: "",
+    });
   };
 
   const handleAddTier = () => {
@@ -2205,16 +2250,16 @@ const applySearchedImage = () => {
                           const subCatProperty = sub.category;
                           const sCatId = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any)._id : (subCatProperty || "")).trim().toLowerCase();
                           const sCatName = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any).name || (subCatProperty as any).categoryName : (subCatProperty || "")).trim().toLowerCase();
-                          
+
                           const tRef = String(formData.category || "").trim().toLowerCase();
                           if (!tRef) return true;
-                          
+
                           // 1. Direct match with ID or Name
                           if (sCatId === tRef || sCatName === tRef) return true;
 
                           // 2. Cross-resolve through master categories list
-                          const targetCat = categories.find(c => 
-                            String(c._id).toLowerCase().trim() === tRef || 
+                          const targetCat = categories.find(c =>
+                            String(c._id).toLowerCase().trim() === tRef ||
                             String(c.name || (c as any).categoryName || "").trim().toLowerCase() === tRef
                           );
 
@@ -2232,12 +2277,12 @@ const applySearchedImage = () => {
                                 if (spName === tRef) return true;
                             }
                           }
-                          
+
                           return false;
-                        }).map((sub: any) => ({ 
-                           id: sub._id, 
-                           label: String(sub.name || sub.subcategoryName || sub.name || "-"), 
-                           value: sub._id 
+                        }).map((sub: any) => ({
+                           id: sub._id,
+                           label: String(sub.name || sub.subcategoryName || sub.name || "-"),
+                           value: sub._id
                         }))}
                         value={formData.subcategory}
                         onChange={(val) => setFormData(prev => ({ ...prev, subcategory: val }))}
@@ -2829,7 +2874,7 @@ const applySearchedImage = () => {
                   </div>
               ) : (
                 /* Variation Form (Old Manual) */
-                <div className="bg-neutral-50 rounded-xl p-6 border border-neutral-200">
+                <div id="variation-form-section" className={`bg-neutral-50 rounded-xl p-6 border ${editingVariationIndex !== null ? 'border-[#f187b5] ring-1 ring-[#f187b5]' : 'border-neutral-200'}`}>
                   <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-start">
                     {/* Variation Image */}
                     <div className="md:col-span-1">
@@ -3078,13 +3123,22 @@ const applySearchedImage = () => {
                           </div>
                        </div>
                     </div>
-                    <div className="flex items-end h-full pt-6 md:col-span-5 justify-end">
+                    <div className="flex items-end h-full pt-6 md:col-span-5 justify-end gap-3">
+                      {editingVariationIndex !== null && (
+                        <button
+                          type="button"
+                          onClick={cancelVariationEdit}
+                          className="px-6 py-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={addVariation}
                         className="px-6 py-2 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
                       >
-                        Add Variation +
+                        {editingVariationIndex !== null ? "Update Variation" : "Add Variation +"}
                       </button>
                     </div>
                   </div>
@@ -3313,9 +3367,19 @@ const applySearchedImage = () => {
                                             </button>
                                         </td>
                                         <td className="px-4 py-2 text-center">
-                                            <button type="button" onClick={() => removeVariation(idx)} className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-full hover:bg-red-50">
-                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                            </button>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => handleEditVariation(idx)} 
+                                                    className={`p-1 rounded-full transition-colors ${editingVariationIndex === idx ? 'bg-[#f187b5] text-white' : 'text-gray-400 hover:text-[#f187b5] hover:bg-pink-50'}`}
+                                                    title="Edit variation"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                </button>
+                                                <button type="button" onClick={() => removeVariation(idx)} className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-full hover:bg-red-50" title="Delete variation">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -3382,14 +3446,24 @@ const applySearchedImage = () => {
                             </span>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => removeVariation(index)}
-                          className="ml-4 p-2 text-neutral-400 hover:text-red-600 transition-colors"
-                          title="Remove variation"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                        <div className="flex items-center gap-2 ml-4">
+                            <button
+                              type="button"
+                              onClick={() => handleEditVariation(index)}
+                              className={`p-2 rounded-lg transition-colors ${editingVariationIndex === index ? 'bg-pink-100 text-[#f187b5]' : 'text-neutral-400 hover:text-[#f187b5] hover:bg-pink-50'}`}
+                              title="Edit variation"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => removeVariation(index)}
+                              className="p-2 text-neutral-400 hover:text-red-600 transition-colors"
+                              title="Remove variation"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
                       </div>
                     ))}
                   </div>
