@@ -30,7 +30,7 @@ const AdminLowStockSummary = () => {
   // Fetch data with full dynamic parameters
   useEffect(() => {
     fetchData();
-  }, [pagination.page, dateFilterType, customDateRange, categoryFilter, debouncedSearchTerm]);
+  }, [pagination.page, pagination.limit, dateFilterType, customDateRange, categoryFilter, debouncedSearchTerm]);
 
   // Fetch categories for filter
   useEffect(() => {
@@ -333,8 +333,8 @@ const AdminLowStockSummary = () => {
             </div>
           )}
 
-          {/* Search and Category Filters */}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Search, Category, and Limit Filters */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5 px-1">Search</label>
               <input
@@ -346,16 +346,28 @@ const AdminLowStockSummary = () => {
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Category Filter</label>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5 px-1">Category Filter</label>
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-teal-500 focus:ring-2 focus:ring-teal-200 outline-none transition-all">
+                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all">
                   <option value="">All Categories</option>
                   {categories.map(cat => (
                     <option key={cat._id} value={cat._id}>{cat.name}</option>
                   ))}
                 </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5 px-1">Show per page</label>
+              <select
+                value={pagination.limit}
+                onChange={(e) => setPagination(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }))}
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+              >
+                {[10, 20, 50, 100, 500].map(val => (
+                  <option key={val} value={val}>{val}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
