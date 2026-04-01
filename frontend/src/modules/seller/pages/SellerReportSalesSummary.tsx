@@ -287,15 +287,60 @@ const SellerReportSalesSummary = () => {
           </div>
         )}
 
-        <div className="mt-4">
-          <label className="block text-xs font-semibold text-gray-600 mb-1.5">Search</label>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by invoice or customer..."
-            className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
-          />
+        {/* Search and Limit Filters */}
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5 px-1">Search</label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by invoice or customer..."
+              className="w-full px-4 py-2.5 text-sm bg-white border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all shadow-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5 px-1">Show per page</label>
+            <select
+              value={pagination.limit}
+              onChange={(e) => setPagination(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }))}
+              className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+            >
+              {[10, 20, 50, 100, 500].map(val => (
+                <option key={val} value={val}>{val}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Sales (Page)</p>
+          <p className="text-2xl font-black text-gray-800 mt-2">
+            ₹{totalSales.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Profit (Page)</p>
+          <p className="text-2xl font-black text-green-600 mt-2">
+            ₹{totalProfit.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Discount (Page)</p>
+          <p className="text-2xl font-black text-orange-600 mt-2">
+            ₹{totalDiscount.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Orders</p>
+          <p className="text-2xl font-black text-purple-600 mt-2">
+            {totalOrders}
+          </p>
         </div>
       </div>
 
@@ -445,35 +490,6 @@ const SellerReportSalesSummary = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Sales (Page)</p>
-          <p className="text-2xl font-black text-gray-800 mt-2">
-            ₹{totalSales.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Profit (Page)</p>
-          <p className="text-2xl font-black text-green-600 mt-2">
-            ₹{totalProfit.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Discount (Page)</p>
-          <p className="text-2xl font-black text-orange-600 mt-2">
-            ₹{totalDiscount.toLocaleString()}
-          </p>
-        </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Orders</p>
-          <p className="text-2xl font-black text-purple-600 mt-2">
-            {totalOrders}
-          </p>
-        </div>
-      </div>
     </div>
   );
 };

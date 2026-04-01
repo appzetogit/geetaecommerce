@@ -273,7 +273,8 @@ const AdminPaymentReport = () => {
             </div>
           )}
 
-          <div className="mt-4">
+          {/* Search and Limit Filters */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,6 +288,17 @@ const AdminPaymentReport = () => {
                 placeholder="Search by Order ID, Transaction ID, or Customer name..."
                 className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all shadow-sm"
               />
+            </div>
+            <div>
+              <select
+                value={pagination.limit}
+                onChange={(e) => setPagination(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }))}
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+              >
+                {[10, 20, 50, 100, 500].map(val => (
+                  <option key={val} value={val}>Show {val} records</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
