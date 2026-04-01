@@ -859,7 +859,7 @@ const AdminPOSOrders = () => {
                              productName: `${match.productName} - ${variantLabel}`,
                              isVariant: true,
                              variationId,
-                             image: match.mainImage,
+                             image: variationMatch?.image || match.mainImage || match.mainImageUrl,
                              mrp: Number(variationMatch?.compareAtPrice ?? match.compareAtPrice ?? match.price ?? 0),
                              retailPrice: Number(variationMatch?.price ?? match.price ?? 0),
                              wholesalePrice: Number(variationMatch?.wholesalePrice ?? match.wholesalePrice ?? 0),
@@ -894,14 +894,15 @@ const AdminPOSOrders = () => {
              if (variationMatch) {
                 // Formatting variation as CartItem
                  itemToAdd = {
-                     ...itemToAdd,
-                     variationId: variationMatch._id,
-                     _id: `${itemToAdd._id}-${variationMatch._id}`, // Consistent variation ID
-                     isVariation: true,
-                     stock: variationMatch.stock, // Use variation stock
-                     price: Number(variationMatch.price) || itemToAdd.price,
-                     compareAtPrice: Number(variationMatch.compareAtPrice) || itemToAdd.compareAtPrice,
-                 };
+                      ...itemToAdd,
+                      variationId: variationMatch._id,
+                      _id: `${itemToAdd._id}-${variationMatch._id}`, // Consistent variation ID
+                      isVariation: true,
+                      mainImage: variationMatch.image || itemToAdd.mainImage || itemToAdd.mainImageUrl, // Use variant image
+                      stock: variationMatch.stock, // Use variation stock
+                      price: Number(variationMatch.price) || itemToAdd.price,
+                      compareAtPrice: Number(variationMatch.compareAtPrice) || itemToAdd.compareAtPrice,
+                  };
              } else {
                  itemToAdd.originalProductId = itemToAdd._id;
              }
@@ -1283,6 +1284,13 @@ const AdminPOSOrders = () => {
           const expandedProducts: any[] = []; // Relax type to allow adding originalProductId
 
           response.data.forEach((product: any) => {
+             // Always push the base product to allow selecting the parent item (if it has its own price/stock)
+             expandedProducts.push({
+                 ...product,
+                 originalProductId: product._id,
+                 wholesalePrice: product.wholesalePrice || 0
+             });
+
              if (product.variations && product.variations.length > 0) {
                  product.variations.forEach((variation: any) => {
                      expandedProducts.push({
@@ -1290,6 +1298,7 @@ const AdminPOSOrders = () => {
                          _id: `${product._id}-${variation._id}`, // Consistent ID for variations
                          originalProductId: product._id, // Store parent ID
                          productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || 'Variation'}`,
+                         mainImage: variation.image || product.mainImage || product.mainImageUrl, // Use variant image if available
                          price: variation.price,
                          compareAtPrice: variation.compareAtPrice || product.compareAtPrice, // Fallback to product MRP if variation doesn't have one
                          purchasePrice: variation.purchasePrice || product.purchasePrice, // Fallback to product PP
@@ -1297,14 +1306,8 @@ const AdminPOSOrders = () => {
                          sku: variation.sku || product.sku, // Use variation SKU
                          isVariation: true,
                          variationId: variation._id,
-                         wholesalePrice: Number(product.wholesalePrice || 0)
+                         wholesalePrice: Number(variation.wholesalePrice || product.wholesalePrice || 0)
                      });
-                 });
-             } else {
-                 expandedProducts.push({
-                     ...product,
-                     originalProductId: product._id,
-                     wholesalePrice: product.wholesalePrice || 0
                  });
              }
           });
@@ -1384,6 +1387,13 @@ const AdminPOSOrders = () => {
       if (res.success && res.data && res.data.length > 0) {
         const expanded: any[] = [];
         res.data.forEach((product: any) => {
+          // Always push the base product to allow selecting the parent item
+          expanded.push({
+            ...product,
+            originalProductId: product._id,
+            wholesalePrice: product.wholesalePrice || 0
+          });
+
           if (product.variations && product.variations.length > 0) {
             product.variations.forEach((variation: any) => {
               expanded.push({
@@ -1391,6 +1401,7 @@ const AdminPOSOrders = () => {
                 _id: `${product._id}-${variation._id}`,
                 originalProductId: product._id,
                 productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || 'Variation'}`,
+                mainImage: variation.image || product.mainImage || product.mainImageUrl, // Use variant image if available
                 price: variation.price,
                 compareAtPrice: variation.compareAtPrice || product.compareAtPrice,
                 purchasePrice: variation.purchasePrice || product.purchasePrice,
@@ -1398,14 +1409,8 @@ const AdminPOSOrders = () => {
                 sku: variation.sku || product.sku,
                 isVariation: true,
                 variationId: variation._id,
-                wholesalePrice: Number(product.wholesalePrice || 0)
+                wholesalePrice: Number(variation.wholesalePrice || product.wholesalePrice || 0)
               });
-            });
-          } else {
-            expanded.push({
-              ...product,
-              originalProductId: product._id,
-              wholesalePrice: product.wholesalePrice || 0
             });
           }
         });
@@ -2009,7 +2014,7 @@ const AdminPOSOrders = () => {
         productName: `${baseItem.productName} - ${variantLabel}`,
         isVariant: true,
         variationId,
-        image: baseItem.image,
+        image: variation?.image || baseItem.image,
         mrp: Number(variation?.compareAtPrice ?? baseItem.mrp ?? 0),
         retailPrice: Number(variation?.price ?? baseItem.retailPrice ?? 0),
         wholesalePrice: Number(variation?.wholesalePrice ?? baseItem.wholesalePrice ?? 0),
