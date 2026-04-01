@@ -24,10 +24,15 @@ export const calculateProductPrice = (product: any, variationSelector?: number |
     variation = product.variations?.find((v: any) => (v._id === variationSelector || v.id === variationSelector));
   }
 
-  // Fallback to first variation if no specific one selected/found but variations exist
-  // Only if variationSelector was NOT provided (undefined). If it was provided but not found, we probably shouldn't default to 0?
-  // Current behavior was: if index undefined, use index 0.
-  if (!variation && product.variations?.length > 0 && variationSelector === undefined) {
+  // Only fall back to the first variation when the root product has no usable pricing at all.
+  if (
+    !variation &&
+    product.variations?.length > 0 &&
+    variationSelector === undefined &&
+    !parseFloat(product.discPrice || 0) &&
+    !parseFloat(product.price || 0) &&
+    !parseFloat(product.compareAtPrice || product.mrp || 0)
+  ) {
     variation = product.variations[0];
   }
 
@@ -36,17 +41,31 @@ export const calculateProductPrice = (product: any, variationSelector?: number |
   const pPrice = parseFloat(product.price || 0);
   const pDiscPrice = parseFloat(product.discPrice || 0);
 
-  let displayPrice = (vDiscPrice > 0)
-    ? vDiscPrice
+  const hasSelectedVariation = Boolean(variation);
+
+  let displayPrice = hasSelectedVariation
+    ? (vDiscPrice > 0)
+      ? vDiscPrice
+      : (vPrice > 0)
+      ? vPrice
+      : (pDiscPrice > 0)
+      ? pDiscPrice
+      : (pPrice > 0)
+      ? pPrice
+      : 0
     : (pDiscPrice > 0)
     ? pDiscPrice
-    : (vPrice > 0)
-    ? vPrice
     : (pPrice > 0)
     ? pPrice
+    : (vDiscPrice > 0)
+    ? vDiscPrice
+    : (vPrice > 0)
+    ? vPrice
     : 0;
 
-  let mrp = parseFloat(variation?.compareAtPrice || variation?.mrp || product.compareAtPrice || product.mrp || variation?.price || product.price || 0);
+  let mrp = hasSelectedVariation
+    ? parseFloat(variation?.compareAtPrice || variation?.mrp || variation?.price || product.compareAtPrice || product.mrp || product.price || 0)
+    : parseFloat(product.compareAtPrice || product.mrp || product.price || variation?.compareAtPrice || variation?.mrp || variation?.price || 0);
 
   // Safety layer: Never show 0 price if MRP exists
   if (displayPrice <= 0 && mrp > 0) {
@@ -84,8 +103,15 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
       }
   }
 
-  // Fallback to first variation if needed (standard logic)
-  if (!variation && product.variations?.length > 0 && variationSelector === undefined) {
+  // Only fall back when the root product has no usable pricing.
+  if (
+    !variation &&
+    product.variations?.length > 0 &&
+    variationSelector === undefined &&
+    !parseFloat(product.discPrice || 0) &&
+    !parseFloat(product.price || 0) &&
+    !parseFloat(product.compareAtPrice || product.mrp || 0)
+  ) {
     variation = product.variations[0];
   }
 

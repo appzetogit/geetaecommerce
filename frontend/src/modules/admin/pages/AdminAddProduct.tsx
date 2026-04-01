@@ -256,6 +256,20 @@ export default function AdminAddProduct() {
     }
 
     const v = variations[0];
+    const isDefaultLikeVariation =
+      String(v.title || v.value || "").trim().toLowerCase() === "default";
+    const hasExplicitVariationSetup =
+      Boolean(formData.variationType?.trim()) ||
+      Boolean(formData.variationName?.trim()) ||
+      !isDefaultLikeVariation;
+
+    // Only keep root<->variation fields in sync for simple/default products.
+    // Real named variations should not overwrite the main product fields.
+    if (hasExplicitVariationSetup && !isDefaultLikeVariation) {
+        lastSyncInitiatorRef.current = null;
+        return;
+    }
+
     const rootPriceNum = parseFloat(formData.price || "0") || 0;
     const rootCompareAtPriceNum = parseFloat(formData.compareAtPrice || "0") || 0;
     const rootStockNum = parseInt(formData.stock || "0") || 0;
@@ -311,7 +325,16 @@ export default function AdminAddProduct() {
         });
         lastSyncInitiatorRef.current = null;
     }
-  }, [formData.price, formData.compareAtPrice, formData.stock, formData.offerPrice, formData.wholesalePrice, variations]);
+  }, [
+    formData.price,
+    formData.compareAtPrice,
+    formData.stock,
+    formData.offerPrice,
+    formData.wholesalePrice,
+    formData.variationType,
+    formData.variationName,
+    variations
+  ]);
 
 
   const handlePrintBarcode = (barcodeVal: string, qty: number, name?: string, sp?: number, mrp?: number) => {
@@ -767,7 +790,7 @@ export default function AdminAddProduct() {
                          ((product.discPrice && product.discPrice < product.price) ? product.discPrice.toString() : ""),
               wholesalePrice: product.wholesalePrice?.toString() || "",
             });
-            const vars = (product.variations || []).map((v: any) => ({
+            const rawVars = (product.variations || []).map((v: any) => ({
               ...v,
               price: v.price || 0,
               compareAtPrice: v.compareAtPrice || 0,
@@ -778,6 +801,14 @@ export default function AdminAddProduct() {
               barcode: v.barcode || [],
               status: (v.status as "Available" | "Sold out" | "In stock") || "Available"
             }));
+            const hasExplicitVariationSetup =
+              Boolean(product.variationType?.trim()) ||
+              Boolean(product.variationName?.trim());
+            const vars = !hasExplicitVariationSetup &&
+              rawVars.length === 1 &&
+              (rawVars[0].title || rawVars[0].value || "").trim().toLowerCase() === "default"
+                ? []
+                : rawVars;
             setVariations(vars);
 
             // Populate Top Form with 1st variation if exists (Simulating Simple Product Edit)
@@ -1081,7 +1112,7 @@ export default function AdminAddProduct() {
       compareAtPrice: String(v.compareAtPrice || ""),
       discPrice: String(v.discPrice || "0"),
       stock: String(v.stock || "0"),
-      status: v.status || "Available",
+      status: v.status === "Sold out" ? "Sold out" : "Available",
       barcode: v.barcode || [],
       offerPrice: String(v.offerPrice || ""),
       wholesalePrice: String(v.wholesalePrice || ""),
@@ -1474,7 +1505,6 @@ export default function AdminAddProduct() {
         setFormData((prev) => ({ ...prev, galleryImageUrls }));
       }
 
-      // Auto-add current variation if form is filled but list is empty
       const finalVariations = [...variations];
 
       const price = parseFloat(formData.price || "0"); // Selling Price
@@ -1484,30 +1514,10 @@ export default function AdminAddProduct() {
       const wholesalePrice = formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : 0;
       const calculatedDiscPrice = offerPrice || price; // Use offerPrice as discPrice if provided
 
-      if (finalVariations.length === 0) {
-        if (formData.price) { // Check if simple product pricing is provided
-          if (compareAtPrice > 0 && price > compareAtPrice) {
-             setUploadError("Selling price cannot be greater than Maximum Retail Price (MRP)");
-             setUploading(false);
-             return;
-          }
-
-           finalVariations.push({
-              title: variationForm.title || "Default",
-              price,
-              compareAtPrice,
-              discPrice: calculatedDiscPrice,
-              stock,
-              status: variationForm.status || "Available",
-              offerPrice,
-              wholesalePrice,
-              barcode: variationForm.barcode || []
-            });
-        } else {
-          setUploadError("Please add at least one product variation");
-          setUploading(false);
-          return;
-        }
+      if (compareAtPrice > 0 && price > compareAtPrice) {
+         setUploadError("Selling price cannot be greater than Maximum Retail Price (MRP)");
+         setUploading(false);
+         return;
       }
 
       // Prepare product data for API
@@ -1518,6 +1528,12 @@ export default function AdminAddProduct() {
             .filter(Boolean)
         : [];
 
+      const hasExplicitVariations = finalVariations.length > 0;
+      const hasRootPrice = formData.price !== "";
+      const hasRootCompareAtPrice = formData.compareAtPrice !== "";
+      const hasRootWholesalePrice = formData.wholesalePrice !== "";
+      const hasRootOfferPrice = formData.offerPrice !== "";
+      const hasRootStock = formData.stock !== "";
       const variationsWithImages = finalVariations.map((v: any) => ({
         ...v,
         image: v.image || mainImageUrl || "",
@@ -1552,13 +1568,32 @@ export default function AdminAddProduct() {
         fssaiLicNo: formData.fssaiLicNo || undefined,
         mainImage: mainImageUrl || undefined,
         galleryImages: galleryImageUrls,
-        variations: variationsWithImages,
-        variationType: formData.variationType || undefined,
-        price: variationsWithImages[0]?.price || 0,
-        compareAtPrice: variationsWithImages[0]?.compareAtPrice || 0,
-        wholesalePrice: variationsWithImages[0]?.wholesalePrice || 0,
-        discPrice: variationsWithImages[0]?.discPrice || 0,
-        stock: variationsWithImages.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0),
+        variations: hasExplicitVariations ? variationsWithImages : undefined,
+        variationType: hasExplicitVariations ? (formData.variationType || undefined) : undefined,
+        variationName: hasExplicitVariations ? (formData.variationName || undefined) : undefined,
+        price: hasExplicitVariations
+          ? (hasRootPrice ? price : (variationsWithImages[0]?.price || 0))
+          : price,
+        compareAtPrice: hasExplicitVariations
+          ? (hasRootCompareAtPrice ? compareAtPrice : (variationsWithImages[0]?.compareAtPrice || 0))
+          : compareAtPrice,
+        wholesalePrice: hasExplicitVariations
+          ? (hasRootWholesalePrice ? wholesalePrice : (variationsWithImages[0]?.wholesalePrice || 0))
+          : wholesalePrice,
+        discPrice: hasExplicitVariations
+          ? (
+              hasRootOfferPrice || hasRootPrice
+                ? calculatedDiscPrice
+                : (variationsWithImages[0]?.discPrice || 0)
+            )
+          : calculatedDiscPrice,
+        stock: hasExplicitVariations
+          ? (
+              hasRootStock
+                ? stock
+                : variationsWithImages.reduce((acc, curr) => acc + (Number(curr.stock) || 0), 0)
+            )
+          : stock,
         isShopByStoreOnly: formData.isShopByStoreOnly === "Yes",
         shopId: formData.shopId || undefined,
         pack: (formData as any).pack || undefined,

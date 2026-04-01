@@ -939,7 +939,60 @@ export default function AdminStockManagement() {
         allVariations: product.variations || [],
       };
 
-      if (product.variations && product.variations.length > 0) {
+      const hasExplicitVariationSetup =
+        Boolean(String((product as any).variationType || "").trim()) ||
+        Boolean(String((product as any).variationName || "").trim());
+      const hasRealVariations =
+        Array.isArray(product.variations) &&
+        product.variations.length > 0 &&
+        (
+          hasExplicitVariationSetup ||
+          product.variations.some((v: any) => String(v?.title || v?.value || "").trim().toLowerCase() !== "default")
+        );
+
+      if (hasRealVariations) {
+        const rootStock = Number(product.stock) || 0;
+        variations.push({
+          ...baseVariation,
+          id: product._id,
+          variation: p.pack || "Main Product",
+          stock: rootStock,
+          offerPrice: Number(p.discPrice) || 0,
+          status: product.publish ? "Published" : "Unpublished",
+          sizeName: "-",
+          colorName: "-",
+          attributeName: "-",
+          valueMrp: (Number(baseVariation.compareAtPrice) || 0) * rootStock,
+          valuePurchase: (Number(baseVariation.purchasePrice) || 0) * rootStock,
+        });
+
+        (product.variations || []).forEach((v: any, index) => {
+          const currentStock = Number(v.stock ?? product.stock) || 0;
+           // Detect Size/Color
+          const isSize = (v.name || "").toLowerCase().includes("size");
+          const isColor = (v.name || "").toLowerCase().includes("color");
+
+          variations.push({
+            ...baseVariation,
+            id: `${product._id}-${index}`,
+            variation: `${v.name}: ${v.value}`,
+            stock: currentStock,
+            price: Number(v.price) || baseVariation.price,
+            compareAtPrice: Number(v.compareAtPrice) || baseVariation.compareAtPrice,
+            offerPrice: Number(v.discPrice) || Number((p as any).discPrice) || 0,
+            status: product.publish ? "Published" : "Unpublished",
+            // Variation specific overrides
+            sku: v.sku || baseVariation.sku,
+            image: v.image || baseVariation.image,
+            barcode: Array.isArray(v.barcode) ? v.barcode.join(', ') : (v.barcode || baseVariation.barcode),
+            sizeName: isSize ? v.value : "-",
+            colorName: isColor ? v.value : "-",
+            attributeName: v.name, // 13
+            valueMrp: (Number(v.compareAtPrice) || Number(baseVariation.compareAtPrice) || 0) * currentStock,
+            valuePurchase: (Number(baseVariation.purchasePrice) || 0) * currentStock,
+          });
+        });
+      } else if (product.variations && product.variations.length > 0) {
         product.variations.forEach((v: any, index) => {
           const currentStock = Number(v.stock ?? product.stock) || 0;
            // Detect Size/Color
@@ -2296,16 +2349,6 @@ export default function AdminStockManagement() {
                      if (!product) return;
                      
                      const variations = Array.isArray(product.variations) ? [...product.variations] : [];
-                     if (variations.length > 0 && variations[0]) {
-                        variations[0] = {
-                          ...variations[0],
-                          price: Number(selectedProductDetails.price),
-                          compareAtPrice: Number(selectedProductDetails.compareAtPrice),
-                          stock: Number(selectedProductDetails.stock) || 0,
-                          discPrice: Number(selectedProductDetails.offerPrice) || Number(selectedProductDetails.price),
-                          wholesalePrice: Number(selectedProductDetails.wholesalePrice) || 0,
-                        };
-                     }
                      
                      const updateData: any = {
                         productName: selectedProductDetails.name,

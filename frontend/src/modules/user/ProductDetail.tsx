@@ -50,7 +50,7 @@ export default function ProductDetail() {
 
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number>(0);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -75,12 +75,21 @@ export default function ProductDetail() {
         );
         if (response.success && response.data) {
           const productData = response.data as any;
+          const rawVariations = Array.isArray(productData.variations) ? productData.variations : [];
+          const hasExplicitVariationSetup =
+            Boolean(productData.variationType?.trim()) ||
+            Boolean(productData.variationName?.trim());
+          const normalizedVariations = !hasExplicitVariationSetup &&
+            rawVariations.length === 1 &&
+            String(rawVariations[0]?.title || rawVariations[0]?.value || "").trim().toLowerCase() === "default"
+              ? []
+              : rawVariations;
 
           // Set location availability flag
           setIsAvailableAtLocation(productData.isAvailableAtLocation !== false);
 
           // Get all images (main + gallery + variations)
-          const variationImages = (productData.variations || [])
+          const variationImages = normalizedVariations
             .map((v: any) => v.image)
             .filter(Boolean);
 
@@ -92,6 +101,7 @@ export default function ProductDetail() {
 
           setProduct({
             ...productData,
+            variations: normalizedVariations,
             // Ensure all critical fields have safe defaults
             id: productData._id || productData.id,
             name: productData.productName || productData.name || "Product",
@@ -100,14 +110,13 @@ export default function ProductDetail() {
             price: productData.price || 0,
             mrp: productData.mrp || productData.price || 0,
             pack:
-              productData.variations?.[0]?.title ||
-              productData.variations?.[0]?.value ||
+              productData.pack ||
               productData.smallDescription ||
               "Standard",
           });
 
           // Reset selected variant and image when product changes
-          setSelectedVariantIndex(0);
+          setSelectedVariantIndex(null);
           setSelectedImageIndex(0);
           setSimilarProducts(response.data.similarProducts || []);
 
@@ -149,6 +158,7 @@ export default function ProductDetail() {
 
   // Update selected image when variant changes if the variant has a specific image
   useEffect(() => {
+    if (selectedVariantIndex === null) return;
     if (product?.variations?.[selectedVariantIndex]?.image) {
       const variantImageUrl = product.variations[selectedVariantIndex].image;
       const imageIndex = product.allImages.indexOf(variantImageUrl);
@@ -159,8 +169,11 @@ export default function ProductDetail() {
   }, [selectedVariantIndex, product]);
 
   // Get selected variant
-  const selectedVariant = product?.variations?.[selectedVariantIndex] || null;
-  const { displayPrice: baseVariantPrice, mrp: variantMrp, discount: baseDiscount, hasDiscount: baseHasDiscount } = calculateProductPrice(product, selectedVariantIndex);
+  const selectedVariant = selectedVariantIndex !== null && product?.variations?.length
+    ? product.variations[selectedVariantIndex] || null
+    : null;
+  const activeVariationSelector = selectedVariantIndex ?? undefined;
+  const { displayPrice: baseVariantPrice, mrp: variantMrp, discount: baseDiscount, hasDiscount: baseHasDiscount } = calculateProductPrice(product, activeVariationSelector);
 
   // Calculate dynamic price based on cart quantity
   const inCartQtyForCalc = Math.max(1, product
@@ -177,19 +190,42 @@ export default function ProductDetail() {
             const currentVariantTitle = selectedVariant.title || selectedVariant.value || product.pack;
             return itemVariantId === selectedVariant._id || itemVariantTitle === currentVariantTitle;
          }
-         return true;
+         const itemVariantId = (product as any).variantId || (product as any).selectedVariant?._id;
+         const itemVariantTitle = (product as any).variantTitle;
+         return !itemVariantId && !itemVariantTitle;
     })?.quantity || 0)
     : 0);
 
-  const variantPrice = getApplicableUnitPrice(product, selectedVariantIndex, inCartQtyForCalc);
+  const variantPrice = getApplicableUnitPrice(product, activeVariationSelector, inCartQtyForCalc);
 
   // Recalculate discount based on dynamic price
   const hasDiscount = variantMrp > variantPrice;
   const discount = hasDiscount ? Math.round(((variantMrp - variantPrice) / variantMrp) * 100) : 0;
 
   const variantStock = selectedVariant?.stock !== undefined ? selectedVariant.stock : (product?.stock || 0);
-  const variantTitle = selectedVariant?.title || selectedVariant?.value || product?.pack || "Standard";
+  const rootVariantTitle = product?.pack || "Main";
+  const variantTitle = selectedVariant?.title || selectedVariant?.value || rootVariantTitle;
   const isVariantAvailable = selectedVariant?.status !== "Sold out" && (variantStock > 0 || variantStock === 0); // 0 means unlimited
+  const variantOptions = product?.variations?.length
+    ? [
+        {
+          key: "root",
+          index: null as number | null,
+          title: rootVariantTitle,
+          image: product?.imageUrl || "",
+          status: "Available",
+          stock: product?.stock,
+        },
+        ...product.variations.map((variant: any, index: number) => ({
+          key: variant._id || variant.id || `variant-${index}`,
+          index,
+          title: variant.title || variant.value || `Variant ${index + 1}`,
+          image: variant.image || "",
+          status: variant.status,
+          stock: variant.stock,
+        })),
+      ]
+    : [];
 
   // Get all images for gallery
   const allImages = product?.allImages || [product?.imageUrl || ""].filter(Boolean);
@@ -683,45 +719,47 @@ export default function ProductDetail() {
             {product.name}
           </h2>
 
-          {/* Variant Selection - Only show if multiple variants */}
-          {product.variations && product.variations.length > 1 && (
+          {/* Variant Selection */}
+          {product.variations && product.variations.length > 0 && (
             <div className="mb-4">
               <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-2">
-                {product.variationType || "Variant"}: <span className="font-bold text-neutral-900 ml-1">{variantTitle}</span>
+                {product.variationName || product.variationType || "Variant"}: <span className="font-bold text-neutral-900 ml-1">{variantTitle}</span>
               </label>
               <div className="flex flex-wrap gap-3">
-                {product.variations.map((variant: any, index: number) => {
-                  const vTitle = variant.title || variant.value || `Variant ${index + 1}`;
-                  const isOutOfStock = variant.status === "Sold out" || (variant.stock === 0 && variant.stock !== undefined && variant.stock !== null);
-                  const isSelected = index === selectedVariantIndex;
+                {variantOptions.map((variantOption) => {
+                  const vTitle = variantOption.title;
+                  const isOutOfStock = variantOption.status === "Sold out";
+                  const isSelected = variantOption.index === selectedVariantIndex;
 
                   return (
                     <button
-                      key={index}
+                      key={variantOption.key}
                       onClick={() => {
-                        setSelectedVariantIndex(index);
-                        if (variant.image) {
-                          const imageIndex = allImages.indexOf(variant.image);
+                        setSelectedVariantIndex(variantOption.index);
+                        if (variantOption.image) {
+                          const imageIndex = allImages.indexOf(variantOption.image);
                           if (imageIndex !== -1) {
                             setSelectedImageIndex(imageIndex);
                           }
+                        } else if (variantOption.index === null) {
+                          setSelectedImageIndex(0);
                         }
                       }}
                       disabled={isOutOfStock}
                       className={`relative group transition-all duration-200 ${
-                        variant.image ? "w-20 md:w-24" : "min-w-[70px]"
+                        variantOption.image ? "w-20 md:w-24" : "min-w-[70px]"
                       }`}
                     >
                       <div className={`
                         relative rounded-xl border-2 overflow-hidden bg-neutral-50 flex flex-col items-center justify-center transition-all
                         ${isSelected ? "border-blue-600 bg-white ring-4 ring-blue-50 shadow-sm" : "border-neutral-100"}
                         ${isOutOfStock ? "grayscale opacity-50" : "hover:border-neutral-200"}
-                        ${variant.image ? "aspect-[1/1]" : "py-2 px-3 h-11"}
+                        ${variantOption.image ? "aspect-[1/1]" : "py-2 px-3 h-11"}
                       `}>
-                        {variant.image ? (
+                        {variantOption.image ? (
                           <>
                             <img
-                              src={variant.image}
+                              src={variantOption.image}
                               alt={vTitle}
                               className="w-full h-full object-cover"
                               referrerPolicy="no-referrer"

@@ -411,29 +411,51 @@ ProductSchema.virtual("mrp").get(function () {
 ProductSchema.pre("save", function (next) {
   // Sync price and stock from variations if they exist
   if (this.variations && this.variations.length > 0) {
-    // Set price to the price of the first variation if top-level price is not set
-    if (this.variations[0].price !== undefined) {
-      this.price = this.variations[0].price;
+    const firstVariation = this.variations[0];
+    const isDefaultLikeVariation =
+      String((firstVariation as any)?.title || firstVariation?.value || "")
+        .trim()
+        .toLowerCase() === "default";
+    const hasExplicitVariationSetup =
+      Boolean(String(this.variationType || "").trim()) ||
+      Boolean(String((this as any).variationName || "").trim()) ||
+      !isDefaultLikeVariation;
+    const shouldMirrorRootFromVariation = !hasExplicitVariationSetup || isDefaultLikeVariation;
+
+    if (shouldMirrorRootFromVariation) {
+      if (firstVariation.price !== undefined) {
+        this.price = firstVariation.price;
+      }
+      if (firstVariation.compareAtPrice !== undefined) {
+        this.compareAtPrice = firstVariation.compareAtPrice;
+      }
+      this.discPrice = (firstVariation.discPrice && firstVariation.discPrice !== 0)
+        ? firstVariation.discPrice
+        : firstVariation.price || this.price;
+
+      this.stock = this.variations.reduce(
+        (acc: number, curr: any) => acc + (Number(curr.stock) || 0),
+        0
+      );
+    } else {
+      // For real named variations, preserve root product fields.
+      // Only backfill missing values instead of overwriting with the first variant.
+      if ((!this.price || this.price === 0) && firstVariation.price !== undefined) {
+        this.price = firstVariation.price;
+      }
+      if ((!this.compareAtPrice || this.compareAtPrice === 0) && firstVariation.compareAtPrice !== undefined) {
+        this.compareAtPrice = firstVariation.compareAtPrice;
+      }
+      if (!this.discPrice || this.discPrice === 0) {
+        this.discPrice = (firstVariation.discPrice && firstVariation.discPrice !== 0)
+          ? firstVariation.discPrice
+          : firstVariation.price || this.price;
+      }
     }
-    // Sync compareAtPrice (MRP) from first variation
-    if (this.variations[0].compareAtPrice !== undefined) {
-      this.compareAtPrice = this.variations[0].compareAtPrice;
-    }
 
-    // Sync discPrice from first variation with fallback to price
-    this.discPrice = (this.variations[0].discPrice && this.variations[0].discPrice !== 0) 
-      ? this.variations[0].discPrice 
-      : this.variations[0].price || this.price;
-
-    // Calculate total stock as sum of all variation stocks
-    this.stock = this.variations.reduce(
-      (acc: number, curr: any) => acc + (Number(curr.stock) || 0),
-      0
-    );
-
-    // Sync unitPricing from first variation (if present) to root for easier access
-    if ((!this.unitPricing || this.unitPricing.length === 0) && this.variations[0].tieredPrices && this.variations[0].tieredPrices.length > 0) {
-      this.unitPricing = this.variations[0].tieredPrices;
+    // Sync unitPricing from first variation only when root unitPricing is empty
+    if ((!this.unitPricing || this.unitPricing.length === 0) && firstVariation.tieredPrices && firstVariation.tieredPrices.length > 0) {
+      this.unitPricing = firstVariation.tieredPrices;
     }
   }
 
