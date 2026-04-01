@@ -31,13 +31,27 @@ export const calculateProductPrice = (product: any, variationSelector?: number |
     variation = product.variations[0];
   }
 
-  const displayPrice = (variation?.discPrice && variation.discPrice > 0)
-    ? variation.discPrice
-    : (product.discPrice && product.discPrice > 0)
-    ? product.discPrice
-    : (variation?.price || product.price || 0);
+  const vPrice = parseFloat(variation?.price || 0);
+  const vDiscPrice = parseFloat(variation?.discPrice || 0);
+  const pPrice = parseFloat(product.price || 0);
+  const pDiscPrice = parseFloat(product.discPrice || 0);
 
-  const mrp = variation?.compareAtPrice || variation?.mrp || product.compareAtPrice || product.mrp || variation?.price || product.price || 0;
+  let displayPrice = (vDiscPrice > 0)
+    ? vDiscPrice
+    : (pDiscPrice > 0)
+    ? pDiscPrice
+    : (vPrice > 0)
+    ? vPrice
+    : (pPrice > 0)
+    ? pPrice
+    : 0;
+
+  let mrp = parseFloat(variation?.compareAtPrice || variation?.mrp || product.compareAtPrice || product.mrp || variation?.price || product.price || 0);
+
+  // Safety layer: Never show 0 price if MRP exists
+  if (displayPrice <= 0 && mrp > 0) {
+    displayPrice = mrp;
+  }
 
   const hasDiscount = mrp > displayPrice;
   const discount = hasDiscount ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0;
@@ -62,7 +76,6 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
 
   // Resolve variation
   let variation = typeof variationSelector === 'object' ? variationSelector : undefined;
-
   if (!variation) {
       if (typeof variationSelector === 'number') {
         variation = product.variations?.[variationSelector];
@@ -76,43 +89,52 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
     variation = product.variations[0];
   }
 
+  const { mrp: baseMrp } = calculateProductPrice(product, variationSelector);
+  let finalPrice = 0;
+
   // 1. Check for unitPricing in main product (New Standard - Prioritized)
-  // This ensures rules set in the new Bulk Import/Edit system take precedence
   if (product.unitPricing && Array.isArray(product.unitPricing) && product.unitPricing.length > 0) {
        const applicableTier = product.unitPricing
           .filter((t: any) => quantity >= (t.minQty || 0))
-          .sort((a: any, b: any) => b.minQty - a.minQty)[0];
+          .sort((a: any, b: any) => (b.minQty || 0) - (a.minQty || 0))[0];
 
-        if (applicableTier) {
-            return parseFloat(applicableTier.price);
+        if (applicableTier && parseFloat(applicableTier.price) > 0) {
+            finalPrice = parseFloat(applicableTier.price);
         }
   }
 
   // 2. Check for tiered pricing in variation (Legacy/Specific)
-  if (variation?.tieredPrices && Array.isArray(variation.tieredPrices) && variation.tieredPrices.length > 0) {
-      // Find the highest tier where quantity >= minQty
+  if (finalPrice <= 0 && variation?.tieredPrices && Array.isArray(variation.tieredPrices) && variation.tieredPrices.length > 0) {
       const applicableTier = variation.tieredPrices
           .filter((t: any) => quantity >= (t.minQty || 0))
-          .sort((a: any, b: any) => b.minQty - a.minQty)[0];
+          .sort((a: any, b: any) => (b.minQty || 0) - (a.minQty || 0))[0];
 
-      if (applicableTier) {
-          return parseFloat(applicableTier.price);
+      if (applicableTier && parseFloat(applicableTier.price) > 0) {
+          finalPrice = parseFloat(applicableTier.price);
       }
   }
 
   // 3. Check for tiered pricing in main product (Legacy fallbacks)
-  if (product.tieredPrices && Array.isArray(product.tieredPrices) && product.tieredPrices.length > 0) {
+  if (finalPrice <= 0 && product.tieredPrices && Array.isArray(product.tieredPrices) && product.tieredPrices.length > 0) {
        const applicableTier = product.tieredPrices
           .filter((t: any) => quantity >= (t.minQty || 0))
-          .sort((a: any, b: any) => b.minQty - a.minQty)[0];
+          .sort((a: any, b: any) => (b.minQty || 0) - (a.minQty || 0))[0];
 
-        if (applicableTier) {
-            return parseFloat(applicableTier.price);
+        if (applicableTier && parseFloat(applicableTier.price) > 0) {
+            finalPrice = parseFloat(applicableTier.price);
         }
   }
 
-  // 3. Fallback to standard price logic
-  // Use calculateProductPrice to get the standard selling price (discounted or regular)
-  const { displayPrice } = calculateProductPrice(product, variationSelector);
-  return displayPrice;
+  // 4. Default to standard price calculation if no tier found or tier price was 0
+  if (finalPrice <= 0) {
+      const { displayPrice } = calculateProductPrice(product, variationSelector);
+      finalPrice = displayPrice;
+  }
+
+  // FINAL SAFETY FALLBACK: Never show 0 if MRP exists
+  if (finalPrice <= 0 && baseMrp > 0) {
+    return baseMrp;
+  }
+
+  return finalPrice;
 };

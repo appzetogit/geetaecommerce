@@ -337,7 +337,7 @@ export const getSearchSuggestions = async (req: Request, res: Response) => {
     }
 
     const products = await Product.find(query)
-      .select("productName _id mainImage category price mrp discount compareAtPrice")
+      .select("productName _id mainImage category price discPrice variations unitPricing mrp discount compareAtPrice")
       .populate("category", "name")
       .limit(10)
       .lean();
@@ -559,7 +559,7 @@ export const getProductById = async (req: Request, res: Response) => {
     const similarProducts = await Product.find(similarProductsQuery)
       .limit(6)
       .select(
-        "productName price mrp variations mainImage pack discount _id rating reviewsCount deliveryTime"
+        "productName price discPrice variations unitPricing mrp mainImage pack discount _id rating reviewsCount deliveryTime"
       );
 
     return res.status(200).json({
