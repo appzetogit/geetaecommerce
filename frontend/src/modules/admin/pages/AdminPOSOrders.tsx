@@ -898,7 +898,9 @@ const AdminPOSOrders = () => {
                      variationId: variationMatch._id,
                      _id: `${itemToAdd._id}-${variationMatch._id}`, // Consistent variation ID
                      isVariation: true,
-                     stock: variationMatch.stock // Use variation stock
+                     stock: variationMatch.stock, // Use variation stock
+                     price: Number(variationMatch.price) || itemToAdd.price,
+                     compareAtPrice: Number(variationMatch.compareAtPrice) || itemToAdd.compareAtPrice,
                  };
              } else {
                  itemToAdd.originalProductId = itemToAdd._id;

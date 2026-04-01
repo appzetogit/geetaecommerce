@@ -957,6 +957,8 @@ export default function AdminStockManagement() {
             status: product.publish ? "Published" : "Unpublished",
             // Variation specific overrides
             sku: v.sku || baseVariation.sku,
+            image: v.image || baseVariation.image,
+            barcode: Array.isArray(v.barcode) ? v.barcode.join(', ') : (v.barcode || baseVariation.barcode),
             sizeName: isSize ? v.value : "-",
             colorName: isColor ? v.value : "-",
             attributeName: v.name, // 13
