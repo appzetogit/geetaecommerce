@@ -11,6 +11,7 @@ export interface OrderItem {
   productName: string;
   productImage?: string;
   sku?: string;
+  mrp?: number;
   unitPrice: number;
   quantity: number;
   total: number;
@@ -226,6 +227,7 @@ export const updateOrderItems = async (
     variationId?: string;
     quantity: number;
     unitPrice?: number;
+    mrp?: number;
     sku?: string;
     productName?: string;
     productImage?: string;
@@ -297,6 +299,7 @@ export interface CreatePOSOrderData {
     productId: string;
     quantity: number;
     price: number;
+    mrp?: number;
     name?: string;
   }>;
   paymentMethod: string;

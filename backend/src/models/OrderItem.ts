@@ -11,6 +11,7 @@ export interface IOrderItem extends Document {
   sku?: string;
 
   // Pricing
+  mrp?: number;
   unitPrice: number;
   quantity: number;
   total: number;
@@ -59,6 +60,11 @@ const OrderItemSchema = new Schema<IOrderItem>(
     },
 
     // Pricing
+    mrp: {
+      type: Number,
+      min: [0, "MRP cannot be negative"],
+      default: 0,
+    },
     unitPrice: {
       type: Number,
       required: [true, "Unit price is required"],

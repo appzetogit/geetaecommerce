@@ -234,7 +234,7 @@ export default function ProductCard({
         onClick={handleCardClick}
         className="cursor-pointer flex-1 flex flex-col"
       >
-        <div className={`w-full ${compact ? 'h-32 md:h-40' : categoryStyle ? 'h-28 md:h-36' : 'h-40 md:h-48'} bg-neutral-100 flex items-center justify-center overflow-hidden relative`}>
+        <div className={`w-full ${compact ? 'h-32 md:h-40' : categoryStyle ? 'h-36 md:h-44' : 'h-40 md:h-48'} bg-neutral-100 flex items-center justify-center overflow-hidden relative`}>
           {product.imageUrl || product.mainImage ? (
             <img
               ref={imageRef}
@@ -334,19 +334,20 @@ export default function ProductCard({
                 <div className="flex justify-center w-full">
                   <Button
                     ref={addButtonRef}
-                    variant="outline"
+                    variant="default"
                     size="sm"
                     disabled={product.isAvailable === false}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleAdd(e);
                     }}
-                    className={`w-full border rounded-full font-semibold text-xs h-7 px-3 flex items-center justify-center uppercase tracking-wide ${
+                    className={`w-full rounded-md font-bold text-xs h-7 px-3 flex items-center justify-center uppercase tracking-wide transition-all duration-200 border ${
                       product.isAvailable === false
-                      ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
-                      : 'bg-transparent'
+                      ? 'bg-neutral-200 text-neutral-400 border-neutral-300 cursor-not-allowed'
+                      : 'active:scale-95'
                     }`}
                     style={product.isAvailable !== false ? {
+                        backgroundColor: 'rgba(211, 84, 0, 0.12)',
                         borderColor: '#d35400',
                         color: '#d35400'
                     } : {}}
@@ -357,7 +358,7 @@ export default function ProductCard({
               </div>
             ) : (
               <div
-                className="flex items-center justify-center gap-1.5 bg-white rounded-full px-1.5 py-0.5 h-7 w-full border"
+                className="flex items-center justify-center gap-1.5 bg-white rounded-md px-1.5 py-0.5 h-7 w-full border"
                 style={{ borderColor: '#d35400' }}
               >
                 <Button
@@ -566,16 +567,17 @@ export default function ProductCard({
               <div>
                 <Button
                   ref={addButtonRef}
-                  variant="outline"
+                  variant="default"
                   size="sm"
                   disabled={product.isAvailable === false}
                   onClick={handleAdd}
-                  className={`w-full border h-8 text-xs font-semibold uppercase tracking-wide ${
+                  className={`w-full border h-8 rounded-md text-xs font-bold uppercase tracking-wide transition-all duration-200 ${
                     product.isAvailable === false
                     ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
-                    : 'hover:bg-opacity-10'
+                    : 'active:scale-95'
                   }`}
                   style={product.isAvailable !== false ? {
+                      backgroundColor: 'rgba(211, 84, 0, 0.12)',
                       borderColor: '#d35400',
                       color: '#d35400'
                   } : {}}
@@ -587,7 +589,7 @@ export default function ProductCard({
               </div>
             ) : (
               <div
-                className="flex items-center justify-center gap-2 bg-white rounded-full px-2 py-0.5 h-8 border"
+                className="flex items-center justify-center gap-2 bg-white rounded-md px-2 py-0.5 h-8 border"
                 style={{ borderColor: '#d35400' }}
               >
                 <Button

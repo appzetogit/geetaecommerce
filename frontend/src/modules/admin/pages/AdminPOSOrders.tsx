@@ -369,13 +369,44 @@ const AdminPOSOrders = () => {
                (typeof item.product === 'string' && /^[a-f\d]{24}$/i.test(item.product) ? item.product : '') ||
                '';
              const resolvedVariationId = item.variationId || item.variation;
+             const unitPrice = Number(item.unitPrice || 0);
+             const variationData = item.variationId && Array.isArray(item.product?.variations)
+               ? item.product.variations.find((v: any) => String(v?._id) === String(item.variationId))
+               : undefined;
+             const variationMrp = Number(variationData?.compareAtPrice || 0);
+             const variationPrice = Number(variationData?.price || 0);
+             const productMrp = Number(item.product?.compareAtPrice || 0);
+             const productPrice = Number(item.product?.price || 0);
+             const persistedMrp = Number(item.mrp || 0);
+             const nameMrpCandidate = (() => {
+               const rawName = String(item.productName || item.product?.productName || '').trim();
+               const matches = rawName.match(/(\d+(?:\.\d+)?)/g);
+               if (!matches || matches.length === 0) return 0;
+               const lastNumeric = Number(matches[matches.length - 1]);
+               return Number.isFinite(lastNumeric) ? lastNumeric : 0;
+             })();
+
+             // Legacy protection: old edit flow used fake MRP = SP * 1.2.
+             const looksLikeLegacyInflatedMrp = productMrp > 0 && Math.abs(productMrp - (unitPrice * 1.2)) < 0.01;
+             const legacySafeMrp = looksLikeLegacyInflatedMrp && productPrice > unitPrice ? productPrice : productMrp;
+              const resolvedMrp = persistedMrp > 0
+                ? persistedMrp
+                : (variationMrp > 0
+                    ? variationMrp
+                    : (legacySafeMrp > 0
+                        ? legacySafeMrp
+                       : (nameMrpCandidate > unitPrice
+                           ? nameMrpCandidate
+                           : (variationPrice > 0
+                              ? variationPrice
+                              : (productPrice > 0 ? productPrice : 0)))));
 
              return {
                _id: resolvedProductId || item._id,
                productName: item.productName || item.product?.productName || item.product || 'Unknown Product',
                // If we have custom unitPrice, use it as customPrice
-               price: item.unitPrice,
-               customPrice: item.unitPrice,
+               price: unitPrice,
+               customPrice: unitPrice,
                qty: item.quantity,
                mainImage: item.productImage || item.product?.mainImage,
                originalProductId: resolvedProductId || null,
@@ -385,7 +416,7 @@ const AdminPOSOrders = () => {
                stock: 9999, // Assume available for edit or fetch fresh?
                description: '',
                sku: item.sku || '',
-               compareAtPrice: item.unitPrice * 1.2, // Mock if missing
+               compareAtPrice: resolvedMrp,
                purchasePrice: 0,
                wholesalePrice: 0,
                category: 'uncategorized', // Mock
@@ -2453,11 +2484,23 @@ const AdminPOSOrders = () => {
   const openEditModal = (item: CartItem) => {
     setEditingItem(item);
     const currentPrice = item.customPrice !== undefined ? item.customPrice : item.price;
+    const inferredMrpFromName = (() => {
+      const rawName = String(item.productName || '').trim();
+      const matches = rawName.match(/(\d+(?:\.\d+)?)/g);
+      if (!matches || matches.length === 0) return 0;
+      const lastNumeric = Number(matches[matches.length - 1]);
+      return Number.isFinite(lastNumeric) ? lastNumeric : 0;
+    })();
+    const prefillMrp = Number(item.compareAtPrice || 0) > 0
+      ? Number(item.compareAtPrice)
+      : (inferredMrpFromName > Number(currentPrice)
+          ? inferredMrpFromName
+          : 0);
     setEditForm({
       name: item.productName,
       price: currentPrice.toString(),
       qty: item.qty.toString(),
-      mrp: (item.compareAtPrice || 0).toString(),
+      mrp: prefillMrp > 0 ? prefillMrp.toString() : '',
       purchasePrice: (item.purchasePrice || 0).toString(),
       wholesalePrice: (item.wholesalePrice || 0).toString(),
       warrantyType: (item as any).warrantyType || 'None',
@@ -2470,6 +2513,8 @@ const AdminPOSOrders = () => {
     const fetchProductDetails = async () => {
       // Ensure we have a valid item and it's not a temporary quick-add item (unless added to inventory)
       if (!editingItem || !editingItem.originalProductId) return;
+      // In order-edit mode, keep the current bill values shown in the card/modal consistent.
+      if (activeBillId.startsWith('edit_')) return;
 
       try {
         const res = await getProductById(editingItem.originalProductId);
@@ -2505,7 +2550,7 @@ const AdminPOSOrders = () => {
     };
 
     fetchProductDetails();
-  }, [editingItem]);
+  }, [editingItem, activeBillId]);
 
   const handleEditItemSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -3002,6 +3047,7 @@ const AdminPOSOrders = () => {
                 name: item.productName,
                 quantity: item.qty,
                 price: getEffectivePrice(item),
+                mrp: Number(item.compareAtPrice || 0),
                 variationId: item.variationId
             })),
             gateway: method,
@@ -3121,6 +3167,7 @@ const AdminPOSOrders = () => {
                 name: item.productName,
                 quantity: item.qty,
                 price: getEffectivePrice(item),
+                mrp: Number(item.compareAtPrice || 0),
                 variationId: item.variationId
             })),
             paymentMethod: 'Cash',
@@ -3179,6 +3226,7 @@ const AdminPOSOrders = () => {
                     name: item.productName,
                     quantity: item.qty,
                     price: getEffectivePrice(item),
+                    mrp: Number(item.compareAtPrice || 0),
                     variationId: item.variationId
                 })),
                 paymentMethod: 'Credit',
@@ -3232,6 +3280,7 @@ const AdminPOSOrders = () => {
               variationId: item.variationId,
               quantity: item.qty,
               unitPrice: getEffectivePrice(item),
+              mrp: Number(item.compareAtPrice || 0),
               sku: item.sku,
               productName: item.productName,
               productImage: item.mainImage || (item as any).image || ''
@@ -3744,7 +3793,8 @@ const AdminPOSOrders = () => {
                   ) : (
                       cart.map((item, index) => {
                           const sp = getEffectivePrice(item);
-                          const mrp = item.compareAtPrice || sp;
+                          const mrp = Number(item.compareAtPrice || 0);
+                          const hasMrp = mrp > 0;
                           const purchasePrice = item.purchasePrice || 0;
                           const profit = sp - purchasePrice;
                           const profitPercent = purchasePrice > 0 ? ((profit / purchasePrice) * 100).toFixed(2) : '0.00';
@@ -3779,7 +3829,10 @@ const AdminPOSOrders = () => {
                                            )}
                                       </div>
                                       <div className="flex flex-col text-xs">
-                                           <span className="text-gray-500 mb-0.5">MRP: <span className="line-through decoration-gray-400">₹{mrp}</span> <span className="font-bold text-[#f187b5] ml-1">SP: ₹{sp}</span></span>
+                                           <span className="text-gray-500 mb-0.5">
+                                             {hasMrp ? <><span>MRP: </span><span className="line-through decoration-gray-400">Rs {mrp}</span></> : null}
+                                             <span className="font-bold text-[#f187b5] ml-1">SP: Rs {sp}</span>
+                                           </span>
 
                                            {showProfit && (
                                                 <span className={`${parseFloat(profitPercent) >= 0 ? 'text-green-600' : 'text-red-500'} font-medium`}>
@@ -5664,7 +5717,8 @@ const AdminPOSOrders = () => {
               <div className="space-y-1">
                   {(lastBillDetails?.cart || cart).map((item, idx) => {
                       const sp = getEffectivePrice(item);
-                      const mrp = item.compareAtPrice || sp;
+                      const mrp = Number(item.compareAtPrice || 0);
+                      const hasMrp = mrp > 0;
                       return (
                        <div key={idx}>
                            <div>{idx + 1}. {item.productName}</div>
@@ -5676,7 +5730,7 @@ const AdminPOSOrders = () => {
                            <div className="grid grid-cols-12 gap-1">
                                <div className="col-span-12"></div> {/* Spacer for name line */}
                                <div className="col-span-3 text-right text-xs">{item.qty}PC</div>
-                               <div className="col-span-3 text-right text-xs">{mrp.toFixed(2)}</div>
+                               <div className="col-span-3 text-right text-xs">{hasMrp ? mrp.toFixed(2) : '-'}</div>
                                <div className="col-span-3 text-right text-xs">{sp.toFixed(2)}</div>
                                <div className="col-span-3 text-right text-xs">{(sp * item.qty).toFixed(2)}</div>
                            </div>
@@ -6147,3 +6201,4 @@ const AdminPOSOrders = () => {
 };
 
 export default AdminPOSOrders;
+

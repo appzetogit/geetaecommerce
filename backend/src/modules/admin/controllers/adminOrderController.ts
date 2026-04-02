@@ -237,7 +237,7 @@ export const getOrderById = asyncHandler(
         populate: [
           {
             path: "product",
-            select: "productName mainImage",
+            select: "productName mainImage price compareAtPrice wholesalePrice variations",
           },
           {
             path: "seller",
@@ -338,7 +338,7 @@ export const updateOrderStatus = asyncHandler(
 export const updateOrderItems = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { items: newItemsData } = req.body; // Array of { productId, variationId?, quantity, unitPrice?, productName?, productImage? }
+    const { items: newItemsData } = req.body; // Array of { productId, variationId?, quantity, unitPrice?, mrp?, productName?, productImage? }
 
     if (!newItemsData || !Array.isArray(newItemsData) || newItemsData.length === 0) {
       return res.status(400).json({
@@ -479,6 +479,7 @@ export const updateOrderItems = asyncHandler(
             `Custom Item ${itemIndex + 1}`;
 
           const customUnitPrice = Number(itemData.unitPrice) || 0;
+          const customMrp = Number(itemData.mrp) || 0;
           const customVariationLabel =
             typeof itemData.variation === "string"
               ? itemData.variation.trim()
@@ -493,6 +494,7 @@ export const updateOrderItems = asyncHandler(
             productName: fallbackProductName,
             productImage: snapshotProductImage,
             sku: normalizedSku,
+            mrp: customMrp,
             unitPrice: customUnitPrice,
             quantity,
             total: customTotal,
@@ -506,6 +508,7 @@ export const updateOrderItems = asyncHandler(
         }
 
         let unitPrice = Number(itemData.unitPrice) || product.price; // Force number
+        let mrp = Number(itemData.mrp) || Number(product.compareAtPrice) || 0;
         let variationName = "";
         let sku = itemData.sku || product.sku || "NO-SKU";
         let variationId = null;
@@ -545,6 +548,7 @@ export const updateOrderItems = asyncHandler(
           if (variation) {
             foundVariation = variation;
             unitPrice = Number(itemData.unitPrice) || variation.price || unitPrice;
+            mrp = Number(itemData.mrp) || Number(variation.compareAtPrice) || Number(product.compareAtPrice) || mrp;
             variationName = variation.title || variation.name ? `${variation.name}: ${variation.value}` : 'Variation';
             sku = variation.sku || sku;
             variationId = variation._id;
@@ -569,6 +573,7 @@ export const updateOrderItems = asyncHandler(
           productName: snapshotProductName || product.productName,
           productImage: snapshotProductImage || product.mainImage,
           sku: sku,
+          mrp: mrp,
           unitPrice: unitPrice,
           quantity: quantity,
           total: total,
@@ -607,7 +612,7 @@ export const updateOrderItems = asyncHandler(
       const updatedOrder = await Order.findById(id).populate({
         path: "items",
         populate: [
-          { path: "product", select: "productName mainImage" },
+          { path: "product", select: "productName mainImage price compareAtPrice wholesalePrice variations" },
           { path: "seller", select: "sellerName storeName" }
         ]
       });
@@ -1164,14 +1169,15 @@ export const createPOSOrder = asyncHandler(
            const total = Number(item.price) * Number(item.quantity);
            subtotal += total;
 
-           const orderItemPayload: any = {
-             order: order._id,
-             productName: productData.productName,
-             productImage: productData.mainImage,
-             sku: productData.sku,
-             unitPrice: item.price,
-             quantity: item.quantity,
-             total: total,
+            const orderItemPayload: any = {
+              order: order._id,
+              productName: productData.productName,
+              productImage: productData.mainImage,
+              sku: productData.sku,
+              mrp: Number(item.mrp) || 0,
+              unitPrice: item.price,
+              quantity: item.quantity,
+              total: total,
              status: "Delivered"
            };
 
@@ -1353,13 +1359,14 @@ export const initiatePOSOnlineOrder = asyncHandler(
        const total = Number(item.price) * Number(item.quantity);
        subtotal += total;
 
-       const payload: any = {
-         productName: productData.productName,
-         productImage: productData.mainImage,
-         sku: productData.sku,
-         unitPrice: item.price,
-         quantity: item.quantity,
-         total: total,
+        const payload: any = {
+          productName: productData.productName,
+          productImage: productData.mainImage,
+          sku: productData.sku,
+          mrp: Number(item.mrp) || 0,
+          unitPrice: item.price,
+          quantity: item.quantity,
+          total: total,
          status: "Pending" // Initial status
        };
        if (productId) payload.product = productId;
