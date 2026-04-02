@@ -2931,7 +2931,7 @@ const AdminPOSOrders = () => {
              y += 5;
              doc.setFont("helvetica", "normal");
              doc.setFontSize(9);
-             const noteText = billPdf?.notes?.enabled ? billPdf?.notes?.text : config.invoiceSettings.notes.text;
+             const noteText = (billPdf?.notes?.enabled ? billPdf?.notes?.text : config.invoiceSettings.notes?.text) || '';
              const splitNotes = doc.splitTextToSize(noteText, 180);
              doc.text(splitNotes, 14, y);
              y += (splitNotes.length * 4) + 8;
