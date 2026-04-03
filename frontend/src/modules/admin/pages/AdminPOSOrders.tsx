@@ -524,7 +524,7 @@ const AdminPOSOrders = () => {
   // Success/Print Modal
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showModalBreakdown, setShowModalBreakdown] = useState(false);
-  const [lastBillDetails, setLastBillDetails] = useState<{total: number, invoiceNum: string, date: string, time: string, cart: CartItem[], isPaid: boolean, isQuotation?: boolean, quotationEntry?: PurchaseEntryRecord, paymentMethod?: string} | null>(null);
+  const [lastBillDetails, setLastBillDetails] = useState<{total: number, invoiceNum: string, date: string, time: string, cart: CartItem[], isPaid: boolean, isQuotation?: boolean, quotationEntry?: PurchaseEntryRecord, paymentMethod?: string, isEdit?: boolean, orderId?: string} | null>(null);
 
   // Add Customer Modal State
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -3345,13 +3345,22 @@ const AdminPOSOrders = () => {
                   date: new Date().toLocaleDateString('en-IN'),
                   time: new Date().toLocaleTimeString('en-US', { hour12: false }),
                   cart: [...cart],
-                  isPaid: res.data?.paymentStatus === 'Paid' || true // Updates usually imply paid or credit handled
+                  isPaid: res.data?.paymentStatus === 'Paid' || true, // Updates usually imply paid or credit handled
+                  isEdit: true,
+                  orderId: editOrderId
               });
 
               setShowSuccessModal(true);
 
-              // Close the edit tab logic
-              closeBill(`edit_${editOrderId}`, { stopPropagation: () => {} } as React.MouseEvent);
+              // Clear URL param first to prevent re-opening via useEffect
+              navigate('/admin/pos/orders', { replace: true });
+
+              // Close the edit tab logic: replace if only tab, otherwise filter.
+              if (bills.length <= 1) {
+                  createNewBill(true);
+              } else {
+                  closeBill(`edit_${editOrderId}`, { stopPropagation: () => {} } as React.MouseEvent);
+              }
           } else {
               showToast(res.message || "Failed to update order", "error");
           }
@@ -5626,6 +5635,9 @@ const AdminPOSOrders = () => {
                                     setPurchaseSupplier(lastBillDetails.quotationEntry.supplier);
                                     setEditingQuotationId(lastBillDetails.quotationEntry.id);
                                     setShowPurchaseEntry(true);
+                                } else if (lastBillDetails?.isEdit && lastBillDetails?.orderId) {
+                                    // If it was an edit/update, navigate back to the edit path to re-open the tab correctly
+                                    navigate(`/admin/pos/orders?edit=${lastBillDetails.orderId}`);
                                 } else if (lastBillDetails?.cart) {
                                     setCart(lastBillDetails.cart);
                                 }
