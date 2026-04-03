@@ -1402,7 +1402,7 @@ export default function AdminStockBulkEdit({
                 if (!tRef) return true;
                 
                 // 1. Direct match with ID or Name
-                if (sCatId === tRef || sCatName === tRef) return true;
+                if (sCatId === tRef || sCatName === tRef || String(sc.category || "").toLowerCase().trim() === tRef) return true;
 
                 // 2. Cross-resolve through master categories list
                 const targetCat = categories.find(c => 
@@ -1416,12 +1416,16 @@ export default function AdminStockBulkEdit({
                   if (sCatId === tId || sCatName === tName) return true;
                 }
 
-                // 3. Last resort: Resolve subcategory's category and check name match
+                // 3. Match via product's category name if tRef is an ID
+                if (targetCat && (sCatId === tRef || sCatName === tRef)) return true;
+
+                // 4. Last resort: Resolve subcategory's category and check name match
                 if (/^[0-9a-fA-F]{24}$/.test(sCatId)) {
                   const subParentCat = categories.find(c => String(c._id).toLowerCase().trim() === sCatId);
                   if (subParentCat) {
                       const spName = String(subParentCat.name || (subParentCat as any).categoryName || "").trim().toLowerCase();
-                      if (spName === tRef) return true;
+                      const spId = String(subParentCat._id).toLowerCase().trim();
+                      if (spName === tRef || spId === tRef) return true;
                   }
                 }
 
@@ -1433,7 +1437,7 @@ export default function AdminStockBulkEdit({
               ))}
               {/* Fallback for current value if not matching filter */}
               {product.subCategoryId && !subCategories.some(s => s._id === product.subCategoryId && (
-                  !product.categoryId || String(typeof s.category === 'object' ? (s.category as any)?._id : s.category) === String(product.categoryId)
+                  !product.categoryId || String(typeof s.category === 'object' ? (s.category as any)?._id : s.category) === String(product.categoryId) || String(s.category).toLowerCase().trim() === String(product.categoryId).toLowerCase().trim()
               )) && (
                   <option value={product.subCategoryId}>
                     {subCategories.find(s => s._id === product.subCategoryId)?.name || (subCategories.find(s => s._id === product.subCategoryId) as any)?.subcategoryName || "Current"}
