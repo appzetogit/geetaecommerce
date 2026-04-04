@@ -8,7 +8,7 @@ import { getTheme } from '../../../utils/themes';
 import { useLocation } from '../../../hooks/useLocation';
 import { getCategories } from '../../../services/api/customerProductService';
 import { Category } from '../../../types/domain';
-import { getHeaderCategoriesPublic } from '../../../services/api/headerCategoryService';
+import { getCachedHeaderCategoriesPublic, getHeaderCategoriesPublic } from '../../../services/api/headerCategoryService';
 import { getIconByName } from '../../../utils/iconLibrary';
 import { useThemeContext } from '../../../context/ThemeContext';
 import { useAppContext } from '../../../context/AppContext';
@@ -136,13 +136,39 @@ const LanguageDropdown = ({ language, setLanguage, isSticky, themeKey }: Languag
 };
 
 export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroProps) {
-  const [headerCategories, setHeaderCategories] = useState<any[]>([]);
-  const [tabs, setTabs] = useState<Tab[]>([ALL_TAB]);
+  const cachedHeaderCategories = getCachedHeaderCategoriesPublic() || [];
+  const [headerCategories, setHeaderCategories] = useState<any[]>(cachedHeaderCategories);
+  const [tabs, setTabs] = useState<Tab[]>(() => {
+    if (!cachedHeaderCategories.length) {
+      return [ALL_TAB];
+    }
+
+    const mapped = cachedHeaderCategories.map((c) => ({
+      id: c.slug,
+      label: c.name,
+      theme: c.theme || c.slug,
+      icon: c.image ? (
+        <img src={c.image} alt={c.name} className="w-full h-full object-cover" />
+      ) : (
+        getIconByName(c.iconName)
+      )
+    }));
+
+    const hasAllTab = mapped.some((tab) => tab.id === 'all');
+    if (hasAllTab) {
+      const allTabIndex = mapped.findIndex((tab) => tab.id === 'all');
+      const allTab = mapped[allTabIndex];
+      const otherTabs = mapped.filter((_, i) => i !== allTabIndex);
+      return [allTab, ...otherTabs];
+    }
+
+    return [ALL_TAB, ...mapped];
+  });
 
   useEffect(() => {
     const fetchHeaderCategories = async () => {
       try {
-        const cats = await getHeaderCategoriesPublic();
+        const cats = await getHeaderCategoriesPublic(true);
         if (cats && cats.length > 0) {
           setHeaderCategories(cats);
           const mapped = cats.map(c => ({
@@ -173,7 +199,9 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
         console.error('Failed to fetch header categories', error);
       }
     };
-    fetchHeaderCategories();
+    if (!cachedHeaderCategories.length) {
+      fetchHeaderCategories();
+    }
   }, []);
 
   const { themeKey: currentThemeKey } = useThemeContext();
@@ -349,7 +377,14 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [activeTab]);
 
-  const handleTabClick = (tabId: string) => { onTabChange?.(tabId); };
+  const handleTabClick = (tabId: string) => {
+    const mainElement = document.querySelector('main');
+    if (mainElement instanceof HTMLElement) {
+      mainElement.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    onTabChange?.(tabId);
+  };
 
   const theme = getTheme(currentThemeKey);
   const heroGradient = `linear-gradient(to bottom right, ${theme.primary[0]}, ${theme.primary[1]}, ${theme.primary[2]})`;
