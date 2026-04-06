@@ -1118,17 +1118,17 @@ const AdminPOSOrders = () => {
             const scanner = new Html5Qrcode("reader", {
                 verbose: false,
                 formatsToSupport: supportedFormats,
-                useBarCodeDetectorIfSupported: true,
+                useBarCodeDetectorIfSupported: false, // Use internal JS engine for broader/more reliable 1D barcode support
             });
             html5QrCodeRef.current = scanner;
 
             // Match Seller POS scanner sizing for mobile.
             const boxWidth = Math.min(Math.max(element.clientWidth - 24, 220), 420);
-            const boxHeight = Math.max(200, Math.floor(boxWidth * 0.45));
+            const boxHeight = 150; // Thinner horizontal box focus is better for 1D barcodes like EAN-13
             const config: any = {
-                fps: 20,
+                fps: 30, // Increased frame rate for faster detection
                 qrbox: { width: boxWidth, height: boxHeight },
-                disableFlip: true
+                disableFlip: false // Allow library to process flip if needed
             };
 
             await scanner.start(
