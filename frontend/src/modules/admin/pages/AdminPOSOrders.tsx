@@ -766,36 +766,18 @@ const AdminPOSOrders = () => {
   ]);
 
   // Handle Barcode Scan from Camera
-  const onScanSuccess = async (decodedText: string, decodedResult: any) => {
-      // Optional non-blocking feedback (mobile vibration if supported)
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-          try {
-              navigator.vibrate(100);
-          } catch {
-              // ignore vibration errors
-          }
-      }
-
-      // === DEBUG: Log every raw scan result ===
-      const detectedFormat = decodedResult?.result?.format?.formatName || decodedResult?.decodedResult?.result?.format?.formatName || 'UNKNOWN_FORMAT';
-      console.log('========== [SCANNER DEBUG] SCAN DETECTED ==========');
-      console.log('[SCANNER DEBUG] Raw scanned value  :', decodedText);
-      console.log('[SCANNER DEBUG] Barcode length      :', decodedText.length);
-      console.log('[SCANNER DEBUG] Barcode format      :', detectedFormat);
-      console.log('[SCANNER DEBUG] Is fully numeric?   :', /^\d+$/.test(decodedText));
-      console.log('[SCANNER DEBUG] Active scanTarget   :', scanTarget);
-      console.log('[SCANNER DEBUG] Full decodedResult  :', JSON.stringify(decodedResult, null, 2));
-      console.log('===================================================');
+  const onScanSuccess = async (decodedText: string) => {
+      // Trim scanned text for robustness
+      const cleanDecodedText = decodedText?.trim() || "";
+      if (!cleanDecodedText) return;
 
       // Cooldown for same barcode to avoid double scans (2 seconds)
       const now = Date.now();
-      const isDuplicate = decodedText === lastScanRef.current.code && (now - lastScanRef.current.time < 2000);
-      console.log('[SCANNER DEBUG] Duplicate check — same code within 2s?', isDuplicate, '| Last code:', lastScanRef.current.code, '| Time diff (ms):', now - lastScanRef.current.time);
-      if (isDuplicate) {
-          console.log('[SCANNER DEBUG] ⚠️ BLOCKED by duplicate cooldown — returning early.');
+      if (cleanDecodedText === lastScanRef.current.code && (now - lastScanRef.current.time < 2000)) {
           return;
       }
-      lastScanRef.current = { code: decodedText, time: now };
+      lastScanRef.current = { code: cleanDecodedText, time: now };
+
 
       // Don't process if loading to prevent spam
       if (loading) {
@@ -831,9 +813,8 @@ const AdminPOSOrders = () => {
           // const audio = new Audio('/assets/beep.mp3'); audio.play().catch(e=>{});
 
           // Use POS Search for optimized results
-          console.log('[SCANNER DEBUG] Calling getPOSProducts API with search:', decodedText);
-          const res = await getPOSProducts({ search: decodedText });
-          console.log('[SCANNER DEBUG] API response — success:', res.success, '| total products returned:', res.data?.length ?? 0);
+          const res = await getPOSProducts({ search: cleanDecodedText });
+
 
           if (res.success && res.data && res.data.length > 0) {
              const productsFound = res.data;
@@ -1118,17 +1099,22 @@ const AdminPOSOrders = () => {
             const scanner = new Html5Qrcode("reader", {
                 verbose: false,
                 formatsToSupport: supportedFormats,
-                useBarCodeDetectorIfSupported: true,
+                useBarCodeDetectorIfSupported: false, // More reliable for dense 1D retail barcodes
             });
+
             html5QrCodeRef.current = scanner;
 
             // Match Seller POS scanner sizing for mobile.
-            const boxWidth = Math.min(Math.max(element.clientWidth - 24, 220), 420);
-            const boxHeight = Math.max(200, Math.floor(boxWidth * 0.45));
             const config: any = {
-                fps: 20,
-                qrbox: { width: boxWidth, height: boxHeight },
-                disableFlip: true
+                fps: 30, // Higher FPS for better 1D barcode motion capture
+                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+                    // Optimized rectangular box for long 1D retail barcodes
+                    const width = Math.min(viewfinderWidth - 20, 480);
+                    const height = Math.max(120, Math.floor(width * 0.4));
+                    return { width, height };
+                },
+                disableFlip: true,
+                aspectRatio: 1.7777778, // Better utilize modern wide mobile camera sensors
             };
 
             await scanner.start(
