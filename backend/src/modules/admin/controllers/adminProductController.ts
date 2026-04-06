@@ -1004,6 +1004,13 @@ export const createProduct = asyncHandler(
 );
 
 /**
+ * Helper to escape regex special characters
+ */
+function escapeRegex(text: string): string {
+    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+}
+
+/**
  * Get all products
  * Returns all products regardless of status (no approval workflow)
  * Use status query param to filter by specific status if needed
@@ -1024,15 +1031,17 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   const query: any = {};
 
   if (search) {
+    const escapedSearch = escapeRegex(search as string);
     query.$or = [
-      { productName: { $regex: search as string, $options: "i" } },
-      { sku: { $regex: search as string, $options: "i" } },
-      { barcode: { $regex: search as string, $options: "i" } },
-      { "variations.barcode": { $regex: search as string, $options: "i" } },
-      { rackNumber: { $regex: search as string, $options: "i" } },
-      { hsnCode: { $regex: search as string, $options: "i" } },
+      { productName: { $regex: escapedSearch, $options: "i" } },
+      { sku: { $regex: escapedSearch, $options: "i" } },
+      { barcode: { $regex: escapedSearch, $options: "i" } },
+      { "variations.barcode": { $regex: escapedSearch, $options: "i" } },
+      { rackNumber: { $regex: escapedSearch, $options: "i" } },
+      { hsnCode: { $regex: escapedSearch, $options: "i" } },
     ];
   }
+
   if (category) query.category = category;
   if (subcategory) query.subcategory = subcategory;
   if (brand) query.brand = brand;
@@ -1473,7 +1482,8 @@ export const getPOSProducts = asyncHandler(
     const query: any = { status: "Active" };
 
     if (search) {
-        const searchRegex = new RegExp(search as string, "i");
+        const escapedSearch = escapeRegex(search as string);
+        const searchRegex = new RegExp(escapedSearch, "i");
         query.$or = [
             { productName: searchRegex },
             { sku: searchRegex },
@@ -1483,6 +1493,7 @@ export const getPOSProducts = asyncHandler(
             { itemCode: searchRegex }
         ];
     }
+
 
     const products = await Product.find(query)
       .select("productName mainImage price compareAtPrice wholesalePrice purchasePrice discPrice stock sku variations category barcode itemCode")
