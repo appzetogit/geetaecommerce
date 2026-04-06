@@ -802,18 +802,13 @@ const SellerPOSOrders = () => {
   }, []);
 
   // Handle Barcode Scan from Camera
-  const onScanSuccess = async (decodedText: string) => {
-      // Trim scanned text for robustness
-      const cleanDecodedText = decodedText?.trim() || "";
-      if (!cleanDecodedText) return;
-
+  const onScanSuccess = async (decodedText: string, decodedResult: any) => {
       // Cooldown for same barcode to avoid double scans (2 seconds)
       const now = Date.now();
-      if (cleanDecodedText === lastScanRef.current.code && (now - lastScanRef.current.time < 2000)) {
+      if (decodedText === lastScanRef.current.code && (now - lastScanRef.current.time < 2000)) {
           return;
       }
-      lastScanRef.current = { code: cleanDecodedText, time: now };
-
+      lastScanRef.current = { code: decodedText, time: now };
 
       // Don't process if loading to prevent spam
       if (loading) return;
@@ -825,7 +820,7 @@ const SellerPOSOrders = () => {
           if (purchaseBarcodeScanItemId) {
               setPurchaseItems(prev =>
                   prev.map(item =>
-                      item.id === purchaseBarcodeScanItemId ? { ...item, barcode: cleanDecodedText } : item
+                      item.id === purchaseBarcodeScanItemId ? { ...item, barcode: decodedText } : item
                   )
               );
           }
@@ -834,12 +829,11 @@ const SellerPOSOrders = () => {
       }
 
       if (scanTarget === 'quick-add') {
-          setQuickForm(prev => ({ ...prev, barcode: cleanDecodedText }));
+          setQuickForm(prev => ({ ...prev, barcode: decodedText }));
           setShowScanner(false);
           showToast("Barcode added to form", "success");
           return;
       }
-
 
       // Default: Inventory search and add to cart
       try {
@@ -847,8 +841,7 @@ const SellerPOSOrders = () => {
           // const audio = new Audio('/assets/beep.mp3'); audio.play().catch(e=>{});
 
           // Seller Product List catalog only (same as billing grid / admin product list scope for this seller)
-          const res = await getProducts({ search: cleanDecodedText, limit: 50, page: 1 });
-
+          const res = await getProducts({ search: decodedText, limit: 50, page: 1 });
           if (res.success && res.data && res.data.length > 0) {
              const productsFound = res.data;
              // Try to find exact match on Barcode or SKU
@@ -1112,20 +1105,16 @@ const SellerPOSOrders = () => {
                     Html5QrcodeSupportedFormats.CODABAR,
                     Html5QrcodeSupportedFormats.QR_CODE,
                 ],
-                useBarCodeDetectorIfSupported: false, // More reliable for dense 1D retail barcodes
+                useBarCodeDetectorIfSupported: true,
             });
             html5QrCodeRef.current = scanner;
 
+            const boxWidth = Math.min(Math.max(element.clientWidth - 24, 220), 420);
+            const boxHeight = Math.max(200, Math.floor(boxWidth * 0.45));
             const config: any = {
-                fps: 30, // Higher FPS for better 1D barcode motion capture
-                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                    // Optimized rectangular box for long 1D retail barcodes
-                    const width = Math.min(viewfinderWidth - 20, 480);
-                    const height = Math.max(120, Math.floor(width * 0.4));
-                    return { width, height };
-                },
-                disableFlip: true,
-                aspectRatio: 1.7777778, // Better utilize modern wide mobile camera sensors
+                fps: 20,
+                qrbox: { width: boxWidth, height: boxHeight },
+                disableFlip: true
             };
 
             await scanner.start(
