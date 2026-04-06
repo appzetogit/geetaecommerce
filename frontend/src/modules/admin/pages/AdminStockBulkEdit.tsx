@@ -330,7 +330,7 @@ export default function AdminStockBulkEdit({
             subCategoryId:
               typeof (p as any).subcategory === "object" && (p as any).subcategory
                 ? (p as any).subcategory._id
-                : (p as any).subcategory || "",
+                : ((p as any).subcategory && (p as any).subcategory !== "-") ? (p as any).subcategory : "",
             brand: typeof p.brand === "object" ? (p.brand as any).name : "-",
             brandId:
               typeof p.brand === "object" && p.brand ? (p.brand as any)._id : p.brand || "",
@@ -478,7 +478,7 @@ export default function AdminStockBulkEdit({
       if (p.subcategory) {
           if (typeof p.subcategory === 'object' && p.subcategory !== null) {
               subCategoryId = p.subcategory._id;
-          } else if (typeof p.subcategory === 'string') {
+          } else if (typeof p.subcategory === 'string' && p.subcategory !== "-") {
               subCategoryId = p.subcategory;
           }
       }
@@ -665,7 +665,7 @@ export default function AdminStockBulkEdit({
           wholesalePrice: p.wholesalePrice,
           // Conditionally add relations if they exist
           // ...(p.tax ? { tax: p.tax } : {}), // Exclude tax because it causes CastError (text input vs ObjectId)
-          ...(p.subCategoryId ? { subcategory: p.subCategoryId } : {}),
+          ...(p.subCategoryId && p.subCategoryId !== "-" ? { subcategory: p.subCategoryId } : {}),
           ...(p.subSubCategory ? { subSubCategory: p.subSubCategory } : {}),
           ...(p.brandId ? { brand: p.brandId } : {}),
           ...(p.brandId ? { brand: p.brandId } : {}),

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Request, Response } from "express";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Category from "../../../models/Category";
@@ -1047,10 +1048,9 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
 
   const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-  const [products, total] = await Promise.all([
+  const [productsRaw, totalEntries] = await Promise.all([
     Product.find(query)
       .populate("category", "name")
-      .populate("subcategory", "name")
       .populate("brand", "name")
       .populate("seller", "sellerName storeName")
       .populate("tax", "name percentage")
@@ -1060,6 +1060,29 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
     Product.countDocuments(query),
   ]);
 
+  // Manually populate subcategory because it can be from either Category collection (hierarchical) or SubCategory collection (legacy)
+  const subIds = [...new Set(productsRaw.map(p => p.subcategory).filter(id => id && typeof id === 'string' || id instanceof mongoose.Types.ObjectId))];
+  
+  const [subsFromLegacy, subsFromCategory] = await Promise.all([
+    SubCategory.find({ _id: { $in: subIds } }).select("name").lean(),
+    Category.find({ _id: { $in: subIds } }).select("name").lean()
+  ]);
+
+  const subMap = new Map();
+  subsFromLegacy.forEach(s => subMap.set(String(s._id), s));
+  subsFromCategory.forEach(c => subMap.set(String(c._id), c));
+
+  const products = productsRaw.map(p => {
+    const obj = p.toObject();
+    if (obj.subcategory) {
+      const subIdStr = String(obj.subcategory);
+      if (subMap.has(subIdStr)) {
+        obj.subcategory = subMap.get(subIdStr);
+      }
+    }
+    return obj;
+  });
+
   return res.status(200).json({
     success: true,
     message: "Products fetched successfully",
@@ -1067,8 +1090,8 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
     pagination: {
       page: parseInt(page as string),
       limit: parseInt(limit as string),
-      total,
-      pages: Math.ceil(total / parseInt(limit as string)),
+      total: totalEntries,
+      pages: Math.ceil(totalEntries / parseInt(limit as string)),
     },
   });
 });
@@ -1080,18 +1103,31 @@ export const getProductById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    const product = await Product.findById(id)
+    const rawProduct = await Product.findById(id)
       .populate("category", "name")
-      .populate("subcategory", "name")
       .populate("brand", "name")
       .populate("seller", "sellerName storeName")
       .populate("approvedBy", "firstName lastName");
 
-    if (!product) {
+    if (!rawProduct) {
       return res.status(404).json({
         success: false,
         message: "Product not found",
       });
+    }
+
+    const subId = rawProduct.subcategory;
+    let populatedSub = null;
+    if (subId) {
+      populatedSub = await SubCategory.findById(subId).select("name").lean();
+      if (!populatedSub) {
+        populatedSub = await Category.findById(subId).select("name").lean();
+      }
+    }
+
+    const product = rawProduct.toObject();
+    if (populatedSub) {
+      product.subcategory = populatedSub;
     }
 
     return res.status(200).json({
@@ -1147,20 +1183,6 @@ export const updateProduct = asyncHandler(
 
     await product.save();
 
-    // Re-fetch with populations
-    product = await Product.findById(id)
-      .populate("category", "name")
-      .populate("subcategory", "name")
-      .populate("brand", "name")
-      .populate("seller", "sellerName storeName");
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
     // Update inventory if stock changed
     if (updateData.stock !== undefined) {
       await Inventory.findOneAndUpdate(
@@ -1172,10 +1194,37 @@ export const updateProduct = asyncHandler(
       );
     }
 
+    // Re-fetch with populations
+    const updatedRaw = await Product.findById(id)
+      .populate("category", "name")
+      .populate("brand", "name")
+      .populate("seller", "sellerName storeName");
+
+    if (!updatedRaw) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    const subId = updatedRaw.subcategory;
+    let populatedSub = null;
+    if (subId) {
+      populatedSub = await SubCategory.findById(subId).select("name").lean();
+      if (!populatedSub) {
+        populatedSub = await Category.findById(subId).select("name").lean();
+      }
+    }
+
+    const finalProduct = updatedRaw.toObject();
+    if (populatedSub) {
+      finalProduct.subcategory = populatedSub;
+    }
+
     return res.status(200).json({
       success: true,
       message: "Product updated successfully",
-      data: product,
+      data: finalProduct,
     });
   }
 );
