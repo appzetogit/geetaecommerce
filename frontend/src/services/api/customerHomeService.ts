@@ -17,6 +17,22 @@ export interface HomeContentResponse {
   };
 }
 
+export const buildHomeContentCacheKey = (
+  headerCategorySlug?: string,
+  latitude?: number,
+  longitude?: number
+) => `home-content-${headerCategorySlug || 'all'}-${latitude || 0}-${longitude || 0}`;
+
+export const getCachedHomeContent = (
+  headerCategorySlug?: string,
+  latitude?: number,
+  longitude?: number
+): HomeContentResponse | null => {
+  return apiCache.getSync<HomeContentResponse>(
+    buildHomeContentCacheKey(headerCategorySlug, latitude, longitude)
+  );
+};
+
 /**
  * Get home page content with caching
  * @param headerCategorySlug - Optional header category slug to filter categories (e.g., 'winter', 'wedding')
@@ -31,7 +47,11 @@ export const getHomeContent = async (
   cacheTTL: number = 5 * 60 * 1000, // 5 minutes
   skipLoader: boolean = false
 ): Promise<HomeContentResponse> => {
-  const cacheKey = `home-content-${headerCategorySlug || 'all'}-${latitude || 0}-${longitude || 0}`;
+  const cacheKey = buildHomeContentCacheKey(
+    headerCategorySlug,
+    latitude,
+    longitude
+  );
 
   const fetchFn = async () => {
     const params: any = headerCategorySlug ? { headerCategorySlug } : {};

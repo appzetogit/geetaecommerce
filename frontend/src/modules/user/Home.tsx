@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useLocation as useRouterLocation, useNavigate, useNavigationType } from "react-router-dom";
 import HomeHero from "./components/HomeHero";
 import PromoStrip from "./components/PromoStrip";
 import LowestPricesEver from "./components/LowestPricesEver";
@@ -12,23 +12,104 @@ import FlashDealSection from "./components/banners/FlashDealSection";
 import FeaturedDeal from "./components/banners/FeaturedDeal";
 import DealOfTheDay from "./components/banners/DealOfTheDay";
 import FirstOrderOfferBanner from "./components/banners/FirstOrderOfferBanner";
-import { getHomeContent } from "../../services/api/customerHomeService";
+import { getCachedHomeContent, getHomeContent } from "../../services/api/customerHomeService";
 import { getHeaderCategoriesPublic } from "../../services/api/headerCategoryService";
-import { getProducts as getCustomerProducts } from "../../services/api/customerProductService";
+import { getCachedProducts, getProducts as getCustomerProducts } from "../../services/api/customerProductService";
 import { useLocation } from "../../hooks/useLocation";
-import { useLoading } from "../../context/LoadingContext";
 import PageLoader from "../../components/PageLoader";
 import { useThemeContext } from "../../context/ThemeContext";
+
+interface LazyProductGridProps {
+  products: any[];
+  gridClassName: string;
+  compact?: boolean;
+  showStockInfo?: boolean;
+  batchSize?: number;
+}
+
+function LazyProductGrid({
+  products,
+  gridClassName,
+  compact = false,
+  showStockInfo = true,
+  batchSize = 8,
+}: LazyProductGridProps) {
+  const [visibleCount, setVisibleCount] = useState(() => Math.min(batchSize, products.length));
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setVisibleCount(Math.min(batchSize, products.length));
+  }, [batchSize, products]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || visibleCount >= products.length) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0]?.isIntersecting) {
+          return;
+        }
+
+        setVisibleCount((current) => Math.min(current + batchSize, products.length));
+      },
+      {
+        rootMargin: "220px 0px",
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [batchSize, products.length, visibleCount]);
+
+  return (
+    <>
+      <div className={gridClassName}>
+        {products.slice(0, visibleCount).map((product) => (
+          <ProductCard
+            key={product.id || product._id}
+            product={product}
+            categoryStyle={true}
+            showBadge={true}
+            showPackBadge={false}
+            showStockInfo={showStockInfo}
+            compact={compact}
+          />
+        ))}
+      </div>
+      {visibleCount < products.length && (
+        <div ref={sentinelRef} className="h-16 w-full" aria-hidden="true" />
+      )}
+    </>
+  );
+}
 
 
 export default function Home() {
   const navigate = useNavigate();
+  const routerLocation = useRouterLocation();
+  const navigationType = useNavigationType();
   const { location } = useLocation();
   const { activeCategory, setActiveCategory, currentTheme: theme } = useThemeContext();
-  const { startRouteLoading, stopRouteLoading } = useLoading();
   const activeTab = activeCategory;
   const setActiveTab = setActiveCategory;
   const contentRef = useRef<HTMLDivElement>(null);
+  const limit = 1000;
+  const [currentPage, setCurrentPage] = useState(1);
+  const cachedHomeResponse = getCachedHomeContent(undefined, undefined, undefined);
+  const cachedTabProductsResponse =
+    activeTab && activeTab !== "all"
+      ? getCachedProducts({
+          headerCategorySlug: activeTab,
+          page: currentPage,
+          limit,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+        })
+      : null;
 
   // Web view: always start Home with "All" selected (mobile jaisa default).
   const didInitActiveTabRef = useRef(false);
@@ -42,29 +123,32 @@ export default function Home() {
   }, [activeTab, setActiveTab]);
 
   // State for dynamic data
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedHomeResponse?.data);
   const [error, setError] = useState<string | null>(null);
-  const [homeData, setHomeData] = useState<any>({
-    bestsellers: [],
-    categories: [],
-    homeSections: [],
-    shops: [],
-    promoBanners: [],
-    trending: [],
-    cookingIdeas: [],
-  });
+  const [homeData, setHomeData] = useState<any>(
+    cachedHomeResponse?.data || {
+      bestsellers: [],
+      categories: [],
+      homeSections: [],
+      shops: [],
+      promoBanners: [],
+      trending: [],
+      cookingIdeas: [],
+    }
+  );
 
-  const [products, setProducts] = useState<any[]>([]);
-  const [tabProducts, setTabProducts] = useState<any[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const limit = 1000;
+  const [products, setProducts] = useState<any[]>(cachedHomeResponse?.data?.bestsellers || []);
+  const [tabProducts, setTabProducts] = useState<any[]>(cachedTabProductsResponse?.data || []);
+  const [totalPages, setTotalPages] = useState(cachedTabProductsResponse?.pagination?.pages || 1);
+  const restoreTimeoutRef = useRef<number | null>(null);
+  const didMountRef = useRef(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        startRouteLoading();
-        setLoading(true);
+        if (!cachedHomeResponse?.data) {
+          setLoading(true);
+        }
         setError(null);
         const response = await getHomeContent(undefined, undefined, undefined, true, 5 * 60 * 1000, true);
         if (response.success && response.data) {
@@ -126,7 +210,6 @@ export default function Home() {
         setError(errorMessage);
       } finally {
         setLoading(false);
-        stopRouteLoading();
       }
     };
 
@@ -161,6 +244,123 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (restoreTimeoutRef.current !== null) {
+        window.clearTimeout(restoreTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (navigationType !== "POP" || loading) {
+      return;
+    }
+
+    const historyRestore = (routerLocation.state as any)?.scrollRestore;
+    const effectiveValue =
+      historyRestore?.source === "product-card" &&
+      historyRestore?.pageKey === `${routerLocation.pathname}${routerLocation.search}`
+        ? JSON.stringify(historyRestore)
+        : null;
+
+    if (!effectiveValue) {
+      return;
+    }
+
+    let parsedSnapshot: { mainTop?: number; windowTop?: number; preferredTarget?: "main" | "window" } | null = null;
+    try {
+      parsedSnapshot = JSON.parse(effectiveValue);
+    } catch {
+      parsedSnapshot = { mainTop: Number(effectiveValue), windowTop: 0, preferredTarget: "main" };
+    }
+
+    const targetMainTop = Number(parsedSnapshot?.mainTop || 0);
+    const targetWindowTop = Number(parsedSnapshot?.windowTop || 0);
+    const preferredTarget = parsedSnapshot?.preferredTarget || "main";
+
+    let attempts = 0;
+    const restore = () => {
+      const mainElement = document.querySelector("main");
+      if (mainElement instanceof HTMLElement) {
+        const maxMainTop = Math.max(0, mainElement.scrollHeight - mainElement.clientHeight);
+        mainElement.scrollTop = Math.min(targetMainTop, maxMainTop);
+      }
+
+      window.scrollTo({
+        top: targetWindowTop,
+        left: 0,
+        behavior: "instant",
+      });
+
+      const currentMainTop = mainElement instanceof HTMLElement ? mainElement.scrollTop : 0;
+      const mainSettled = Math.abs(currentMainTop - targetMainTop) < 2 || targetMainTop === 0;
+      const windowSettled = Math.abs(window.scrollY - targetWindowTop) < 2 || targetWindowTop === 0;
+      const settled = preferredTarget === "window" ? windowSettled : mainSettled;
+
+      if (settled || attempts >= 30) {
+        const currentHistoryState = window.history.state || {};
+        const existingUserState = currentHistoryState.usr || {};
+        if (existingUserState.scrollRestore) {
+          window.history.replaceState(
+            {
+              ...currentHistoryState,
+              usr: {
+                ...existingUserState,
+                scrollRestore: undefined,
+              },
+            },
+            '',
+            window.location.href
+          );
+        }
+        restoreTimeoutRef.current = null;
+        return;
+      }
+
+      attempts += 1;
+      restoreTimeoutRef.current = window.setTimeout(restore, 120);
+    };
+
+    requestAnimationFrame(restore);
+  }, [loading, navigationType, routerLocation.pathname, routerLocation.search, homeData, tabProducts.length, products.length]);
+
+  useLayoutEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+
+    if (navigationType === "POP" && (routerLocation.state as any)?.scrollRestore?.source === "product-card") {
+      return;
+    }
+
+    const mainElement = document.querySelector("main");
+    if (mainElement instanceof HTMLElement) {
+      mainElement.scrollTop = 0;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [activeTab, navigationType, routerLocation.state]);
+
+  const handleTabChange = (tabId: string) => {
+    setCurrentPage(1);
+    if (!tabId || tabId === "all") {
+      setTabProducts([]);
+      setTotalPages(1);
+    } else {
+      const nextCachedProducts = getCachedProducts({
+        headerCategorySlug: tabId,
+        page: 1,
+        limit,
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+      });
+      setTabProducts(nextCachedProducts?.data || []);
+      setTotalPages(nextCachedProducts?.pagination?.pages || 1);
+    }
+    setActiveTab(tabId);
+  };
+
+  useEffect(() => {
     const loadTabProducts = async () => {
       if (!activeTab || activeTab === "all") {
         setTabProducts([]);
@@ -179,20 +379,18 @@ export default function Home() {
           if ((res as any).pagination) {
             setTotalPages((res as any).pagination.pages);
           }
-        } else {
+        } else if (!cachedTabProductsResponse?.data) {
           setTabProducts([]);
         }
       } catch (e) {
         console.error("Failed to load tab products:", e);
-        setTabProducts([]);
+        if (!cachedTabProductsResponse?.data) {
+          setTabProducts([]);
+        }
       }
     };
     void loadTabProducts();
   }, [activeTab, location?.latitude, location?.longitude, currentPage]);
-
-  useEffect(() => {
-    setCurrentPage(1); // Reset page when tab changes
-  }, [activeTab]);
 
   const getFilteredProducts = (tabId: string) => {
     if (tabId === "all") return products;
@@ -235,7 +433,7 @@ export default function Home() {
       <HomePopup />
 
       {/* Hero Header with Gradient and Tabs */}
-      <HomeHero activeTab={activeTab} onTabChange={setActiveTab} />
+      <HomeHero activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* 2. MAIN SLIDER - With Themed Background */}
       <div
@@ -305,18 +503,12 @@ export default function Home() {
             </h2>
             <div className="px-4 md:px-6 lg:px-8">
               {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      categoryStyle={true}
-                      showBadge={true}
-                      showPackBadge={false}
-                      showStockInfo={true}
-                    />
-                  ))}
-                </div>
+                <LazyProductGrid
+                  products={filteredProducts}
+                  gridClassName="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-4"
+                  showStockInfo={true}
+                  batchSize={10}
+                />
               ) : (
                 <div className="text-center py-12 md:py-16 text-neutral-500">
                   <p className="text-lg md:text-xl mb-2">No products found</p>
@@ -361,19 +553,13 @@ export default function Home() {
                           </h2>
                         )}
                         <div className="px-4 md:px-6 lg:px-8">
-                          <div className={`grid ${gridClass} ${gapClass}`}>
-                            {section.data.map((product: any) => (
-                              <ProductCard
-                                key={product.id || product._id}
-                                product={product}
-                                categoryStyle={true}
-                                showBadge={true}
-                                showPackBadge={false}
-                                showStockInfo={false}
-                                compact={isCompact}
-                              />
-                            ))}
-                          </div>
+                          <LazyProductGrid
+                            products={section.data}
+                            gridClassName={`grid ${gridClass} ${gapClass}`}
+                            compact={isCompact}
+                            showStockInfo={false}
+                            batchSize={columnCount >= 6 ? 12 : 8}
+                          />
                         </div>
                       </div>
                     );

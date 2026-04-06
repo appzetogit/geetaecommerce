@@ -1215,7 +1215,7 @@ const AdminPOSOrders = () => {
           updateActiveBill({
               selectedCustomer: customer,
               customerSearch: displayName,
-              paymentMethod: "Credit"
+              paymentMethod: "Cash"
           });
           setCustomers([customer]);
           setShowCustomerDropdown(false);
@@ -1259,7 +1259,7 @@ const AdminPOSOrders = () => {
               updateActiveBill({
                   selectedCustomer: customer,
                   customerSearch: displayName,
-                  paymentMethod: "Credit"
+                  paymentMethod: "Cash"
               });
 
               // Also update the local customers list used for the search dropdown
@@ -6213,4 +6213,3 @@ const AdminPOSOrders = () => {
 };
 
 export default AdminPOSOrders;
-

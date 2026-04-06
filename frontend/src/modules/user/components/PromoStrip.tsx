@@ -2,9 +2,8 @@ import { useLayoutEffect, useRef, useState, useEffect, useCallback } from "react
 import { gsap } from "gsap";
 import { Link, useNavigate } from "react-router-dom";
 import { getTheme } from "../../../utils/themes";
-import { getHomeContent } from "../../../services/api/customerHomeService";
+import { getCachedHomeContent, getHomeContent } from "../../../services/api/customerHomeService";
 import { getSubcategories } from "../../../services/api/categoryService";
-import { apiCache } from "../../../utils/apiCache";
 import { useLocation } from "../../../hooks/useLocation";
 import { calculateProductPrice } from "../../../utils/priceUtils";
 
@@ -47,6 +46,11 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
   const { location } = useLocation();
   const { currentTheme: theme } = useThemeContext();
   const navigate = useNavigate();
+  const cachedHomeResponse = getCachedHomeContent(
+    activeTab,
+    location?.latitude,
+    location?.longitude
+  );
   const [categoryCards, setCategoryCards] = useState<PromoCard[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [headingText, setHeadingText] = useState(theme.bannerText);
@@ -112,12 +116,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Check cache first before showing loading state
-      const cacheKey = `home-content-${activeTab || 'all'}`;
-      const cachedData = apiCache.getSync(cacheKey);
-
-      // Only show loading if data is not cached
-      if (!cachedData) {
+      if (!cachedHomeResponse) {
         setLoading(true);
       }
 

@@ -1038,7 +1038,7 @@ export default function AdminStockManagement() {
     });
 
     return variations;
-  }, [products, categories]);
+  }, [products, categories, subCategories]);
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {

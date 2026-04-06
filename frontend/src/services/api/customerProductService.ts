@@ -54,13 +54,35 @@ export interface CategoryListResponse {
     data: Category[];
 }
 
+const buildCacheKey = (prefix: string, params?: Record<string, unknown>) => {
+    const normalizedEntries = Object.entries(params || {})
+        .filter(([, value]) => value !== undefined && value !== null && value !== '')
+        .sort(([left], [right]) => left.localeCompare(right));
+
+    const serialized = normalizedEntries.length > 0
+        ? JSON.stringify(normalizedEntries)
+        : '[]';
+
+    return `${prefix}:${serialized}`;
+};
+
+export const getCachedProducts = (params?: Record<string, unknown>) =>
+    apiCache.getSync<ProductListResponse>(buildCacheKey('customer-products', params));
+
 /**
  * Get products with filters (Public)
  * Location (latitude/longitude) is required to filter products by seller's service radius
  */
 export const getProducts = async (params?: GetProductsParams): Promise<ProductListResponse> => {
-    const response = await api.get<ProductListResponse>('/customer/products', { params });
-    return response.data;
+    const cacheKey = buildCacheKey('customer-products', params as Record<string, unknown> | undefined);
+    return apiCache.getOrFetch(
+        cacheKey,
+        async () => {
+            const response = await api.get<ProductListResponse>('/customer/products', { params });
+            return response.data;
+        },
+        2 * 60 * 1000
+    );
 };
 
 /**
@@ -83,16 +105,30 @@ export const getProductById = async (id: string, latitude?: number, longitude?: 
         params.latitude = latitude;
         params.longitude = longitude;
     }
-    const response = await api.get<ProductDetailResponse>(`/customer/products/${id}`, { params });
-    return response.data;
+    const cacheKey = buildCacheKey(`customer-product:${id}`, params);
+    return apiCache.getOrFetch(
+        cacheKey,
+        async () => {
+            const response = await api.get<ProductDetailResponse>(`/customer/products/${id}`, { params });
+            return response.data;
+        },
+        2 * 60 * 1000
+    );
 };
 
 /**
  * Get category details by ID or slug (Public)
  */
 export const getCategoryById = async (id: string): Promise<any> => {
-    const response = await api.get<any>(`/customer/categories/${id}`);
-    return response.data;
+    const cacheKey = buildCacheKey(`customer-category:${id}`);
+    return apiCache.getOrFetch(
+        cacheKey,
+        async () => {
+            const response = await api.get<any>(`/customer/categories/${id}`);
+            return response.data;
+        },
+        5 * 60 * 1000
+    );
 };
 
 /**

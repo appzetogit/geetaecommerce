@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from 'react';
 import { getTheme, Theme } from '../utils/themes';
-import { getHeaderCategoriesPublic } from '../services/api/headerCategoryService';
+import { getCachedHeaderCategoriesPublic, getHeaderCategoriesPublic } from '../services/api/headerCategoryService';
 
 interface ThemeContextType {
     activeCategory: string;
@@ -14,7 +14,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const [activeCategory, setActiveCategory] = useState('all');
-    const [headerCategories, setHeaderCategories] = useState<any[]>([]);
+    const [headerCategories, setHeaderCategories] = useState<any[]>(() => getCachedHeaderCategoriesPublic() || []);
 
     const fetchHeaderCategories = async () => {
         try {
@@ -28,7 +28,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
 
     useEffect(() => {
-        fetchHeaderCategories();
+        if (!getCachedHeaderCategoriesPublic()) {
+            fetchHeaderCategories();
+        }
 
         // Refresh when tab gets focus (Real-time update from Admin changes)
         window.addEventListener('focus', fetchHeaderCategories);

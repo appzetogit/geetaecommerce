@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import FloatingCartPill from './FloatingCartPill';
 import { useLocation as useLocationContext } from '../hooks/useLocation';
@@ -14,9 +14,11 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
+  const navigationType = useNavigationType();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const mainRef = useRef<HTMLElement>(null);
+  const restoreAttemptsRef = useRef<number | null>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [categoriesRotation, setCategoriesRotation] = useState(0);
   const [prevCategoriesActive, setPrevCategoriesActive] = useState(false);
@@ -96,17 +98,119 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
 
 
-  // Reset scroll position when navigating to any page (smooth, no flash)
+  // Preserve scroll position on back/forward while keeping fresh navigations at the top.
   useEffect(() => {
-    // Use requestAnimationFrame to prevent visual flash
-    requestAnimationFrame(() => {
-      if (mainRef.current) {
-        mainRef.current.scrollTop = 0;
+    return () => {
+      if (restoreAttemptsRef.current !== null) {
+        window.clearTimeout(restoreAttemptsRef.current);
       }
-      // Also reset window scroll smoothly
+    };
+  }, []);
+
+  useEffect(() => {
+    const scrollContainer = mainRef.current;
+    if (!scrollContainer) {
+      return;
+    }
+
+    const pageKey = `${location.pathname}${location.search}`;
+    const storageKey = `app-layout-scroll:${pageKey}`;
+
+    const getScrollSnapshot = () => {
+      const mainTop = scrollContainer.scrollTop;
+      const windowTop = window.scrollY || window.pageYOffset || 0;
+
+      return {
+        mainTop,
+        windowTop,
+        preferredTarget: windowTop > mainTop ? 'window' : 'main',
+      };
+    };
+
+    const saveScrollPosition = () => {
+      sessionStorage.setItem(storageKey, JSON.stringify(getScrollSnapshot()));
+    };
+
+    const resetToTop = () => {
+      scrollContainer.scrollTop = 0;
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    });
-  }, [location.pathname]);
+    };
+
+    const historyRestore = (location.state as any)?.scrollRestore;
+
+    const restoreScrollPosition = () => {
+      const savedValue =
+        historyRestore?.pageKey === pageKey
+          ? JSON.stringify(historyRestore)
+          : null;
+
+      if (savedValue === null) {
+        resetToTop();
+        return;
+      }
+
+      let attempts = 0;
+      let parsedSnapshot: { mainTop?: number; windowTop?: number; preferredTarget?: 'main' | 'window' } | null = null;
+
+      try {
+        parsedSnapshot = JSON.parse(savedValue);
+      } catch {
+        parsedSnapshot = { mainTop: Number(savedValue), windowTop: 0, preferredTarget: 'main' };
+      }
+
+      const targetMainTop = Number(parsedSnapshot?.mainTop || 0);
+      const targetWindowTop = Number(parsedSnapshot?.windowTop || 0);
+      const preferredTarget = parsedSnapshot?.preferredTarget || 'main';
+
+      const applyRestore = () => {
+        const maxMainTop = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+        const nextMainTop = Math.min(targetMainTop, maxMainTop);
+
+        scrollContainer.scrollTop = nextMainTop;
+        window.scrollTo({
+          top: targetWindowTop,
+          left: 0,
+          behavior: 'instant',
+        });
+
+        const mainSettled = nextMainTop === targetMainTop || targetMainTop === 0;
+        const windowSettled = Math.abs(window.scrollY - targetWindowTop) < 2 || targetWindowTop === 0;
+        const canStop =
+          attempts >= 12 ||
+          (preferredTarget === 'window' ? windowSettled : mainSettled);
+
+        if (canStop) {
+          restoreAttemptsRef.current = null;
+          return;
+        }
+
+        attempts += 1;
+        restoreAttemptsRef.current = window.setTimeout(applyRestore, 80);
+      };
+
+      requestAnimationFrame(applyRestore);
+    };
+
+    if (restoreAttemptsRef.current !== null) {
+      window.clearTimeout(restoreAttemptsRef.current);
+      restoreAttemptsRef.current = null;
+    }
+
+    if (navigationType === 'POP' && historyRestore?.pageKey === pageKey) {
+      restoreScrollPosition();
+    } else {
+      resetToTop();
+    }
+
+    scrollContainer.addEventListener('scroll', saveScrollPosition, { passive: true });
+    window.addEventListener('pagehide', saveScrollPosition);
+
+    return () => {
+      saveScrollPosition();
+      scrollContainer.removeEventListener('scroll', saveScrollPosition);
+      window.removeEventListener('pagehide', saveScrollPosition);
+    };
+  }, [location.key, location.pathname, location.search, navigationType]);
 
   // Track categories active state for rotation
   const isCategoriesActive = isActive('/categories') || location.pathname.startsWith('/category/');
@@ -549,7 +653,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
           )}
 
           {/* Scrollable Main Content */}
-          <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide pb-24 md:pb-8">
+          <main
+            ref={mainRef}
+            className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide pb-24 md:pb-8"
+            style={{ overflowAnchor: 'none' }}
+          >
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={location.pathname}
@@ -562,12 +670,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 }}
                 className="w-full max-w-full"
                 style={{ minHeight: '100%' }}
-                onAnimationComplete={() => {
-                  if (mainRef.current) {
-                    mainRef.current.scrollTop = 0;
-                  }
-                  window.scrollTo(0, 0);
-                }}
               >
                 {children}
               </motion.div>

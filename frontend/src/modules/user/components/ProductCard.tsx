@@ -144,6 +144,33 @@ export default function ProductCard({
   })();
 
   const handleCardClick = () => {
+    const mainElement = document.querySelector('main');
+    const currentHistoryState = window.history.state || {};
+    const existingUserState = currentHistoryState.usr || {};
+    const pageKey = `${window.location.pathname}${window.location.search}`;
+
+    window.history.replaceState(
+      {
+        ...currentHistoryState,
+        usr: {
+          ...existingUserState,
+          scrollRestore: {
+            source: 'product-card',
+            pageKey,
+            mainTop: mainElement instanceof HTMLElement ? mainElement.scrollTop : 0,
+            windowTop: window.scrollY || window.pageYOffset || 0,
+            preferredTarget:
+              (window.scrollY || window.pageYOffset || 0) >
+              (mainElement instanceof HTMLElement ? mainElement.scrollTop : 0)
+                ? 'window'
+                : 'main',
+          },
+        },
+      },
+      '',
+      window.location.href
+    );
+
     navigate(`/product/${((product as any).id || product._id) as string}`);
   };
 

@@ -1,4 +1,5 @@
 import api from './config';
+import { apiCache } from '../../utils/apiCache';
 
 export interface HeaderCategory {
     _id: string; // MongoDB ID
@@ -16,11 +17,22 @@ export interface HeaderCategory {
     order?: number;
 }
 
+const HEADER_CATEGORIES_CACHE_KEY = 'header-categories-public';
+
+export const getCachedHeaderCategoriesPublic = (): HeaderCategory[] | null =>
+    apiCache.getSync<HeaderCategory[]>(HEADER_CATEGORIES_CACHE_KEY);
+
 export const getHeaderCategoriesPublic = async (skipLoader = false): Promise<HeaderCategory[]> => {
-    const response = await api.get<HeaderCategory[]>('/header-categories', {
-        skipLoader
-    } as any);
-    return response.data;
+    return apiCache.getOrFetch(
+        HEADER_CATEGORIES_CACHE_KEY,
+        async () => {
+            const response = await api.get<HeaderCategory[]>('/header-categories', {
+                skipLoader
+            } as any);
+            return response.data;
+        },
+        10 * 60 * 1000
+    );
 };
 
 export const getHeaderCategoriesAdmin = async (): Promise<HeaderCategory[]> => {
