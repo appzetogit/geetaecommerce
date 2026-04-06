@@ -767,18 +767,35 @@ const AdminPOSOrders = () => {
 
   // Handle Barcode Scan from Camera
   const onScanSuccess = async (decodedText: string, decodedResult: any) => {
-      // Trim scanned text for robustness
-      const cleanDecodedText = decodedText?.trim() || "";
-      if (!cleanDecodedText) return;
+      // Optional non-blocking feedback (mobile vibration if supported)
+      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+          try {
+              navigator.vibrate(100);
+          } catch {
+              // ignore vibration errors
+          }
+      }
 
+      // === DEBUG: Log every raw scan result ===
+      const detectedFormat = decodedResult?.result?.format?.formatName || decodedResult?.decodedResult?.result?.format?.formatName || 'UNKNOWN_FORMAT';
+      console.log('========== [SCANNER DEBUG] SCAN DETECTED ==========');
+      console.log('[SCANNER DEBUG] Raw scanned value  :', decodedText);
+      console.log('[SCANNER DEBUG] Barcode length      :', decodedText.length);
+      console.log('[SCANNER DEBUG] Barcode format      :', detectedFormat);
+      console.log('[SCANNER DEBUG] Is fully numeric?   :', /^\d+$/.test(decodedText));
+      console.log('[SCANNER DEBUG] Active scanTarget   :', scanTarget);
+      console.log('[SCANNER DEBUG] Full decodedResult  :', JSON.stringify(decodedResult, null, 2));
+      console.log('===================================================');
 
-      // Handle duplicate scans with cooldown
+      // Cooldown for same barcode to avoid double scans (2 seconds)
       const now = Date.now();
-      if (cleanDecodedText === lastScanRef.current.code && (now - lastScanRef.current.time < 2000)) {
+      const isDuplicate = decodedText === lastScanRef.current.code && (now - lastScanRef.current.time < 2000);
+      console.log('[SCANNER DEBUG] Duplicate check — same code within 2s?', isDuplicate, '| Last code:', lastScanRef.current.code, '| Time diff (ms):', now - lastScanRef.current.time);
+      if (isDuplicate) {
+          console.log('[SCANNER DEBUG] ⚠️ BLOCKED by duplicate cooldown — returning early.');
           return;
       }
-      lastScanRef.current = { code: cleanDecodedText, time: now };
-
+      lastScanRef.current = { code: decodedText, time: now };
 
       // Don't process if loading to prevent spam
       if (loading) {
@@ -814,8 +831,9 @@ const AdminPOSOrders = () => {
           // const audio = new Audio('/assets/beep.mp3'); audio.play().catch(e=>{});
 
           // Use POS Search for optimized results
-          const res = await getPOSProducts({ search: cleanDecodedText });
-
+          console.log('[SCANNER DEBUG] Calling getPOSProducts API with search:', decodedText);
+          const res = await getPOSProducts({ search: decodedText });
+          console.log('[SCANNER DEBUG] API response — success:', res.success, '| total products returned:', res.data?.length ?? 0);
 
           if (res.success && res.data && res.data.length > 0) {
              const productsFound = res.data;
@@ -1105,16 +1123,12 @@ const AdminPOSOrders = () => {
             html5QrCodeRef.current = scanner;
 
             // Match Seller POS scanner sizing for mobile.
+            const boxWidth = Math.min(Math.max(element.clientWidth - 24, 220), 420);
+            const boxHeight = Math.max(200, Math.floor(boxWidth * 0.45));
             const config: any = {
-                fps: 25,
-                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                    // Wide rectangular box optimized for 1D product barcodes
-                    const width = Math.min(viewfinderWidth - 20, 420);
-                    const height = Math.floor(width * 0.45);
-                    return { width, height: Math.max(height, 140) };
-                },
-                disableFlip: true,
-                aspectRatio: 1.7777778, // Better for modern wide mobile cameras
+                fps: 20,
+                qrbox: { width: boxWidth, height: boxHeight },
+                disableFlip: true
             };
 
             await scanner.start(
