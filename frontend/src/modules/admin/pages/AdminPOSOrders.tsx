@@ -3039,87 +3039,96 @@ const AdminPOSOrders = () => {
     }
 
     setLoading(true);
-    try {
-        const orderData = {
-            customerId: selectedCustomer ? selectedCustomer._id : "walk-in-customer",
-            items: cart.map(item => ({
-                productId: item.originalProductId || item._id, // Send PARENT ID if available
-                name: item.productName,
-                quantity: item.qty,
-                price: getEffectivePrice(item),
-                mrp: Number(item.compareAtPrice || 0),
-                variationId: item.variationId
-            })),
-            gateway: method,
-            createdBy: activeStaffSession?.id,
-            staffName: activeStaffSession?.name
-        };
+    await initiateOnlinePayment(method);
+  };
 
-        const response = await initiatePOSOnlineOrder(orderData);
+  const initiateOnlinePayment = async (method: string) => {
+      if (activeBillId.startsWith('edit_')) {
+          showToast("Cannot create a new bill from an edit session. Please use Update.", "error");
+          return;
+      }
+      setLoading(true);
+      try {
+          const orderData = {
+              customerId: selectedCustomer ? selectedCustomer._id : "walk-in-customer",
+              items: cart.map(item => ({
+                  productId: item.originalProductId || item._id, // Send PARENT ID if available
+                  name: item.productName,
+                  quantity: item.qty,
+                  price: getEffectivePrice(item),
+                  mrp: Number(item.compareAtPrice || 0),
+                  variationId: item.variationId
+              })),
+              gateway: method,
+              createdBy: activeStaffSession?.id,
+              staffName: activeStaffSession?.name
+          };
 
-        if (response.success) {
-            const { gateway, orderId, amount, key, razorpayOrderId, paymentSessionId, isSandbox } = response.data;
+          const response = await initiatePOSOnlineOrder(orderData);
 
-            if (gateway === 'Razorpay') {
-                const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
-                if (!res) {
-                    showToast("Razorpay SDK failed to load", "error");
-                    setLoading(false);
-                    return;
-                }
+          if (response.success) {
+              const { gateway, orderId, amount, key, razorpayOrderId, paymentSessionId, isSandbox } = response.data;
 
-                const options = {
-                    key: key,
-                    amount: Math.round(amount * 100),
-                    currency: "INR",
-                    name: "Geeta Stores",
-                    description: "POS Payment",
-                    order_id: razorpayOrderId,
-                    handler: async function (response: any) {
-                        await handleVerifyPayment(orderId, response.razorpay_payment_id);
-                    },
-                    prefill: {
-                        name: selectedCustomer?.name || "Walk-in Customer",
-                        contact: selectedCustomer?.phone || undefined,
-                        email: selectedCustomer?.email || undefined
-                    },
-                    theme: {
-                        color: "#3399cc"
-                    }
-                };
-                const rzp1 = new (window as any).Razorpay(options);
-                rzp1.open();
-                setLoading(false); // Modal is open, we can stop spinner
-            } else if (gateway === 'Cashfree') {
-                const res = await loadScript("https://sdk.cashfree.com/js/v3/cashfree.js");
-                if (!res) {
-                    showToast("Cashfree SDK failed to load", "error");
-                    setLoading(false);
-                    return;
-                }
-                const cashfree = new (window as any).Cashfree({
-                    mode: isSandbox ? "sandbox" : "production"
-                });
-                cashfree.checkout({
-                    paymentSessionId: paymentSessionId,
-                    redirectTarget: "_modal",
-                }).then((result: any) => {
-                     // Optimistic verification or rely on backend webhook.
-                     // For POS, we'll try to verify if we get a cue, but Cashfree JS promise resolves on close/completion.
-                     // We'll Trigger verify
-                     handleVerifyPayment(orderId, "CF_References_Checked_Backend");
-                });
-                setLoading(false);
-            }
-        } else {
-             showToast(response.message || "Failed to initiate payment", "error");
-             setLoading(false);
-        }
-    } catch (error) {
-        console.error("Payment Init Error", error);
-        showToast("Error initiating payment", "error");
-        setLoading(false);
-    }
+              if (gateway === 'Razorpay') {
+                  const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+                  if (!res) {
+                      showToast("Razorpay SDK failed to load", "error");
+                      setLoading(false);
+                      return;
+                  }
+
+                  const options = {
+                      key: key,
+                      amount: Math.round(amount * 100),
+                      currency: "INR",
+                      name: "Geeta Stores",
+                      description: "POS Payment",
+                      order_id: razorpayOrderId,
+                      handler: async function (response: any) {
+                          await handleVerifyPayment(orderId, response.razorpay_payment_id);
+                      },
+                      prefill: {
+                          name: selectedCustomer?.name || "Walk-in Customer",
+                          contact: selectedCustomer?.phone || undefined,
+                          email: selectedCustomer?.email || undefined
+                      },
+                      theme: {
+                          color: "#3399cc"
+                      }
+                  };
+                  const rzp1 = new (window as any).Razorpay(options);
+                  rzp1.open();
+                  setLoading(false); // Modal is open, we can stop spinner
+              } else if (gateway === 'Cashfree') {
+                  const res = await loadScript("https://sdk.cashfree.com/js/v3/cashfree.js");
+                  if (!res) {
+                      showToast("Cashfree SDK failed to load", "error");
+                      setLoading(false);
+                      return;
+                  }
+                  const cashfree = new (window as any).Cashfree({
+                      mode: isSandbox ? "sandbox" : "production"
+                  });
+                  cashfree.checkout({
+                      paymentSessionId: paymentSessionId,
+                      redirectTarget: "_modal",
+                  }).then((result: any) => {
+                       // Optimistic verification or rely on backend webhook.
+                       // For POS, we'll try to verify if we get a cue, but Cashfree JS promise resolves on close/completion.
+                       // We'll Trigger verify
+                       handleVerifyPayment(orderId, "CF_References_Checked_Backend");
+                  });
+                  setLoading(false);
+              }
+          } else {
+               showToast(response.message || "Failed to initiate payment", "error");
+               setLoading(false);
+          }
+      } catch (error) {
+          console.error("Payment Init Error", error);
+          showToast("Error initiating payment", "error");
+          setLoading(false);
+      }
   };
 
   const handleVerifyPayment = async (orderId: string, paymentId: string) => {
@@ -3158,6 +3167,10 @@ const AdminPOSOrders = () => {
   };
 
   const performCashCheckout = async (): Promise<boolean> => {
+    if (activeBillId.startsWith('edit_')) {
+        showToast("Cannot create a new bill from an edit session. Please use Update.", "error");
+        return false;
+    }
     setLoading(true);
     try {
         const orderData = {
@@ -3212,6 +3225,10 @@ const AdminPOSOrders = () => {
   };
 
   const performCreditCheckout = async () => {
+      if (activeBillId.startsWith('edit_')) {
+          showToast("Cannot create a new bill from an edit session. Please use Update.", "error");
+          return;
+      }
       if (!selectedCustomer) {
           showToast("Customer selection is mandatory for Credit orders", "error");
           return;
