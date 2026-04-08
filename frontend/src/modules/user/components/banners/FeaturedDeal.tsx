@@ -76,7 +76,7 @@ export default function FeaturedDeal() {
   if (featuredProducts.length === 0) return null;
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 mb-6">
+    <div className="px-4 md:px-6 lg:px-8 mt-4 mb-6">
       <div
         className="rounded-xl p-4 md:p-6 shadow-sm relative overflow-hidden flex flex-col gap-4"
         style={{

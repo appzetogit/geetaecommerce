@@ -4003,7 +4003,7 @@ const AdminPOSOrders = () => {
 
                                     {/* Name */}
                                      <div className="col-span-2 min-w-0">
-                                         <h4 className="text-base font-bold text-gray-900 truncate" title={item.productName}>{item.productName}</h4>
+                                         <h4 className="text-base font-bold text-gray-900 whitespace-normal break-words leading-tight" title={item.productName}>{item.productName}</h4>
                                          {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
                                              <div className="text-xs text-[#f187b5] font-bold mt-0.5">
                                                  {(item as any).warrantyType}: {(item as any).warrantyDuration}

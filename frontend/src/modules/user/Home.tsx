@@ -4,7 +4,6 @@ import HomeHero from "./components/HomeHero";
 import PromoStrip from "./components/PromoStrip";
 import LowestPricesEver from "./components/LowestPricesEver";
 import CategoryTileSection from "./components/CategoryTileSection";
-import FeaturedThisWeek from "./components/FeaturedThisWeek";
 import ProductCard from "./components/ProductCard";
 import BannerSlider from "./components/banners/BannerSlider";
 import HomePopup from "./components/banners/HomePopup";
@@ -524,9 +523,6 @@ export default function Home() {
         {/* Bestsellers Section - Originally here, now moved up. Only keeping condition wrapper for other sections if needed */}
         {activeTab === "all" && (
           <>
-            {/* Featured this week Section */}
-            <FeaturedThisWeek />
-
             {/* Dynamic Home Sections - Render sections created by admin */}
             {homeData.homeSections && homeData.homeSections.length > 0 && (
               <>
