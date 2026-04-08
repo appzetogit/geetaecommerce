@@ -1579,6 +1579,15 @@ const AdminPOSOrders = () => {
     }));
   };
 
+  const setQuantity = (id: string, qty: number) => {
+    setCart(prev => prev.map(item => {
+      if (item._id === id) {
+        return { ...item, qty: Math.max(1, qty) };
+      }
+      return item;
+    }));
+  };
+
   const updateItemDetails = (id: string, updates: any) => {
     setCart(prev => prev.map(item => {
         if (item._id === id) {
@@ -1586,6 +1595,16 @@ const AdminPOSOrders = () => {
         }
         return item;
     }));
+  };
+
+  const preventNumberScrollChange = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.preventDefault();
+  };
+
+  const preventArrowStepChange = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+    }
   };
 
   /*
@@ -3892,9 +3911,19 @@ const AdminPOSOrders = () => {
                                              onClick={() => updateQuantity(item._id, -1)}
                                              className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
                                            >−</button>
-                                           <div className="w-8 flex items-center justify-center text-sm font-bold text-gray-800">
-                                               {item.qty}
-                                           </div>
+                                           <input
+                                             type="number"
+                                             min={1}
+                                             step={1}
+                                             value={item.qty}
+                                             onChange={(e) => {
+                                               const nextQty = Number(e.target.value);
+                                               if (Number.isFinite(nextQty) && nextQty > 0) {
+                                                 setQuantity(item._id, Math.floor(nextQty));
+                                               }
+                                             }}
+                                             className="w-12 h-7 text-center text-sm font-bold text-gray-800 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                           />
                                            <button
                                              onClick={() => updateQuantity(item._id, 1)}
                                              className="w-7 h-7 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"
@@ -3933,9 +3962,19 @@ const AdminPOSOrders = () => {
                                                 onClick={() => updateQuantity(item._id, -1)}
                                                 className="w-6 h-6 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-base"
                                               >−</button>
-                                              <div className="w-6 flex items-center justify-center text-xs font-bold text-gray-800">
-                                                  {item.qty}
-                                              </div>
+                                              <input
+                                                type="number"
+                                                min={1}
+                                                step={1}
+                                                value={item.qty}
+                                                onChange={(e) => {
+                                                  const nextQty = Number(e.target.value);
+                                                  if (Number.isFinite(nextQty) && nextQty > 0) {
+                                                    setQuantity(item._id, Math.floor(nextQty));
+                                                  }
+                                                }}
+                                                className="w-8 h-6 text-center text-xs font-bold text-gray-800 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                              />
                                               <button
                                                 onClick={() => updateQuantity(item._id, 1)}
                                                 className="w-6 h-6 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-base"
@@ -3997,9 +4036,12 @@ const AdminPOSOrders = () => {
                                     {/* MRP Input */}
                                     <div className="col-span-1">
                                           <input
-                                              type="number"
+                                              type="text"
+                                              inputMode="decimal"
                                               value={mrp}
                                               onChange={(e) => updateItemDetails(item._id, { compareAtPrice: parseFloat(e.target.value) || 0 })}
+                                              onWheel={preventNumberScrollChange}
+                                              onKeyDown={preventArrowStepChange}
                                               className="w-full text-center text-base border border-transparent hover:border-gray-200 focus:border-[#f187b5] bg-transparent focus:bg-white rounded px-1 py-1 outline-none transition-all"
                                           />
                                      </div>
@@ -4009,14 +4051,24 @@ const AdminPOSOrders = () => {
                                         <div className="flex items-center bg-white border border-gray-200 rounded-lg h-9 w-28 shadow-sm">
                                              <button
                                                onClick={() => updateQuantity(item._id, -1)}
-                                               className="w-8 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors text-xl font-bold"
+                                               className="w-8 h-full shrink-0 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors text-xl font-bold"
                                              >−</button>
-                                             <div className="flex-1 h-full flex items-center justify-center text-base font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
-                                                 {item.qty}
-                                             </div>
+                                             <input
+                                               type="number"
+                                               min={1}
+                                               step={1}
+                                               value={item.qty}
+                                               onChange={(e) => {
+                                                 const nextQty = Number(e.target.value);
+                                                 if (Number.isFinite(nextQty) && nextQty > 0) {
+                                                   setQuantity(item._id, Math.floor(nextQty));
+                                                 }
+                                               }}
+                                               className="w-12 h-full shrink-0 text-center text-base font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                             />
                                              <button
                                                onClick={() => updateQuantity(item._id, 1)}
-                                               className="w-8 h-full flex items-center justify-center text-[#f187b5] hover:bg-gray-50 rounded-r transition-colors font-bold text-xl"
+                                               className="w-8 h-full shrink-0 flex items-center justify-center text-[#f187b5] hover:bg-gray-50 rounded-r transition-colors font-bold text-xl"
                                              >+</button>
                                         </div>
                                     </div>
@@ -4024,9 +4076,12 @@ const AdminPOSOrders = () => {
                                     {/* Retail Price (SP) Input */}
                                     <div className="col-span-2">
                                          <input
-                                              type="number"
+                                              type="text"
+                                              inputMode="decimal"
                                               value={sp}
                                               onChange={(e) => updateItemDetails(item._id, { customPrice: parseFloat(e.target.value) || 0 })}
+                                              onWheel={preventNumberScrollChange}
+                                              onKeyDown={preventArrowStepChange}
                                               className="w-full text-center text-base font-bold text-gray-900 border border-green-200 bg-green-50/30 focus:bg-white focus:border-[#f187b5] rounded px-1 py-1 outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                           />
                                      </div>
