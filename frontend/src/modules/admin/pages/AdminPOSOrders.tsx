@@ -4986,11 +4986,11 @@ const AdminPOSOrders = () => {
                   type="text"
                   value={purchaseSupplierForm.gstNumber}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '');
+                    const val = e.target.value;
                     setPurchaseSupplierForm((p) => ({ ...p, gstNumber: val }));
                   }}
                   className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] focus:outline-none transition-all font-mono"
-                  placeholder="Enter GST number (digits only)"
+                  placeholder="Enter GST number"
                 />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Opening Balance (optional)
