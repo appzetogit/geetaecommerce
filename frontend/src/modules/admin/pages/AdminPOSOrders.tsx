@@ -3062,8 +3062,9 @@ const AdminPOSOrders = () => {
   };
 
   const initiateOnlinePayment = async (method: string) => {
-      if (activeBillId.startsWith('edit_')) {
+      if (activeBillId.startsWith('edit_') || editOrderId) {
           showToast("Cannot create a new bill from an edit session. Please use Update.", "error");
+          setLoading(false);
           return;
       }
       setLoading(true);
@@ -3186,8 +3187,9 @@ const AdminPOSOrders = () => {
   };
 
   const performCashCheckout = async (): Promise<boolean> => {
-    if (activeBillId.startsWith('edit_')) {
+    if (activeBillId.startsWith('edit_') || editOrderId) {
         showToast("Cannot create a new bill from an edit session. Please use Update.", "error");
+        setLoading(false);
         return false;
     }
     setLoading(true);
@@ -3244,8 +3246,9 @@ const AdminPOSOrders = () => {
   };
 
   const performCreditCheckout = async () => {
-      if (activeBillId.startsWith('edit_')) {
+      if (activeBillId.startsWith('edit_') || editOrderId) {
           showToast("Cannot create a new bill from an edit session. Please use Update.", "error");
+          setLoading(false);
           return;
       }
       if (!selectedCustomer) {
@@ -4262,7 +4265,7 @@ const AdminPOSOrders = () => {
                                 {!activeBillId.startsWith('edit_') && (
                                   <button
                                      onClick={handleGenerateBill}
-                                     disabled={cart.length === 0}
+                                     disabled={loading || cart.length === 0}
                                      className="w-full bg-[#0d055a] border-2 border-[#0d055a] text-white hover:bg-[#0d055a] hover:text-white font-black py-2 md:py-0 md:min-h-[88px] px-4 rounded-xl transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group text-xs"
                                    >
                                     <svg className="w-4 h-4 group-hover:rotate-12 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
