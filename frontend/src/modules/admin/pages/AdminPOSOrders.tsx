@@ -1393,6 +1393,13 @@ const AdminPOSOrders = () => {
   const submitScanQuery = async (raw: string) => {
     const trimmed = raw.trim();
     if (!trimmed) return;
+    if (loading) return;
+
+    // Cooldown to prevent double scans from hardware scanners (500ms)
+    const now = Date.now();
+    const isDuplicate = trimmed === lastScanRef.current.code && (now - lastScanRef.current.time < 500);
+    if (isDuplicate) return;
+    lastScanRef.current = { code: trimmed, time: now };
 
     const query = trimmed.toLowerCase();
 
@@ -1448,7 +1455,7 @@ const AdminPOSOrders = () => {
 
         exactMatch = findMatch(expanded);
         if (exactMatch) {
-          if (addToCartRef.current) addToCartRef.current(exactMatch as CartItem);
+          addToCart(exactMatch as CartItem);
           setSearchQuery('');
         }
       }
@@ -2394,6 +2401,7 @@ const AdminPOSOrders = () => {
   // --- Handlers ---
   const handleQuickAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
 
     let productId = 'quick-' + Date.now();
     let finalProductData: any = null;
@@ -3325,7 +3333,14 @@ const AdminPOSOrders = () => {
               productImage: item.mainImage || (item as any).image || ''
           }));
 
-          const res = await updateOrderItems(editOrderId, items);
+          const res = await updateOrderItems(editOrderId, {
+              items,
+              customerId: selectedCustomer ? selectedCustomer._id : "walk-in-customer",
+              customerName: selectedCustomer ? selectedCustomer.name : (customerSearch || "Walk-in Customer"),
+              customerPhone: selectedCustomer ? selectedCustomer.phone : "0000000000",
+              customerEmail: selectedCustomer ? selectedCustomer.email : "walkin@pos.com",
+              paymentMethod: paymentMethod || 'Cash'
+          });
           if (res.success) {
               showToast("Order updated successfully", "success");
 
@@ -5343,8 +5358,12 @@ const AdminPOSOrders = () => {
                         </label>
                     </div>
 
-                    <button type="submit" className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white font-medium py-2.5 rounded-lg transition-colors mt-2">
-                        Add to Cart
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-[#f187b5] hover:bg-[#e076a5] disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-all shadow-md active:scale-95 mt-2"
+                    >
+                        {loading ? 'Adding...' : 'Add to Cart'}
                     </button>
                 </form>
             </div>

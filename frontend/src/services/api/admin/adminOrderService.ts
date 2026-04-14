@@ -222,20 +222,27 @@ export const updateOrderStatus = async (
  */
 export const updateOrderItems = async (
   id: string,
-  items: Array<{
-    productId?: string;
-    variationId?: string;
-    quantity: number;
-    unitPrice?: number;
-    mrp?: number;
-    sku?: string;
-    productName?: string;
-    productImage?: string;
-  }>
+  data: {
+    items: Array<{
+      productId?: string;
+      variationId?: string;
+      quantity: number;
+      unitPrice?: number;
+      mrp?: number;
+      sku?: string;
+      productName?: string;
+      productImage?: string;
+    }>;
+    customerId?: string;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    paymentMethod?: string;
+  }
 ): Promise<ApiResponse<Order>> => {
   const response = await api.patch<ApiResponse<Order>>(
     `/admin/orders/${id}/items`,
-    { items }
+    data
   );
   return response.data;
 };

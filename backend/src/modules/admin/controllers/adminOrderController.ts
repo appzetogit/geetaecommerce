@@ -600,11 +600,70 @@ export const updateOrderItems = asyncHandler(
       }
 
       // 4. Update Order
+      const { 
+        customerId, 
+        customerName: newCustomerName, 
+        customerPhone: newCustomerPhone, 
+        customerEmail: newCustomerEmail, 
+        paymentMethod: newPaymentMethod 
+      } = req.body;
+
+      // Handle Credit Adjustment for Old State
+      if (order.paymentMethod === 'Credit' && order.customer) {
+        const oldCustomer = await Customer.findById(order.customer).session(session);
+        if (oldCustomer) {
+          oldCustomer.creditBalance = Math.max(0, (oldCustomer.creditBalance || 0) - (order.total || 0));
+          await oldCustomer.save({ session });
+          // Delete old transaction
+          await CreditTransaction.deleteMany({ referenceId: order._id.toString(), type: 'Order' }).session(session);
+        }
+      }
+
+      // Update Order Fields
+      if (customerId && mongoose.Types.ObjectId.isValid(customerId)) {
+        const newCustomer = await Customer.findById(customerId).session(session);
+        if (newCustomer) {
+          order.customer = newCustomer._id;
+          order.customerName = newCustomer.name;
+          order.customerEmail = newCustomer.email;
+          order.customerPhone = newCustomer.phone;
+        }
+      } else if (newCustomerName) {
+        order.customerName = newCustomerName;
+        if (newCustomerPhone) order.customerPhone = newCustomerPhone;
+        if (newCustomerEmail) order.customerEmail = newCustomerEmail;
+      }
+
+      if (newPaymentMethod) {
+        order.paymentMethod = newPaymentMethod;
+        order.paymentStatus = newPaymentMethod === 'Credit' ? 'Pending' : (order.paymentStatus || 'Paid');
+      }
+
       order.items = newItemIds as any;
       order.subtotal = newSubtotal;
       order.total = newSubtotal + (order.tax || 0) + (order.shipping || 0) - (order.discount || 0);
 
       await order.save({ session });
+
+      // Handle Credit Adjustment for New State
+      if (order.paymentMethod === 'Credit' && order.customer) {
+        const finalCustomer = await Customer.findById(order.customer).session(session);
+        if (finalCustomer) {
+          finalCustomer.creditBalance = (finalCustomer.creditBalance || 0) + order.total;
+          await finalCustomer.save({ session });
+
+          await CreditTransaction.create([{
+            customer: finalCustomer._id,
+            type: 'Order',
+            amount: order.total,
+            balanceAfter: finalCustomer.creditBalance,
+            description: `POS Order #${order.orderNumber} (Updated)`,
+            referenceId: order._id.toString(),
+            date: new Date(),
+            createdBy: adminId
+          }], { session });
+        }
+      }
 
       await session.commitTransaction();
       session.endSession();
