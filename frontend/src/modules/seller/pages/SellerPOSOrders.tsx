@@ -1794,6 +1794,7 @@ const SellerPOSOrders = () => {
       setPurchaseItems((prev) => prev.map((item) => ({ ...item, currentQty: item.currentQty + item.qty })));
       showToast('Purchase saved & inventory updated', 'success');
       printPurchaseInvoice(entry);
+      setPurchaseItemsStore([]);
     } else {
       // Stock deduction logic if toggled
       if (reduceStockOnQuotation) {
