@@ -519,8 +519,10 @@ export const getProductById = async (req: Request, res: Response) => {
       }
     }
 
-    // Only add category filter if we have a valid category ID
-    if (categoryId) {
+    // Prioritize subcategory for more relevant similarity (e.g., matching a dictionary with other books instead of unrelated stationery like pens)
+    if (product.subcategory) {
+      similarProductsQuery.subcategory = (product.subcategory as any)._id || product.subcategory;
+    } else if (categoryId) {
       similarProductsQuery.category = categoryId;
     }
 

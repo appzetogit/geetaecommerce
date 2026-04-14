@@ -1223,9 +1223,19 @@ export default function ProductDetail() {
         {similarProducts.length > 0 && (
           <div className="mt-6 mb-24">
             <div className="bg-neutral-100/50 border-t border-b border-neutral-200/50 py-4 px-3">
-              <h3 className="text-lg font-semibold text-neutral-900 mb-4 px-1">
-                Top products in this category
-              </h3>
+              <div className="flex items-center justify-between mb-4 px-1">
+                <h3 className="text-lg font-semibold text-neutral-900">
+                  Top products in this category
+                </h3>
+                {category?.id && (
+                  <button
+                    onClick={() => navigate(`/category/${category.id}`)}
+                    className="text-sm font-semibold text-green-600 hover:text-green-700 transition-colors"
+                  >
+                    View All
+                  </button>
+                )}
+              </div>
               <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2 px-1">
                 {similarProducts.map((similarProduct) => {
                   const similarCartItem = cart.items.find(
