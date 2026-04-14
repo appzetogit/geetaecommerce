@@ -1229,10 +1229,14 @@ const SellerPOSOrders = () => {
 
       setNewCustomerLoading(true);
       try {
-          const res = await createCustomer({
+          const trimmedData = {
               ...newCustomer,
-              email: newCustomer.email || `${newCustomer.phone}@placeholder.com` // Backend requires email
-          });
+              name: newCustomer.name.trim(),
+              phone: newCustomer.phone.trim(),
+              email: newCustomer.email.trim() || `${newCustomer.phone.trim()}@placeholder.com`
+          };
+
+          const res = await createCustomer(trimmedData);
 
           if (res.success && res.data) {
               const customer = res.data;
@@ -1267,7 +1271,38 @@ const SellerPOSOrders = () => {
           }
       } catch (err: any) {
           console.error("Error adding customer", err);
-          showToast(err.response?.data?.message || "Failed to add customer", "error");
+          const errorMsg = err.response?.data?.message || "";
+          
+          if (errorMsg.toLowerCase().includes("already exists") || err.response?.status === 400) {
+              // Try to rescue by fetching the existing customer
+              try {
+                  const phone = newCustomer.phone.trim();
+                  const searchRes = await getAllCustomers({ search: phone });
+                  if (searchRes.success && searchRes.data && searchRes.data.length > 0) {
+                      const existing = searchRes.data.find(c => c.phone === phone);
+                      if (existing) {
+                          showToast("Using existing customer with this phone number", "info");
+                          const displayName = existing.phone ? `${existing.name} (${existing.phone})` : existing.name;
+                          updateActiveBill({
+                              selectedCustomer: existing,
+                              customerSearch: displayName,
+                              paymentMethod: "Credit"
+                          });
+                          setCustomers([existing]);
+                          setShowCustomerDropdown(false);
+                          setShowAddCustomerModal(false);
+                          setNewCustomer({
+                              name: '', phone: '', email: '', address: '', city: '', state: '', pincode: '', gst: ''
+                          });
+                          return;
+                      }
+                  }
+              } catch (rescueErr) {
+                  console.error("Failed to rescue existing customer", rescueErr);
+              }
+          }
+          
+          showToast(errorMsg || "Failed to add customer", "error");
       } finally {
           setNewCustomerLoading(false);
       }
