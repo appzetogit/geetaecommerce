@@ -1272,7 +1272,7 @@ const SellerPOSOrders = () => {
       } catch (err: any) {
           console.error("Error adding customer", err);
           const errorMsg = err.response?.data?.message || "";
-          
+
           if (errorMsg.toLowerCase().includes("already exists") || err.response?.status === 400) {
               // Try to rescue by fetching the existing customer
               try {
@@ -1301,7 +1301,7 @@ const SellerPOSOrders = () => {
                   console.error("Failed to rescue existing customer", rescueErr);
               }
           }
-          
+
           showToast(errorMsg || "Failed to add customer", "error");
       } finally {
           setNewCustomerLoading(false);
