@@ -16,6 +16,7 @@
   // ESLint settings (if you want to enable it manually)
   "eslint.enable": true,
   "eslint.format.enable": false,
-  "eslint.lintTask.enable": false
+  "eslint.lintTask.enable": false,
+  "kiroAgent.configureMCP": "Disabled"
 }
 

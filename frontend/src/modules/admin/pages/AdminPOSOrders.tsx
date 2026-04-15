@@ -3070,7 +3070,7 @@ const AdminPOSOrders = () => {
   };
 
   const initiateOnlinePayment = async (method: string) => {
-      if (activeBillId.startsWith('edit_') || editOrderId) {
+      if (activeBillId.startsWith('edit_')) {
           showToast("Cannot create a new bill from an edit session. Please use Update.", "error");
           setLoading(false);
           return;
@@ -3195,7 +3195,7 @@ const AdminPOSOrders = () => {
   };
 
   const performCashCheckout = async (): Promise<boolean> => {
-    if (activeBillId.startsWith('edit_') || editOrderId) {
+    if (activeBillId.startsWith('edit_')) {
         showToast("Cannot create a new bill from an edit session. Please use Update.", "error");
         setLoading(false);
         return false;
@@ -3254,7 +3254,7 @@ const AdminPOSOrders = () => {
   };
 
   const performCreditCheckout = async () => {
-      if (activeBillId.startsWith('edit_') || editOrderId) {
+      if (activeBillId.startsWith('edit_')) {
           showToast("Cannot create a new bill from an edit session. Please use Update.", "error");
           setLoading(false);
           return;
