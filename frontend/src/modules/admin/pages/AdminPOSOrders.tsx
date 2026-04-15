@@ -2998,11 +2998,13 @@ const AdminPOSOrders = () => {
     const currentTotal = calculateTotal();
     const currentCart = [...cart]; // Snapshot of cart
     let isPaid = false;
+    let createdOrderId: string | undefined;
 
     if (paymentMethod === 'Cash') {
-       const success = await performCashCheckout();
-       if (!success) return;
+       const result = await performCashCheckout();
+       if (!result.success) return;
        isPaid = true;
+       createdOrderId = result.orderId;
     }
 
     // Set bill details for display and printing
@@ -3013,7 +3015,8 @@ const AdminPOSOrders = () => {
         time: new Date().toLocaleTimeString('en-US', { hour12: false }),
         cart: currentCart,
         isPaid: isPaid,
-        paymentMethod: paymentMethod
+        paymentMethod: paymentMethod,
+        orderId: createdOrderId
     });
 
     setShowModalBreakdown(false);
@@ -3194,11 +3197,11 @@ const AdminPOSOrders = () => {
       }
   };
 
-  const performCashCheckout = async (): Promise<boolean> => {
+  const performCashCheckout = async (): Promise<{ success: boolean; orderId?: string }> => {
     if (activeBillId.startsWith('edit_')) {
         showToast("Cannot create a new bill from an edit session. Please use Update.", "error");
         setLoading(false);
-        return false;
+        return { success: false };
     }
     setLoading(true);
     try {
@@ -3239,15 +3242,15 @@ const AdminPOSOrders = () => {
             }
             showToast("Order placed successfully!", "success");
             setCart([]);
-            return true;
+            return { success: true, orderId: response?.data?._id || (response?.data as any)?.id };
         } else {
             showToast("Failed to place order", "error");
-            return false;
+            return { success: false };
         }
     } catch (error) {
         console.error("Order error:", error);
         showToast("Error processing order", "error");
-        return false;
+        return { success: false };
     } finally {
         setLoading(false);
     }
@@ -5729,8 +5732,8 @@ const AdminPOSOrders = () => {
                                     setPurchaseSupplier(lastBillDetails.quotationEntry.supplier);
                                     setEditingQuotationId(lastBillDetails.quotationEntry.id);
                                     setShowPurchaseEntry(true);
-                                } else if (lastBillDetails?.isEdit && lastBillDetails?.orderId) {
-                                    // If it was an edit/update, navigate back to the edit path to re-open the tab correctly
+                                } else if (lastBillDetails?.orderId) {
+                                    // Navigate to edit the existing order (works for both new bills and edit sessions)
                                     navigate(`/admin/pos/orders?edit=${lastBillDetails.orderId}`);
                                 } else if (lastBillDetails?.cart) {
                                     setCart(lastBillDetails.cart);
