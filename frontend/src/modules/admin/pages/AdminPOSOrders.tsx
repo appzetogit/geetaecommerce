@@ -2540,8 +2540,8 @@ const AdminPOSOrders = () => {
     const fetchProductDetails = async () => {
       // Ensure we have a valid item and it's not a temporary quick-add item (unless added to inventory)
       if (!editingItem || !editingItem.originalProductId) return;
-      // In order-edit mode, keep the current bill values shown in the card/modal consistent.
-      if (activeBillId.startsWith('edit_')) return;
+
+      const isEditMode = activeBillId.startsWith('edit_');
 
       try {
         const res = await getProductById(editingItem.originalProductId);
@@ -2561,15 +2561,25 @@ const AdminPOSOrders = () => {
              }
           }
 
-          // Update the form with the fetched values
-          setEditForm(prev => ({
+          if (isEditMode) {
+            // In edit order mode, only update purchase/wholesale price from product
+            // Keep mrp/price/warranty as-is from the existing order item
+            setEditForm(prev => ({
               ...prev,
-              mrp: (mrp || 0).toString(),
               purchasePrice: (purchasePrice || 0).toString(),
               wholesalePrice: (wholesalePrice || 0).toString(),
-              warrantyType: product.warrantyType || 'None',
-              warrantyDuration: product.warrantyDuration || ''
-          }));
+            }));
+          } else {
+            // Update the form with the fetched values
+            setEditForm(prev => ({
+                ...prev,
+                mrp: (mrp || 0).toString(),
+                purchasePrice: (purchasePrice || 0).toString(),
+                wholesalePrice: (wholesalePrice || 0).toString(),
+                warrantyType: product.warrantyType || 'None',
+                warrantyDuration: product.warrantyDuration || ''
+            }));
+          }
         }
       } catch (err) {
         console.error("Failed to fetch product details", err);
