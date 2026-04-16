@@ -502,19 +502,38 @@ export const getProductById = async (req: Request, res: Response) => {
     };
 
 
-    // Smarter similarity logic: Match either category or subcategory to catch items in the same specific group
-    const mainCategoryId = (product.category as any)?.parentId || (product.category as any)?._id || product.category;
-    const specificCategoryId = (product.category as any)?.parentId 
-      ? (product.category as any)?._id 
-      : ((product.subcategory as any)?._id || (product as any)._doc?.subcategory || (product as any).subcategory);
+    // 1. Identify the most specific category ID for this product
+    let specificId = null;
+    let parentId = null;
 
-    if (specificCategoryId) {
+    // Check subcategory field first
+    const subcat = product.subcategory as any;
+    const subcatId = subcat?._id || (product as any)._doc?.subcategory || product.subcategory;
+    
+    // Check category field and its parent
+    const cat = product.category as any;
+    const catId = cat?._id || cat;
+    const catParentId = cat?.parentId;
+
+    if (subcatId && mongoose.Types.ObjectId.isValid(subcatId.toString())) {
+      specificId = new mongoose.Types.ObjectId(subcatId.toString());
+      parentId = catId;
+    } else if (catParentId && mongoose.Types.ObjectId.isValid(catId.toString())) {
+      // If category has a parent, the category itself is the sub-level
+      specificId = new mongoose.Types.ObjectId(catId.toString());
+      parentId = catParentId;
+    } else {
+      specificId = catId;
+    }
+
+    // 2. Build the query to match items in the same specific group
+    if (specificId) {
       similarProductsQuery.$or = [
-        { subcategory: specificCategoryId },
-        { category: specificCategoryId }
+        { subcategory: specificId },
+        { category: specificId }
       ];
-    } else if (mainCategoryId) {
-      similarProductsQuery.category = mainCategoryId;
+    } else if (parentId) {
+      similarProductsQuery.category = parentId;
     }
 
     // Filter similar products by location (allow admin store here too?)
