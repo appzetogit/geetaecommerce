@@ -527,13 +527,24 @@ export const getProductById = async (req: Request, res: Response) => {
     }
 
     // 2. Build the query to match items in the same specific group
+    similarProductsQuery.$and = [
+      {
+        $or: [
+          { isShopByStoreOnly: { $ne: true } },
+          { isShopByStoreOnly: { $exists: false } },
+        ]
+      }
+    ];
+
     if (specificId) {
-      similarProductsQuery.$or = [
-        { subcategory: specificId },
-        { category: specificId }
-      ];
+      similarProductsQuery.$and.push({
+        $or: [
+          { subcategory: specificId },
+          { category: specificId }
+        ]
+      });
     } else if (parentId) {
-      similarProductsQuery.category = parentId;
+      similarProductsQuery.$and.push({ category: parentId });
     }
 
     // Filter similar products by location (allow admin store here too?)
