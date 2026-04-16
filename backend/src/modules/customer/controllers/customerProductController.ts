@@ -352,12 +352,12 @@ export const getSearchSuggestions = async (req: Request, res: Response) => {
 
     const suggestions = [
       { id: 'search', name: q, type: 'search', image: null },
-      ...products.map(p => ({
+      ...products.map((p: any) => ({
         id: p._id,
         name: p.productName,
         type: 'product',
         image: p.mainImage,
-        categoryName: (p.category as any)?.name,
+        categoryName: p.category?.name,
         price: p.price,
         mrp: p.compareAtPrice || p.mrp || p.price,
         discount: p.discount
@@ -501,33 +501,20 @@ export const getProductById = async (req: Request, res: Response) => {
       ],
     };
 
-    // Safely get category ID - handle both populated and unpopulated cases
-    let categoryId: mongoose.Types.ObjectId | null = null;
-    if (product.category) {
-      if (
-        typeof product.category === "object" &&
-        (product.category as any)._id
-      ) {
-        // Category is populated
-        categoryId = (product.category as any)._id;
-      } else if (product.category instanceof mongoose.Types.ObjectId) {
-        // Category is an ObjectId (not populated)
-        categoryId = product.category;
-      } else if (typeof product.category === "string") {
-        // Category is a string ID
-        categoryId = new mongoose.Types.ObjectId(product.category);
-      }
-    }
 
-    // Prioritize subcategory for more relevant similarity (e.g., matching a dictionary with other books instead of unrelated stationery like pens)
-    const effectiveSubcategoryId = product.subcategory 
-      ? ((product.subcategory as any)._id || product.subcategory) 
-      : (product as any)._doc?.subcategory || (product as any).subcategory;
+    // Smarter similarity logic: Match either category or subcategory to catch items in the same specific group
+    const mainCategoryId = (product.category as any)?.parentId || (product.category as any)?._id || product.category;
+    const specificCategoryId = (product.category as any)?.parentId 
+      ? (product.category as any)?._id 
+      : ((product.subcategory as any)?._id || (product as any)._doc?.subcategory || (product as any).subcategory);
 
-    if (effectiveSubcategoryId) {
-      similarProductsQuery.subcategory = effectiveSubcategoryId;
-    } else if (categoryId) {
-      similarProductsQuery.category = categoryId;
+    if (specificCategoryId) {
+      similarProductsQuery.$or = [
+        { subcategory: specificCategoryId },
+        { category: specificCategoryId }
+      ];
+    } else if (mainCategoryId) {
+      similarProductsQuery.category = mainCategoryId;
     }
 
     // Filter similar products by location (allow admin store here too?)
