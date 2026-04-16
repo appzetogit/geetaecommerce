@@ -141,7 +141,7 @@ export default function AdminBestsellerCards() {
     const handleEdit = (card: BestsellerCard) => {
         setName(card.name);
         setSelectedCategory(
-            typeof card.category === "string" ? card.category : card.category._id
+            typeof card.category === "string" ? card.category : card.category?._id || ""
         );
         setOrder(card.order);
         setIsActive(card.isActive);
@@ -401,7 +401,7 @@ export default function AdminBestsellerCards() {
                                                 <td className="p-4">
                                                     {typeof card.category === "string"
                                                         ? card.category
-                                                        : card.category.name}
+                                                        : card.category?.name || "No Category"}
                                                 </td>
                                                 <td className="p-4">
                                                     <span
