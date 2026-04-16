@@ -1227,9 +1227,12 @@ export default function ProductDetail() {
                 <h3 className="text-lg font-semibold text-neutral-900">
                   Top products in this category
                 </h3>
-                {category?.id && (
+                {(product?.subcategory?._id || product?.subcategory?.id || category?.id) && (
                   <button
-                    onClick={() => navigate(`/category/${category.id}`)}
+                    onClick={() => {
+                      const targetId = product?.subcategory?._id || product?.subcategory?.id || category?.id;
+                      navigate(`/category/${targetId}`);
+                    }}
                     className="text-sm font-semibold text-green-600 hover:text-green-700 transition-colors"
                   >
                     View All

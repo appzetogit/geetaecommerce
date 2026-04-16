@@ -520,8 +520,12 @@ export const getProductById = async (req: Request, res: Response) => {
     }
 
     // Prioritize subcategory for more relevant similarity (e.g., matching a dictionary with other books instead of unrelated stationery like pens)
-    if (product.subcategory) {
-      similarProductsQuery.subcategory = (product.subcategory as any)._id || product.subcategory;
+    const effectiveSubcategoryId = product.subcategory 
+      ? ((product.subcategory as any)._id || product.subcategory) 
+      : (product as any)._doc?.subcategory || (product as any).subcategory;
+
+    if (effectiveSubcategoryId) {
+      similarProductsQuery.subcategory = effectiveSubcategoryId;
     } else if (categoryId) {
       similarProductsQuery.category = categoryId;
     }
