@@ -37,183 +37,114 @@ export const getProducts = async (req: Request, res: Response) => {
     const query: any = {
       status: "Active",
       publish: true,
-      // Exclude shop-by-store-only products from category pages
-      $or: [
-        { isShopByStoreOnly: { $ne: true } },
-        { isShopByStoreOnly: { $exists: false } },
-      ],
     };
+
+    // Use $and array to combine conditions safely without overwriting $or blocks
+    const andConditions: any[] = [
+      {
+        $or: [
+          { isShopByStoreOnly: { $ne: true } },
+          { isShopByStoreOnly: { $exists: false } },
+        ],
+      }
+    ];
 
     if (negativeStockSoldOut) {
       query.stock = { $gt: 0 };
     }
 
-    // Location-based filtering: Only show products from sellers within user's range
+    // Location-based filtering
     const userLat = latitude ? parseFloat(latitude as string) : null;
     const userLng = longitude ? parseFloat(longitude as string) : null;
 
     if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
-      // Find sellers within user's location range
       let allowedSellerIds = await findSellersWithinRange(userLat, userLng);
-
-      // ALWAYS add the Admin Seller(s) to the allowed list, as they are considered global
       try {
         const adminSellers = await Seller.find({
           $or: [
-            { email: /admin/i }, // Broaden check
+            { email: /admin/i },
             { category: "Admin" },
             { storeName: { $regex: /Admin/i } }
           ]
         }).select("_id");
-
         const adminSellerIds = adminSellers.map(s => s._id);
         allowedSellerIds = [...allowedSellerIds, ...adminSellerIds];
       } catch (err) {
-        console.error("Error fetching admin seller for whitelist:", err);
+        console.error("Error fetching admin seller:", err);
       }
 
-      // Filter by enabled sellers
       const enabledSellers = await Seller.find({
         _id: { $in: allowedSellerIds },
         isEnabled: true
       }).select("_id");
-
-      const enabledSellerIds = enabledSellers.map(s => s._id);
-
-      if (enabledSellerIds.length === 0) {
-        query.seller = { $in: [] };
-      } else {
-        query.seller = { $in: enabledSellerIds };
-      }
+      query.seller = { $in: enabledSellers.map(s => s._id) };
     } else {
-       // When location is missing, only show products from enabled sellers
        const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
-       const enabledSellerIds = enabledSellers.map(s => s._id);
-       query.seller = { $in: enabledSellerIds };
+       query.seller = { $in: enabledSellers.map(s => s._id) };
     }
 
-    // Helper to resolve category/subcategory ID from slug or ID
-    const resolveId = async (
-      model: any,
-      value: string,
-      modelName: string = ""
-    ) => {
+    // Helper to resolve ID
+    const resolveId = async (model: any, value: string, modelName: string = "") => {
       if (mongoose.Types.ObjectId.isValid(value)) return value;
-
-      // Build query - only check status if model has status field (Category has it, SubCategory might not)
       const baseQuery: any = {};
-      if (modelName === "Category") {
-        baseQuery.status = "Active";
-      }
-
-      // Try exact slug match first
-      let item = await model
-        .findOne({ ...baseQuery, slug: value })
-        .select("_id")
-        .lean();
+      if (modelName === "Category") baseQuery.status = "Active";
+      let item = await model.findOne({ ...baseQuery, slug: value }).select("_id").lean();
       if (item) return item._id;
-
-      // Try case-insensitive slug match
-      item = await model
-        .findOne({
-          ...baseQuery,
-          slug: { $regex: new RegExp(`^${value}$`, "i") },
-        })
-        .select("_id")
-        .lean();
+      item = await model.findOne({ ...baseQuery, slug: { $regex: new RegExp(`^${value}$`, "i") } }).select("_id").lean();
       if (item) return item._id;
-
-      // Try name match as fallback (case-insensitive) - replace hyphens/underscores with spaces
       let namePattern = value.replace(/[-_]/g, " ");
-      item = await model
-        .findOne({
-          ...baseQuery,
-          name: { $regex: new RegExp(`^${namePattern}$`, "i") },
-        })
-        .select("_id")
-        .lean();
+      item = await model.findOne({ ...baseQuery, name: { $regex: new RegExp(`^${namePattern}$`, "i") } }).select("_id").lean();
       if (item) return item._id;
-
-      // Special handling for Category and "and" -> "&"
       if (modelName === "Category" && value.includes("and")) {
          const withAmpersand = value.replace(/-and-/g, " & ").replace(/-/g, " ");
-         item = await model
-           .findOne({
-             ...baseQuery,
-             name: { $regex: new RegExp(`^${withAmpersand}$`, "i") },
-           })
-           .select("_id")
-           .lean();
+         item = await model.findOne({ ...baseQuery, name: { $regex: new RegExp(`^${withAmpersand}$`, "i") } }).select("_id").lean();
          if (item) return item._id;
       }
-
       return null;
     };
 
     if (category) {
-      const categoryId = await resolveId(
-        Category,
-        category as string,
-        "Category"
-      );
-      if (categoryId) query.category = categoryId;
+      const categoryId = await resolveId(Category, category as string, "Category");
+      if (categoryId) {
+        // Include products from all sub-categories (descendants)
+        const catDoc = await Category.findById(categoryId);
+        if (catDoc) {
+          const descendants = await catDoc.getAllDescendants();
+          const allCategoryIds = [catDoc._id, ...descendants.map(d => d._id)];
+          andConditions.push({ category: { $in: allCategoryIds } });
+        } else {
+          andConditions.push({ category: categoryId });
+        }
+      }
     }
 
-    // Optional: filter by Header Category (e.g. "grocery", "beauty") used by Home header tabs
-    // This is additive and does not break existing category/subcategory filtering.
     if (headerCategorySlug && headerCategorySlug !== "all") {
-      const header = await HeaderCategory.findOne({
-        slug: headerCategorySlug,
-        status: "Published",
-      })
-        .select("_id")
-        .lean();
-
+      const header = await HeaderCategory.findOne({ slug: headerCategorySlug, status: "Published" }).select("_id").lean();
       if (header?._id) {
-        // Include root categories directly linked to this header category
-        const roots = await Category.find({
-          headerCategoryId: header._id,
-          status: "Active",
-        })
-          .select("_id")
-          .lean();
+        const roots = await Category.find({ headerCategoryId: header._id, status: "Active" }).select("_id").lean();
         const rootIds = roots.map((c: any) => c._id);
-
-        // Include child categories (subcategories) under those roots (common in this codebase)
-        const children = rootIds.length
-          ? await Category.find({
-              parentId: { $in: rootIds },
-              status: "Active",
-            })
-              .select("_id")
-              .lean()
-          : [];
-        const childIds = children.map((c: any) => c._id);
-
-        const allIds = [...rootIds, ...childIds];
-        query.category = { $in: allIds };
+        const children = rootIds.length ? await Category.find({ parentId: { $in: rootIds }, status: "Active" }).select("_id").lean() : [];
+        const allIds = [...rootIds, ...children.map((c: any) => c._id)];
+        andConditions.push({ category: { $in: allIds } });
       } else {
-        // Unknown header category -> return empty list (keeps behavior explicit)
-        query.category = { $in: [] };
+        andConditions.push({ category: { $in: [] } });
       }
     }
 
     if (subcategory) {
-      // Try to resolve from Category model first (new structure where subcategories are categories with parentId)
-      let subcategoryId = await resolveId(
-        Category,
-        subcategory as string,
-        "Category"
-      );
-      // If not found in Category, try old SubCategory model (backward compatibility)
+      let subcategoryId = await resolveId(Category, subcategory as string, "Category");
       if (!subcategoryId) {
-        subcategoryId = await resolveId(
-          SubCategory,
-          subcategory as string,
-          "SubCategory"
-        );
+        subcategoryId = await resolveId(SubCategory, subcategory as string, "SubCategory");
       }
-      if (subcategoryId) query.subcategory = subcategoryId;
+      if (subcategoryId) {
+        // Product might have the subcategory ID in either the 'category' (if leaf node) or 'subcategory' field
+        andConditions.push({
+          $or: [
+            { subcategory: subcategoryId },
+            { category: subcategoryId }
+          ]
+        });
+      }
     }
 
     if (brand) {
@@ -232,24 +163,22 @@ export const getProducts = async (req: Request, res: Response) => {
 
     if (search) {
       const searchRegex = { $regex: search as string, $options: "i" };
-      const searchOr = [
-        { productName: searchRegex },
-        { smallDescription: searchRegex },
-        { tags: searchRegex },
-        { sku: searchRegex },
-        { barcode: searchRegex },
-        { "variations.sku": searchRegex },
-        { "variations.barcode": searchRegex }
-      ];
+      andConditions.push({
+        $or: [
+          { productName: searchRegex },
+          { smallDescription: searchRegex },
+          { tags: searchRegex },
+          { sku: searchRegex },
+          { barcode: searchRegex },
+          { "variations.sku": searchRegex },
+          { "variations.barcode": searchRegex }
+        ]
+      });
+    }
 
-      // Merge with existing $or from line 39 correctly using $and
-      const originalOr = query.$or;
-      delete query.$or;
-
-      query.$and = [
-        { $or: originalOr },
-        { $or: searchOr }
-      ];
+    // Apply combined conditions to the final query
+    if (andConditions.length > 0) {
+      query.$and = andConditions;
     }
 
     // Calculate skip for pagination
