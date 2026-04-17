@@ -63,9 +63,8 @@ export default function CategoryPage() {
           if (subcategoryFromUrl) {
             setSelectedSubcategory(subcategoryFromUrl);
           } else if (currentSubcategory) {
-            setSelectedSubcategory(
-              currentSubcategory._id || currentSubcategory.id
-            );
+            const subId = String(currentSubcategory._id || currentSubcategory.id || "");
+            if (subId) setSelectedSubcategory(subId);
           }
         } else {
           setError("Category not found or failed to load details.");
@@ -335,14 +334,15 @@ export default function CategoryPage() {
           <div className="space-y-1">
             {subcategories.map((subcat) => {
               const isSelected =
-                selectedSubcategory === (subcat.id || subcat._id);
+                selectedSubcategory === String(subcat.id || subcat._id);
               return (
                 <button
                   key={subcat.id || subcat._id}
                   type="button"
                   onClick={() => {
-                    console.log("Clicked subcategory:", subcat.id || subcat._id);
-                    setSelectedSubcategory(subcat.id || subcat._id);
+                    const subId = String(subcat.id || subcat._id);
+                    console.log("Clicked subcategory:", subId);
+                    setSelectedSubcategory(subId);
                   }}
                   className={`w-full flex flex-col items-center justify-center py-2 relative transition-all duration-200 group ${
                     isSelected ? "bg-green-50" : "hover:bg-neutral-50"

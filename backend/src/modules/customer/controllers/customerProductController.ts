@@ -85,7 +85,13 @@ export const getProducts = async (req: Request, res: Response) => {
 
     // Helper to resolve ID
     const resolveId = async (model: any, value: string, modelName: string = "") => {
-      if (mongoose.Types.ObjectId.isValid(value)) return value;
+      if (mongoose.Types.ObjectId.isValid(value)) {
+        try {
+          return new mongoose.Types.ObjectId(value);
+        } catch (e) {
+          return value;
+        }
+      }
       const baseQuery: any = {};
       if (modelName === "Category") baseQuery.status = "Active";
       let item = await model.findOne({ ...baseQuery, slug: value }).select("_id").lean();

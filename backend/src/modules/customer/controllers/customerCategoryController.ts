@@ -156,21 +156,16 @@ export const getCategoryById = async (req: Request, res: Response) => {
 
     // Try to find by ObjectId first (only active categories for public endpoint)
     if (mongoose.Types.ObjectId.isValid(id)) {
-      category = await Category.findOne({
-        _id: id,
-        status: "Active",
-      }).lean();
+      category = await Category.findById(id).lean();
     }
 
-    // If not found by ID, try by slug (case-insensitive, only active categories)
+    // If not found by ID, try by slug or name (keeping existing logic for friendliness)
     if (!category) {
-      // Try exact slug match first
       category = await Category.findOne({
         slug: id,
         status: "Active",
       }).lean();
 
-      // Try case-insensitive slug match
       if (!category) {
         category = await Category.findOne({
           slug: { $regex: new RegExp(`^${id}$`, "i") },
@@ -178,16 +173,13 @@ export const getCategoryById = async (req: Request, res: Response) => {
         }).lean();
       }
 
-      // Try name match as fallback (case-insensitive)
       if (!category) {
-        // First try standard replacement
         let namePattern = id.replace(/[-_]/g, " ");
         category = await Category.findOne({
           name: { $regex: new RegExp(`^${namePattern}$`, "i") },
           status: "Active",
         }).lean();
 
-        // If not found, try replacing " and " with " & " specifically for categories like "Vegetables & Fruits"
         if (!category && id.includes("and")) {
            const withAmpersand = id.replace(/-and-/g, " & ").replace(/-/g, " ");
            category = await Category.findOne({
@@ -198,26 +190,50 @@ export const getCategoryById = async (req: Request, res: Response) => {
       }
     }
 
+    // If found, check if it's actually a subcategory (has parentId) in the new structure
+    if (category && category.parentId) {
+      const parentId = category.parentId;
+      const parentCategory = await Category.findById(parentId).lean();
+      
+      if (parentCategory) {
+        console.log(`[getCategoryById] Item ${id} is a subcategory of ${parentCategory.name}`);
+        
+        // Fetch siblings (all children of this parent)
+        const subcategories = await Category.find({
+          parentId: { $in: [parentId, parentId.toString()] },
+          status: "Active"
+        })
+          .select("name image order slug icon")
+          .sort({ order: 1 });
+
+        return res.status(200).json({
+          success: true,
+          data: {
+            category: parentCategory,
+            subcategories,
+            currentSubcategory: category,
+          },
+        });
+      }
+    }
+
     if (!category) {
-      // Check if it's a subcategory
+      // Check legacy SubCategory model fallback
       if (mongoose.Types.ObjectId.isValid(id)) {
         const subcategory = await SubCategory.findById(id).lean();
         if (subcategory) {
-          // Find the parent category
-          category = await Category.findById(subcategory.category).lean();
-          if (category) {
-            // Return both for the frontend to decide
+          const parent = await Category.findById(subcategory.category).lean();
+          if (parent) {
             const subcategories = await SubCategory.find({
-              category: category._id,
+              category: parent._id,
             })
               .select("name image order category")
-              .sort({
-                order: 1,
-              });
+              .sort({ order: 1 });
+
             return res.status(200).json({
               success: true,
               data: {
-                category,
+                category: parent,
                 subcategories,
                 currentSubcategory: subcategory,
               },
@@ -226,7 +242,7 @@ export const getCategoryById = async (req: Request, res: Response) => {
         }
       }
 
-      console.log(`[getCategoryById] Category not found: ${id}`);
+      console.log(`[getCategoryById] Category/Subcategory not found: ${id}`);
       return res.status(404).json({
         success: false,
         message: `Category not found: ${id}`,
