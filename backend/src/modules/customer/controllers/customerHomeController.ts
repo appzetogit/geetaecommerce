@@ -422,7 +422,6 @@ export const getHomeContent = async (req: Request, res: Response) => {
     const categoriesWithHeaderCategory = await Category.find(categoryQuery)
       .populate("headerCategoryId", "name status")
       .sort({ order: 1 })
-      .limit(4) // Limit to 4 promo cards
       .lean();
 
     const promoCards = await Promise.all(
@@ -434,7 +433,6 @@ export const getHomeContent = async (req: Request, res: Response) => {
         })
           .select("name image _id")
           .sort({ order: 1 })
-          .limit(4) // Limit to 4 subcategory images
           .lean();
 
         // Extract subcategory images
@@ -449,7 +447,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
           categoryId: category._id.toString(),
           slug: category.slug || category._id.toString(),
           bgColor: "bg-yellow-50",
-          subcategoryImages: subcategoryImages.slice(0, 4), // Max 4 images
+          subcategoryImages: subcategoryImages, // All images included
         };
       })
     );

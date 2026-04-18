@@ -107,11 +107,6 @@ export const getCategoriesWithSubs = async (_req: Request, res: Response) => {
         );
         const totalProducts = directCategoryCount + subsProductCount;
 
-        // Exclude category if no products in category or its subcategories
-        if (totalProducts === 0) {
-          return null;
-        }
-
         return {
           ...category,
           subcategories: filteredSubs,
@@ -237,34 +232,46 @@ export const getCategoryById = async (req: Request, res: Response) => {
       `[getCategoryById] Found category: ${category.name} (${category._id})`
     );
 
-    // Ensure category._id is treated as ObjectId for the query
-    let catId = category._id;
-    if (typeof catId === 'string') {
-        try {
-            catId = new mongoose.Types.ObjectId(catId);
-        } catch (e) {
-            console.error("Failed to cast category ID to ObjectId:", e);
-        }
+    let finalCategory = category;
+    let currentSubcategory = null;
+    let subcategories = [];
+
+    // If the found category has a parentId, it's actually a subcategory
+    if (category.parentId) {
+      const parent = await Category.findOne({ _id: category.parentId, status: "Active" }).lean();
+      if (parent) {
+        finalCategory = parent;
+        currentSubcategory = category;
+        // Fetch sibling subcategories
+        subcategories = await Category.find({
+          parentId: parent._id,
+          status: "Active"
+        })
+          .select("name image order slug icon")
+          .sort({ order: 1 });
+      } else {
+        // Fallback if parent not found or inactive
+        subcategories = await Category.find({
+          parentId: category._id,
+          status: "Active"
+        })
+          .select("name image order slug icon")
+          .sort({ order: 1 });
+      }
+    } else {
+      // It's a root category, fetch its subcategories
+      subcategories = await Category.find({
+        parentId: category._id,
+        status: "Active"
+      })
+        .select("name image order slug icon")
+        .sort({ order: 1 });
     }
 
-    // Query for BOTH ObjectId and String representation to be safe against legacy data references
-    // Use Category model to find subcategories (children) instead of separate SubCategory model
-    // Using parentId to find children
-    const subcategories = await Category.find({
-      parentId: { $in: [catId, catId.toString()] },
-      status: "Active"
-    })
-      .select("name image order slug icon")
-      .sort({
-        order: 1,
-      });
-
-    console.log(`[getCategoryById] Found ${subcategories.length} subcategories for ${category.name}`);
-
     const responseData = {
-      category,
+      category: finalCategory,
       subcategories,
-      currentSubcategory: null,
+      currentSubcategory,
     };
 
     // Cache for 10 minutes

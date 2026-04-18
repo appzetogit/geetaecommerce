@@ -417,6 +417,11 @@ export const updateCategoryOrder = asyncHandler(
 
     await Promise.all(updatePromises);
 
+    // Invalidate category caches
+    cache.delete("customer-categories-list");
+    cache.delete("customer-categories-tree");
+    cache.invalidatePattern(/^customer-category-/);
+
     return res.status(200).json({
       success: true,
       message: "Category order updated successfully",
@@ -458,6 +463,11 @@ export const toggleCategoryStatus = asyncHandler(
         { status, updatedAt: new Date() }
       );
     }
+
+    // Invalidate category caches
+    cache.delete("customer-categories-list");
+    cache.delete("customer-categories-tree");
+    cache.invalidatePattern(/^customer-category-/);
 
     return res.status(200).json({
       success: true,
@@ -1062,7 +1072,7 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
 
   // Manually populate subcategory because it can be from either Category collection (hierarchical) or SubCategory collection (legacy)
   const subIds = [...new Set(productsRaw.map(p => p.subcategory).filter(id => id && typeof id === 'string' || id instanceof mongoose.Types.ObjectId))];
-  
+
   const [subsFromLegacy, subsFromCategory] = await Promise.all([
     SubCategory.find({ _id: { $in: subIds } }).select("name").lean(),
     Category.find({ _id: { $in: subIds } }).select("name").lean()
@@ -1125,7 +1135,7 @@ export const getProductById = asyncHandler(
       }
     }
 
-    const product = rawProduct.toObject();
+    const product: any = rawProduct.toObject();
     if (populatedSub) {
       product.subcategory = populatedSub;
     }
@@ -1216,7 +1226,7 @@ export const updateProduct = asyncHandler(
       }
     }
 
-    const finalProduct = updatedRaw.toObject();
+    const finalProduct: any = updatedRaw.toObject();
     if (populatedSub) {
       finalProduct.subcategory = populatedSub;
     }

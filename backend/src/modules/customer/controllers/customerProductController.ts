@@ -213,7 +213,30 @@ export const getProducts = async (req: Request, res: Response) => {
           "SubCategory"
         );
       }
-      if (subcategoryId) query.subcategory = subcategoryId;
+      
+      if (subcategoryId) {
+        // If we matching a subcategory, we should remove any broad parent category filter
+        // to ensure we find products that might only be tagged with the subcategory ID.
+        delete query.category;
+        
+        // Match the ID in either the category OR subcategory field of the product
+        const subMatch = [
+          { subcategory: subcategoryId },
+          { category: subcategoryId }
+        ];
+
+        if (query.$or) {
+          // If there's already an $or (like for isShopByStoreOnly), we must use $and to merge them
+          const existingOr = query.$or;
+          delete query.$or;
+          query.$and = [
+            { $or: existingOr },
+            { $or: subMatch }
+          ];
+        } else {
+          query.$or = subMatch;
+        }
+      }
     }
 
     if (brand) {
@@ -397,8 +420,8 @@ export const getProductById = async (req: Request, res: Response) => {
       status: "Active",
       publish: true,
     })
-      .populate("category", "name")
-      .populate("subcategory", "name")
+      .populate("category", "name parentId")
+      .populate("subcategory", "name parentId")
       .populate("brand", "name")
       .populate(
         "seller",
@@ -490,64 +513,51 @@ export const getProductById = async (req: Request, res: Response) => {
 
     // Find similar products (by category)
     // Filter by location
+
+
+
+    // 1. Resolve IDs carefully (handling both populated and unpopulated states)
+    const subId = (product.subcategory as any)?._id || product.subcategory;
+    const catId = (product.category as any)?._id || product.category;
+    const catObj = product.category as any;
+    
+    // Choose the best ID to match: subcategory first, then category if it has a parent
+    // We want the most specific leaf node ID to prevent matching broad categories like 'Stationary'
+    let matchId = subId;
+    if (!matchId && catObj?.parentId) {
+      matchId = catId;
+    } else if (!matchId) {
+      matchId = catId;
+    }
+    
+    // Ensure matchId is a clean string/ObjectId to avoid matching empty references
+    const finalMatchId = matchId ? matchId.toString() : null;
+
+    // 2. Build the final query
     const similarProductsQuery: any = {
       _id: { $ne: product._id },
       status: "Active",
       publish: true,
-      // Exclude shop-by-store-only products from similar products
-      $or: [
-        { isShopByStoreOnly: { $ne: true } },
-        { isShopByStoreOnly: { $exists: false } },
-      ],
+      $and: [
+        {
+          $or: [
+            { isShopByStoreOnly: { $ne: true } },
+            { isShopByStoreOnly: { $exists: false } },
+          ]
+        }
+      ]
     };
 
-
-    // 1. Identify the most specific category ID for this product
-    let specificId = null;
-    let parentId = null;
-
-    // Check subcategory field first
-    const subcat = product.subcategory as any;
-    const subcatId = subcat?._id || (product as any)._doc?.subcategory || product.subcategory;
-    
-    // Check category field and its parent
-    const cat = product.category as any;
-    const catId = cat?._id || cat;
-    const catParentId = cat?.parentId;
-
-    if (subcatId && mongoose.Types.ObjectId.isValid(subcatId.toString())) {
-      specificId = new mongoose.Types.ObjectId(subcatId.toString());
-      parentId = catId;
-    } else if (catParentId && mongoose.Types.ObjectId.isValid(catId.toString())) {
-      // If category has a parent, the category itself is the sub-level
-      specificId = new mongoose.Types.ObjectId(catId.toString());
-      parentId = catParentId;
-    } else {
-      specificId = catId;
-    }
-
-    // 2. Build the query to match items in the same specific group
-    similarProductsQuery.$and = [
-      {
-        $or: [
-          { isShopByStoreOnly: { $ne: true } },
-          { isShopByStoreOnly: { $exists: false } },
-        ]
-      }
-    ];
-
-    if (specificId) {
+    if (finalMatchId && finalMatchId !== 'undefined') {
       similarProductsQuery.$and.push({
         $or: [
-          { subcategory: specificId },
-          { category: specificId }
+          { subcategory: finalMatchId },
+          { category: finalMatchId }
         ]
       });
-    } else if (parentId) {
-      similarProductsQuery.$and.push({ category: parentId });
     }
 
-    // Filter similar products by location (allow admin store here too?)
+    // Filter similar products by location
     if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
       const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
 

@@ -183,17 +183,22 @@ export default function QRScannerModal({
     scannerRef.current = scanner;
 
     const scanConfig = {
-      fps: 20,
+      fps: 30, // Increased for instant detection
       aspectRatio: 1.7777778,
       disableFlip: false,
-      videoConstraints: { facingMode: "environment" as const },
+      videoConstraints: {
+        facingMode: "environment" as const,
+        focusMode: "continuous" as const
+      },
       qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-        const width = Math.floor(Math.min(viewfinderWidth * 0.96, 800));
-        const height = Math.floor(
-          Math.max(110, Math.min(viewfinderHeight * 0.45, width * 0.48))
-        );
+        // Optimized for 1D billing barcodes
+        const width = Math.floor(Math.min(viewfinderWidth * 0.90, 600));
+        const height = Math.floor(Math.max(120, Math.min(viewfinderHeight * 0.40, width * 0.5)));
         return { width, height };
       },
+      experimentalFeatures: {
+        useBarCodeDetectorIfSupported: true
+      }
     };
 
     const onDecoded = (decodedText: string) => {

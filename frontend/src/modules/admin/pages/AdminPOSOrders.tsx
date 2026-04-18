@@ -449,7 +449,9 @@ const AdminPOSOrders = () => {
           setBills(prev => {
              // Prevent duplicate tabs for same order
              if (prev.some(b => b.id === billId)) return prev;
-             return [...prev, newBill];
+             const updated = [...prev, newBill];
+             localStorage.setItem('pos_bills', JSON.stringify(updated));
+             return updated;
           });
           setActiveBillId(billId);
 
@@ -787,12 +789,10 @@ const AdminPOSOrders = () => {
       console.log('[SCANNER DEBUG] Full decodedResult  :', JSON.stringify(decodedResult, null, 2));
       console.log('===================================================');
 
-      // Cooldown for same barcode to avoid double scans (2 seconds)
+      // Cooldown for same barcode to avoid double scans (0.5 seconds for instant feel)
       const now = Date.now();
-      const isDuplicate = decodedText === lastScanRef.current.code && (now - lastScanRef.current.time < 2000);
-      console.log('[SCANNER DEBUG] Duplicate check — same code within 2s?', isDuplicate, '| Last code:', lastScanRef.current.code, '| Time diff (ms):', now - lastScanRef.current.time);
+      const isDuplicate = decodedText === lastScanRef.current.code && (now - lastScanRef.current.time < 500);
       if (isDuplicate) {
-          console.log('[SCANNER DEBUG] ⚠️ BLOCKED by duplicate cooldown — returning early.');
           return;
       }
       lastScanRef.current = { code: decodedText, time: now };
@@ -1126,9 +1126,16 @@ const AdminPOSOrders = () => {
             const boxWidth = Math.min(Math.max(element.clientWidth - 24, 220), 420);
             const boxHeight = Math.max(200, Math.floor(boxWidth * 0.45));
             const config: any = {
-                fps: 20,
+                fps: 30, // Increased for instant detection
                 qrbox: { width: boxWidth, height: boxHeight },
-                disableFlip: true
+                disableFlip: true,
+                videoConstraints: {
+                    facingMode: "environment",
+                    focusMode: "continuous"
+                },
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                }
             };
 
             await scanner.start(
