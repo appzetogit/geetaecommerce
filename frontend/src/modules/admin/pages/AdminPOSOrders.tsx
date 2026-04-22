@@ -1324,12 +1324,12 @@ const AdminPOSOrders = () => {
       }
       setLoading(true);
       try {
-        const response = await getProducts({
+        const response = await getPOSProducts({
           search: activeSearch,
           seller: !showMobileSearch ? (selectedSeller || undefined) : undefined,
           category: !showMobileSearch ? (selectedCategory || undefined) : undefined,
           brand: !showMobileSearch ? (selectedBrand || undefined) : undefined,
-          limit: 1000 // Fetch all for client-side pagination
+          limit: 50 // Optimized limit for dropdown
         });
         if (response.success && response.data) {
           // Expand Variations
@@ -1411,38 +1411,40 @@ const AdminPOSOrders = () => {
   }, [showPurchaseSearch, purchaseSearchQuery]);
 
   // Barcode Scanner Handler
-  const submitScanQuery = async (raw: string) => {
+  const submitScanQuery = async (raw: string, isManualEnter = false) => {
     const trimmed = raw.trim();
     if (!trimmed) return;
-    if (loading) return;
+    if (loading && !isManualEnter) return; // Only block if not a direct Enter/Scan
 
-    // Cooldown to prevent double scans from hardware scanners (500ms)
+    // Cooldown to prevent double scans from hardware scanners (600ms)
     const now = Date.now();
-    const isDuplicate = trimmed === lastScanRef.current.code && (now - lastScanRef.current.time < 500);
-    if (isDuplicate) return;
-    lastScanRef.current = { code: trimmed, time: now };
-
-    const query = trimmed.toLowerCase();
-
-    // Helper to check for match
-    const findMatch = (list: any[]) => list.find(p => {
-      const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
-      return barcodes.some((b: string) => String(b).toLowerCase() === query) ||
-        (p.sku && String(p.sku).toLowerCase() === query) ||
-        (p.itemCode && String(p.itemCode).toLowerCase() === query);
-    });
-
-    let exactMatch = findMatch(products);
-
-    if (exactMatch) {
-      addToCart(exactMatch as CartItem);
-      setSearchQuery(''); // Clear for next scan
-      return;
+    if (trimmed === lastScanRef.current.code && (now - lastScanRef.current.time < 600)) {
+        return;
     }
-
-    // If not found in current products (maybe due to debounce or filter), fetch immediately
+    lastScanRef.current = { code: trimmed, time: now };
+    
+    setLoading(true);
     try {
-      const res = await getProducts({ search: trimmed, limit: 50 });
+      const query = trimmed.toLowerCase();
+
+      // Helper to check for match
+      const findMatch = (list: any[]) => list.find(p => {
+        const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
+        return barcodes.some((b: string) => String(b).toLowerCase() === query) ||
+          (p.sku && String(p.sku).toLowerCase() === query) ||
+          (p.itemCode && String(p.itemCode).toLowerCase() === query);
+      });
+
+      let exactMatch = findMatch(products);
+
+      if (exactMatch) {
+        addToCart(exactMatch as CartItem);
+        setSearchQuery(''); // Clear for next scan
+        return;
+      }
+
+      // If not found in current products (maybe due to debounce or filter), fetch immediately using optimized POS API
+      const res = await getPOSProducts({ search: trimmed, limit: 1 });
       if (res.success && res.data && res.data.length > 0) {
         const expanded: any[] = [];
         res.data.forEach((product: any) => {
@@ -1482,6 +1484,8 @@ const AdminPOSOrders = () => {
       }
     } catch (err) {
       console.error("Direct barcode search failed", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1510,6 +1514,7 @@ const AdminPOSOrders = () => {
       if (isEditableTarget(e.target)) return;
 
       const now = Date.now();
+      // If time between keys is too long, it's probably manual typing, not a scanner
       if (now - lastAtRef.current > 120) {
         scanBufferRef.current = '';
       }
@@ -1518,7 +1523,11 @@ const AdminPOSOrders = () => {
         const code = scanBufferRef.current.trim();
         scanBufferRef.current = '';
         lastAtRef.current = 0;
-        if (code.length >= 3) submitScanQueryRef.current(code);
+        if (code.length >= 3) {
+            e.preventDefault();
+            e.stopPropagation();
+            submitScanQueryRef.current(code, true);
+        }
         return;
       }
 
@@ -1559,9 +1568,12 @@ const AdminPOSOrders = () => {
   }, []);
 
   const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
-      e.preventDefault();
-      await submitScanQuery(searchQuery);
+    if (e.key === 'Enter') {
+        if (searchQuery.trim()) {
+            e.preventDefault();
+            e.stopPropagation();
+            await submitScanQuery(searchQuery, true);
+        }
     }
   };
 
@@ -3898,7 +3910,7 @@ const AdminPOSOrders = () => {
                           const profitPercent = purchasePrice > 0 ? ((profit / purchasePrice) * 100).toFixed(2) : '0.00';
 
                           return (
-                          <React.Fragment key={index}>
+                          <React.Fragment key={item._id}>
                               {/* --- MOBILE VIEW (Card Style) --- */}
                               <div className={`${mobileCartView === 'list' ? 'block' : 'hidden'} md:hidden bg-white border border-gray-200 rounded-xl p-3 shadow-sm mb-3 relative overflow-hidden group shrink-0`}>
                                   {/* Top Row: Rank, Title, Price */}
