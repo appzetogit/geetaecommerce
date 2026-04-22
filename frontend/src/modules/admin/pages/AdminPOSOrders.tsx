@@ -1310,12 +1310,12 @@ const AdminPOSOrders = () => {
       }
       setLoading(true);
       try {
-        const response = await getProducts({
+        const response = await getPOSProducts({
           search: activeSearch,
           seller: !showMobileSearch ? (selectedSeller || undefined) : undefined,
           category: !showMobileSearch ? (selectedCategory || undefined) : undefined,
           brand: !showMobileSearch ? (selectedBrand || undefined) : undefined,
-          limit: 1000 // Fetch all for client-side pagination
+          limit: 50 // Optimized limit for dropdown
         });
         if (response.success && response.data) {
           // Expand Variations
@@ -1397,9 +1397,10 @@ const AdminPOSOrders = () => {
   }, [showPurchaseSearch, purchaseSearchQuery]);
 
   // Barcode Scanner Handler
-  const submitScanQuery = async (raw: string) => {
+  const submitScanQuery = async (raw: string, isManualEnter = false) => {
     const trimmed = raw.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed) return;
+    if (loading && !isManualEnter) return; // Only block if not a direct Enter/Scan
 
     // Cooldown to prevent double scans from hardware scanners (600ms)
     const now = Date.now();
@@ -1428,8 +1429,8 @@ const AdminPOSOrders = () => {
         return;
       }
 
-      // If not found in current products (maybe due to debounce or filter), fetch immediately
-      const res = await getProducts({ search: trimmed, limit: 50 });
+      // If not found in current products (maybe due to debounce or filter), fetch immediately using optimized POS API
+      const res = await getPOSProducts({ search: trimmed, limit: 1 });
       if (res.success && res.data && res.data.length > 0) {
         const expanded: any[] = [];
         res.data.forEach((product: any) => {
@@ -1511,7 +1512,7 @@ const AdminPOSOrders = () => {
         if (code.length >= 3) {
             e.preventDefault();
             e.stopPropagation();
-            submitScanQueryRef.current(code);
+            submitScanQueryRef.current(code, true);
         }
         return;
       }
@@ -1557,7 +1558,7 @@ const AdminPOSOrders = () => {
         if (searchQuery.trim()) {
             e.preventDefault();
             e.stopPropagation();
-            await submitScanQuery(searchQuery);
+            await submitScanQuery(searchQuery, true);
         }
     }
   };
