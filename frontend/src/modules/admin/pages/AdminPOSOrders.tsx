@@ -341,6 +341,20 @@ const AdminPOSOrders = () => {
     }
   }, [bills, activeBillId]);
 
+  // Sync URL with active bill tab
+  useEffect(() => {
+    if (activeBillId.startsWith('edit_')) {
+      const id = activeBillId.replace('edit_', '');
+      if (searchParams.get('edit') !== id) {
+        navigate(`/admin/pos/orders?edit=${id}`, { replace: true });
+      }
+    } else {
+      if (searchParams.get('edit')) {
+        navigate('/admin/pos/orders', { replace: true });
+      }
+    }
+  }, [activeBillId, navigate, searchParams]);
+
   // Handle Edit Order Mode
   useEffect(() => {
     const loadEditOrder = async () => {
@@ -3339,7 +3353,8 @@ const AdminPOSOrders = () => {
   };
 
   const handleUpdateOrder = async () => {
-      if (!editOrderId) return;
+      const targetEditId = activeBillId.startsWith('edit_') ? activeBillId.replace('edit_', '') : editOrderId;
+      if (!targetEditId) return;
       setLoading(true);
       try {
           const items = cart.map(item => ({
@@ -3353,7 +3368,7 @@ const AdminPOSOrders = () => {
               productImage: item.mainImage || (item as any).image || ''
           }));
 
-          const res = await updateOrderItems(editOrderId, {
+          const res = await updateOrderItems(targetEditId, {
               items,
               customerId: selectedCustomer ? selectedCustomer._id : "walk-in-customer",
               customerName: selectedCustomer ? selectedCustomer.name : (customerSearch || "Walk-in Customer"),
@@ -3415,13 +3430,13 @@ const AdminPOSOrders = () => {
               // Set bill details for the success modal so user can print/share
               setLastBillDetails({
                   total: calculateTotal(),
-                  invoiceNum: res.data?.orderNumber || `UPD-${editOrderId}`,
+                  invoiceNum: res.data?.orderNumber || `UPD-${targetEditId}`,
                   date: new Date().toLocaleDateString('en-IN'),
                   time: new Date().toLocaleTimeString('en-US', { hour12: false }),
                   cart: [...cart],
                   isPaid: res.data?.paymentStatus === 'Paid' || true, // Updates usually imply paid or credit handled
                   isEdit: true,
-                  orderId: editOrderId
+                  orderId: targetEditId
               });
 
               setShowSuccessModal(true);
@@ -3433,7 +3448,7 @@ const AdminPOSOrders = () => {
               if (bills.length <= 1) {
                   createNewBill(true);
               } else {
-                  closeBill(`edit_${editOrderId}`, { stopPropagation: () => {} } as React.MouseEvent);
+                  closeBill(`edit_${targetEditId}`, { stopPropagation: () => {} } as React.MouseEvent);
               }
           } else {
               showToast(res.message || "Failed to update order", "error");
