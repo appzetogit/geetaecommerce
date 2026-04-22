@@ -1399,14 +1399,17 @@ const AdminPOSOrders = () => {
   // Barcode Scanner Handler
   const submitScanQuery = async (raw: string) => {
     const trimmed = raw.trim();
-    if (!trimmed) return;
-    if (loading) return;
+    if (!trimmed || loading) return;
 
-    // Cooldown to prevent double scans from hardware scanners (500ms)
+    // Cooldown to prevent double scans from hardware scanners (600ms)
     const now = Date.now();
-    const isDuplicate = trimmed === lastScanRef.current.code && (now - lastScanRef.current.time < 500);
-    if (isDuplicate) return;
+    if (trimmed === lastScanRef.current.code && (now - lastScanRef.current.time < 600)) {
+        return;
+    }
     lastScanRef.current = { code: trimmed, time: now };
+    
+    setLoading(true);
+    try {
 
     const query = trimmed.toLowerCase();
 
@@ -1468,6 +1471,8 @@ const AdminPOSOrders = () => {
       }
     } catch (err) {
       console.error("Direct barcode search failed", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1496,6 +1501,7 @@ const AdminPOSOrders = () => {
       if (isEditableTarget(e.target)) return;
 
       const now = Date.now();
+      // If time between keys is too long, it's probably manual typing, not a scanner
       if (now - lastAtRef.current > 120) {
         scanBufferRef.current = '';
       }
@@ -1504,7 +1510,11 @@ const AdminPOSOrders = () => {
         const code = scanBufferRef.current.trim();
         scanBufferRef.current = '';
         lastAtRef.current = 0;
-        if (code.length >= 3) submitScanQueryRef.current(code);
+        if (code.length >= 3) {
+            e.preventDefault();
+            e.stopPropagation();
+            submitScanQueryRef.current(code);
+        }
         return;
       }
 
@@ -1545,9 +1555,12 @@ const AdminPOSOrders = () => {
   }, []);
 
   const handleSearchKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchQuery.trim()) {
-      e.preventDefault();
-      await submitScanQuery(searchQuery);
+    if (e.key === 'Enter') {
+        if (searchQuery.trim()) {
+            e.preventDefault();
+            e.stopPropagation();
+            await submitScanQuery(searchQuery);
+        }
     }
   };
 
@@ -3883,7 +3896,7 @@ const AdminPOSOrders = () => {
                           const profitPercent = purchasePrice > 0 ? ((profit / purchasePrice) * 100).toFixed(2) : '0.00';
 
                           return (
-                          <React.Fragment key={index}>
+                          <React.Fragment key={item._id}>
                               {/* --- MOBILE VIEW (Card Style) --- */}
                               <div className={`${mobileCartView === 'list' ? 'block' : 'hidden'} md:hidden bg-white border border-gray-200 rounded-xl p-3 shadow-sm mb-3 relative overflow-hidden group shrink-0`}>
                                   {/* Top Row: Rank, Title, Price */}
