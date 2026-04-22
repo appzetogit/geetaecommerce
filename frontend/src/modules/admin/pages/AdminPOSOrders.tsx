@@ -1410,27 +1410,25 @@ const AdminPOSOrders = () => {
     
     setLoading(true);
     try {
+      const query = trimmed.toLowerCase();
 
-    const query = trimmed.toLowerCase();
+      // Helper to check for match
+      const findMatch = (list: any[]) => list.find(p => {
+        const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
+        return barcodes.some((b: string) => String(b).toLowerCase() === query) ||
+          (p.sku && String(p.sku).toLowerCase() === query) ||
+          (p.itemCode && String(p.itemCode).toLowerCase() === query);
+      });
 
-    // Helper to check for match
-    const findMatch = (list: any[]) => list.find(p => {
-      const barcodes = Array.isArray(p.barcode) ? p.barcode : (p.barcode ? [p.barcode] : []);
-      return barcodes.some((b: string) => String(b).toLowerCase() === query) ||
-        (p.sku && String(p.sku).toLowerCase() === query) ||
-        (p.itemCode && String(p.itemCode).toLowerCase() === query);
-    });
+      let exactMatch = findMatch(products);
 
-    let exactMatch = findMatch(products);
+      if (exactMatch) {
+        addToCart(exactMatch as CartItem);
+        setSearchQuery(''); // Clear for next scan
+        return;
+      }
 
-    if (exactMatch) {
-      addToCart(exactMatch as CartItem);
-      setSearchQuery(''); // Clear for next scan
-      return;
-    }
-
-    // If not found in current products (maybe due to debounce or filter), fetch immediately
-    try {
+      // If not found in current products (maybe due to debounce or filter), fetch immediately
       const res = await getProducts({ search: trimmed, limit: 50 });
       if (res.success && res.data && res.data.length > 0) {
         const expanded: any[] = [];
