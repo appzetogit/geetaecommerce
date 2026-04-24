@@ -1489,7 +1489,7 @@ const AdminPOSOrders = () => {
     }
   };
 
-  const submitScanQueryRef = useRef<(raw: string) => void>(() => {});
+  const submitScanQueryRef = useRef<(raw: string, isManualEnter?: boolean) => void>(() => {});
   useEffect(() => {
     submitScanQueryRef.current = submitScanQuery;
   });
