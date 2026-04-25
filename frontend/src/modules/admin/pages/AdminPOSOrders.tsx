@@ -217,12 +217,18 @@ const AdminPOSOrders = () => {
   const createNewBill = (reset: boolean = false) => {
     const newId = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
 
-    // Determine name: if resetting, try to keep the same name, otherwise increment
-    let billName = `Bill ${bills.length + 1}`;
+    // Determine name: if resetting, try to keep the same name, otherwise find next available "Bill X"
+    let billName = '';
     if (reset) {
          const current = bills.find(b => b.id === activeBillId);
          if (current) billName = current.name;
-         else billName = `Bill 1`; // Fallback for full reset scenario
+         else billName = `Bill 1`; // Fallback
+    } else {
+        let nextNum = 1;
+        while (bills.some(b => b.name === `Bill ${nextNum}`)) {
+            nextNum++;
+        }
+        billName = `Bill ${nextNum}`;
     }
 
     const newBill: Bill = {
@@ -5812,7 +5818,14 @@ const AdminPOSOrders = () => {
                                     setPurchaseSupplier(null);
                                     setEditingQuotationId(null);
                                 } else {
-                                    createNewBill(true);
+                                    // If it was an edit update, we already switched to another bill (or created a new one if it was last)
+                                    // Clicking "+ NEW BILL" should always give a fresh tab, not wipe the one we just switched to.
+                                    if (lastBillDetails.isEdit) {
+                                        createNewBill(false);
+                                    } else {
+                                        // For regular new orders, we stay on same tab but reset it
+                                        createNewBill(true);
+                                    }
                                 }
                                 setShowSuccessModal(false);
                             }}
