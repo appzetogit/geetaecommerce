@@ -1092,29 +1092,44 @@ const SellerPOSOrders = () => {
             }
 
             // Create new instance
+            const supportedFormats = [
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.CODE_93,
+                Html5QrcodeSupportedFormats.ITF,
+                Html5QrcodeSupportedFormats.CODABAR,
+                Html5QrcodeSupportedFormats.QR_CODE,
+                Html5QrcodeSupportedFormats.DATA_MATRIX,
+                Html5QrcodeSupportedFormats.PDF_417,
+                Html5QrcodeSupportedFormats.RSS_14,
+                Html5QrcodeSupportedFormats.RSS_EXPANDED,
+            ];
             const scanner = new Html5Qrcode("reader", {
-                formatsToSupport: [
-                    Html5QrcodeSupportedFormats.CODE_128,
-                    Html5QrcodeSupportedFormats.EAN_13,
-                    Html5QrcodeSupportedFormats.EAN_8,
-                    Html5QrcodeSupportedFormats.UPC_A,
-                    Html5QrcodeSupportedFormats.UPC_E,
-                    Html5QrcodeSupportedFormats.CODE_39,
-                    Html5QrcodeSupportedFormats.CODE_93,
-                    Html5QrcodeSupportedFormats.ITF,
-                    Html5QrcodeSupportedFormats.CODABAR,
-                    Html5QrcodeSupportedFormats.QR_CODE,
-                ],
-                useBarCodeDetectorIfSupported: true,
+                verbose: false,
+                formatsToSupport: supportedFormats,
             });
             html5QrCodeRef.current = scanner;
 
-            const boxWidth = Math.min(Math.max(element.clientWidth - 24, 220), 420);
-            const boxHeight = Math.max(200, Math.floor(boxWidth * 0.45));
             const config: any = {
-                fps: 20,
-                qrbox: { width: boxWidth, height: boxHeight },
-                disableFlip: true
+                fps: 30,
+                aspectRatio: 1.0,
+                disableFlip: false,
+                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+                    const width = Math.floor(Math.min(viewfinderWidth * 0.85, 400));
+                    const height = Math.floor(Math.max(160, Math.min(viewfinderHeight * 0.5, width * 0.6)));
+                    return { width, height };
+                },
+                videoConstraints: {
+                    facingMode: "environment",
+                    focusMode: "continuous"
+                },
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true
+                }
             };
 
             await scanner.start(

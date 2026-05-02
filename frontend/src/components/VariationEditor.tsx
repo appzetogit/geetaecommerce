@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { getVariationTypes } from "../services/api/admin/adminVariationTypeService";
 
 export interface Variation {
@@ -56,11 +56,35 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
     setIsScanning(true);
     setScanIndex(index);
     setTimeout(() => {
-        const scanner = new Html5Qrcode("variation-reader");
+        const scanner = new Html5Qrcode("variation-reader", {
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_39,
+                Html5QrcodeSupportedFormats.CODE_93,
+                Html5QrcodeSupportedFormats.ITF,
+                Html5QrcodeSupportedFormats.CODABAR,
+                Html5QrcodeSupportedFormats.QR_CODE,
+                Html5QrcodeSupportedFormats.DATA_MATRIX,
+                Html5QrcodeSupportedFormats.PDF_417,
+            ],
+        });
         scannerRef.current = scanner;
         scanner.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: { width: 250, height: 250 } },
+            {
+                fps: 30,
+                aspectRatio: 1.0,
+                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+                    const width = Math.floor(Math.min(viewfinderWidth * 0.85, 400));
+                    const height = Math.floor(Math.max(160, Math.min(viewfinderHeight * 0.5, width * 0.6)));
+                    return { width, height };
+                },
+                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+            },
             (decodedText) => {
                 if (index !== null) {
                     const currentBarcodes = localVariations[index].barcode || [];

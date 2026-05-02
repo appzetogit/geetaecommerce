@@ -1134,21 +1134,28 @@ const AdminPOSOrders = () => {
                 Html5QrcodeSupportedFormats.ITF,
                 Html5QrcodeSupportedFormats.CODABAR,
                 Html5QrcodeSupportedFormats.QR_CODE,
+                Html5QrcodeSupportedFormats.DATA_MATRIX,
+                Html5QrcodeSupportedFormats.PDF_417,
+                Html5QrcodeSupportedFormats.RSS_14,
+                Html5QrcodeSupportedFormats.RSS_EXPANDED,
             ];
             const scanner = new Html5Qrcode("reader", {
                 verbose: false,
                 formatsToSupport: supportedFormats,
-                useBarCodeDetectorIfSupported: true,
             });
             html5QrCodeRef.current = scanner;
 
-            // Match Seller POS scanner sizing for mobile.
-            const boxWidth = Math.min(Math.max(element.clientWidth - 24, 220), 420);
-            const boxHeight = Math.max(200, Math.floor(boxWidth * 0.45));
             const config: any = {
-                fps: 30, // Increased for instant detection
-                qrbox: { width: boxWidth, height: boxHeight },
-                disableFlip: true,
+                fps: 30,
+                aspectRatio: 1.0,
+                disableFlip: false,
+                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+                    // Responsive window: 85% width on mobile, max 400px.
+                    // Height is 50% of width for better barcode alignment.
+                    const width = Math.floor(Math.min(viewfinderWidth * 0.85, 400));
+                    const height = Math.floor(Math.max(160, Math.min(viewfinderHeight * 0.5, width * 0.6)));
+                    return { width, height };
+                },
                 videoConstraints: {
                     facingMode: "environment",
                     focusMode: "continuous"
