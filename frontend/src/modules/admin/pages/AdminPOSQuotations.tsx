@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
 import { PurchaseEntryRecord, PurchaseItem } from './AdminPOSOrders';
+import { getAdminPurchaseEntries } from '../../../services/api/admin/adminPosPurchaseEntryService';
 
 const AdminPOSQuotations: React.FC = () => {
   const navigate = useNavigate();
@@ -11,9 +12,30 @@ const AdminPOSQuotations: React.FC = () => {
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch saved quotations from localStorage
+  // Fetch saved quotations from server/localStorage
   useEffect(() => {
-    const loadQuotations = () => {
+    const loadQuotations = async () => {
+      try {
+        const res = await getAdminPurchaseEntries('quotation');
+        if (res.success && Array.isArray(res.data)) {
+           const normalized: PurchaseEntryRecord[] = res.data.map(q => ({
+              ...q,
+              totals: {
+                grossAmount: q.totals?.grossAmount ?? q.totals?.gross ?? 0,
+                discountAmount: q.totals?.discountAmount ?? q.totals?.discount ?? 0,
+                taxAmount: q.totals?.taxAmount ?? q.totals?.tax ?? 0,
+                roundOff: q.totals?.roundOff ?? 0,
+                netAmount: q.totals?.netAmount ?? q.totals?.net ?? 0,
+              }
+            }));
+            setQuotations(normalized);
+            localStorage.setItem('admin_pos_purchase_entries', JSON.stringify(normalized));
+            return;
+        }
+      } catch (err) {
+        console.error('Failed to fetch from API', err);
+      }
+
       try {
         const raw = localStorage.getItem('admin_pos_purchase_entries');
         if (raw) {

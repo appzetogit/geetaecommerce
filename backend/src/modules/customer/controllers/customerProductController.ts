@@ -447,22 +447,9 @@ export const getProductById = async (req: Request, res: Response) => {
 
 
 
-    // 1. Resolve IDs carefully (handling both populated and unpopulated states)
+    // Find similar products (by category)
     const subId = (product.subcategory as any)?._id || product.subcategory;
     const catId = (product.category as any)?._id || product.category;
-    const catObj = product.category as any;
-
-    // Choose the best ID to match: subcategory first, then category if it has a parent
-    // We want the most specific leaf node ID to prevent matching broad categories like 'Stationary'
-    let matchId = subId;
-    if (!matchId && catObj?.parentId) {
-      matchId = catId;
-    } else if (!matchId) {
-      matchId = catId;
-    }
-
-    // Ensure matchId is a clean string/ObjectId to avoid matching empty references
-    const finalMatchId = matchId ? matchId.toString() : null;
 
     // 2. Build the final query
     const similarProductsQuery: any = {
@@ -479,13 +466,15 @@ export const getProductById = async (req: Request, res: Response) => {
       ]
     };
 
-    if (finalMatchId && finalMatchId !== 'undefined') {
-      similarProductsQuery.$and.push({
-        $or: [
-          { subcategory: finalMatchId },
-          { category: finalMatchId }
-        ]
-      });
+    // Strict matching for "just above level" category
+    if (subId) {
+      // If product has a subcategory, only show products in the same subcategory
+      similarProductsQuery.subcategory = subId;
+    } else if (catId) {
+      // If no subcategory, show products in the same main category
+      // We also ensure it matches products that don't have a subcategory to stay at the same level
+      similarProductsQuery.category = catId;
+      similarProductsQuery.subcategory = { $eq: null };
     }
 
     // Filter similar products by location

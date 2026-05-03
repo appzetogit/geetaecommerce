@@ -142,111 +142,92 @@ export const createPOSOrder = asyncHandler(
         const orderItemsIds = [];
 
         for (const item of items) {
-           if (!mongoose.Types.ObjectId.isValid(item.productId)) {
-               throw new Error(`Invalid Product ID: ${item.productId}`);
-           }
-
-           // Allow selling ANY active product (matches getPOSProducts global search)
-           // But we need to handle stock deduction correctly.
-           // If product is NOT owned by seller, we still deduct stock from that product?
-           // Yes, assuming shared inventory or marketplace model where seller is an agent.
-           const product = await Product.findOne({ _id: item.productId }).session(session);
-
-           if (!product) {
-               throw new Error(`Product not found: ${item.name} (${item.productId})`);
-           }
-
-           // Optional: Warn if selling other's product?
-           // if (product.seller && product.seller.toString() !== sellerId) { ... }
-
            const soldQty = Number(item.quantity) || 0;
            const unitPrice = Number(item.price);
            const totalItemPrice = unitPrice * soldQty;
            subtotal += totalItemPrice;
 
+           // Handle Database Product vs Quick Add
+           const isDbProduct = mongoose.Types.ObjectId.isValid(item.productId);
+           let product = null;
+           if (isDbProduct) {
+               product = await Product.findOne({ _id: item.productId }).session(session);
+           }
+
            let productData = {
-               productName: product.productName,
-               mainImage: product.mainImage,
-               sku: (product.sku && String(product.sku).trim()) || "NO-SKU",
+               productName: item.name || (product?.productName) || "Quick Add Item",
+               mainImage: product?.mainImage || "",
+               sku: (product?.sku && String(product.sku).trim()) || (item.sku) || "NO-SKU",
            };
 
-           // Verify and Deduct Stock
-           const prevStock = product.stock;
-           let sku =
-             (product.sku && String(product.sku).trim()) ||
-             ((product as any).itemCode && String((product as any).itemCode).trim()) ||
-             "";
+           let sku = productData.sku;
            let varId = null;
 
-           if (item.variationId && product.variations) {
-               const variationIndex = product.variations.findIndex((v: any) => v._id?.toString() === item.variationId.toString());
-               if (variationIndex > -1) {
-                   const prevVarStock = product.variations[variationIndex].stock || 0;
-                   product.variations[variationIndex].stock = Math.max(0, prevVarStock - soldQty);
-                   product.stock = Math.max(0, prevStock - soldQty);
-                   const vSku = product.variations[variationIndex].sku;
-                   sku =
-                     (vSku && String(vSku).trim()) ||
+           // Deduct Stock only if product exists in DB
+           if (product) {
+               const prevStock = product.stock;
+               sku = (product.sku && String(product.sku).trim()) ||
+                     ((product as any).itemCode && String((product as any).itemCode).trim()) ||
                      sku;
-                   varId = product.variations[variationIndex]._id;
 
-                   const ledgerSku = sku || "NO-SKU";
+               if (item.variationId && product.variations) {
+                   const variationIndex = product.variations.findIndex((v: any) => v._id?.toString() === item.variationId.toString());
+                   if (variationIndex > -1) {
+                       const prevVarStock = product.variations[variationIndex].stock || 0;
+                       product.variations[variationIndex].stock = Math.max(0, prevVarStock - soldQty);
+                       product.stock = Math.max(0, prevStock - soldQty);
+                       const vSku = product.variations[variationIndex].sku;
+                       sku = (vSku && String(vSku).trim()) || sku;
+                       varId = product.variations[variationIndex]._id;
 
-                   // Ledger for Variation
+                       await StockLedger.create([{
+                           product: product._id,
+                           variationId: varId,
+                           sku: sku || "NO-SKU",
+                           quantity: soldQty,
+                           type: "OUT",
+                           source: "POS",
+                           referenceId: order._id,
+                           previousStock: prevVarStock,
+                           newStock: product.variations[variationIndex].stock,
+                           seller: sellerId
+                       }], { session });
+                   }
+               } else {
+                   product.stock = Math.max(0, prevStock - soldQty);
                    await StockLedger.create([{
                        product: product._id,
-                       variationId: varId,
-                       sku: ledgerSku,
+                       sku: sku || "NO-SKU",
                        quantity: soldQty,
                        type: "OUT",
                        source: "POS",
                        referenceId: order._id,
-                       previousStock: prevVarStock,
-                       newStock: product.variations[variationIndex].stock,
-                       seller: sellerId // We log the SELLER who sold it, even if product owner is different
+                       previousStock: prevStock,
+                       newStock: product.stock,
+                       seller: sellerId
                    }], { session });
                }
-           } else {
-               product.stock = Math.max(0, prevStock - soldQty);
-               const ledgerSku = sku || "NO-SKU";
-               await StockLedger.create([{
-                   product: product._id,
-                   sku: ledgerSku,
-                   quantity: soldQty,
-                   type: "OUT",
-                   source: "POS",
-                   referenceId: order._id,
-                   previousStock: prevStock,
-                   newStock: product.stock,
-                   seller: sellerId
-               }], { session });
+               await product.save({ session });
            }
-
-           await product.save({ session });
 
            const orderItem = new OrderItem({
              order: order._id,
-             product: product._id,
-             seller: product.seller || sellerId, // Credit the original product owner?? Or the seller who sold it?
-                                                 // Usually OrderItem.seller reflects who gets the money/credit.
-                                                 // If I sell Admin's product, does Admin get credit?
-                                                 // For POS, typically the Cashier (Seller) records the sale.
-                                                 // We'll set it to the logged-in Seller for report grouping.
-                                                 // But this might mess up multi-vendor logic.
-                                                 // For now, adhere to "POS Order - Seller: ID" logic.
+             product: product?._id,
+             seller: product?.seller || sellerId,
              productName: productData.productName,
              productImage: productData.mainImage,
              sku: sku || "NO-SKU",
              unitPrice: unitPrice,
              quantity: soldQty,
              total: totalItemPrice,
-             status: "Delivered",
-             variation: item.variationId
+             status: "Delivered"
            });
 
-           if (varId) {
+           if (varId && product) {
                 const v = product.variations.find((v:any) => v._id.toString() === varId.toString());
                 if (v) orderItem.variation = `${v.name || 'Variation'}: ${v.value}`;
+           } else if (item.variationName) {
+                orderItem.variation = item.variationName;
            }
 
            await orderItem.save({ session });

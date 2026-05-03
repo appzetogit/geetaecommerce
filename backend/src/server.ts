@@ -152,6 +152,7 @@ async function startServer() {
   await ensureDefaultAdmin();
   await seedHeaderCategories();
 
+  httpServer.timeout = 300000; // 5 minutes
   httpServer.listen(PORT, () => {
     console.log("\n\x1b[32m✓\x1b[0m \x1b[1mGeeta Stores Server Started\x1b[0m");
     console.log(`   \x1b[36mPort:\x1b[0m http://localhost:${PORT}`);

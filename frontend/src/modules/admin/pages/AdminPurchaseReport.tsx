@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
 import {
   deleteAdminPurchaseEntry,
+  getAdminPurchaseEntries,
   upsertAdminPurchaseEntry,
 } from '../../../services/api/admin/adminPosPurchaseEntryService';
 
@@ -38,7 +39,31 @@ const AdminPurchaseReport: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [editMode, setEditMode] = useState(false);
 
-  const fetchEntries = () => {
+  const fetchEntries = async () => {
+    try {
+      const res = await getAdminPurchaseEntries('purchase');
+      if (res.success && Array.isArray(res.data)) {
+        const normalized = res.data.map(e => ({
+          ...e,
+          totals: {
+            gross: e.totals?.gross ?? e.totals?.grossAmount ?? 0,
+            discount: e.totals?.discount ?? e.totals?.discountAmount ?? 0,
+            tax: e.totals?.tax ?? e.totals?.taxAmount ?? 0,
+            net: e.totals?.net ?? e.totals?.netAmount ?? 0,
+            grossAmount: e.totals?.grossAmount ?? e.totals?.gross ?? 0,
+            discountAmount: e.totals?.discountAmount ?? e.totals?.discount ?? 0,
+            taxAmount: e.totals?.taxAmount ?? e.totals?.tax ?? 0,
+            netAmount: e.totals?.netAmount ?? e.totals?.net ?? 0,
+          }
+        }));
+        setEntries(normalized);
+        localStorage.setItem('admin_pos_purchase_entries', JSON.stringify(normalized));
+        return;
+      }
+    } catch (e) {
+      console.error("Failed to fetch from API", e);
+    }
+
     try {
       const raw = localStorage.getItem('admin_pos_purchase_entries');
       if (!raw) return;
@@ -351,6 +376,13 @@ const AdminPurchaseReport: React.FC = () => {
       });
 
       localStorage.setItem('admin_pos_purchase_entries', JSON.stringify(nextEntries));
+      
+      // Persist change to server
+      const updatedEntry = nextEntries.find(e => e.id === entryId);
+      if (updatedEntry) {
+          upsertAdminPurchaseEntry(updatedEntry).catch(e => console.error("Sync failed", e));
+      }
+
       return nextEntries;
     });
   };

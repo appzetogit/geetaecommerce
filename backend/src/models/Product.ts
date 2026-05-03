@@ -107,6 +107,8 @@ export interface IProduct extends Document {
   warrantyType?: "None" | "Warranty" | "Guarantee";
   warrantyDuration?: string;
 
+  inactiveReason?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -391,6 +393,10 @@ export interface IProduct extends Document {
       default: "None",
     },
     warrantyDuration: {
+      type: String,
+      trim: true,
+    },
+    inactiveReason: {
       type: String,
       trim: true,
     },

@@ -779,7 +779,6 @@ const SellerPOSOrders = () => {
           const normalized = normalizePurchaseEntries(res.data);
           setSavedPurchaseEntries(normalized);
           localStorage.setItem('seller_pos_purchase_entries', JSON.stringify(normalized));
-          localStorage.setItem('admin_pos_purchase_entries', JSON.stringify(normalized));
           return;
         }
       } catch {
@@ -1833,18 +1832,24 @@ const SellerPOSOrders = () => {
     }
     setSavedPurchaseEntries(nextEntries);
     localStorage.setItem('seller_pos_purchase_entries', JSON.stringify(nextEntries));
-    localStorage.setItem('admin_pos_purchase_entries', JSON.stringify(nextEntries));
     try {
       await apiUpsertSellerPurchaseEntry(entry);
     } catch {
       // keep existing local behavior if API fails
     }
 
+    // Reset form states after successful save
+    setPurchaseSupplier(null);
+    setBillAttachment(null);
+    setPurchaseDate(new Date().toISOString().split('T')[0]);
+    setPurchasePaymentMethod('Cash');
+    setEditingQuotationId(null);
+
     if (purchaseMode === 'Purchase') {
       setPurchaseItems((prev) => prev.map((item) => ({ ...item, currentQty: item.currentQty + item.qty })));
       showToast('Purchase saved & inventory updated', 'success');
       printPurchaseInvoice(entry);
-      setPurchaseItemsStore([]);
+      setPurchaseItems([]);
     } else {
       // Stock deduction logic if toggled
       if (reduceStockOnQuotation) {
@@ -1898,6 +1903,7 @@ const SellerPOSOrders = () => {
       });
       setShowSuccessModal(true);
       showToast('Quotation saved successfully', 'success');
+      setPurchaseItems([]);
     }
   };
 

@@ -310,6 +310,9 @@ export const updateCategory = asyncHandler(
       }
     }
 
+    // Track if status is changing
+    const statusChanged = updateData.status && updateData.status !== category.status;
+
     // Update category
     const updatedCategory = await Category.findByIdAndUpdate(
       id,
@@ -321,6 +324,11 @@ export const updateCategory = asyncHandler(
     )
       .populate("parentId", "name")
       .populate("headerCategoryId", "name status");
+
+    // If status changed, sync products
+    if (statusChanged && updatedCategory) {
+      await syncProductsWithCategoryStatus(id, updatedCategory.status);
+    }
 
     // Invalidate category caches
     cache.delete("customer-categories-list");
@@ -456,12 +464,18 @@ export const toggleCategoryStatus = asyncHandler(
     category.status = status;
     await category.save();
 
+    // Sync products visibility
+    await syncProductsWithCategoryStatus(id, status);
+
     // Optionally cascade to children
     if (cascadeToChildren === true) {
       await Category.updateMany(
         { parentId: id },
         { status, updatedAt: new Date() }
       );
+      
+      // If cascading, we also need to sync products for each child
+      // Actually, our helper already handles all descendants!
     }
 
     // Invalidate category caches
@@ -934,6 +948,15 @@ export const createProduct = asyncHandler(
         }
       }
 
+      // Verify category is active
+      if (productData.category) {
+        const category = await Category.findById(productData.category);
+        if (category && category.status === "Inactive") {
+          productData.status = "Inactive";
+          productData.inactiveReason = "CategoryDeactivated";
+        }
+      }
+
       if (
         !productData.productName ||
         !productData.category ||
@@ -1179,6 +1202,19 @@ export const updateProduct = asyncHandler(
         success: false,
         message: "Product not found",
       });
+    }
+
+    // Verify category status if category is changed
+    if (updateData.category) {
+      const category = await Category.findById(updateData.category);
+      if (category && category.status === "Inactive") {
+        updateData.status = "Inactive";
+        updateData.inactiveReason = "CategoryDeactivated";
+      } else if (category && category.status === "Active" && product.inactiveReason === "CategoryDeactivated") {
+        updateData.status = "Active";
+        updateData.inactiveReason = null;
+        unsetFields.inactiveReason = 1;
+      }
     }
 
     // Apply updates
@@ -1506,3 +1542,63 @@ export const getPOSProducts = asyncHandler(
     });
   }
 );
+
+/**
+ * Sync product visibility when a category status changes
+ */
+const syncProductsWithCategoryStatus = async (categoryId: string, status: "Active" | "Inactive") => {
+  try {
+    const category = await Category.findById(categoryId);
+    if (!category) return;
+
+    const descendants = await category.getAllDescendants();
+    const allCategoryIds = [category._id, ...descendants.map(d => d._id)];
+
+    if (status === "Inactive") {
+      // Mark products as Inactive if they were Active
+      // We check both category and subcategory fields
+      await Product.updateMany(
+        {
+          $or: [
+            { category: { $in: allCategoryIds } },
+            { subcategory: { $in: allCategoryIds } }
+          ],
+          status: "Active"
+        },
+        {
+          status: "Inactive",
+          inactiveReason: "CategoryDeactivated"
+        }
+      );
+    } else {
+      // Status is Active
+      // Only reactivate products if the category they belong to is now Active
+      // (Handles cases where a subcategory might still be Inactive even if parent is Active)
+      
+      // Get IDs of all active categories in this branch
+      const activeIds = [category._id];
+      for (const desc of descendants) {
+        if (desc.status === "Active") {
+          activeIds.push(desc._id);
+        }
+      }
+
+      await Product.updateMany(
+        {
+          $or: [
+            { category: { $in: activeIds } },
+            { subcategory: { $in: activeIds } }
+          ],
+          status: "Inactive",
+          inactiveReason: "CategoryDeactivated"
+        },
+        {
+          status: "Active",
+          $unset: { inactiveReason: "" }
+        }
+      );
+    }
+  } catch (error) {
+    console.error("Error syncing products with category status:", error);
+  }
+};

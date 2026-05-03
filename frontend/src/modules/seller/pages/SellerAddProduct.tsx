@@ -1216,7 +1216,6 @@ export default function SellerAddProduct() {
       tieredPrices: [],
       image: "",
     });
-    setCurrentVarBarcode("");
     setUploadError("");
   };
 

@@ -139,6 +139,27 @@ export default function CategoryPage() {
     }
   }, [id, selectedSubcategory, category?._id, userLocation, currentPage]);
 
+  // Scroll to last product on back
+  const lastProductScrolledRef = useRef(false);
+  useEffect(() => {
+    if (!loading && products.length > 0 && !lastProductScrolledRef.current) {
+      const state = window.history.state?.usr;
+      if (state?.scrollRestore?.source === 'product-card') {
+        // Find the product element and scroll to it
+        // We might need to wait for the DOM to be ready
+        setTimeout(() => {
+          const mainElement = document.querySelector('main');
+          if (state.scrollRestore.preferredTarget === 'main' && mainElement) {
+             mainElement.scrollTop = state.scrollRestore.mainTop;
+          } else {
+             window.scrollTo(0, state.scrollRestore.windowTop);
+          }
+          lastProductScrolledRef.current = true;
+        }, 100);
+      }
+    }
+  }, [loading, products.length]);
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     // Scroll to top of product container for smooth UX
@@ -343,6 +364,14 @@ export default function CategoryPage() {
                     const subId = String(subcat.id || subcat._id);
                     console.log("Clicked subcategory:", subId);
                     setSelectedSubcategory(subId);
+                    // Update URL search params
+                    const newParams = new URLSearchParams(searchParams);
+                    if (subId === "all") {
+                      newParams.delete("subcategory");
+                    } else {
+                      newParams.set("subcategory", subId);
+                    }
+                    navigate({ search: newParams.toString() }, { replace: true });
                   }}
                   className={`w-full flex flex-col items-center justify-center py-2 relative transition-all duration-200 group ${
                     isSelected ? "bg-green-50" : "hover:bg-neutral-50"
@@ -465,7 +494,13 @@ export default function CategoryPage() {
                   return (
                     <button
                       key={subId}
-                      onClick={() => setSelectedSubcategory(subId)}
+                      onClick={() => {
+                        setSelectedSubcategory(subId);
+                        // Update URL search params
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.set("subcategory", subId);
+                        navigate({ search: newParams.toString() }, { replace: true });
+                      }}
                       className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-md transition-colors flex-shrink-0 whitespace-nowrap ${
                         isSelected
                           ? "bg-white border border-neutral-300 text-neutral-900"

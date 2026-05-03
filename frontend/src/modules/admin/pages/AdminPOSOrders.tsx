@@ -1927,6 +1927,13 @@ const AdminPOSOrders = () => {
       console.error("Failed to persist admin purchase entry:", e);
     }
 
+    // Reset form states after successful save
+    setPurchaseSupplier(null);
+    setBillAttachment(null);
+    setPurchaseDate(new Date().toISOString().split('T')[0]);
+    setPurchasePaymentMethod('Cash');
+    setEditingQuotationId(null);
+
     if (purchaseMode === 'Purchase') {
       // Persist purchase stock increments to product inventory so stock pages reflect the latest values.
       for (const item of purchaseItems) {
@@ -1960,7 +1967,7 @@ const AdminPOSOrders = () => {
       showToast('Purchase saved & inventory updated', 'success');
       printPurchaseInvoice(entry);
       // Clear current purchase entry items after saving so they don't show again when user comes back.
-      setPurchaseItemsStore([]);
+      setPurchaseItems([]);
     } else {
       // Stock deduction logic if toggled
       if (reduceStockOnQuotation) {
@@ -2014,6 +2021,8 @@ const AdminPOSOrders = () => {
       });
       setShowSuccessModal(true);
       showToast('Quotation saved successfully', 'success');
+      // Clear items after quotation save
+      setPurchaseItems([]);
     }
   };
 

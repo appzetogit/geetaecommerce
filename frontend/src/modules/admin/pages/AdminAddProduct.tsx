@@ -1095,13 +1095,12 @@ export default function AdminAddProduct() {
       discPrice: "0",
       stock: "0",
       status: "Available",
-      barcode: [],
+      barcode: variationForm.barcode,
       offerPrice: "",
       wholesalePrice: "",
       tieredPrices: [],
       image: "",
     });
-    setCurrentVarBarcode("");
     setUploadError("");
   };
 
@@ -1140,7 +1139,6 @@ export default function AdminAddProduct() {
         tieredPrices: [],
         image: "",
     });
-    setCurrentVarBarcode("");
   };
 
   const handleAddTier = () => {

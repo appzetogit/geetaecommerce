@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import {
   Product,
+  getProducts,
   updateProduct,
   createProduct,
   deleteProduct as deleteSellerProduct,
@@ -731,11 +732,13 @@ export default function SellerStockBulkEdit({
           wholesalePrice: p.wholesalePrice,
           ...(p.subCategoryId ? { subcategory: p.subCategoryId } : {}),
           ...(p.subSubCategory ? { subSubCategory: p.subSubCategory } : {}),
-           ...(p.brandId ? { brand: p.brandId } : {}),
-           variations: p.variations.map((v: any) => ({
-             ...v,
-             discPrice: v.offerPrice || v.discPrice || p.offerPrice // Preserve variation specific offer or fallback
-           })),
+          ...(p.brandId ? { brand: p.brandId } : {}),
+          ...(p.variations && p.variations.length > 0 ? {
+            variations: p.variations.map((v: any) => ({
+              ...v,
+              discPrice: v.offerPrice || v.discPrice || p.offerPrice
+            }))
+          } : {}),
           unitPricing: (p as any).unitPricing, // Include unitPricing in payload, assuming backend supports it (even if not in simplified interface)
           variationName: p.variationName,
           // ProductVariation interface (line 15 in productService.ts) has tieredPrices.

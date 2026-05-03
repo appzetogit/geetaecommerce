@@ -33,9 +33,12 @@ export async function uploadImage(
       transformation: options.transformation,
       overwrite: options.overwrite || false,
       invalidate: options.invalidate || true,
+      timeout: 120000,
     };
 
+    console.log(`Starting Cloudinary upload to folder: ${uploadOptions.folder}`);
     const result = await cloudinary.uploader.upload(filePath, uploadOptions);
+    console.log(`Cloudinary upload successful: ${result.public_id}`);
 
     return {
       url: result.url,
@@ -48,6 +51,7 @@ export async function uploadImage(
     };
   } catch (error) {
     const uploadError = error as UploadApiErrorResponse;
+    console.error("Cloudinary upload error:", uploadError);
     throw new Error(
       `Cloudinary upload failed: ${uploadError.message || "Unknown error"}`
     );
@@ -84,9 +88,12 @@ export async function uploadDocument(
       resource_type: options.resourceType || "raw",
       overwrite: options.overwrite || false,
       invalidate: options.invalidate || true,
+      timeout: 120000,
     };
 
+    console.log(`Starting Cloudinary document upload to folder: ${uploadOptions.folder}`);
     const result = await cloudinary.uploader.upload(filePath, uploadOptions);
+    console.log(`Cloudinary document upload successful: ${result.public_id}`);
 
     return {
       url: result.url,
@@ -97,6 +104,7 @@ export async function uploadDocument(
     };
   } catch (error) {
     const uploadError = error as UploadApiErrorResponse;
+    console.error("Cloudinary document upload error:", uploadError);
     throw new Error(
       `Cloudinary document upload failed: ${uploadError.message || "Unknown error"
       }`
@@ -118,14 +126,18 @@ export async function uploadImageFromBuffer(
       transformation: options.transformation,
       overwrite: options.overwrite || false,
       invalidate: options.invalidate || true,
+      timeout: 120000,
     };
 
+    console.log(`Starting Cloudinary buffer upload to folder: ${uploadOptions.folder}`);
     const uploadStream = cloudinary.uploader.upload_stream(
       uploadOptions,
       (error: any, result: any) => {
         if (error) {
+          console.error("Cloudinary buffer upload error:", error);
           reject(new Error(`Cloudinary upload failed: ${error.message}`));
         } else if (result) {
+          console.log(`Cloudinary buffer upload successful: ${result.public_id}`);
           resolve({
             url: result.url,
             publicId: result.public_id,
@@ -158,16 +170,20 @@ export async function uploadDocumentFromBuffer(
       resource_type: options.resourceType || "raw",
       overwrite: options.overwrite || false,
       invalidate: options.invalidate || true,
+      timeout: 120000,
     };
 
+    console.log(`Starting Cloudinary document buffer upload to folder: ${uploadOptions.folder}`);
     const uploadStream = cloudinary.uploader.upload_stream(
       uploadOptions,
       (error: any, result: any) => {
         if (error) {
+          console.error("Cloudinary document buffer upload error:", error);
           reject(
             new Error(`Cloudinary document upload failed: ${error.message}`)
           );
         } else if (result) {
+          console.log(`Cloudinary document buffer upload successful: ${result.public_id}`);
           resolve({
             url: result.url,
             publicId: result.public_id,
@@ -199,14 +215,18 @@ export async function uploadVideoFromBuffer(
       transformation: options.transformation,
       overwrite: options.overwrite || false,
       invalidate: options.invalidate || true,
+      timeout: 300000, // 5 minutes for videos
     };
 
+    console.log(`Starting Cloudinary video buffer upload to folder: ${uploadOptions.folder}`);
     const uploadStream = cloudinary.uploader.upload_stream(
       uploadOptions,
       (error: any, result: any) => {
         if (error) {
+          console.error("Cloudinary video buffer upload error:", error);
           reject(new Error(`Cloudinary video upload failed: ${error.message}`));
         } else if (result) {
+          console.log(`Cloudinary video buffer upload successful: ${result.public_id}`);
           resolve({
             url: result.url,
             publicId: result.public_id,
