@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ProductCard from './components/ProductCard';
 import { getProducts } from '../../services/api/customerProductService';
@@ -60,6 +60,37 @@ export default function Search() {
   useEffect(() => {
     setCurrentPage(1); // Reset page when search query changes
   }, [searchQuery]);
+
+  // Scroll restoration logic for Search
+  const lastProductScrolledRef = useRef(false);
+  useEffect(() => {
+    if (loading || searchResults.length === 0 || lastProductScrolledRef.current) return;
+
+    const state = window.history.state?.usr;
+    if (state?.scrollRestore?.source === 'product-card') {
+      const targetProductId = state.scrollRestore.productId;
+      const timer = setTimeout(() => {
+        const productElement = document.getElementById(`product-${targetProductId}`);
+        if (productElement) {
+          productElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          productElement.classList.add('ring-2', 'ring-green-500', 'ring-offset-2', 'transition-all');
+          setTimeout(() => {
+            productElement.classList.remove('ring-2', 'ring-green-500', 'ring-offset-2');
+          }, 2000);
+        } else {
+          // Fallback to coordinates
+          const mainElement = document.querySelector('main');
+          if (state.scrollRestore.preferredTarget === 'main' && mainElement) {
+             mainElement.scrollTop = state.scrollRestore.mainTop;
+          } else {
+             window.scrollTo(0, state.scrollRestore.windowTop);
+          }
+        }
+        lastProductScrolledRef.current = true;
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, searchResults.length]);
 
   // Fetch trending/home content for initial view
   useEffect(() => {

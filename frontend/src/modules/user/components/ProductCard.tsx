@@ -157,6 +157,7 @@ export default function ProductCard({
           scrollRestore: {
             source: 'product-card',
             pageKey,
+            productId: (product as any).id || product._id,
             mainTop: mainElement instanceof HTMLElement ? mainElement.scrollTop : 0,
             windowTop: window.scrollY || window.pageYOffset || 0,
             preferredTarget:
@@ -249,6 +250,7 @@ export default function ProductCard({
 
   return (
     <motion.div
+      id={`product-${(product as any).id || product._id}`}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -2 }}

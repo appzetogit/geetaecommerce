@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import ProductCard from "./components/ProductCard";
 
@@ -15,6 +15,7 @@ export default function CategoryPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { location: userLocation } = useLocationContext();
+  const location = useLocation();
 
   const [category, setCategory] = useState<ApiCategory | null>(null);
   const [subcategories, setSubcategories] = useState<ApiCategory[]>([]);
@@ -139,15 +140,39 @@ export default function CategoryPage() {
     }
   }, [id, selectedSubcategory, category?._id, userLocation, currentPage]);
 
-  // Scroll to last product on back
+  // Scroll to last product on back or when coming from "View All"
   const lastProductScrolledRef = useRef(false);
   useEffect(() => {
-    if (!loading && products.length > 0 && !lastProductScrolledRef.current) {
-      const state = window.history.state?.usr;
-      if (state?.scrollRestore?.source === 'product-card') {
-        // Find the product element and scroll to it
-        // We might need to wait for the DOM to be ready
-        setTimeout(() => {
+    if (loading || products.length === 0 || lastProductScrolledRef.current) return;
+
+    const state = window.history.state?.usr;
+    const scrollToProductId = location.state?.scrollToProduct || 
+                             (state?.scrollRestore?.source === 'product-card' ? 
+                              state?.scrollRestore?.productId : null);
+
+    if (scrollToProductId) {
+      const timer = setTimeout(() => {
+        const productElement = document.getElementById(`product-${scrollToProductId}`);
+        if (productElement) {
+          productElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Add a temporary highlight effect
+          productElement.classList.add('ring-2', 'ring-green-500', 'ring-offset-2', 'transition-all');
+          setTimeout(() => {
+            productElement.classList.remove('ring-2', 'ring-green-500', 'ring-offset-2');
+          }, 2000);
+
+          lastProductScrolledRef.current = true;
+          
+          // Clear the state so it doesn't scroll again on re-render
+          if (location.state?.scrollToProduct) {
+            navigate(location.pathname + location.search, { 
+              replace: true, 
+              state: { ...location.state, scrollToProduct: undefined } 
+            });
+          }
+        } else if (state?.scrollRestore) {
+          // Fallback to coordinate-based scroll if element not found
           const mainElement = document.querySelector('main');
           if (state.scrollRestore.preferredTarget === 'main' && mainElement) {
              mainElement.scrollTop = state.scrollRestore.mainTop;
@@ -155,10 +180,11 @@ export default function CategoryPage() {
              window.scrollTo(0, state.scrollRestore.windowTop);
           }
           lastProductScrolledRef.current = true;
-        }, 100);
-      }
+        }
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [loading, products.length]);
+  }, [loading, products.length, location.state, navigate, location.pathname, location.search]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);

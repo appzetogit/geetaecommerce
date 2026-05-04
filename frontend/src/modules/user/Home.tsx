@@ -279,6 +279,38 @@ export default function Home() {
 
     let attempts = 0;
     const restore = () => {
+      const state = window.history.state?.usr;
+      const targetProductId = state?.scrollRestore?.productId;
+
+      if (targetProductId) {
+        const productElement = document.getElementById(`product-${targetProductId}`);
+        if (productElement) {
+          productElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Add highlight effect
+          productElement.classList.add('ring-2', 'ring-green-500', 'ring-offset-2', 'transition-all');
+          setTimeout(() => {
+            productElement.classList.remove('ring-2', 'ring-green-500', 'ring-offset-2');
+          }, 2000);
+
+          // Cleanup restore state
+          const currentHistoryState = window.history.state || {};
+          const existingUserState = currentHistoryState.usr || {};
+          if (existingUserState.scrollRestore) {
+            window.history.replaceState(
+              {
+                ...currentHistoryState,
+                usr: { ...existingUserState, scrollRestore: undefined },
+              },
+              '',
+              window.location.href
+            );
+          }
+          restoreTimeoutRef.current = null;
+          return;
+        }
+      }
+
       const mainElement = document.querySelector("main");
       if (mainElement instanceof HTMLElement) {
         const maxMainTop = Math.max(0, mainElement.scrollHeight - mainElement.clientHeight);

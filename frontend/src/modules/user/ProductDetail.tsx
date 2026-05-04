@@ -1231,7 +1231,7 @@ export default function ProductDetail() {
                   <button
                     onClick={() => {
                       const targetId = product?.subcategory?._id || product?.subcategory?.id || category?.id;
-                      navigate(`/category/${targetId}`);
+                      navigate(`/category/${targetId}`, { state: { scrollToProduct: product._id || product.id } });
                     }}
                     className="text-sm font-semibold text-green-600 hover:text-green-700 transition-colors"
                   >
