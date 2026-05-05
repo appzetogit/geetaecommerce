@@ -11,9 +11,15 @@ import Order from "../../../models/Order";
  * Get all customers with credit info
  */
 export const getCreditCustomers = asyncHandler(async (req: Request, res: Response) => {
-    const { search } = req.query;
+    const { search, hasDue, hasAdvance } = req.query;
 
     const query: any = {};
+
+    if (hasDue === "true") {
+        query.creditBalance = { $gt: 0 };
+    } else if (hasAdvance === "true") {
+        query.creditBalance = { $lt: 0 };
+    }
 
     // Filter by sellerId to separate Admin and Seller customers
     if (req.user && req.user.userType === "Seller") {

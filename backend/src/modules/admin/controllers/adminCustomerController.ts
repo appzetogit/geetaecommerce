@@ -13,12 +13,20 @@ export const getAllCustomers = asyncHandler(
       limit = 10,
       status,
       search,
+      hasDue,
+      hasAdvance,
       sortBy = "registrationDate",
       sortOrder = "desc",
     } = req.query;
 
     const query: any = {};
     if (status) query.status = status;
+
+    if (hasDue === "true") {
+      query.creditBalance = { $gt: 0 };
+    } else if (hasAdvance === "true") {
+      query.creditBalance = { $lt: 0 };
+    }
 
     // Filter by sellerId to separate Admin and Seller customers
     if (req.user && req.user.userType === "Seller") {

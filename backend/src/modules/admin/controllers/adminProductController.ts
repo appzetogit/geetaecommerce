@@ -1052,12 +1052,49 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
     seller,
     status,
     publish,
+    redundant,
   } = req.query;
 
   const query: any = {};
 
+  // Redundant filter (products with same name or barcode within same seller)
+  if (redundant) {
+    let duplicateIds: any[] = [];
+
+    // 1. Find duplicate names per seller
+    if (redundant === "true" || redundant === "name") {
+      const duplicateNames = await Product.aggregate([
+        { $group: { _id: { seller: "$seller", name: "$productName" }, count: { $sum: 1 }, ids: { $push: "$_id" } } },
+        { $match: { count: { $gt: 1 } } },
+      ]);
+      duplicateIds = [...duplicateIds, ...duplicateNames.flatMap((d) => d.ids)];
+    }
+
+    // 2. Find duplicate barcodes per seller
+    if (redundant === "true" || redundant === "barcode") {
+      const duplicateBarcodes = await Product.aggregate([
+        { $unwind: "$barcode" },
+        { $group: { _id: { seller: "$seller", barcode: "$barcode" }, count: { $sum: 1 }, ids: { $push: "$_id" } } },
+        { $match: { count: { $gt: 1 } } },
+      ]);
+      duplicateIds = [...duplicateIds, ...duplicateBarcodes.flatMap((d) => d.ids)];
+    }
+
+    // 3. Find duplicate SKUs per seller
+    if (redundant === "true" || redundant === "sku") {
+      const duplicateSKUs = await Product.aggregate([
+        { $match: { sku: { $ne: null, $ne: "" } } },
+        { $group: { _id: { seller: "$seller", sku: "$sku" }, count: { $sum: 1 }, ids: { $push: "$_id" } } },
+        { $match: { count: { $gt: 1 } } },
+      ]);
+      duplicateIds = [...duplicateIds, ...duplicateSKUs.flatMap((d) => d.ids)];
+    }
+
+    query._id = { $in: [...new Set(duplicateIds)] };
+  }
+
   if (search) {
-    query.$or = [
+    const searchFilter = [
       { productName: { $regex: search as string, $options: "i" } },
       { sku: { $regex: search as string, $options: "i" } },
       { barcode: { $regex: search as string, $options: "i" } },
@@ -1065,6 +1102,16 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
       { rackNumber: { $regex: search as string, $options: "i" } },
       { hsnCode: { $regex: search as string, $options: "i" } },
     ];
+
+    if (query._id) {
+       query.$and = [
+         { _id: query._id },
+         { $or: searchFilter }
+       ];
+       delete query._id;
+    } else {
+      query.$or = searchFilter;
+    }
   }
   if (category) query.category = category;
   if (subcategory) query.subcategory = subcategory;

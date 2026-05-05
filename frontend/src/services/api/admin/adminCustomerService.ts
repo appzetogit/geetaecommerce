@@ -33,6 +33,8 @@ export interface GetCustomersParams {
   limit?: number;
   status?: "Active" | "Inactive";
   search?: string;
+  hasDue?: boolean;
+  hasAdvance?: boolean;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }

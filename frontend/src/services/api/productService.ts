@@ -149,6 +149,7 @@ export interface GetProductsParams {
   category?: string;
   status?: "published" | "unpublished" | "popular" | "dealOfDay";
   stock?: "inStock" | "outOfStock";
+  redundant?: boolean;
   page?: number;
   limit?: number;
   sortBy?: string;

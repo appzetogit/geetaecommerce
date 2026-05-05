@@ -9,6 +9,8 @@ const SellerPOSCustomers = () => {
     const { showToast } = useToast();
     const [customers, setCustomers] = useState<CreditCustomer[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showDueOnly, setShowDueOnly] = useState(false);
+    const [showAdvanceOnly, setShowAdvanceOnly] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // Add Customer Modal State
@@ -31,12 +33,12 @@ const SellerPOSCustomers = () => {
             loadCustomers();
         }, 500);
         return () => clearTimeout(timeoutId);
-    }, [searchQuery]);
+    }, [searchQuery, showDueOnly, showAdvanceOnly]);
 
     const loadCustomers = async () => {
         setLoading(true);
         try {
-            const data = await getCreditCustomers(searchQuery);
+            const data = await getCreditCustomers(searchQuery, showDueOnly, showAdvanceOnly);
             setCustomers(data.data || []);
         } catch (error) {
             console.error("Failed to load customers", error);
@@ -96,14 +98,50 @@ const SellerPOSCustomers = () => {
                         <h1 className="text-xl font-bold">Customers</h1>
                     </div>
 
-                    <button
-                        onClick={() => setShowAddModal(true)}
-                        className="p-2 bg-[#f187b5] text-white rounded-full shadow-lg hover:bg-[#e076a5] active:scale-95 transition-all"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                        </svg>
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                setShowDueOnly(!showDueOnly);
+                                if (!showDueOnly) setShowAdvanceOnly(false);
+                            }}
+                            className={`px-3 py-2 rounded-lg transition-all border flex items-center gap-2 text-sm font-semibold ${
+                                showDueOnly 
+                                ? "bg-red-50 border-red-200 text-red-600 shadow-sm" 
+                                : "bg-gray-100 border-transparent text-gray-600 hover:bg-gray-200"
+                            }`}
+                            title={showDueOnly ? "Showing Due Only" : "Show All Customers"}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Due Only</span>
+                        </button>
+                        <button
+                            onClick={() => {
+                                setShowAdvanceOnly(!showAdvanceOnly);
+                                if (!showAdvanceOnly) setShowDueOnly(false);
+                            }}
+                            className={`px-3 py-2 rounded-lg transition-all border flex items-center gap-2 text-sm font-semibold ${
+                                showAdvanceOnly 
+                                ? "bg-green-50 border-green-200 text-green-600 shadow-sm" 
+                                : "bg-gray-100 border-transparent text-gray-600 hover:bg-gray-200"
+                            }`}
+                            title={showAdvanceOnly ? "Showing Advance Only" : "Show All Customers"}
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span>Advance Only</span>
+                        </button>
+                        <button
+                            onClick={() => setShowAddModal(true)}
+                            className="p-2 bg-[#f187b5] text-white rounded-full shadow-lg hover:bg-[#e076a5] active:scale-95 transition-all"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div className="px-4 pb-4">

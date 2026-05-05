@@ -27,10 +27,10 @@ export interface CustomerCreditHistory {
 }
 
 // APIs
-export const getCreditCustomers = async (search?: string) => {
+export const getCreditCustomers = async (search?: string, hasDue?: boolean, hasAdvance?: boolean) => {
     try {
         const response = await api.get(`${BASE_PATH}/customers`, {
-            params: { search }
+            params: { search, hasDue, hasAdvance }
         });
         return response.data;
     } catch (error) {

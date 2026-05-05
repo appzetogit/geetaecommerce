@@ -6,7 +6,23 @@ import mongoose from 'mongoose';
 export const getAllSuppliers = async (req: Request, res: Response): Promise<void> => {
     try {
         const sellerId = (req as any).user?._id;
-        const suppliers = await SupplierLedger.find({ sellerId, isAdmin: false }).sort({ name: 1 });
+        const { search, hasDue, hasAdvance } = req.query;
+        const query: any = { sellerId, isAdmin: false };
+
+        if (hasDue === 'true') {
+            query.currentBalance = { $gt: 0 };
+        } else if (hasAdvance === 'true') {
+            query.currentBalance = { $lt: 0 };
+        }
+
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { phone: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const suppliers = await SupplierLedger.find(query).sort({ name: 1 });
         res.status(200).json({ success: true, data: suppliers });
     } catch (error: any) {
         res.status(500).json({ success: false, message: error.message });

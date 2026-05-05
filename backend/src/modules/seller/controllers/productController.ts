@@ -239,6 +239,7 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
     category,
     status,
     stock,
+    redundant,
     page = "1",
     limit = "10",
     sortBy = "createdAt",
@@ -248,9 +249,49 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
   // Build query
   const query: any = { seller: sellerId };
 
+  // Redundant filter (products with same name or barcode for this seller)
+  if (redundant) {
+    const mongoose = require("mongoose");
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+    let duplicateIds: any[] = [];
+
+    // 1. Find duplicate names
+    if (redundant === "true" || redundant === "name") {
+      const duplicateNames = await Product.aggregate([
+        { $match: { seller: sellerObjectId } },
+        { $group: { _id: "$productName", count: { $sum: 1 }, ids: { $push: "$_id" } } },
+        { $match: { count: { $gt: 1 } } },
+      ]);
+      duplicateIds = [...duplicateIds, ...duplicateNames.flatMap((d) => d.ids)];
+    }
+
+    // 2. Find duplicate barcodes
+    if (redundant === "true" || redundant === "barcode") {
+      const duplicateBarcodes = await Product.aggregate([
+        { $match: { seller: sellerObjectId } },
+        { $unwind: "$barcode" },
+        { $group: { _id: "$barcode", count: { $sum: 1 }, ids: { $push: "$_id" } } },
+        { $match: { count: { $gt: 1 } } },
+      ]);
+      duplicateIds = [...duplicateIds, ...duplicateBarcodes.flatMap((d) => d.ids)];
+    }
+
+    // 3. Find duplicate SKUs
+    if (redundant === "true" || redundant === "sku") {
+      const duplicateSKUs = await Product.aggregate([
+        { $match: { seller: sellerObjectId, sku: { $ne: null, $ne: "" } } },
+        { $group: { _id: "$sku", count: { $sum: 1 }, ids: { $push: "$_id" } } },
+        { $match: { count: { $gt: 1 } } },
+      ]);
+      duplicateIds = [...duplicateIds, ...duplicateSKUs.flatMap((d) => d.ids)];
+    }
+
+    query._id = { $in: [...new Set(duplicateIds.map(id => id.toString()))].map(id => new mongoose.Types.ObjectId(id)) };
+  }
+
   // Search filter
   if (search) {
-    query.$or = [
+    const searchFilter = [
       { productName: { $regex: search, $options: "i" } },
       { smallDescription: { $regex: search, $options: "i" } },
       { tags: { $in: [new RegExp(search as string, "i")] } },
@@ -261,6 +302,17 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
       { "variations.sku": { $regex: search, $options: "i" } },
       { "variations.barcode": { $regex: search, $options: "i" } },
     ];
+
+    if (query.$or) {
+      // If redundant filter already added $or, we need to wrap it
+      query.$and = [
+        { $or: query.$or },
+        { $or: searchFilter }
+      ];
+      delete query.$or;
+    } else {
+      query.$or = searchFilter;
+    }
   }
 
   // Category filter

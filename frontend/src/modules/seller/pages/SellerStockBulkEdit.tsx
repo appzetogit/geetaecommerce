@@ -146,6 +146,8 @@ export default function SellerStockBulkEdit({
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [productNameSearch, setProductNameSearch] = useState("");
+  const [redundantFilter, setRedundantFilter] = useState<string | null>(null);
+  const [showRedundantDropdown, setShowRedundantDropdown] = useState(false);
   const [activePricingModalIndex, setActivePricingModalIndex] = useState<number | null>(null); // For modal
 
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
@@ -284,6 +286,7 @@ export default function SellerStockBulkEdit({
     try {
       const res = await getProducts({
         ...(debouncedSearchTerm ? { search: debouncedSearchTerm } : {}),
+        ...(redundantFilter ? { redundant: redundantFilter } : {}),
         page: nextPage,
         limit: nextLimit,
       } as any);
@@ -387,7 +390,7 @@ export default function SellerStockBulkEdit({
   useEffect(() => {
     void fetchPage(page, pageLimit);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageLimit, debouncedSearchTerm]);
+  }, [page, pageLimit, debouncedSearchTerm, redundantFilter]);
 
   const createEmptyProduct = (): EditableProduct => ({
     id: `new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -1643,7 +1646,69 @@ export default function SellerStockBulkEdit({
               >
                 + Add Row
               </button>
-              <div className="relative flex-1 min-w-[160px]">
+              <div className="relative">
+                <button
+                  onClick={() => setShowRedundantDropdown(!showRedundantDropdown)}
+                  className={`px-3 py-1.5 text-sm rounded transition-colors flex items-center gap-2 font-medium shadow-sm border-2 ${
+                    redundantFilter 
+                      ? "bg-[#f187b5] text-white border-white" 
+                      : "bg-white text-[#f187b5] border-transparent hover:bg-pink-50"
+                  }`}
+                  title="Filter products by redundancy criteria"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                  {redundantFilter ? `Redundant: ${redundantFilter}` : "Redundant"}
+                  <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+
+                {showRedundantDropdown && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowRedundantDropdown(false)}
+                    />
+                    <div className="absolute top-full left-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-neutral-200 z-50 py-1">
+                      {[
+                        { label: 'All Duplicates', value: 'true' },
+                        { label: 'Duplicate Name', value: 'name' },
+                        { label: 'Duplicate Barcode', value: 'barcode' },
+                        { label: 'Duplicate SKU', value: 'sku' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => {
+                            setRedundantFilter(redundantFilter === opt.value ? null : opt.value);
+                            setPage(1);
+                            setShowRedundantDropdown(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-pink-50 transition-colors ${
+                            redundantFilter === opt.value ? "text-[#f187b5] font-bold" : "text-neutral-700"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                      {redundantFilter && (
+                        <button
+                          onClick={() => {
+                            setRedundantFilter(null);
+                            setPage(1);
+                            setShowRedundantDropdown(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 border-t border-neutral-100 mt-1"
+                        >
+                          Clear Filter
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="relative flex-grow min-w-[160px]">
                 <input
                   type="text"
                   placeholder="Search products..."

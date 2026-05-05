@@ -162,6 +162,7 @@ export default function AdminStockManagement() {
   const [filterSeller, setFilterSeller] = useState("All Sellers");
   const [filterStatus, setFilterStatus] = useState("All Products");
   const [filterStock, setFilterStock] = useState("All Products");
+  const [filterRedundant, setFilterRedundant] = useState("None");
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [selectedProductDetails, setSelectedProductDetails] = useState<ProductVariation | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -207,7 +208,7 @@ export default function AdminStockManagement() {
   const fetchData = async (opts?: { force?: boolean; silent?: boolean }) => {
     const force = Boolean(opts?.force);
     const silent = Boolean(opts?.silent);
-    const cacheKey = `${token || ""}|${debouncedSearchTerm}|${filterCategory}|${filterSeller}|${filterStatus}|${currentPage}|${rowsPerPage}`;
+    const cacheKey = `${token || ""}|${debouncedSearchTerm}|${filterCategory}|${filterSeller}|${filterStatus}|${currentPage}|${rowsPerPage}|${filterRedundant}`;
     const cached = productsCache.get(cacheKey);
     if (
       !force &&
@@ -259,6 +260,10 @@ export default function AdminStockManagement() {
 
       if (filterSeller !== "All Sellers") {
         params.seller = filterSeller;
+      }
+
+      if (filterRedundant !== "None") {
+        params.redundant = filterRedundant === "All Redundant" ? "true" : filterRedundant.toLowerCase();
       }
 
       const response = await getProducts({
@@ -330,7 +335,7 @@ export default function AdminStockManagement() {
       fetchStaticData();
     }
 
-    const fetchKey = `${token}|${debouncedSearchTerm}|${filterCategory}|${filterSeller}|${filterStatus}|${currentPage}|${rowsPerPage}|${location.key}`;
+    const fetchKey = `${token || ""}|${debouncedSearchTerm}|${filterCategory}|${filterSeller}|${filterStatus}|${currentPage}|${rowsPerPage}|${filterRedundant}|${location.key}`;
     if (lastFetchKeyRef.current === fetchKey) return;
     lastFetchKeyRef.current = fetchKey;
 
@@ -348,7 +353,8 @@ export default function AdminStockManagement() {
       prevQuery?.search === nextQuery.search &&
       prevQuery?.category === nextQuery.category &&
       prevQuery?.seller === nextQuery.seller &&
-      prevQuery?.status === nextQuery.status
+      prevQuery?.status === nextQuery.status &&
+      (prevQuery as any)?.redundant === filterRedundant
     );
 
     // Keep scroll position stable: don't swap table with "Loading..." on page changes.
@@ -362,6 +368,7 @@ export default function AdminStockManagement() {
     filterStatus,
     currentPage,
     rowsPerPage,
+    filterRedundant,
     location.key,
   ]);
 
@@ -374,7 +381,7 @@ export default function AdminStockManagement() {
 
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [isAuthenticated, token, debouncedSearchTerm, filterCategory, filterSeller, filterStatus, currentPage, rowsPerPage]);
+  }, [isAuthenticated, token, debouncedSearchTerm, filterCategory, filterSeller, filterStatus, currentPage, rowsPerPage, filterRedundant]);
 
   // Handle Barcode Scan
   const onScanSuccess = (decodedText: string) => {
@@ -1353,7 +1360,7 @@ export default function AdminStockManagement() {
           {/* Filters and Controls */}
           <div className="p-4 border-b border-neutral-200">
             {/* Filters Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
               <div>
                 <label className="block text-xs font-medium text-neutral-700 mb-1">
                   Filter By Category
@@ -1425,6 +1432,24 @@ export default function AdminStockManagement() {
                       {stock}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-700 mb-1">
+                  Redundancy Filter
+                </label>
+                <select
+                  value={filterRedundant}
+                  onChange={(e) => {
+                    setFilterRedundant(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                  <option value="None">None</option>
+                  <option value="All Redundant">All Redundant</option>
+                  <option value="Name">Duplicate Name</option>
+                  <option value="Barcode">Duplicate Barcode</option>
+                  <option value="SKU">Duplicate SKU</option>
                 </select>
               </div>
             </div>

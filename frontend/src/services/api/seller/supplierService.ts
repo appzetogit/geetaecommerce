@@ -34,10 +34,10 @@ export interface SupplierDetailResponse {
 }
 
 // APIs
-export const getAllSuppliers = async (search?: string) => {
+export const getAllSuppliers = async (search?: string, hasDue?: boolean, hasAdvance?: boolean) => {
     try {
         const response = await api.get(BASE_PATH, {
-            params: { search }
+            params: { search, hasDue, hasAdvance }
         });
         return response.data;
     } catch (error) {
