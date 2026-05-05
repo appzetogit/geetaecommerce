@@ -15,6 +15,7 @@ import {
 } from "../../../services/api/admin/adminProductService";
 import { getAttributes } from "../../../services/api/admin/attributeService";
 import AttributeDropdown from "../../../components/AttributeDropdown";
+import SearchableSelect from "../../../components/SearchableSelect";
 import VariationEditor from "../../../components/VariationEditor";
 import VariationDropdown from "../../../components/VariationDropdown";
 
@@ -1412,10 +1413,12 @@ export default function AdminStockBulkEdit({
       case "category":
         return (
           <td key={key} className="p-0 border-r border-neutral-200">
-            <select className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#f187b5] focus:bg-white text-sm cursor-pointer" value={product.categoryId} onChange={(e) => handleFieldChange(originalIndex, "categoryId", e.target.value)}>
-              <option value="">Category</option>
-              {categories.map((cat) => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
-            </select>
+            <SearchableSelect
+              options={categories.map(cat => ({ value: cat._id, label: cat.name || "Unnamed Category" }))}
+              value={product.categoryId}
+              onChange={(val) => handleFieldChange(originalIndex, "categoryId", val)}
+              placeholder="Category"
+            />
           </td>
         );
       case "attributes":
@@ -1442,59 +1445,21 @@ export default function AdminStockBulkEdit({
       case "subCategory":
         return (
           <td key={key} className="p-0 border-r border-neutral-200">
-            <select className="w-full h-full px-2 py-2 bg-transparent border-none text-sm cursor-pointer" value={product.subCategoryId || ""} onChange={(e) => handleFieldChange(originalIndex, 'subCategoryId', e.target.value)}>
-              <option value="">-</option>
-              {subCategories.filter(sc => { 
-                const subCatProperty = sc.category; 
-                const sCatId = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any)._id : (subCatProperty || "")).trim().toLowerCase();
-                const sCatName = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any).name || (subCatProperty as any).categoryName : (subCatProperty || "")).trim().toLowerCase();
-                
-                const tRef = String(product.categoryId || "").trim().toLowerCase();
-                if (!tRef) return true;
-                
-                // 1. Direct match with ID or Name
-                if (sCatId === tRef || sCatName === tRef || String(sc.category || "").toLowerCase().trim() === tRef) return true;
-
-                // 2. Cross-resolve through master categories list
-                const targetCat = categories.find(c => 
-                  String(c._id).toLowerCase().trim() === tRef || 
-                  String(c.name || (c as any).categoryName || "").trim().toLowerCase() === tRef
-                );
-
-                if (targetCat) {
-                  const tId = String(targetCat._id).toLowerCase().trim();
-                  const tName = String(targetCat.name || (targetCat as any).categoryName || "").trim().toLowerCase();
-                  if (sCatId === tId || sCatName === tName) return true;
-                }
-
-                // 3. Match via product's category name if tRef is an ID
-                if (targetCat && (sCatId === tRef || sCatName === tRef)) return true;
-
-                // 4. Last resort: Resolve subcategory's category and check name match
-                if (/^[0-9a-fA-F]{24}$/.test(sCatId)) {
-                  const subParentCat = categories.find(c => String(c._id).toLowerCase().trim() === sCatId);
-                  if (subParentCat) {
-                      const spName = String(subParentCat.name || (subParentCat as any).categoryName || "").trim().toLowerCase();
-                      const spId = String(subParentCat._id).toLowerCase().trim();
-                      if (spName === tRef || spId === tRef) return true;
-                  }
-                }
-
-                return false;
-              }).map(sub => (
-                <option key={sub._id} value={sub._id}>
-                  {String((sub as any).name || (sub as any).subcategoryName || (sub as any).name || "-")}
-                </option>
-              ))}
-              {/* Fallback for current value if not matching filter */}
-              {product.subCategoryId && !subCategories.some(s => s._id === product.subCategoryId && (
-                  !product.categoryId || String(typeof s.category === 'object' ? (s.category as any)?._id : s.category) === String(product.categoryId) || String(s.category).toLowerCase().trim() === String(product.categoryId).toLowerCase().trim()
-              )) && (
-                  <option value={product.subCategoryId}>
-                    {subCategories.find(s => s._id === product.subCategoryId)?.name || (subCategories.find(s => s._id === product.subCategoryId) as any)?.subcategoryName || "Current"}
-                  </option>
-              )}
-            </select>
+             <SearchableSelect
+              options={subCategories
+                .filter(sc => {
+                    const tRef = String(product.categoryId || "").trim().toLowerCase();
+                    if (!tRef) return true;
+                    const subCatProperty = sc.category;
+                    const sCatId = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any)._id : (subCatProperty || "")).trim().toLowerCase();
+                    return sCatId === tRef;
+                })
+                .map(sub => ({ value: sub._id, label: sub.subcategoryName || "Unnamed Subcategory" }))
+              }
+              value={product.subCategoryId || ""}
+              onChange={(val) => handleFieldChange(originalIndex, 'subCategoryId', val)}
+              placeholder="-"
+            />
           </td>
         );
       case "subSubCategory":
@@ -1595,10 +1560,12 @@ export default function AdminStockBulkEdit({
       case "brand":
         return (
           <td key={key} className="p-0 border-r border-neutral-200">
-            <select className="w-full h-full px-2 py-2 bg-transparent border-none text-sm cursor-pointer" value={product.brandId || ""} onChange={(e) => handleFieldChange(originalIndex, 'brandId', e.target.value)}>
-              <option value="">-Select Brand-</option>
-              {brands.map(brand => <option key={brand._id} value={brand._id}>{brand.name}</option>)}
-            </select>
+            <SearchableSelect
+              options={brands.map(brand => ({ value: brand._id, label: brand.name || "Unnamed Brand" }))}
+              value={product.brandId || ""}
+              onChange={(val) => handleFieldChange(originalIndex, 'brandId', val)}
+              placeholder="-Select Brand-"
+            />
           </td>
         );
       case "valMrp":

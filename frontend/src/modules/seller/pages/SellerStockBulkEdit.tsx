@@ -12,6 +12,7 @@ import { getBrands, Brand } from "../../../services/api/brandService";
 import { getAllSubcategories, Category, SubCategory, ApiResponse } from "../../../services/api/categoryService";
 import { getAttributes } from "../../../services/api/seller/sellerAttributeService";
 import AttributeDropdown from "../../../components/AttributeDropdown";
+import SearchableSelect from "../../../components/SearchableSelect";
 import VariationEditor from "../../../components/VariationEditor";
 import VariationDropdown from "../../../components/VariationDropdown";
 
@@ -1415,10 +1416,12 @@ export default function SellerStockBulkEdit({
           case "category":
         return (
           <td key={key} className="p-0 border-r border-neutral-200">
-            <select className="w-full h-full px-3 py-2 bg-transparent border-none focus:ring-2 focus:ring-[#f187b5] focus:bg-white text-sm cursor-pointer" value={product.categoryId} onChange={(e) => handleFieldChange(originalIndex, "categoryId", e.target.value)}>
-              <option value="">Category</option>
-              {categories.map((cat) => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
-            </select>
+            <SearchableSelect
+              options={categories.map(cat => ({ value: cat._id, label: cat.name || "Unnamed Category" }))}
+              value={product.categoryId}
+              onChange={(val) => handleFieldChange(originalIndex, "categoryId", val)}
+              placeholder="Category"
+            />
           </td>
         );
       case "attributes":
@@ -1445,19 +1448,15 @@ export default function SellerStockBulkEdit({
       case "subCategory":
         return (
           <td key={key} className="p-0 border-r border-neutral-200">
-            <select className="w-full h-full px-2 py-2 bg-transparent border-none text-sm cursor-pointer" value={product.subCategoryId || ""} onChange={(e) => handleFieldChange(originalIndex, 'subCategoryId', e.target.value)}>
-              <option value="">-</option>
-              {subCategories.filter(sub => {
-                   // Corrected filtering logic based on subcategory structure from API
-                   // API returns SubCategory[], which has no 'category' field usually if it's flat list?
-                   // No, categoryService.ts SubCategory interface has 'categoryName'. It doesn't have parentId or categoryId explicitly?
-                   // Wait, getSubcategories: SubCategory[]
-                   // Let's check SubCategory interface again in categoryService.ts:
-                   // interface SubCategory { ... parentId?: string; ... }
-                   // So we filter by parentId === product.categoryId.
-                   return !product.categoryId || sub.parentId === product.categoryId;
-               }).map(sub => <option key={sub._id} value={sub._id}>{sub.subcategoryName}</option>)}
-            </select>
+             <SearchableSelect
+              options={subCategories
+                .filter(sub => !product.categoryId || sub.parentId === product.categoryId)
+                .map(sub => ({ value: sub._id, label: sub.subcategoryName || "Unnamed Subcategory" }))
+              }
+              value={product.subCategoryId || ""}
+              onChange={(val) => handleFieldChange(originalIndex, 'subCategoryId', val)}
+              placeholder="-"
+            />
           </td>
         );
       case "subSubCategory":
@@ -1558,10 +1557,12 @@ export default function SellerStockBulkEdit({
       case "brand":
         return (
           <td key={key} className="p-0 border-r border-neutral-200">
-            <select className="w-full h-full px-2 py-2 bg-transparent border-none text-sm cursor-pointer" value={product.brandId || ""} onChange={(e) => handleFieldChange(originalIndex, 'brandId', e.target.value)}>
-              <option value="">-Select Brand-</option>
-              {brands.map(brand => <option key={brand._id} value={brand._id}>{brand.name}</option>)}
-            </select>
+            <SearchableSelect
+              options={brands.map(brand => ({ value: brand._id, label: brand.name || "Unnamed Brand" }))}
+              value={product.brandId || ""}
+              onChange={(val) => handleFieldChange(originalIndex, 'brandId', val)}
+              placeholder="-Select Brand-"
+            />
           </td>
         );
       case "valMrp":
