@@ -1158,9 +1158,9 @@ const AdminPOSOrders = () => {
                 aspectRatio: 1.0,
                 disableFlip: false,
                 qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                    // Larger scanning area for better usability
-                    const width = Math.floor(Math.min(viewfinderWidth * 0.95, 600));
-                    const height = Math.floor(width * 0.5); 
+                    // Optimized for 1D barcodes: wider and shorter
+                    const width = Math.floor(Math.min(viewfinderWidth * 0.85, 450));
+                    const height = Math.floor(width * 0.4); 
                     return { width, height };
                 },
                 videoConstraints: {
@@ -6236,7 +6236,7 @@ const AdminPOSOrders = () => {
                     </button>
                 </div>
                 <div className="p-4 bg-black">
-                     <div id="reader" className="w-full h-[380px] sm:h-[420px] md:h-[480px] bg-black rounded-xl overflow-hidden shadow-inner"></div>
+                     <div id="reader" className="w-full h-[260px] sm:h-[320px] md:h-[360px] bg-black rounded-xl overflow-hidden shadow-inner"></div>
                      
                      {/* Scanner Controls: Zoom and Torch */}
                      <div className="mt-4 space-y-4">
