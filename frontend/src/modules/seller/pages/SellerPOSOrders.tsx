@@ -5528,12 +5528,12 @@ const SellerPOSOrders = () => {
 
       {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
       <div className="hidden print:block fixed inset-0 bg-white z-[200] p-0 m-0">
-          {/* We use a specific width/style for thermal printing */}
-          <div className="w-[80mm] p-2 font-mono text-sm text-black mx-auto font-semibold">
-              <div className="mb-2 text-left">
-                  <h1 className="text-xl font-bold uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
-                  <p className="text-xs leading-tight whitespace-pre-wrap font-medium">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
-                  <p className="text-xs font-medium">{posBillSettings?.phone || '7898111456'}</p>
+          {/* Increased width and padding to cover more page area */}
+          <div className="w-full max-w-[210mm] p-6 font-mono text-base text-black mx-auto font-semibold">
+              <div className="mb-4 text-left">
+                  <h1 className="text-3xl font-bold uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
+                  <p className="text-sm leading-tight whitespace-pre-wrap font-medium">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
+                  <p className="text-sm font-medium">{posBillSettings?.phone || '7898111456'}</p>
 
                   {/* GST & FSSAI */}
                   {config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text && (
@@ -5559,10 +5559,10 @@ const SellerPOSOrders = () => {
 
               <div className="grid grid-cols-12 gap-1 font-bold mb-1">
                   <div className="col-span-12">Item Name</div>
-                  <div className="col-span-3 text-right text-xs">Qty</div>
-                  <div className="col-span-3 text-right text-xs">MRP</div>
-                  <div className="col-span-3 text-right text-xs">SP</div>
-                  <div className="col-span-3 text-right text-xs">Amt</div>
+                  <div className="col-span-3 text-right text-sm">Qty</div>
+                  <div className="col-span-3 text-right text-sm">MRP</div>
+                  <div className="col-span-3 text-right text-sm">SP</div>
+                  <div className="col-span-3 text-right text-sm">Amt</div>
               </div>
 
               <div className="border-b border-black border-dashed my-2"></div>
