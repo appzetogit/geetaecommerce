@@ -1158,15 +1158,15 @@ const AdminPOSOrders = () => {
                 aspectRatio: 1.0,
                 disableFlip: false,
                 qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                    // Optimized for 1D barcodes: wider and shorter
-                    const width = Math.floor(Math.min(viewfinderWidth * 0.85, 450));
-                    const height = Math.floor(width * 0.4); 
+                    // Larger scanning area for better usability
+                    const width = Math.floor(Math.min(viewfinderWidth * 0.95, 600));
+                    const height = Math.floor(width * 0.5); 
                     return { width, height };
                 },
                 videoConstraints: {
                     facingMode: "environment",
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
                     focusMode: "continuous"
                 },
                 experimentalFeatures: {
@@ -6236,7 +6236,7 @@ const AdminPOSOrders = () => {
                     </button>
                 </div>
                 <div className="p-4 bg-black">
-                     <div id="reader" className="w-full h-[260px] sm:h-[320px] md:h-[360px] bg-black rounded-xl overflow-hidden shadow-inner"></div>
+                     <div id="reader" className="w-full h-[380px] sm:h-[420px] md:h-[480px] bg-black rounded-xl overflow-hidden shadow-inner"></div>
                      
                      {/* Scanner Controls: Zoom and Torch */}
                      <div className="mt-4 space-y-4">
@@ -6274,10 +6274,26 @@ const AdminPOSOrders = () => {
                                     if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
                                         try {
                                             const newTorchState = !isTorchOn;
-                                            await html5QrCodeRef.current.setTorch(newTorchState);
-                                            setIsTorchOn(newTorchState);
+                                            const track = html5QrCodeRef.current.getRunningTrack();
+                                            const capabilities: any = track?.getCapabilities() || {};
+                                            
+                                            if (capabilities.torch) {
+                                                await track!.applyConstraints({
+                                                    advanced: [{ torch: newTorchState, fillLightMode: newTorchState ? 'torch' : 'off' } as any]
+                                                });
+                                                setIsTorchOn(newTorchState);
+                                            } else {
+                                                // Try library method anyway
+                                                try {
+                                                    await html5QrCodeRef.current.setTorch(newTorchState);
+                                                    setIsTorchOn(newTorchState);
+                                                } catch (e) {
+                                                    showToast(`Torch not detected by phone. (Avail: ${JSON.stringify(Object.keys(capabilities))})`, "info");
+                                                }
+                                            }
                                         } catch (e) {
-                                            showToast("Torch not supported on this device", "info");
+                                            console.error("Torch error", e);
+                                            showToast("Hardware busy or torch not supported", "info");
                                         }
                                     }
                                 }}
