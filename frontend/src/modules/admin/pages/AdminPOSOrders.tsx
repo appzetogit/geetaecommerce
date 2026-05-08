@@ -5878,13 +5878,27 @@ const AdminPOSOrders = () => {
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page { margin: 0; size: auto; }
-          body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
-          .receipt-container { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 10px !important; }
+          /* Hide everything in the body by default */
+          body { visibility: hidden; margin: 0 !important; padding: 0 !important; }
+          /* Only show the receipt container and its children */
+          .receipt-container { 
+            visibility: visible !important; 
+            position: absolute !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            width: 100% !important; 
+            margin: 0 !important; 
+            padding: 10px !important;
+            background: white !important;
+          }
+          .receipt-container * { visibility: visible !important; }
+          /* Explicitly hide common dashboard elements just in case */
+          nav, aside, header, .no-print { display: none !important; }
         }
       ` }} />
 
       {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[200] p-0 m-0">
+      <div className="hidden print:block absolute top-0 left-0 w-full bg-white z-[200] p-0 m-0">
           <div className="receipt-container font-mono text-xl text-black font-black">
               <div className="mb-6 text-left border-b-4 border-black pb-4">
                   <h1 className="text-6xl font-black uppercase tracking-tighter">{posBillSettings?.shopName || 'GEETA'}</h1>
