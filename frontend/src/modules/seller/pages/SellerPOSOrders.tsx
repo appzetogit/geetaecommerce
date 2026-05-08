@@ -5530,27 +5530,38 @@ const SellerPOSOrders = () => {
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page { margin: 0; size: auto; }
-          /* Hide everything in the body by default */
-          body { visibility: hidden; margin: 0 !important; padding: 0 !important; }
-          /* Only show the receipt container and its children */
-          .receipt-container { 
-            visibility: visible !important; 
+          html, body { height: auto !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; }
+          
+          /* Hide the main app visually but keep it in DOM so the bill (child) can show */
+          body { visibility: hidden !important; }
+          
+          /* Collapse the height of the main root to prevent blank pages */
+          #root { height: 0 !important; overflow: visible !important; display: block !important; }
+          
+          /* Force the receipt container to be visible and at the top */
+          .receipt-container-wrapper { 
+            visibility: visible !important;
+            display: block !important; 
             position: absolute !important; 
-            left: 0 !important; 
             top: 0 !important; 
+            left: 0 !important; 
+            width: 100% !important; 
+            background: white !important;
+            z-index: 99999 !important;
+          }
+          
+          .receipt-container-wrapper * { visibility: visible !important; }
+          
+          .receipt-container { 
             width: 100% !important; 
             margin: 0 !important; 
             padding: 10px !important;
-            background: white !important;
           }
-          .receipt-container * { visibility: visible !important; }
-          /* Explicitly hide common dashboard elements just in case */
-          nav, aside, header, .no-print { display: none !important; }
         }
       ` }} />
 
       {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
-      <div className="hidden print:block absolute top-0 left-0 w-full bg-white z-[200] p-0 m-0">
+      <div className="hidden print:block receipt-container-wrapper bg-white p-0 m-0">
           <div className="receipt-container font-mono text-xl text-black font-black">
               <div className="mb-6 text-left border-b-4 border-black pb-4">
                   <h1 className="text-6xl font-black uppercase tracking-tighter">{posBillSettings?.shopName || 'GEETA'}</h1>
