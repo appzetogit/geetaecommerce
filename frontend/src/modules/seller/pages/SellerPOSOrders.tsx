@@ -635,6 +635,8 @@ const SellerPOSOrders = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scanTarget, setScanTarget] = useState<'inventory' | 'quick-add' | 'purchase' | 'purchase-barcode'>('inventory');
   const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [isTorchOn, setIsTorchOn] = useState(false);
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const addToCartRef = useRef<any>(null);
@@ -869,7 +871,13 @@ const SellerPOSOrders = () => {
                 }
               }
 
-             if (!match) match = productsFound[0];
+             if (!match) {
+                 setQuickForm(prev => ({ ...prev, barcode: decodedText }));
+                 setShowQuickAdd(true);
+                 setShowScanner(false);
+                 showToast("Product not found. Opening Quick Add.", "info");
+                 return;
+             }
 
              if (scanTarget === 'purchase') {
                  if (variationMatch) {
@@ -949,7 +957,11 @@ const SellerPOSOrders = () => {
              // Close scanner after successful add
              setShowScanner(false);
           } else {
-             showToast(`Product not found: ${decodedText}`, "error");
+             // showToast(`Product not found: ${decodedText}`, "error");
+             setQuickForm(prev => ({ ...prev, barcode: decodedText }));
+             setShowQuickAdd(true);
+             setShowScanner(false);
+             showToast("Product not found. Opening Quick Add.", "info");
           }
       } catch (e) {
          console.error("Scan Error", e);
@@ -1118,12 +1130,15 @@ const SellerPOSOrders = () => {
                 aspectRatio: 1.0,
                 disableFlip: false,
                 qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                    const width = Math.floor(Math.min(viewfinderWidth * 0.85, 400));
-                    const height = Math.floor(Math.max(160, Math.min(viewfinderHeight * 0.5, width * 0.6)));
+                    // Optimized for 1D barcodes: wider and shorter
+                    const width = Math.floor(Math.min(viewfinderWidth * 0.85, 450));
+                    const height = Math.floor(width * 0.4); 
                     return { width, height };
                 },
                 videoConstraints: {
                     facingMode: "environment",
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
                     focusMode: "continuous"
                 },
                 experimentalFeatures: {
@@ -1137,6 +1152,10 @@ const SellerPOSOrders = () => {
                 onScanSuccess,
                 () => {} // Ignore errors per frame
             );
+
+            // Set initial zoom and torch state after start
+            setZoomLevel(1);
+            setIsTorchOn(false);
         } catch (err) {
             console.error("Scanner Start Error:", err);
             showToast("Failed to start camera. Please check permissions and ensure you are on HTTPS.", "error");
@@ -1420,6 +1439,7 @@ const SellerPOSOrders = () => {
     }
 
     // If not found in current products (maybe due to debounce or filter), fetch immediately
+    setLoading(true);
     try {
       const res = await getProducts({
         search: trimmed,
@@ -1431,14 +1451,23 @@ const SellerPOSOrders = () => {
       if (res.success && res.data && res.data.length > 0) {
         const expanded = expandSellerCatalogProductsForPOS(res.data);
 
-        exactMatch = findMatch(expanded);
-        if (exactMatch) {
-          if (addToCartRef.current) addToCartRef.current(exactMatch as CartItem);
+        const apiMatch = findMatch(expanded);
+        if (apiMatch) {
+          if (addToCartRef.current) addToCartRef.current(apiMatch as CartItem);
           setSearchQuery('');
+          return;
         }
       }
+
+      // If still no exact match found after API check, open Quick Add
+      setQuickForm(prev => ({ ...prev, barcode: trimmed }));
+      setShowQuickAdd(true);
+      showToast("Product not found. Opening Quick Add.", "info");
     } catch (err) {
       console.error("Direct barcode search failed", err);
+      showToast("Error searching for product", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -5858,7 +5887,59 @@ const SellerPOSOrders = () => {
                 </div>
                 <div className="p-4 bg-black">
                      <div id="reader" className="w-full h-[260px] sm:h-[320px] md:h-[360px] bg-black rounded-xl overflow-hidden shadow-inner"></div>
-                     <p className="text-center text-white/60 text-[11px] font-medium mt-4 tracking-wide uppercase">Point camera at a barcode to scan</p>
+                     
+                     {/* Scanner Controls: Zoom and Torch */}
+                     <div className="mt-4 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"></path></svg>
+                            <input 
+                                type="range" 
+                                min="1" 
+                                max="5" 
+                                step="0.1" 
+                                value={zoomLevel}
+                                onChange={async (e) => {
+                                    const zoom = parseFloat(e.target.value);
+                                    setZoomLevel(zoom);
+                                    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+                                        try {
+                                            const track = html5QrCodeRef.current.getRunningTrack();
+                                            if (track && track.getCapabilities().zoom) {
+                                                await track.applyConstraints({ advanced: [{ zoom: zoom } as any] });
+                                            }
+                                        } catch (e) {
+                                            console.warn("Zoom not supported", e);
+                                        }
+                                    }
+                                }}
+                                className="flex-1 h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#f187b5]"
+                            />
+                            <span className="text-white/80 text-[10px] font-bold min-w-[24px]">{zoomLevel}x</span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                            <p className="text-white/60 text-[11px] font-medium tracking-wide uppercase">Point camera at a barcode to scan</p>
+                            <button
+                                onClick={async () => {
+                                    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+                                        try {
+                                            const newTorchState = !isTorchOn;
+                                            await html5QrCodeRef.current.setTorch(newTorchState);
+                                            setIsTorchOn(newTorchState);
+                                        } catch (e) {
+                                            showToast("Torch not supported on this device", "info");
+                                        }
+                                    }
+                                }}
+                                className={`p-2 rounded-xl transition-all ${isTorchOn ? 'bg-[#f187b5] text-white shadow-lg shadow-[#f187b5]/40' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}
+                                title="Toggle Flash"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                     </div>
                 </div>
                 {/* Removed Restart Scanner footer for compact look */}
             </div>
