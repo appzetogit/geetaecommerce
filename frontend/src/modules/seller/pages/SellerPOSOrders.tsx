@@ -5526,14 +5526,22 @@ const SellerPOSOrders = () => {
         </div>
       )}
 
+      {/* Inject print-specific styles to remove browser margins and force width */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page { margin: 0; size: auto; }
+          body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+          .receipt-container { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 10px !important; }
+        }
+      ` }} />
+
       {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
       <div className="hidden print:block fixed inset-0 bg-white z-[200] p-0 m-0">
-          {/* Increased width and padding to cover more page area */}
-          <div className="w-full max-w-[210mm] p-6 font-mono text-base text-black mx-auto font-semibold">
-              <div className="mb-4 text-left">
-                  <h1 className="text-3xl font-bold uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
-                  <p className="text-sm leading-tight whitespace-pre-wrap font-medium">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
-                  <p className="text-sm font-medium">{posBillSettings?.phone || '7898111456'}</p>
+          <div className="receipt-container font-mono text-xl text-black font-black">
+              <div className="mb-6 text-left border-b-4 border-black pb-4">
+                  <h1 className="text-6xl font-black uppercase tracking-tighter">{posBillSettings?.shopName || 'GEETA'}</h1>
+                  <p className="text-xl leading-tight whitespace-pre-wrap font-black">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
+                  <p className="text-xl font-black">{posBillSettings?.phone || '7898111456'}</p>
 
                   {/* GST & FSSAI */}
                   {config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text && (
@@ -5559,10 +5567,10 @@ const SellerPOSOrders = () => {
 
               <div className="grid grid-cols-12 gap-1 font-bold mb-1">
                   <div className="col-span-12">Item Name</div>
-                  <div className="col-span-3 text-right text-sm">Qty</div>
-                  <div className="col-span-3 text-right text-sm">MRP</div>
-                  <div className="col-span-3 text-right text-sm">SP</div>
-                  <div className="col-span-3 text-right text-sm">Amt</div>
+                  <div className="col-span-3 text-right text-xl">Qty</div>
+                  <div className="col-span-3 text-right text-xl">MRP</div>
+                  <div className="col-span-3 text-right text-xl">SP</div>
+                  <div className="col-span-3 text-right text-xl">Amt</div>
               </div>
 
               <div className="border-b border-black border-dashed my-2"></div>
@@ -5622,11 +5630,11 @@ const SellerPOSOrders = () => {
                   );
               })()}
 
-              <div className="flex justify-between font-bold text-lg">
+              <div className="flex justify-between font-black text-4xl mt-4 border-t-4 border-black pt-4">
                   <span>Total Payable Amount</span>
                   <span>{lastBillDetails?.total.toFixed(2)}</span>
               </div>
-               <div className="flex justify-between mt-1 font-bold">
+               <div className="flex justify-between mt-2 font-black text-3xl">
                   <span>Cash Paid</span>
                   <span>{lastBillDetails?.total.toFixed(2)}</span>
               </div>
