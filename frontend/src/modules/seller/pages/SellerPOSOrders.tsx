@@ -1130,9 +1130,9 @@ const SellerPOSOrders = () => {
                 aspectRatio: 1.0,
                 disableFlip: false,
                 qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                    // Optimized for 1D barcodes: wider and shorter
-                    const width = Math.floor(Math.min(viewfinderWidth * 0.85, 450));
-                    const height = Math.floor(width * 0.4); 
+                    // Larger scanning window for easier alignment
+                    const width = Math.floor(Math.min(viewfinderWidth * 0.9, 600));
+                    const height = Math.floor(width * 0.5); 
                     return { width, height };
                 },
                 videoConstraints: {
