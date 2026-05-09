@@ -2778,12 +2778,12 @@ const AdminPOSOrders = () => {
     const timeStr = lastBillDetails?.time || new Date().toLocaleTimeString();
 
     // --- Header ---
-    doc.setFontSize(16);
+    doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
     doc.text(billPdf?.shopName || "GEETA", 14, 20);
 
     doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "bold");
     let address = billPdf?.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
 
     if (billPdf?.gst?.enabled && billPdf?.gst?.text) {
@@ -2814,7 +2814,7 @@ const AdminPOSOrders = () => {
     doc.text(lastBillDetails?.isQuotation ? "Quotation Date:" : "Invoice Date:", 14, currentY + 5);
     doc.text("Status:", 14, currentY + 10);
 
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "bold");
     doc.text(invoiceNum, 196, currentY, { align: 'right' });
     doc.text(`${dateStr} ${timeStr}`, 196, currentY + 5, { align: 'right' });
     doc.text(lastBillDetails?.isQuotation ? 'QUOTATION' : (lastBillDetails?.isPaid ? 'PAID' : 'PENDING'), 196, currentY + 10, { align: 'right' });
@@ -2838,7 +2838,7 @@ const AdminPOSOrders = () => {
     y += 4;
 
     // --- Table Body ---
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "bold");
     let totalQty = 0;
     let totalMRP = 0;
     let totalBillAmount = 0;
@@ -2890,7 +2890,7 @@ const AdminPOSOrders = () => {
     y += 6;
 
     // --- Summary ---
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "bold");
     doc.text(`Total Qty.: ${totalQty}`, 14, y);
     doc.text(`Total MRP: Rs ${totalMRP}`, 196, y, { align: 'right' });
     y += 4;
@@ -5800,14 +5800,19 @@ const AdminPOSOrders = () => {
             margin: 0 !important; 
             padding: 15px !important;
             box-sizing: border-box;
+            font-weight: 600 !important;
+          }
+          .receipt-container b, .receipt-container strong, .receipt-container .font-bold, .receipt-container .font-semibold, .receipt-container .font-black {
+            font-weight: 900 !important;
+            -webkit-text-stroke: 0.2px black;
           }
 
           .receipt-line {
-            border-bottom: 2px solid black !important;
+            border-bottom: 2.5px solid black !important;
             margin: 8px 0 !important;
           }
           .receipt-line-thick {
-            border-bottom: 3px solid black !important;
+            border-bottom: 4px solid black !important;
             margin: 10px 0 !important;
           }
         }
@@ -5815,38 +5820,38 @@ const AdminPOSOrders = () => {
 
       {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
       <div className="hidden print:block receipt-container-wrapper bg-white p-0 m-0">
-          <div className="receipt-container text-black" style={{ fontFamily: "'Times New Roman', serif" }}>
+          <div className="receipt-container text-black font-medium" style={{ fontFamily: "'Times New Roman', serif" }}>
               {/* Header */}
               <div className="text-left">
-                  <h1 className="text-2xl font-bold uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
-                  <p className="text-sm leading-tight whitespace-pre-wrap">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
-                  <p className="text-sm font-bold">{posBillSettings?.phone || '7898111456'}</p>
+                  <h1 className="text-3xl font-black uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
+                  <p className="text-base leading-tight whitespace-pre-wrap font-bold">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
+                  <p className="text-base font-black">{posBillSettings?.phone || '7898111456'}</p>
               </div>
 
               <div className="receipt-line-thick"></div>
 
               {/* Invoice Metadata */}
-              <div className="space-y-0.5 text-sm">
+              <div className="space-y-1 text-base">
                   <div className="flex justify-between">
-                      <span className="font-semibold">Invoice Number:</span>
-                      <span>{lastBillDetails?.invoiceNum}</span>
+                      <span className="font-bold">Invoice Number:</span>
+                      <span className="font-bold">{lastBillDetails?.invoiceNum}</span>
                   </div>
                   <div className="flex justify-between">
-                      <span className="font-semibold">Invoice Date:</span>
-                      <span>{lastBillDetails?.date} {lastBillDetails?.time}</span>
+                      <span className="font-bold">Invoice Date:</span>
+                      <span className="font-bold">{lastBillDetails?.date} {lastBillDetails?.time}</span>
                   </div>
                   <div className="flex justify-between">
-                      <span className="font-semibold">Payment Status:</span>
-                      <span>{lastBillDetails?.paymentMethod || 'Cash'}</span>
+                      <span className="font-bold">Payment Status:</span>
+                      <span className="font-bold">{lastBillDetails?.paymentMethod || 'Cash'}</span>
                   </div>
               </div>
 
               <div className="receipt-line-thick"></div>
 
-              <div className="text-center font-bold text-sm mb-1">Estimated Bill</div>
+              <div className="text-center font-black text-base mb-1">Estimated Bill</div>
 
               {/* Items Table Headers */}
-              <div className="grid grid-cols-12 gap-1 font-bold text-sm border-b border-black pb-1">
+              <div className="grid grid-cols-12 gap-1 font-black text-base border-b-2 border-black pb-1">
                   <div className="col-span-5">Item-name</div>
                   <div className="col-span-2 text-center">Qty</div>
                   <div className="col-span-2 text-right">MRP</div>
@@ -5861,12 +5866,12 @@ const AdminPOSOrders = () => {
                       const mrp = Number(item.compareAtPrice || 0);
                       const total = sp * item.qty;
                       return (
-                       <div key={idx} className="grid grid-cols-12 gap-1 text-[13px] leading-tight">
-                           <div className="col-span-5 font-medium">({idx + 1}) {item.productName}</div>
-                           <div className="col-span-2 text-center">{item.qty}</div>
-                           <div className="col-span-2 text-right">{mrp > 0 ? mrp.toFixed(0) : '-'}</div>
-                           <div className="col-span-1 text-right">{sp.toFixed(0)}</div>
-                           <div className="col-span-2 text-right font-semibold">{total.toFixed(0)}</div>
+                       <div key={idx} className="grid grid-cols-12 gap-1 text-[15px] leading-tight font-bold">
+                           <div className="col-span-5 font-bold">({idx + 1}) {item.productName}</div>
+                           <div className="col-span-2 text-center font-bold">{item.qty}</div>
+                           <div className="col-span-2 text-right font-bold">{mrp > 0 ? mrp.toFixed(0) : '-'}</div>
+                           <div className="col-span-1 text-right font-bold">{sp.toFixed(0)}</div>
+                           <div className="col-span-2 text-right font-black">{total.toFixed(0)}</div>
                            
                            {/* Warranty / Extra info if exists */}
                            {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
@@ -5896,18 +5901,18 @@ const AdminPOSOrders = () => {
                   const sPercent = tMRP > 0 ? ((tSavings / tMRP) * 100).toFixed(0) : "0";
 
                   return (
-                      <div className="text-sm">
+                      <div className="text-base">
                           <div className="flex justify-between mb-1">
-                              <span>Total Qty.: {tQty}</span>
-                              <span className="font-semibold">Total MRP: Rs {tMRP.toFixed(0)}</span>
+                              <span className="font-bold">Total Qty.: {tQty}</span>
+                              <span className="font-black">Total MRP: Rs {tMRP.toFixed(0)}</span>
                           </div>
                           
                           {tSavings > 0 && (
-                              <div className="flex justify-between bg-gray-300 px-1 py-1 my-1" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                                  <span className="font-medium">You Saved {sPercent} %</span>
-                                  <span className="font-bold">{tSavings.toFixed(0)}</span>
-                              </div>
-                          )}
+                               <div className="flex justify-between bg-gray-200 px-1 py-2 my-2 border-2 border-black" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                   <span className="font-black text-[18px] uppercase tracking-tighter">YOU SAVED {sPercent}%</span>
+                                   <span className="font-black text-[18px]">{tSavings.toFixed(0)}</span>
+                               </div>
+                           )}
                       </div>
                   );
               })()}
@@ -5915,14 +5920,14 @@ const AdminPOSOrders = () => {
               <div className="receipt-line-thick"></div>
 
               {/* Grand Total */}
-              <div className="flex justify-between font-bold text-lg py-1">
+              <div className="flex justify-between font-black text-xl py-1 border-y border-black mt-1">
                   <span>Total bill amount:</span>
                   <span>{lastBillDetails?.total.toFixed(0)}</span>
               </div>
 
               {/* Footer / Notes */}
               <div className="text-center mt-6 space-y-2">
-                  <p className="text-xs font-bold">।। आपका विश्वास हमारी ताकत ।।</p>
+                  <p className="text-sm font-bold">।। आपका विश्वास हमारी ताकत ।।</p>
                   
                   {((posBillSettings?.notes?.enabled && posBillSettings?.notes?.text) || (config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text)) && (
                       <p className="text-[10px] whitespace-pre-wrap">{posBillSettings?.notes?.enabled ? posBillSettings?.notes?.text : config?.invoiceSettings?.notes?.text}</p>
