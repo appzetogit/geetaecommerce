@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { getAppSettings, updateAppSettings } from "../../../services/api/admin/adminSettingsService";
 
 type FirstOrderOfferConfig = {
   enabled: boolean;
@@ -8,32 +9,6 @@ type FirstOrderOfferConfig = {
   minOrderAmount: number;
   ctaText: string;
   updatedAt?: string;
-};
-
-const STORAGE_KEY = "first_order_offer_v1";
-
-const migrateToEnglishIfHindiDefaults = (cfg: Partial<FirstOrderOfferConfig>) => {
-  const title = (cfg.title ?? "").trim();
-  const subtitle = (cfg.subtitle ?? "").trim();
-  const ctaText = (cfg.ctaText ?? "").trim();
-
-  const migrated: Partial<FirstOrderOfferConfig> = { ...cfg };
-  let changed = false;
-
-  if (title === "पहले ऑर्डर पर") {
-    migrated.title = "On your first order";
-    changed = true;
-  }
-  if (subtitle === "की छूट") {
-    migrated.subtitle = "OFF";
-    changed = true;
-  }
-  if (ctaText === "लूट लो") {
-    migrated.ctaText = "Claim";
-    changed = true;
-  }
-
-  return { migrated, changed };
 };
 
 const defaultConfig: FirstOrderOfferConfig = {
@@ -47,37 +22,29 @@ const defaultConfig: FirstOrderOfferConfig = {
 
 export default function AdminFirstOrderOffer() {
   const [config, setConfig] = useState<FirstOrderOfferConfig>(defaultConfig);
+  const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(true);
 
-  const notifyOfferChanged = () => {
-    window.dispatchEvent(new CustomEvent("first_order_offer_changed"));
-  };
-
-
-  const loadSavedConfig = () => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
+  const fetchConfig = async () => {
     try {
-      const parsed = JSON.parse(raw) as Partial<FirstOrderOfferConfig>;
-      const { migrated, changed } = migrateToEnglishIfHindiDefaults(parsed);
-      const next = { ...defaultConfig, ...migrated };
-      if (changed) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      setLoading(true);
+      const res = await getAppSettings();
+      if (res.success && res.data.firstOrderOffer) {
+        setConfig(res.data.firstOrderOffer);
+      } else {
+        setConfig(defaultConfig);
       }
-      return next;
-    } catch (e) {
-      console.error("Failed to parse first order offer config", e);
-      return null;
+    } catch (err) {
+      console.error("Failed to fetch first order offer config", err);
+      setError("Failed to load configuration from server.");
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const next = loadSavedConfig();
-    if (!next) return;
-    setConfig(next);
-    setIsEditing(false);
+    fetchConfig();
   }, []);
 
   const previewText = useMemo(() => {
@@ -89,8 +56,8 @@ export default function AdminFirstOrderOffer() {
     };
   }, [config.discountAmount, config.subtitle, config.title]);
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSuccess(null);
     setError(null);
 
@@ -105,46 +72,52 @@ export default function AdminFirstOrderOffer() {
       return;
     }
 
-    const payload: FirstOrderOfferConfig = {
-      ...config,
-      discountAmount,
-      minOrderAmount,
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      const res = await updateAppSettings({
+        firstOrderOffer: {
+          ...config,
+          discountAmount,
+          minOrderAmount,
+          updatedAt: new Date().toISOString(),
+        }
+      });
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    setSuccess("First Order Offer saved successfully.");
-    setIsEditing(false);
-    notifyOfferChanged();
+      if (res.success) {
+        setSuccess("First Order Offer saved successfully.");
+        if (res.data.firstOrderOffer) {
+          setConfig(res.data.firstOrderOffer);
+        }
+      } else {
+        setError(res.message || "Failed to save configuration.");
+      }
+    } catch (err) {
+      console.error("Failed to save first order offer config", err);
+      setError("An error occurred while saving.");
+    }
   };
 
-  const handleEdit = () => {
-    setSuccess(null);
-    setError(null);
-    setIsEditing(true);
-    const next = loadSavedConfig();
-    if (next) setConfig(next);
+  const handleDelete = async () => {
+    if (!window.confirm("Disable First Order Offer?")) return;
+    try {
+      const res = await updateAppSettings({
+        firstOrderOffer: {
+          ...config,
+          enabled: false,
+          updatedAt: new Date().toISOString(),
+        }
+      });
+      if (res.success) {
+        setConfig(prev => ({ ...prev, enabled: false }));
+        setSuccess("First Order Offer disabled.");
+      }
+    } catch (err) {
+      setError("Failed to disable offer.");
+    }
   };
 
-  const handleDelete = () => {
-    if (!window.confirm("Delete First Order Offer?")) return;
-    localStorage.removeItem(STORAGE_KEY);
-    setConfig(defaultConfig);
-    setIsEditing(true);
-    setSuccess("First Order Offer deleted.");
-    setError(null);
-    notifyOfferChanged();
-  };
-
-  const handleReset = () => {
-    if (!window.confirm("Reset First Order Offer to default?")) return;
-    localStorage.removeItem(STORAGE_KEY);
-    setConfig(defaultConfig);
-    setIsEditing(true);
-    setSuccess("Reset done.");
-    setError(null);
-    notifyOfferChanged();
-  };
+  if (loading) {
+    return <div className="p-10 text-center">Loading settings...</div>;
+  }
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -177,64 +150,33 @@ export default function AdminFirstOrderOffer() {
       <div className="flex-1 px-3 pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 flex flex-col">
-            <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center justify-between gap-3 mb-6">
               <h2 className="text-lg font-semibold text-neutral-800">Offer Settings</h2>
-              <div className="flex items-center gap-2">
-                {isEditing ? (
-                  <>
-                    <button
-                      type="submit"
-                      form="first-order-offer-form"
-                      className="px-4 py-2 rounded text-white bg-[#f187b5] hover:bg-[#e076a5] transition-colors"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleReset}
-                      className="px-4 py-2 rounded border border-neutral-300 text-neutral-700 hover:bg-neutral-50 transition-colors"
-                    >
-                      Reset
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleEdit}
-                      className="px-4 py-2 rounded text-white bg-[#f187b5] hover:bg-[#e076a5] transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      className="px-4 py-2 rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-4 py-2 rounded border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium"
+              >
+                Disable Offer
+              </button>
             </div>
 
             <form
-              key={isEditing ? "edit" : "view"}
               id="first-order-offer-form"
               onSubmit={handleSave}
-              className="space-y-4 flex-1 overflow-y-auto"
+              className="space-y-4 flex-1"
             >
-              <label className="flex items-center gap-3">
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors">
                 <input
                   type="checkbox"
                   checked={config.enabled}
                   onChange={(e) => setConfig((prev) => ({ ...prev, enabled: e.target.checked }))}
-                  className="h-4 w-4 accent-[#f187b5]"
+                  className="h-5 w-5 accent-[#f187b5] rounded"
                 />
-                <span className="text-sm font-medium text-neutral-700">Enable offer</span>
+                <span className="text-sm font-semibold text-neutral-700">Enable First Order Offer</span>
               </label>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
                     Discount Amount (₹) <span className="text-red-500">*</span>
@@ -245,7 +187,7 @@ export default function AdminFirstOrderOffer() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, discountAmount: Number(e.target.value) }))
                     }
-                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                    className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none transition-all"
                     min={0}
                     step="1"
                     required
@@ -262,7 +204,7 @@ export default function AdminFirstOrderOffer() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, minOrderAmount: Number(e.target.value) }))
                     }
-                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                    className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none transition-all"
                     min={0}
                     step="1"
                   />
@@ -270,21 +212,21 @@ export default function AdminFirstOrderOffer() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">Title</label>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Banner Title</label>
                 <input
                   value={config.title}
                   onChange={(e) => setConfig((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none transition-all"
                   placeholder="e.g., On your first order"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">Subtitle</label>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Banner Subtitle</label>
                 <input
                   value={config.subtitle}
                   onChange={(e) => setConfig((prev) => ({ ...prev, subtitle: e.target.value }))}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none transition-all"
                   placeholder="e.g., OFF"
                 />
               </div>
@@ -294,9 +236,18 @@ export default function AdminFirstOrderOffer() {
                 <input
                   value={config.ctaText}
                   onChange={(e) => setConfig((prev) => ({ ...prev, ctaText: e.target.value }))}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none transition-all"
                   placeholder="e.g., Claim"
                 />
+              </div>
+
+              <div className="pt-4 mt-6 border-t border-gray-100">
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-lg text-white font-bold bg-[#f187b5] hover:bg-[#e076a5] shadow-lg shadow-pink-100 transition-all active:scale-[0.98]"
+                >
+                  Save All Changes
+                </button>
               </div>
             </form>
           </div>
@@ -333,7 +284,7 @@ export default function AdminFirstOrderOffer() {
                 </div>
               </div>
               <div className="text-xs text-neutral-500 mt-3">
-                Note: This is frontend-only and saved in this browser (LocalStorage).
+                Note: These settings are now persistent in the database and visible to all users.
               </div>
             </div>
           </div>

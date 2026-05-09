@@ -110,6 +110,7 @@ export const verifySmsOtp = asyncHandler(async (req: Request, res: Response) => 
         walletAmount: customer.walletAmount,
         refCode: customer.refCode,
         status: customer.status,
+        totalOrders: customer.totalOrders || 0,
       },
     },
   });
@@ -178,6 +179,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         walletAmount: customer.walletAmount,
         refCode: customer.refCode,
         status: customer.status,
+        totalOrders: customer.totalOrders || 0,
       },
     },
   });

@@ -1,150 +1,84 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAppContext } from "../../../../context/AppContext";
+import { useAuth } from "../../../../context/AuthContext";
 
-type FirstOrderOfferConfig = {
-  enabled?: boolean;
-  title?: string;
-  subtitle?: string;
-  discountAmount?: number;
-  minOrderAmount?: number;
-  ctaText?: string;
-};
+const SEEN_STORAGE_KEY = "first_order_offer_user_seen_v2";
 
-const OFFER_STORAGE_KEY = "first_order_offer_v1";
-const SEEN_STORAGE_KEY = "first_order_offer_user_seen_v1";
-
-type SeenState =
-  | { kind: "wildcard" }
-  | { kind: "offer"; offerUpdatedAt: string | null; seenAt: string };
-
-const parseSeenState = (raw: string | null): SeenState | null => {
-  if (!raw) return null;
-  if (raw === "1") return { kind: "wildcard" }; // legacy: hide always
-  try {
-    const parsed = JSON.parse(raw) as Partial<SeenState>;
-    if (parsed && (parsed as any).kind === "offer") {
-      const offerUpdatedAt = (parsed as any).offerUpdatedAt ?? null;
-      const seenAt = (parsed as any).seenAt;
-      if (typeof seenAt === "string") {
-        return { kind: "offer", offerUpdatedAt: typeof offerUpdatedAt === "string" ? offerUpdatedAt : null, seenAt };
-      }
-    }
-    return { kind: "wildcard" };
-  } catch {
-    return { kind: "wildcard" };
-  }
-};
-
-const migrateToEnglishIfHindiDefaults = (cfg: FirstOrderOfferConfig) => {
-  const title = (cfg.title ?? "").trim();
-  const subtitle = (cfg.subtitle ?? "").trim();
-  const ctaText = (cfg.ctaText ?? "").trim();
-
-  const migrated: FirstOrderOfferConfig = { ...cfg };
-  let changed = false;
-
-  if (title === "पहले ऑर्डर पर") {
-    migrated.title = "On your first order";
-    changed = true;
-  }
-  if (subtitle === "की छूट") {
-    migrated.subtitle = "OFF";
-    changed = true;
-  }
-  if (ctaText === "लूट लो") {
-    migrated.ctaText = "Claim";
-    changed = true;
-  }
-
-  return { migrated, changed };
+type SeenState = {
+  offerUpdatedAt: string | null;
+  seenAt: string;
 };
 
 export default function FirstOrderOfferBanner() {
-  const [config, setConfig] = useState<FirstOrderOfferConfig | null>(null);
+  const { config } = useAppContext();
+  const { user, isAuthenticated } = useAuth();
   const [isVisible, setIsVisible] = useState(false);
 
-  const loadOffer = () => {
-    const seenState = parseSeenState(localStorage.getItem(SEEN_STORAGE_KEY));
-    if (seenState?.kind === "wildcard") {
-      setIsVisible(false);
-      setConfig(null);
-      return;
-    }
-
-    const raw = localStorage.getItem(OFFER_STORAGE_KEY);
-    if (!raw) {
-      setIsVisible(false);
-      setConfig(null);
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(raw) as FirstOrderOfferConfig;
-      if (!parsed?.enabled) {
-        setIsVisible(false);
-        setConfig(null);
-        return;
-      }
-      const { migrated, changed } = migrateToEnglishIfHindiDefaults(parsed);
-      if (changed) {
-        localStorage.setItem(OFFER_STORAGE_KEY, JSON.stringify(migrated));
-      }
-
-      const offerUpdatedAt = typeof migrated?.updatedAt === "string" ? migrated.updatedAt : null;
-      if (seenState?.kind === "offer" && seenState.offerUpdatedAt === offerUpdatedAt) {
-        setIsVisible(false);
-        setConfig(null);
-        return;
-      }
-
-      setConfig(migrated);
-      setIsVisible(true);
-    } catch (e) {
-      console.error("Failed to parse first order offer config", e);
-      setIsVisible(false);
-      setConfig(null);
-    }
-  };
+  const offer = config?.firstOrderOffer;
 
   useEffect(() => {
-    loadOffer();
+    // 1. Basic checks: is the offer enabled?
+    if (!offer || !offer.enabled) {
+      setIsVisible(false);
+      return;
+    }
 
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== OFFER_STORAGE_KEY && e.key !== SEEN_STORAGE_KEY) return;
-      loadOffer();
-    };
-    const onOfferChanged = () => loadOffer();
+    // 2. Strict check: Is this a first-time user?
+    // If logged in, we check the order count.
+    // If not logged in, we assume they are a potential first-time user.
+    if (isAuthenticated && user && Number(user.totalOrders || 0) > 0) {
+      setIsVisible(false);
+      return;
+    }
 
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("first_order_offer_changed", onOfferChanged as EventListener);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("first_order_offer_changed", onOfferChanged as EventListener);
-    };
-  }, []);
+    // 3. Persistence check: Has the user already seen/dismissed this version?
+    const rawSeen = localStorage.getItem(SEEN_STORAGE_KEY);
+    const offerUpdatedAt = offer.updatedAt ? String(offer.updatedAt) : null;
+
+    if (rawSeen) {
+      try {
+        const seenState: SeenState = JSON.parse(rawSeen);
+        if (seenState.offerUpdatedAt === offerUpdatedAt) {
+          setIsVisible(false);
+          return;
+        }
+      } catch (e) {
+        console.error("Failed to parse seen state", e);
+      }
+    }
+
+    setIsVisible(true);
+  }, [offer, user, isAuthenticated]);
 
   const view = useMemo(() => {
-    const discountAmount = Number(config?.discountAmount ?? 0);
-    const title = (config?.title || "On your first order").trim();
-    const subtitle = (config?.subtitle || "OFF").trim();
-    const ctaText = (config?.ctaText || "Claim").trim();
-    const minOrderAmount = Number(config?.minOrderAmount ?? 0);
-    return { discountAmount, title, subtitle, ctaText, minOrderAmount };
-  }, [config]);
+    return {
+      discountAmount: Number(offer?.discountAmount ?? 0),
+      title: (offer?.title || "On your first order").trim(),
+      subtitle: (offer?.subtitle || "OFF").trim(),
+      ctaText: (offer?.ctaText || "Claim").trim(),
+      minOrderAmount: Number(offer?.minOrderAmount ?? 0),
+    };
+  }, [offer]);
 
-  if (!isVisible || !config) return null;
+  if (!isVisible || !offer) return null;
 
-  const handleClose = () => {
-    const offerUpdatedAt = typeof config?.updatedAt === "string" ? config.updatedAt : null;
-    const seenPayload: SeenState = { kind: "offer", offerUpdatedAt, seenAt: new Date().toISOString() };
+  const markAsSeen = () => {
+    const offerUpdatedAt = offer.updatedAt ? String(offer.updatedAt) : null;
+    const seenPayload: SeenState = { 
+      offerUpdatedAt, 
+      seenAt: new Date().toISOString() 
+    };
     localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(seenPayload));
     setIsVisible(false);
+  };
+
+  const handleClose = () => {
+    markAsSeen();
   };
 
   const handleCta = () => {
-    const offerUpdatedAt = typeof config?.updatedAt === "string" ? config.updatedAt : null;
-    const seenPayload: SeenState = { kind: "offer", offerUpdatedAt, seenAt: new Date().toISOString() };
-    localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(seenPayload));
-    setIsVisible(false);
+    // In a real flow, this might navigate to a specific collection or apply a coupon
+    markAsSeen();
   };
 
   return (

@@ -96,7 +96,7 @@ export default function SellerProductList() {
 
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
-  const [scannerKey, setScannerKey] = useState(0);
+
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
@@ -235,7 +235,7 @@ export default function SellerProductList() {
         }
       }
     };
-  }, [showScanner, scannerKey]);
+  }, [showScanner]);
 
   const handleDelete = async (productId: string) => {
     if (!isEnabled) return;

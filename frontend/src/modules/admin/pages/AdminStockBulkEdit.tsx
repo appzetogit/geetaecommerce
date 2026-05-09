@@ -1454,7 +1454,7 @@ export default function AdminStockBulkEdit({
                     const sCatId = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any)._id : (subCatProperty || "")).trim().toLowerCase();
                     return sCatId === tRef;
                 })
-                .map(sub => ({ value: sub._id, label: sub.subcategoryName || "Unnamed Subcategory" }))
+                .map(sub => ({ value: sub._id || (sub as any).id, label: (sub as any).name || sub.subcategoryName || "Unnamed Subcategory" }))
               }
               value={product.subCategoryId || ""}
               onChange={(val) => handleFieldChange(originalIndex, 'subCategoryId', val)}

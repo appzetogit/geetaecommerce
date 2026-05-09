@@ -357,6 +357,10 @@ export const createOrder = async (req: Request, res: Response) => {
 
         if (session) {
             await newOrder.save({ session });
+            // Increment customer order stats
+            await Customer.findByIdAndUpdate(userId, { 
+                $inc: { totalOrders: 1, totalSpent: newOrder.total } 
+            }, { session });
             await session.commitTransaction();
         } else {
             // Validate before saving to catch errors with details
@@ -366,6 +370,10 @@ export const createOrder = async (req: Request, res: Response) => {
                 throw validationError;
             }
             await newOrder.save();
+            // Increment customer order stats
+            await Customer.findByIdAndUpdate(userId, { 
+                $inc: { totalOrders: 1, totalSpent: newOrder.total } 
+            });
         }
 
 
@@ -986,9 +994,17 @@ export const initiateOnlineOrder = async (req: Request, res: Response) => {
 
         if (session) {
             await newOrder.save({ session });
+            // Increment customer order stats (pre-emptive for online orders)
+            await Customer.findByIdAndUpdate(userId, { 
+                $inc: { totalOrders: 1, totalSpent: newOrder.total } 
+            }, { session });
             await session.commitTransaction();
         } else {
              await newOrder.save();
+             // Increment customer order stats
+             await Customer.findByIdAndUpdate(userId, { 
+                 $inc: { totalOrders: 1, totalSpent: newOrder.total } 
+             });
         }
 
         // --- Initiate Gateway ---

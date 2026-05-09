@@ -39,6 +39,15 @@ export interface PublicConfig {
             enabled: boolean;
         };
     };
+    firstOrderOffer?: {
+        enabled: boolean;
+        title: string;
+        subtitle: string;
+        discountAmount: number;
+        minOrderAmount: number;
+        ctaText: string;
+        updatedAt?: string;
+    };
 }
 
 interface AppContextType {

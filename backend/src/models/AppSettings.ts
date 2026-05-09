@@ -173,6 +173,17 @@ export interface IAppSettings extends Document {
       percentage: number;
   };
 
+  // First Order Offer Settings
+  firstOrderOffer?: {
+    enabled: boolean;
+    title: string;
+    subtitle: string;
+    discountAmount: number;
+    minOrderAmount: number;
+    ctaText: string;
+    updatedAt?: Date;
+  };
+
   // Barcode Settings
     barcodeSettings?: {
         width: number;
@@ -566,6 +577,37 @@ const AppSettingsSchema = new Schema<IAppSettings>(
         default: 0,
         min: [0, "Discount percentage cannot be negative"],
         max: [100, "Discount percentage cannot exceed 100%"]
+      }
+    },
+
+    // First Order Offer Settings
+    firstOrderOffer: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      title: {
+        type: String,
+        default: "On your first order"
+      },
+      subtitle: {
+        type: String,
+        default: "OFF"
+      },
+      discountAmount: {
+        type: Number,
+        default: 0
+      },
+      minOrderAmount: {
+        type: Number,
+        default: 0
+      },
+      ctaText: {
+        type: String,
+        default: "Claim"
+      },
+      updatedAt: {
+        type: Date
       }
     },
 

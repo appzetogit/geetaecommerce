@@ -55,7 +55,8 @@ export const getPublicConfig = asyncHandler(
             terms: { text: "Goods once sold will not be taken back.", enabled: true },
             gst: { text: "", enabled: false },
             fssai: { text: "", enabled: false }
-        }
+        },
+        firstOrderOffer: settings.firstOrderOffer || { enabled: false }
       };
 
       return res.status(200).json({

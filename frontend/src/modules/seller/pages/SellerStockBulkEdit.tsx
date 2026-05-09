@@ -1450,8 +1450,8 @@ export default function SellerStockBulkEdit({
           <td key={key} className="p-0 border-r border-neutral-200">
              <SearchableSelect
               options={subCategories
-                .filter(sub => !product.categoryId || sub.parentId === product.categoryId)
-                .map(sub => ({ value: sub._id, label: sub.subcategoryName || "Unnamed Subcategory" }))
+                .filter(sub => !product.categoryId || sub.parentId === product.categoryId || (sub as any).category === product.categoryId)
+                .map(sub => ({ value: sub._id || (sub as any).id, label: (sub as any).subcategoryName || (sub as any).name || "Unnamed Subcategory" }))
               }
               value={product.subCategoryId || ""}
               onChange={(val) => handleFieldChange(originalIndex, 'subCategoryId', val)}

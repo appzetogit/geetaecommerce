@@ -12,7 +12,8 @@ import { useToast } from '../../../context/ToastContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import { Html5QrcodeSupportedFormats } from "html5-qrcode";
+import QRScannerModal from '../../../components/QRScannerModal';
 import { useAppContext } from '../../../context/AppContext';
 import { appendPOSStaffBill, getStaffSession } from '../../../utils/staffSession';
 import {
@@ -631,12 +632,7 @@ const AdminPOSOrders = () => {
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
   const [scanTarget, setScanTarget] = useState<'inventory' | 'quick-add' | 'purchase' | 'purchase-barcode'>('inventory');
-  const [scannerKey, setScannerKey] = useState(0); // Force re-render of scanner
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [isTorchOn, setIsTorchOn] = useState(false);
   const lastScanRef = useRef({ code: '', time: 0 });
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
-  const addToCartRef = useRef<any>(null);
   const activeBillIdRef = useRef<string>(activeBillId);
 
   useEffect(() => {
@@ -966,8 +962,8 @@ const AdminPOSOrders = () => {
              if (itemToAdd.stock <= 0) {
                  showToast(`Item "${itemToAdd.productName}" is Out of Stock!`, "error");
              } else {
-                 if (addToCartRef.current) {
-                     addToCartRef.current({ ...itemToAdd, qty: 1 } as CartItem);
+                 if (addToCart) {
+                     addToCart({ ...itemToAdd, qty: 1 } as CartItem);
                  }
                  showToast(`Added: ${itemToAdd.productName}`, "success");
              }
@@ -1211,7 +1207,7 @@ const AdminPOSOrders = () => {
         };
         cleanup();
     };
-  }, [showScanner, scannerKey]);
+  }, [showScanner]);
 
   // Search Customers
   useEffect(() => {
@@ -3515,10 +3511,7 @@ const AdminPOSOrders = () => {
       }
   };
 
-  // Sync addToCart ref for scanner
-  useEffect(() => {
-      addToCartRef.current = addToCart;
-  }, [addToCart]);
+
 
   return (
       <div className="bg-gray-50 h-full w-full flex flex-col font-sans overflow-hidden md:min-h-screen md:h-auto md:block md:overflow-visible md:px-4 md:pb-2 md:pt-0">
@@ -5879,9 +5872,15 @@ const AdminPOSOrders = () => {
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page { margin: 0; size: auto; }
-          html, body { height: auto !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; }
+          html, body { 
+            height: auto !important; 
+            overflow: visible !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            font-family: 'Times New Roman', Times, serif !important;
+          }
           
-          /* Hide the main app visually but keep it in DOM so the bill (child) can show */
+          /* Hide the main app visually but keep it in DOM */
           body { visibility: hidden !important; }
           
           /* Collapse the height of the main root to prevent blank pages */
@@ -5904,77 +5903,89 @@ const AdminPOSOrders = () => {
           .receipt-container { 
             width: 100% !important; 
             margin: 0 !important; 
-            padding: 10px !important;
+            padding: 15px !important;
+            box-sizing: border-box;
+          }
+
+          .receipt-line {
+            border-bottom: 2px solid black !important;
+            margin: 8px 0 !important;
+          }
+          .receipt-line-thick {
+            border-bottom: 3px solid black !important;
+            margin: 10px 0 !important;
           }
         }
       ` }} />
 
       {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
       <div className="hidden print:block receipt-container-wrapper bg-white p-0 m-0">
-          <div className="receipt-container font-mono text-xl text-black font-black">
-              <div className="mb-6 text-left border-b-4 border-black pb-4">
-                  <h1 className="text-6xl font-black uppercase tracking-tighter">{posBillSettings?.shopName || 'GEETA'}</h1>
-                  <p className="text-xl leading-tight whitespace-pre-wrap font-black">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
-                  <p className="text-xl font-black">{posBillSettings?.phone || '7898111456'}</p>
-
-                  {/* GST & FSSAI */}
-                  {config?.invoiceSettings?.gst?.enabled && config?.invoiceSettings?.gst?.text && (
-                      <p className="text-xs font-bold mt-1">GST: {config.invoiceSettings.gst.text}</p>
-                  )}
-                  {config?.invoiceSettings?.fssai?.enabled && config?.invoiceSettings?.fssai?.text && (
-                      <p className="text-xs font-bold">FSSAI: {config.invoiceSettings.fssai.text}</p>
-                  )}
+          <div className="receipt-container text-black" style={{ fontFamily: "'Times New Roman', serif" }}>
+              {/* Header */}
+              <div className="text-left">
+                  <h1 className="text-2xl font-bold uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
+                  <p className="text-sm leading-tight whitespace-pre-wrap">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
+                  <p className="text-sm font-bold">{posBillSettings?.phone || '7898111456'}</p>
               </div>
 
-              <div className="border-b border-black my-2"></div>
+              <div className="receipt-line-thick"></div>
 
-              <div className="flex justify-between mb-1">
-                  <span>MEMO</span>
-                  <span>{lastBillDetails?.time}</span>
-              </div>
-              <div className="flex justify-between mb-1">
-                  <span>{lastBillDetails?.date}</span>
-                  <span>Bill No: {lastBillDetails?.invoiceNum}</span>
-              </div>
-
-              <div className="border-b border-black border-dashed my-2"></div>
-
-              <div className="grid grid-cols-12 gap-1 font-bold mb-1">
-                  <div className="col-span-12">Item Name</div>
-                  <div className="col-span-3 text-right text-xl">Qty</div>
-                  <div className="col-span-3 text-right text-xl">MRP</div>
-                  <div className="col-span-3 text-right text-xl">SP</div>
-                  <div className="col-span-3 text-right text-xl">Amt</div>
+              {/* Invoice Metadata */}
+              <div className="space-y-0.5 text-sm">
+                  <div className="flex justify-between">
+                      <span className="font-semibold">Invoice Number:</span>
+                      <span>{lastBillDetails?.invoiceNum}</span>
+                  </div>
+                  <div className="flex justify-between">
+                      <span className="font-semibold">Invoice Date:</span>
+                      <span>{lastBillDetails?.date} {lastBillDetails?.time}</span>
+                  </div>
+                  <div className="flex justify-between">
+                      <span className="font-semibold">Payment Status:</span>
+                      <span>{lastBillDetails?.paymentMethod || 'Cash'}</span>
+                  </div>
               </div>
 
-              <div className="border-b border-black border-dashed my-2"></div>
+              <div className="receipt-line-thick"></div>
 
-              <div className="space-y-1">
+              <div className="text-center font-bold text-sm mb-1">Estimated Bill</div>
+
+              {/* Items Table Headers */}
+              <div className="grid grid-cols-12 gap-1 font-bold text-sm border-b border-black pb-1">
+                  <div className="col-span-5">Item-name</div>
+                  <div className="col-span-2 text-center">Qty</div>
+                  <div className="col-span-2 text-right">MRP</div>
+                  <div className="col-span-1 text-right">Sp</div>
+                  <div className="col-span-2 text-right">Total</div>
+              </div>
+
+              {/* Items List */}
+              <div className="py-2 space-y-2">
                   {(lastBillDetails?.cart || cart).map((item, idx) => {
                       const sp = getEffectivePrice(item);
                       const mrp = Number(item.compareAtPrice || 0);
-                      const hasMrp = mrp > 0;
+                      const total = sp * item.qty;
                       return (
-                       <div key={idx}>
-                           <div>{idx + 1}. {item.productName}</div>
+                       <div key={idx} className="grid grid-cols-12 gap-1 text-[13px] leading-tight">
+                           <div className="col-span-5 font-medium">({idx + 1}) {item.productName}</div>
+                           <div className="col-span-2 text-center">{item.qty}</div>
+                           <div className="col-span-2 text-right">{mrp > 0 ? mrp.toFixed(0) : '-'}</div>
+                           <div className="col-span-1 text-right">{sp.toFixed(0)}</div>
+                           <div className="col-span-2 text-right font-semibold">{total.toFixed(0)}</div>
+                           
+                           {/* Warranty / Extra info if exists */}
                            {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
-                               <div className="text-xs bg-gray-100 px-2 py-0.5 border-l-2 border-black font-bold mt-1 ml-4" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                               <div className="col-span-12 text-[10px] text-gray-600 pl-4">
                                    {(item as any).warrantyType}: {(item as any).warrantyDuration}
                                </div>
                            )}
-                           <div className="grid grid-cols-12 gap-1">
-                               <div className="col-span-12"></div> {/* Spacer for name line */}
-                               <div className="col-span-3 text-right text-xs">{item.qty}PC</div>
-                               <div className="col-span-3 text-right text-xs">{hasMrp ? mrp.toFixed(2) : '-'}</div>
-                               <div className="col-span-3 text-right text-xs">{sp.toFixed(2)}</div>
-                               <div className="col-span-3 text-right text-xs">{(sp * item.qty).toFixed(2)}</div>
-                           </div>
                        </div>
                    )})}
               </div>
 
-              <div className="border-b border-black border-dashed my-2"></div>
+              <div className="receipt-line-thick"></div>
 
+              {/* Summary Stats */}
               {(() => {
                   const items = lastBillDetails?.cart || cart;
                   let tQty = 0;
@@ -5987,68 +5998,46 @@ const AdminPOSOrders = () => {
                   });
                   const tBill = lastBillDetails?.total || calculateTotal();
                   const tSavings = tMRP - tBill;
-                  const sPercent = tMRP > 0 ? ((tSavings / tMRP) * 100).toFixed(1) : "0";
+                  const sPercent = tMRP > 0 ? ((tSavings / tMRP) * 100).toFixed(0) : "0";
 
                   return (
-                      <>
-                          <div className="flex justify-between font-bold mb-1 text-xs">
+                      <div className="text-sm">
+                          <div className="flex justify-between mb-1">
                               <span>Total Qty.: {tQty}</span>
-                              <span>Total MRP: Rs {tMRP.toFixed(2)}</span>
+                              <span className="font-semibold">Total MRP: Rs {tMRP.toFixed(0)}</span>
                           </div>
+                          
                           {tSavings > 0 && (
-                              <div className="flex justify-between bg-neutral-300 px-1 py-1.5 my-1 border-y border-black border-dashed" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                                  <span className="font-bold">You Saved {sPercent} %</span>
-                                  <span className="font-bold">{tSavings.toFixed(2)}</span>
+                              <div className="flex justify-between bg-gray-300 px-1 py-1 my-1" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                  <span className="font-medium">You Saved {sPercent} %</span>
+                                  <span className="font-bold">{tSavings.toFixed(0)}</span>
                               </div>
                           )}
-                      </>
+                      </div>
                   );
               })()}
 
-              <div className="flex justify-between font-black text-4xl mt-4 border-t-4 border-black pt-4">
-                  <span>Total Payable Amount</span>
-                  <span>{lastBillDetails?.total.toFixed(2)}</span>
-              </div>
-               <div className="flex justify-between mt-2 font-black text-3xl">
-                  <span>Cash Paid</span>
-                  <span>{lastBillDetails?.total.toFixed(2)}</span>
+              <div className="receipt-line-thick"></div>
+
+              {/* Grand Total */}
+              <div className="flex justify-between font-bold text-lg py-1">
+                  <span>Total bill amount:</span>
+                  <span>{lastBillDetails?.total.toFixed(0)}</span>
               </div>
 
-              <div className="border-b border-black border-dashed my-2"></div>
-
-              <div className="text-center mt-4 text-xs font-medium">
-                  {/* Notes */}
+              {/* Footer / Notes */}
+              <div className="text-center mt-6 space-y-2">
+                  <p className="text-xs font-bold">।। आपका विश्वास हमारी ताकत ।।</p>
+                  
                   {((posBillSettings?.notes?.enabled && posBillSettings?.notes?.text) || (config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text)) && (
-                      <p className="font-bold mb-2 whitespace-pre-wrap">{posBillSettings?.notes?.enabled ? posBillSettings?.notes?.text : config?.invoiceSettings?.notes?.text}</p>
-                  )}
-
-                  {/* Terms & Conditions */}
-                  {((posBillSettings?.terms?.enabled && posBillSettings?.terms?.text) || (config?.invoiceSettings?.terms?.enabled && config?.invoiceSettings?.terms?.text)) && (
-                      <div className="text-left mt-2 border-t border-black border-dashed pt-2">
-                          <p className="font-bold mb-1">Terms & Conditions:</p>
-                          <p className="whitespace-pre-wrap leading-tight">{posBillSettings?.terms?.enabled ? posBillSettings?.terms?.text : config?.invoiceSettings?.terms?.text}</p>
-                      </div>
-                  )}
-
-                  {posBillSettings?.gst?.enabled && posBillSettings?.gst?.text && (
-                      <p className="text-xs font-bold mt-2">GST: {posBillSettings.gst.text}</p>
-                  )}
-                  {posBillSettings?.fssai?.enabled && posBillSettings?.fssai?.text && (
-                      <p className="text-xs font-bold">FSSAI: {posBillSettings.fssai.text}</p>
+                      <p className="text-[10px] whitespace-pre-wrap">{posBillSettings?.notes?.enabled ? posBillSettings?.notes?.text : config?.invoiceSettings?.notes?.text}</p>
                   )}
 
                   {posBillSettings?.qrCode && (
                       <div className="mt-4 flex justify-center">
-                          <img
-                            src={posBillSettings.qrCode}
-                            alt="Payment QR"
-                            className="w-32 h-32 object-contain"
-                            style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
-                          />
+                          <img src={posBillSettings.qrCode} alt="QR" className="w-24 h-24 object-contain" style={{ WebkitPrintColorAdjust: 'exact' }} />
                       </div>
                   )}
-
-
               </div>
           </div>
       </div>
@@ -6258,92 +6247,18 @@ const AdminPOSOrders = () => {
 
       {/* --- SCANNER MODAL --- */}
       {showScanner && (
-        <div className="fixed inset-0 bg-black/80 z-[1100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden relative animate-in zoom-in duration-200">
-                <div className="bg-[#f187b5] px-5 py-4 text-white flex justify-between items-center">
-                    <h3 className="font-bold text-lg">Scan Barcode</h3>
-                    <button
-                        onClick={() => setShowScanner(false)}
-                        className="p-1 hover:bg-white/20 rounded-lg transition-colors"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                <div className="p-4 bg-black">
-                     <div id="reader" className="w-full h-[260px] sm:h-[320px] md:h-[360px] bg-black rounded-xl overflow-hidden shadow-inner"></div>
-                     
-                     {/* Scanner Controls: Zoom and Torch */}
-                     <div className="mt-4 space-y-4">
-                        <div className="flex items-center gap-3">
-                            <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"></path></svg>
-                            <input 
-                                type="range" 
-                                min="1" 
-                                max="5" 
-                                step="0.1" 
-                                value={zoomLevel}
-                                onChange={async (e) => {
-                                    const zoom = parseFloat(e.target.value);
-                                    setZoomLevel(zoom);
-                                    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-                                        try {
-                                            const track = html5QrCodeRef.current.getRunningTrack();
-                                            if (track && track.getCapabilities().zoom) {
-                                                await track.applyConstraints({ advanced: [{ zoom: zoom } as any] });
-                                            }
-                                        } catch (e) {
-                                            console.warn("Zoom not supported", e);
-                                        }
-                                    }
-                                }}
-                                className="flex-1 h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#f187b5]"
-                            />
-                            <span className="text-white/80 text-[10px] font-bold min-w-[24px]">{zoomLevel}x</span>
-                        </div>
-
-                        <div className="flex justify-between items-center">
-                            <p className="text-white/60 text-[11px] font-medium tracking-wide uppercase">Point camera at a barcode to scan</p>
-                            <button
-                                onClick={async () => {
-                                    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-                                        try {
-                                            const newTorchState = !isTorchOn;
-                                            const track = html5QrCodeRef.current.getRunningTrack();
-                                            const capabilities: any = track?.getCapabilities() || {};
-                                            
-                                            if (capabilities.torch) {
-                                                await track!.applyConstraints({
-                                                    advanced: [{ torch: newTorchState, fillLightMode: newTorchState ? 'torch' : 'off' } as any]
-                                                });
-                                                setIsTorchOn(newTorchState);
-                                            } else {
-                                                // Try library method anyway
-                                                try {
-                                                    await html5QrCodeRef.current.setTorch(newTorchState);
-                                                    setIsTorchOn(newTorchState);
-                                                } catch (e) {
-                                                    showToast(`Torch not detected by phone. (Avail: ${JSON.stringify(Object.keys(capabilities))})`, "info");
-                                                }
-                                            }
-                                        } catch (e) {
-                                            console.error("Torch error", e);
-                                            showToast("Hardware busy or torch not supported", "info");
-                                        }
-                                    }
-                                }}
-                                className={`p-2 rounded-xl transition-all ${isTorchOn ? 'bg-[#f187b5] text-white shadow-lg shadow-[#f187b5]/40' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}
-                                title="Toggle Flash"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                            </button>
-                        </div>
-                     </div>
-                </div>
-                {/* Removed Restart Scanner footer for compact look */}
-            </div>
-        </div>
+        <QRScannerModal
+            onScanSuccess={(decodedText) => {
+                onScanSuccess(decodedText, null);
+                // In bulk mode, we might want to keep it open, 
+                // but the modal handles its own bulk mode internal state now.
+                if (scanTarget !== 'inventory') {
+                   setShowScanner(false);
+                }
+            }}
+            onScanFailure={(err) => console.warn(err)}
+            onClose={() => setShowScanner(false)}
+        />
       )}
 
       {/* --- MOBILE SEARCH MODAL --- */}

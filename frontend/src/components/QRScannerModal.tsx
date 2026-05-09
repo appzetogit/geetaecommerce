@@ -159,10 +159,43 @@ export default function QRScannerModal({
   const onScanSuccessRef = useRef(onScanSuccess);
   const onScanFailureRef = useRef(onScanFailure);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // High-accuracy buffer: tracks the last detected code to ensure consistency
+  const lastDetectedCodeRef = useRef<{ code: string; count: number }>({ code: "", count: 0 });
 
   const [cameraReady, setCameraReady] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
+  
+  // Advanced Features State
+  const [zoom, setZoom] = useState(1);
+  const [zoomRange, setZoomRange] = useState({ min: 1, max: 1, step: 0.1 });
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [scannedItems, setScannedItems] = useState<string[]>([]);
+  const [isHighContrast, setIsHighContrast] = useState(false);
+
+  // Helper: Synthesize a sharp 'beep' sound for instant feedback
+  const playBeep = (freq = 880) => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime); 
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
+      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.12);
+    } catch (e) {
+      /* ignore audio errors */
+    }
+  };
 
   useEffect(() => {
     onScanSuccessRef.current = onScanSuccess;
@@ -171,9 +204,11 @@ export default function QRScannerModal({
 
   useEffect(() => {
     handledRef.current = false;
+    lastDetectedCodeRef.current = { code: "", count: 0 };
     setCameraReady(false);
     setTorchOn(false);
     setTorchSupported(false);
+    setZoom(1);
 
     const scanner = new Html5Qrcode(readerId, {
       verbose: false,
@@ -183,26 +218,48 @@ export default function QRScannerModal({
     scannerRef.current = scanner;
 
     const scanConfig = {
-      fps: 30, // Increased for instant detection
+      fps: 40,
       aspectRatio: 1.7777778,
       disableFlip: false,
       videoConstraints: {
         facingMode: "environment" as const,
-        focusMode: "continuous" as const
+        focusMode: "continuous" as const,
+        whiteBalanceMode: "continuous" as const,
+        exposureMode: "continuous" as const
       },
       qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-        // Optimized for 1D billing barcodes
-        const width = Math.floor(Math.min(viewfinderWidth * 0.90, 600));
-        const height = Math.floor(Math.max(120, Math.min(viewfinderHeight * 0.40, width * 0.5)));
+        const width = Math.floor(Math.min(viewfinderWidth * 0.95, 500));
+        const height = Math.floor(Math.max(100, Math.min(viewfinderHeight * 0.35, width * 0.4)));
         return { width, height };
       },
-      experimentalFeatures: {
-        useBarCodeDetectorIfSupported: true
-      }
     };
 
     const onDecoded = (decodedText: string) => {
       if (handledRef.current) return;
+
+      if (lastDetectedCodeRef.current.code !== decodedText) {
+        lastDetectedCodeRef.current = { code: decodedText, count: 1 };
+        return;
+      } else {
+        lastDetectedCodeRef.current.count += 1;
+      }
+
+      if (lastDetectedCodeRef.current.count < 2) return;
+
+      // Instant Feedback
+      if (navigator.vibrate) navigator.vibrate(60);
+      playBeep(isBulkMode ? 1000 : 880);
+
+      if (isBulkMode) {
+        // Bulk mode: just add to list and reset buffer for next item
+        setScannedItems(prev => [decodedText, ...prev.slice(0, 4)]);
+        lastDetectedCodeRef.current = { code: "", count: 0 };
+        // We don't call onScanSuccess yet, or we call it per-item if preferred.
+        // Let's call it per-item so the background updates, but don't close.
+        onScanSuccessRef.current(decodedText);
+        return;
+      }
+
       handledRef.current = true;
       const s = scannerRef.current;
       scannerRef.current = null;
@@ -233,7 +290,9 @@ export default function QRScannerModal({
           (decodedText: string) => onDecoded(decodedText),
           (errorMessage: string, error: unknown) => {
             if (onScanFailureRef.current) {
-              onScanFailureRef.current(errorMessage ?? error);
+              if (!errorMessage?.includes("No barcode detected")) {
+                onScanFailureRef.current(errorMessage ?? error);
+              }
             }
           }
         )
@@ -243,6 +302,17 @@ export default function QRScannerModal({
             const caps = scanner.getRunningTrackCameraCapabilities();
             if (caps.torchFeature()?.isSupported()) {
               setTorchSupported(true);
+            }
+            
+            // Detect Zoom Capabilities
+            const zoomFeature = caps.zoomFeature();
+            if (zoomFeature?.isSupported()) {
+              setZoomRange({
+                min: zoomFeature.min(),
+                max: zoomFeature.max(),
+                step: zoomFeature.step()
+              });
+              setZoom(zoomFeature.min());
             }
           } catch {
             setTorchSupported(false);
@@ -259,6 +329,7 @@ export default function QRScannerModal({
 
     return () => {
       setCameraReady(false);
+      lastDetectedCodeRef.current = { code: "", count: 0 };
       const s = scannerRef.current;
       scannerRef.current = null;
       beginLiveScanRef.current = null;
@@ -281,7 +352,20 @@ export default function QRScannerModal({
         }
       }
     };
-  }, [readerId]);
+  }, [readerId, isBulkMode]); // Re-start if bulk mode toggles to reset handled state
+
+  const handleZoomChange = async (newZoom: number) => {
+    const scanner = scannerRef.current;
+    if (!scanner?.isScanning) return;
+    try {
+      await scanner.applyVideoConstraints({
+        advanced: [{ zoom: newZoom } as any],
+      } as any);
+      setZoom(newZoom);
+    } catch (err) {
+      console.error("Failed to apply zoom", err);
+    }
+  };
 
   const handleGalleryPick = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -334,9 +418,12 @@ export default function QRScannerModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden relative shadow-2xl">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800">Scan barcode</h3>
+      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden relative shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex justify-between items-center p-4 border-b border-gray-100 shrink-0">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800">Scan barcode</h3>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Enterprise Scanner v2.0</p>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -359,13 +446,92 @@ export default function QRScannerModal({
           </button>
         </div>
 
-        <div className="p-4 bg-gray-50 space-y-3">
-          <div
-            id={readerId}
-            className="w-full min-h-[280px] rounded-lg overflow-hidden border-2 border-dashed border-gray-300 bg-black"
-          />
+        <div className="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-4">
+          {/* Top Controls */}
+          <div className="flex justify-between items-center gap-2">
+             <button
+                type="button"
+                onClick={() => setIsBulkMode(!isBulkMode)}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                  isBulkMode 
+                  ? "bg-pink-600 text-white shadow-md ring-2 ring-pink-200" 
+                  : "bg-white text-gray-600 border border-gray-200"
+                }`}
+             >
+                {isBulkMode ? "📦 Bulk Mode: ON" : "📦 Bulk Mode: OFF"}
+             </button>
+             <button
+                type="button"
+                onClick={() => setIsHighContrast(!isHighContrast)}
+                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                  isHighContrast 
+                  ? "bg-indigo-600 text-white shadow-md" 
+                  : "bg-white text-gray-600 border border-gray-200"
+                }`}
+             >
+                {isHighContrast ? "🌓 High Contrast" : "🌓 Normal"}
+             </button>
+          </div>
 
-          <div className="flex flex-wrap gap-2 justify-center">
+          {/* Scanner Viewport */}
+          <div className="relative group">
+            <div
+              id={readerId}
+              className={`w-full min-h-[250px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black transition-all ${
+                isHighContrast ? "contrast-150 brightness-110 saturate-0" : ""
+              }`}
+            />
+            
+            {/* Viewfinder Overlay */}
+            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+               <div className="w-[85%] h-[40%] border-2 border-pink-500 rounded-lg shadow-[0_0_0_2000px_rgba(0,0,0,0.4)] relative">
+                  <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl"></div>
+                  <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr"></div>
+                  <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-white rounded-bl"></div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-white rounded-br"></div>
+                  
+                  {/* Scanning Line */}
+                  <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-pink-500/50 shadow-[0_0_8px_rgba(236,72,153,0.8)] animate-pulse"></div>
+               </div>
+            </div>
+          </div>
+
+          {/* Zoom Control */}
+          {zoomRange.max > zoomRange.min && (
+            <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm space-y-2">
+              <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
+                 <span>Zoom</span>
+                 <span className="text-pink-600">{zoom.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min={zoomRange.min}
+                max={zoomRange.max}
+                step={zoomRange.step}
+                value={zoom}
+                onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-pink-600"
+              />
+            </div>
+          )}
+
+          {/* Scanned Items List (Bulk Mode) */}
+          {isBulkMode && scannedItems.length > 0 && (
+            <div className="space-y-2">
+               <p className="text-[10px] font-bold text-gray-400 uppercase">Recently Scanned</p>
+               <div className="space-y-1">
+                  {scannedItems.map((code, i) => (
+                    <div key={i} className="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-gray-100 text-sm shadow-sm animate-in fade-in slide-in-from-left-2">
+                       <span className="font-mono text-gray-600">{code}</span>
+                       <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">SAVED</span>
+                    </div>
+                  ))}
+               </div>
+            </div>
+          )}
+
+          {/* Bottom Actions */}
+          <div className="flex flex-wrap gap-2 justify-center shrink-0">
             <input
               ref={fileInputRef}
               type="file"
@@ -377,26 +543,41 @@ export default function QRScannerModal({
               type="button"
               disabled={!cameraReady}
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-2 text-sm font-medium rounded-lg bg-white border border-gray-300 text-gray-800 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 shadow-sm transition-all"
             >
-              Use photo
+              Upload Image
             </button>
             {torchSupported && (
               <button
                 type="button"
                 onClick={() => void toggleTorch()}
-                className="px-3 py-2 text-sm font-medium rounded-lg bg-white border border-gray-300 text-gray-800 hover:bg-gray-50"
+                className={`px-4 py-2.5 text-sm font-bold rounded-xl border transition-all shadow-sm ${
+                  torchOn 
+                  ? "bg-yellow-50 border-yellow-200 text-yellow-700" 
+                  : "bg-white border-gray-200 text-gray-700"
+                }`}
               >
-                {torchOn ? "Light off" : "Light on"}
+                {torchOn ? "🔦 Flash ON" : "🔦 Flash OFF"}
               </button>
             )}
           </div>
+        </div>
 
-          <p className="text-center text-xs text-gray-500 leading-relaxed">
-            Align the whole barcode inside the frame. For glossy labels, tilt
-            slightly to reduce glare, or tap <strong>Use photo</strong> and
-            pick a sharp picture.
-          </p>
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-100 bg-white shrink-0">
+           {isBulkMode ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-3 bg-neutral-900 text-white rounded-xl font-bold shadow-lg hover:bg-black transition-all active:scale-95"
+              >
+                Finish & Close ({scannedItems.length})
+              </button>
+           ) : (
+              <p className="text-center text-[11px] text-gray-400 italic">
+                Center the barcode inside the pink frame for best results.
+              </p>
+           )}
         </div>
       </div>
     </div>

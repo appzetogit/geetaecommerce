@@ -126,6 +126,15 @@ export interface AppSettings {
     mrpLabel?: string;
     spLabel?: string;
   };
+  firstOrderOffer?: {
+    enabled: boolean;
+    title: string;
+    subtitle: string;
+    discountAmount: number;
+    minOrderAmount: number;
+    ctaText: string;
+    updatedAt?: string;
+  };
   maintenanceMode: boolean;
   maintenanceMessage?: string;
   invoiceSettings?: {

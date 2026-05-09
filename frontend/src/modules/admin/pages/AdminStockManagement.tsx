@@ -149,7 +149,7 @@ export default function AdminStockManagement() {
 
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
-  const [scannerKey, setScannerKey] = useState(0);
+
   const lastScanRef = useRef({ code: '', time: 0 });
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
@@ -442,7 +442,7 @@ export default function AdminStockManagement() {
         }
       }
     };
-  }, [showScanner, scannerKey]);
+  }, [showScanner]);
 
   const handleDelete = async (productId: string) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
