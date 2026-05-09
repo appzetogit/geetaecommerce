@@ -222,6 +222,7 @@ export default function SellerStockBulkEdit({
         }
 
         const scanner = new Html5Qrcode(readerId, {
+          verbose: false,
           formatsToSupport: [
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.EAN_13,
@@ -249,7 +250,7 @@ export default function SellerStockBulkEdit({
               return { width, height };
             },
             experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-          },
+          } as any,
           onSearchScanSuccess,
           () => {}
         );
@@ -435,6 +436,7 @@ export default function SellerStockBulkEdit({
     setScanIndex(index);
     setTimeout(() => {
         const scanner = new Html5Qrcode("seller-bulk-reader", {
+            verbose: false,
             formatsToSupport: [
                 Html5QrcodeSupportedFormats.CODE_128,
                 Html5QrcodeSupportedFormats.EAN_13,
@@ -462,7 +464,7 @@ export default function SellerStockBulkEdit({
                     return { width, height };
                 },
                 experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-            },
+            } as any,
             (decodedText) => {
                 if (index !== null) {
                     const currentBarcodes = editableProducts[index].barcode || [];
@@ -561,7 +563,7 @@ export default function SellerStockBulkEdit({
         images.push({ id: `main-${p._id}`, url: p.mainImage });
       }
       if (p.galleryImageUrls && p.galleryImageUrls.length > 0) {
-        p.galleryImageUrls.forEach((url, i) => {
+        p.galleryImageUrls.forEach((url: string, i: number) => {
            images.push({ id: `gal-${p._id}-${i}`, url });
         });
       }
@@ -838,7 +840,7 @@ export default function SellerStockBulkEdit({
         case "category":
           return categories.find(c => c._id === p.categoryId)?.name || "";
         case "subCategory":
-          return subCategories.find(sc => sc._id === (p.subCategoryId || ""))?.name || "";
+          return subCategories.find(sc => sc._id === (p.subCategoryId || ""))?.subcategoryName || "";
         case "brand": {
           const brandName =
             brands.find(b => b._id === (p.brandId || ""))?.name ||

@@ -162,7 +162,7 @@ export default function SellerStockManagement() {
         setUpdatingStock(variationId);
         try {
             const response = variationId.startsWith('default-')
-                ? await updateProduct(productId, { stock: newStock })
+                ? await updateProduct(productId, { stock: newStock } as any)
                 : await updateStock(productId, variationId, newStock);
             if (response.success) {
                 // Update local state

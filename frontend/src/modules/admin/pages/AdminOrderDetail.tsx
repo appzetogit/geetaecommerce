@@ -131,13 +131,15 @@ export default function AdminOrderDetail() {
     if (!order) return;
     setUpdating(true);
     try {
-        const response = await updateOrderItems(order._id, editableItems.map(item => ({
-            productId: item.productId,
-            variationId: item.variationId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            sku: item.sku
-        })));
+        const response = await updateOrderItems(order._id, {
+            items: editableItems.map(item => ({
+                productId: item.productId,
+                variationId: item.variationId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                sku: item.sku
+            }))
+        });
         if (response.success && response.data) {
             setOrder(response.data);
             setIsEditingItems(false);

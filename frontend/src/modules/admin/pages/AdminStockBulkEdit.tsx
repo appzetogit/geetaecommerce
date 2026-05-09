@@ -225,6 +225,7 @@ export default function AdminStockBulkEdit({
         }
 
         const scanner = new Html5Qrcode(readerId, {
+          verbose: false,
           formatsToSupport: [
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.EAN_13,
@@ -252,7 +253,7 @@ export default function AdminStockBulkEdit({
               return { width, height };
             },
             experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-          },
+          } as any,
           onSearchScanSuccess,
           () => {}
         );
@@ -434,6 +435,7 @@ export default function AdminStockBulkEdit({
     setScanIndex(index);
     setTimeout(() => {
         const scanner = new Html5Qrcode("bulk-barcode-reader", {
+            verbose: false,
             formatsToSupport: [
                 Html5QrcodeSupportedFormats.CODE_128,
                 Html5QrcodeSupportedFormats.EAN_13,
@@ -461,7 +463,7 @@ export default function AdminStockBulkEdit({
                     return { width, height };
                 },
                 experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-            },
+            } as any,
             (decodedText) => {
                 if (index !== null) {
                     const currentBarcodes = editableProducts[index].barcode || [];
@@ -1454,7 +1456,7 @@ export default function AdminStockBulkEdit({
                     const sCatId = String((typeof subCatProperty === 'object' && subCatProperty) ? (subCatProperty as any)._id : (subCatProperty || "")).trim().toLowerCase();
                     return sCatId === tRef;
                 })
-                .map(sub => ({ value: sub._id || (sub as any).id, label: (sub as any).name || sub.subcategoryName || "Unnamed Subcategory" }))
+                .map(sub => ({ value: sub._id || (sub as any).id, label: (sub as any).name || (sub as any).subcategoryName || "Unnamed Subcategory" }))
               }
               value={product.subCategoryId || ""}
               onChange={(val) => handleFieldChange(originalIndex, 'subCategoryId', val)}

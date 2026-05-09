@@ -146,6 +146,7 @@ const AdminPOSOrders = () => {
   }, []);
 
   const [selectedSeller, setSelectedSeller] = useState('');
+  const [scannerKey, setScannerKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -1102,112 +1103,6 @@ const AdminPOSOrders = () => {
       }
     }
   }, [customers]);
-
-  useEffect(() => {
-    const startScanner = async () => {
-        if (!showScanner) return;
-
-        // Give a little time for the modal and DOM to mount
-        await new Promise(r => setTimeout(r, 300));
-        const element = document.getElementById('reader');
-        if (!element) return;
-
-        try {
-            // If there's an existing instance, try to stop it first
-            if (html5QrCodeRef.current) {
-                try {
-                    if (html5QrCodeRef.current.isScanning) {
-                        await html5QrCodeRef.current.stop();
-                    }
-                    html5QrCodeRef.current.clear();
-                } catch (e) {
-                    console.warn("Error stopping previous scanner", e);
-                }
-            }
-
-            // Create new instance
-            // === DEBUG: Log supported barcode formats ===
-            const supportedFormats = [
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.CODE_39,
-                Html5QrcodeSupportedFormats.CODE_93,
-                Html5QrcodeSupportedFormats.ITF,
-                Html5QrcodeSupportedFormats.CODABAR,
-                Html5QrcodeSupportedFormats.QR_CODE,
-                Html5QrcodeSupportedFormats.DATA_MATRIX,
-                Html5QrcodeSupportedFormats.PDF_417,
-                Html5QrcodeSupportedFormats.RSS_14,
-                Html5QrcodeSupportedFormats.RSS_EXPANDED,
-            ];
-            const scanner = new Html5Qrcode("reader", {
-                verbose: false,
-                formatsToSupport: supportedFormats,
-            });
-            html5QrCodeRef.current = scanner;
-
-            const config: any = {
-                fps: 30,
-                aspectRatio: 1.0,
-                disableFlip: false,
-                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                    // Larger scanning window for easier alignment
-                    const width = Math.floor(Math.min(viewfinderWidth * 0.9, 600));
-                    const height = Math.floor(width * 0.5); 
-                    return { width, height };
-                },
-                videoConstraints: {
-                    facingMode: "environment",
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
-                    focusMode: "continuous"
-                },
-                experimentalFeatures: {
-                    useBarCodeDetectorIfSupported: true
-                }
-            };
-
-            await scanner.start(
-                // Back camera; keep object to a single key to satisfy html5-qrcode API.
-                { facingMode: "environment" },
-                config,
-                onScanSuccess,
-                () => {} // Ignore errors per frame
-            );
-
-            // Set initial zoom and torch state after start
-            setZoomLevel(1);
-            setIsTorchOn(false);
-        } catch (err) {
-            console.error("Scanner Start Error:", err);
-            showToast("Failed to start camera. Please check permissions and ensure you are on HTTPS.", "error");
-            setShowScanner(false);
-        }
-    };
-
-    if (showScanner) {
-        startScanner();
-    }
-
-    return () => {
-        const cleanup = async () => {
-            if (html5QrCodeRef.current) {
-                try {
-                    if (html5QrCodeRef.current.isScanning) {
-                        await html5QrCodeRef.current.stop();
-                    }
-                    html5QrCodeRef.current.clear();
-                } catch (e) {
-                    console.error("Scanner Cleanup Error:", e);
-                }
-            }
-        };
-        cleanup();
-    };
-  }, [showScanner]);
 
   // Search Customers
   useEffect(() => {
@@ -4873,7 +4768,7 @@ const AdminPOSOrders = () => {
                                 setPurchaseBarcodeScanItemId(item.id);
                                 setScanTarget('purchase-barcode');
                                 setShowScanner(true);
-                                setScannerKey((k) => k + 1);
+                                setScannerKey((k: number) => k + 1);
                               }}
                               className="mt-1 px-3 py-2 bg-pink-50 border border-pink-200 rounded-xl hover:bg-pink-100 text-[#f187b5] flex items-center justify-center gap-1 text-xs font-semibold"
                               title="Scan Barcode"
@@ -6249,9 +6144,7 @@ const AdminPOSOrders = () => {
       {showScanner && (
         <QRScannerModal
             onScanSuccess={(decodedText) => {
-                onScanSuccess(decodedText, null);
-                // In bulk mode, we might want to keep it open, 
-                // but the modal handles its own bulk mode internal state now.
+                submitScanQuery(decodedText);
                 if (scanTarget !== 'inventory') {
                    setShowScanner(false);
                 }

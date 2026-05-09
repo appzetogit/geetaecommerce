@@ -11,6 +11,8 @@ import {
   getCategories,
   type Category,
 } from "../../../services/api/categoryService";
+import { useToast } from "../../../context/ToastContext";
+import QRScannerModal from "../../../components/QRScannerModal";
 import { useAuth } from "../../../context/AuthContext";
 import SellerStockBulkEdit from "./SellerStockBulkEdit";
 
@@ -1069,7 +1071,6 @@ export default function SellerProductList() {
                       />
                       <button
                         onClick={() => {
-                          setScannerKey(prev => prev + 1);
                           setShowScanner(true);
                         }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-[#f187b5] transition-colors"
@@ -1409,40 +1410,14 @@ export default function SellerProductList() {
       )}
 
       {showScanner && (
-        <div className="fixed inset-0 bg-black/60 z-[100] flex flex-col items-center justify-center p-4 backdrop-blur-[2px]">
-          <div className="relative bg-white rounded-xl overflow-hidden w-full max-w-sm shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="bg-[#f187b5] p-3 text-white flex justify-between items-center">
-              <h3 className="font-bold flex items-center gap-2 text-sm">
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Scan Product Barcode
-              </h3>
-              <button
-                onClick={() => setShowScanner(false)}
-                className="hover:bg-white/20 p-1 rounded-full transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-3 bg-gray-900 aspect-square">
-               <div id="reader" className="w-full h-full overflow-hidden rounded-lg border border-gray-700"></div>
-            </div>
-
-            <div className="p-3 bg-gray-50 text-center">
-              <p className="text-[11px] text-gray-500 font-medium">Align the barcode within the frame to scan</p>
-              <button
-                onClick={() => setShowScanner(false)}
-                className="mt-3 px-6 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold text-xs transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <QRScannerModal
+          onClose={() => setShowScanner(false)}
+          onScanSuccess={(decodedText) => {
+            setSearchTerm(decodedText);
+            setShowScanner(false);
+            setCurrentPage(1);
+          }}
+        />
       )}
 
       {/* Barcode Selection Modal */}

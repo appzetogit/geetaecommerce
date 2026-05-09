@@ -57,6 +57,7 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
     setScanIndex(index);
     setTimeout(() => {
         const scanner = new Html5Qrcode("variation-reader", {
+            verbose: false,
             formatsToSupport: [
                 Html5QrcodeSupportedFormats.CODE_128,
                 Html5QrcodeSupportedFormats.EAN_13,
@@ -84,7 +85,7 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
                     return { width, height };
                 },
                 experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-            },
+            } as any,
             (decodedText) => {
                 if (index !== null) {
                     const currentBarcodes = localVariations[index].barcode || [];

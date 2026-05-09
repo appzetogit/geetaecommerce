@@ -5693,13 +5693,6 @@ const SellerPOSOrders = () => {
               </div>
           </div>
       </div>
-           />
-                      </div>
-                  )}
-
-              </div>
-          </div>
-      </div>
 
       {/* --- ADD CUSTOMER MODAL --- */}
       {showAddCustomerModal && (

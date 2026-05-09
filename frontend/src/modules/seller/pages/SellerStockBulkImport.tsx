@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import {
   createProduct,
   CreateProductData,
+  getProducts,
   getProductById,
   updateStock,
 } from "../../../services/api/productService";

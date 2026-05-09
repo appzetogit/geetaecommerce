@@ -257,7 +257,7 @@ export default function AdminAppSettings() {
 }
 
 // Sub-components for cleaner code
-function InputGroup({ label, type = "text", value, onChange, placeholder }: any) {
+function InputGroup({ label, type = "text", value, onChange, placeholder }: { label: string, type?: string, value?: string, onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void, placeholder?: string }) {
     return (
         <div className="space-y-1">
             <label className="block text-sm font-medium text-gray-700">{label}</label>
@@ -273,7 +273,7 @@ function InputGroup({ label, type = "text", value, onChange, placeholder }: any)
     );
 }
 
-function ToggleItem({ label, checked, onChange }: any) {
+function ToggleItem({ label, checked, onChange }: { label: string, checked: boolean, onChange: () => void }) {
     return (
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
             <span className="font-medium text-gray-700">{label}</span>
@@ -282,7 +282,7 @@ function ToggleItem({ label, checked, onChange }: any) {
     );
 }
 
-function ToggleSwitch({ checked, onChange }: any) {
+function ToggleSwitch({ checked, onChange }: { checked: boolean, onChange: () => void }) {
     return (
         <button
             type="button"
