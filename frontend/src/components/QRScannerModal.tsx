@@ -446,7 +446,7 @@ export default function QRScannerModal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-3">
           {/* Top Controls */}
           <div className="flex justify-between items-center gap-2">
              <button
@@ -473,11 +473,38 @@ export default function QRScannerModal({
              </button>
           </div>
 
+          {/* Zoom Control */}
+          {zoomRange.max > zoomRange.min && (
+            <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm space-y-1.5">
+              <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
+                 <span className="flex items-center gap-1">
+                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                     <circle cx="11" cy="11" r="8"></circle>
+                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                     <line x1="11" y1="8" x2="11" y2="14"></line>
+                     <line x1="8" y1="11" x2="14" y2="11"></line>
+                   </svg>
+                   Zoom Control
+                 </span>
+                 <span className="text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-full">{zoom.toFixed(1)}x</span>
+              </div>
+              <input
+                type="range"
+                min={zoomRange.min}
+                max={zoomRange.max}
+                step={zoomRange.step}
+                value={zoom}
+                onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-pink-600"
+              />
+            </div>
+          )}
+
           {/* Scanner Viewport */}
           <div className="relative group">
             <div
               id={readerId}
-              className={`w-full min-h-[250px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black transition-all ${
+              className={`w-full min-h-[180px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black transition-all ${
                 isHighContrast ? "contrast-150 brightness-110 saturate-0" : ""
               }`}
             />
@@ -495,25 +522,6 @@ export default function QRScannerModal({
                </div>
             </div>
           </div>
-
-          {/* Zoom Control */}
-          {zoomRange.max > zoomRange.min && (
-            <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm space-y-2">
-              <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
-                 <span>Zoom</span>
-                 <span className="text-pink-600">{zoom.toFixed(1)}x</span>
-              </div>
-              <input
-                type="range"
-                min={zoomRange.min}
-                max={zoomRange.max}
-                step={zoomRange.step}
-                value={zoom}
-                onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
-                className="w-full h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-pink-600"
-              />
-            </div>
-          )}
 
           {/* Scanned Items List (Bulk Mode) */}
           {isBulkMode && scannedItems.length > 0 && (
