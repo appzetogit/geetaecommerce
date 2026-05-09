@@ -1494,6 +1494,7 @@ const AdminPOSOrders = () => {
                 purchasePrice: variation.purchasePrice || product.purchasePrice,
                 stock: variation.stock,
                 sku: variation.sku || product.sku,
+                barcode: variation.barcode || product.barcode,
                 isVariation: true,
                 variationId: variation._id,
                 wholesalePrice: Number(variation.wholesalePrice || product.wholesalePrice || 0)
