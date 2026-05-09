@@ -217,7 +217,7 @@ export default function QRScannerModal({
 
     const scanConfig = {
       fps: 40,
-      aspectRatio: 2.0,
+      aspectRatio: 1.6,
       disableFlip: false,
       videoConstraints: {
         facingMode: "environment" as const,
@@ -227,7 +227,7 @@ export default function QRScannerModal({
       },
       qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
         const width = Math.floor(Math.min(viewfinderWidth * 0.9, 500));
-        const height = Math.floor(Math.max(80, Math.min(viewfinderHeight * 0.5, width * 0.3)));
+        const height = Math.floor(Math.max(100, Math.min(viewfinderHeight * 0.6, width * 0.4)));
         return { width, height };
       },
     };
@@ -486,14 +486,14 @@ export default function QRScannerModal({
           <div className="relative group">
             <div
               id={readerId}
-              className={`w-full h-[160px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black transition-all ${
+              className={`w-full h-[220px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black transition-all ${
                 isHighContrast ? "contrast-150 brightness-110 saturate-0" : ""
               }`}
             />
             
             {/* Viewfinder Overlay */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-               <div className="w-[85%] h-[50%] border-2 border-pink-500 rounded-lg shadow-[0_0_0_2000px_rgba(0,0,0,0.4)] relative">
+               <div className="w-[85%] h-[60%] border-2 border-pink-500 rounded-lg shadow-[0_0_0_2000px_rgba(0,0,0,0.4)] relative">
                   <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl"></div>
                   <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr"></div>
                   <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-white rounded-bl"></div>
