@@ -170,8 +170,6 @@ export default function QRScannerModal({
   // Advanced Features State
   const [zoom, setZoom] = useState(1);
   const [zoomRange, setZoomRange] = useState({ min: 1, max: 1, step: 0.1 });
-  const [isBulkMode, setIsBulkMode] = useState(false);
-  const [scannedItems, setScannedItems] = useState<string[]>([]);
   const [isHighContrast, setIsHighContrast] = useState(false);
 
   // Helper: Synthesize a sharp 'beep' sound for instant feedback
@@ -219,7 +217,7 @@ export default function QRScannerModal({
 
     const scanConfig = {
       fps: 40,
-      aspectRatio: 1.7777778,
+      aspectRatio: 2.0,
       disableFlip: false,
       videoConstraints: {
         facingMode: "environment" as const,
@@ -228,8 +226,8 @@ export default function QRScannerModal({
         exposureMode: "continuous" as const
       },
       qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-        const width = Math.floor(Math.min(viewfinderWidth * 0.95, 500));
-        const height = Math.floor(Math.max(100, Math.min(viewfinderHeight * 0.35, width * 0.4)));
+        const width = Math.floor(Math.min(viewfinderWidth * 0.9, 500));
+        const height = Math.floor(Math.max(80, Math.min(viewfinderHeight * 0.5, width * 0.3)));
         return { width, height };
       },
     };
@@ -248,17 +246,9 @@ export default function QRScannerModal({
 
       // Instant Feedback
       if (navigator.vibrate) navigator.vibrate(60);
-      playBeep(isBulkMode ? 1000 : 880);
+      playBeep(880);
 
-      if (isBulkMode) {
-        // Bulk mode: just add to list and reset buffer for next item
-        setScannedItems(prev => [decodedText, ...prev.slice(0, 4)]);
-        lastDetectedCodeRef.current = { code: "", count: 0 };
-        // We don't call onScanSuccess yet, or we call it per-item if preferred.
-        // Let's call it per-item so the background updates, but don't close.
-        onScanSuccessRef.current(decodedText);
-        return;
-      }
+
 
       handledRef.current = true;
       const s = scannerRef.current;
@@ -352,7 +342,7 @@ export default function QRScannerModal({
         }
       }
     };
-  }, [readerId, isBulkMode]); // Re-start if bulk mode toggles to reset handled state
+  }, [readerId]); // Re-start if readerId changes
 
   const handleZoomChange = async (newZoom: number) => {
     const scanner = scannerRef.current;
@@ -419,10 +409,10 @@ export default function QRScannerModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden relative shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100 shrink-0">
+        <div className="flex justify-between items-center py-2.5 px-4 border-b border-gray-100 shrink-0">
           <div>
-            <h3 className="text-lg font-bold text-gray-800">Scan barcode</h3>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Enterprise Scanner v2.0</p>
+            <h3 className="text-base font-bold text-gray-800 leading-tight">Scan barcode</h3>
+            <p className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold">Enterprise Scanner v2.0</p>
           </div>
           <button
             type="button"
@@ -449,17 +439,9 @@ export default function QRScannerModal({
         <div className="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-3">
           {/* Top Controls */}
           <div className="flex justify-between items-center gap-2">
-             <button
-                type="button"
-                onClick={() => setIsBulkMode(!isBulkMode)}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                  isBulkMode 
-                  ? "bg-pink-600 text-white shadow-md ring-2 ring-pink-200" 
-                  : "bg-white text-gray-600 border border-gray-200"
-                }`}
-             >
-                {isBulkMode ? "📦 Bulk Mode: ON" : "📦 Bulk Mode: OFF"}
-             </button>
+             <div className="flex-1">
+                {/* Space for symmetry or other controls */}
+             </div>
              <button
                 type="button"
                 onClick={() => setIsHighContrast(!isHighContrast)}
@@ -504,14 +486,14 @@ export default function QRScannerModal({
           <div className="relative group">
             <div
               id={readerId}
-              className={`w-full min-h-[180px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black transition-all ${
+              className={`w-full h-[160px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black transition-all ${
                 isHighContrast ? "contrast-150 brightness-110 saturate-0" : ""
               }`}
             />
             
             {/* Viewfinder Overlay */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-               <div className="w-[85%] h-[40%] border-2 border-pink-500 rounded-lg shadow-[0_0_0_2000px_rgba(0,0,0,0.4)] relative">
+               <div className="w-[85%] h-[50%] border-2 border-pink-500 rounded-lg shadow-[0_0_0_2000px_rgba(0,0,0,0.4)] relative">
                   <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl"></div>
                   <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr"></div>
                   <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-white rounded-bl"></div>
@@ -523,20 +505,7 @@ export default function QRScannerModal({
             </div>
           </div>
 
-          {/* Scanned Items List (Bulk Mode) */}
-          {isBulkMode && scannedItems.length > 0 && (
-            <div className="space-y-2">
-               <p className="text-[10px] font-bold text-gray-400 uppercase">Recently Scanned</p>
-               <div className="space-y-1">
-                  {scannedItems.map((code, i) => (
-                    <div key={i} className="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-gray-100 text-sm shadow-sm animate-in fade-in slide-in-from-left-2">
-                       <span className="font-mono text-gray-600">{code}</span>
-                       <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">SAVED</span>
-                    </div>
-                  ))}
-               </div>
-            </div>
-          )}
+
 
           {/* Bottom Actions */}
           <div className="flex flex-wrap gap-2 justify-center shrink-0">
@@ -571,21 +540,10 @@ export default function QRScannerModal({
           </div>
         </div>
 
-        {/* Footer */}
         <div className="p-4 border-t border-gray-100 bg-white shrink-0">
-           {isBulkMode ? (
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full py-3 bg-neutral-900 text-white rounded-xl font-bold shadow-lg hover:bg-black transition-all active:scale-95"
-              >
-                Finish & Close ({scannedItems.length})
-              </button>
-           ) : (
-              <p className="text-center text-[11px] text-gray-400 italic">
-                Center the barcode inside the pink frame for best results.
-              </p>
-           )}
+          <p className="text-center text-[11px] text-gray-400 italic">
+            Center the barcode inside the pink frame for best results.
+          </p>
         </div>
       </div>
     </div>
