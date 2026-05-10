@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { deleteSellerPOSOrder, getPOSReport, updateStockLedgerEntry, getPOSStockLedger, getOrderById } from '../../../services/api/orderService';
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
@@ -960,18 +961,18 @@ const SellerPOSReport = () => {
                     font-family: 'Times New Roman', Times, serif !important;
                   }
                   
-                  body.is-printing-seller-report { visibility: hidden !important; }
-                  body.is-printing-seller-report #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
+                  /* Completely hide the main app root during printing */
+                  body.is-printing-seller-report #root { display: none !important; }
                   
+                  /* Force the receipt container (now at body level via portal) to be visible */
                   body.is-printing-seller-report .seller-report-print-wrapper { 
+                    display: block !important;
                     visibility: visible !important;
-                    display: block !important; 
-                    position: fixed !important; 
-                    top: 0 !important; 
-                    left: 0 !important; 
+                    position: relative !important;
                     width: 100% !important; 
                     background: white !important;
-                    z-index: 99999 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
                   }
                   
                   body.is-printing-seller-report .seller-report-print-wrapper * { visibility: visible !important; }
@@ -1003,8 +1004,8 @@ const SellerPOSReport = () => {
                 }
             ` }} />
 
-            {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
-            {printOrder && (
+            {/* --- HIDDEN THERMAL RECEIPT (MOVED TO PORTAL FOR ISOLATION) --- */}
+            {printOrder && createPortal(
                 <div className="hidden seller-report-print-wrapper bg-white p-0 m-0">
                     <div className="receipt-container text-black font-medium" style={{ fontFamily: "'Times New Roman', serif" }}>
                         {/* Header */}
@@ -1126,7 +1127,8 @@ const SellerPOSReport = () => {
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

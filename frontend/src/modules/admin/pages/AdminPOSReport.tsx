@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { getPOSReport, getStockLedger, deletePOSOrder, updateStockLedgerEntry, updateOrderStatus, getOrderById } from "../../../services/api/admin/adminOrderService";
 import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
@@ -1152,18 +1153,18 @@ const AdminPOSReport = () => {
                     font-family: 'Times New Roman', Times, serif !important;
                   }
                   
-                  body.is-printing-admin-report { visibility: hidden !important; }
-                  body.is-printing-admin-report #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
+                  /* Completely hide the main app root during printing */
+                  body.is-printing-admin-report #root { display: none !important; }
                   
+                  /* Force the receipt container (now at body level via portal) to be visible */
                   body.is-printing-admin-report .admin-report-print-wrapper { 
+                    display: block !important;
                     visibility: visible !important;
-                    display: block !important; 
-                    position: fixed !important; 
-                    top: 0 !important; 
-                    left: 0 !important; 
+                    position: relative !important;
                     width: 100% !important; 
                     background: white !important;
-                    z-index: 99999 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
                   }
                   
                   body.is-printing-admin-report .admin-report-print-wrapper * { visibility: visible !important; }
@@ -1195,8 +1196,8 @@ const AdminPOSReport = () => {
                 }
             ` }} />
 
-            {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
-            {printOrder && (
+            {/* --- HIDDEN THERMAL RECEIPT (MOVED TO PORTAL FOR ISOLATION) --- */}
+            {printOrder && createPortal(
                 <div className="hidden admin-report-print-wrapper bg-white p-0 m-0">
                     <div className="receipt-container text-black font-medium" style={{ fontFamily: "'Times New Roman', serif" }}>
                         {/* Header */}
@@ -1318,7 +1319,8 @@ const AdminPOSReport = () => {
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

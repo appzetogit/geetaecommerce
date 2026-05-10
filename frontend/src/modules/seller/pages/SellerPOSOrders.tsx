@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { getProducts, getProductById, Product, updateProduct, createProduct } from '../../../services/api/productService';
 import { createPOSOrder, initiatePOSOnlineOrder, verifyPOSPayment, getSellerOrderById as getOrderById } from '../../../services/api/orderService';
 import { updateOrderItems } from '../../../services/api/admin/adminOrderService';
@@ -5538,22 +5539,18 @@ const SellerPOSOrders = () => {
             font-family: 'Times New Roman', Times, serif !important;
           }
           
-          /* Hide the main app visually but keep it in DOM */
-          body.is-printing-seller-order { visibility: hidden !important; }
+          /* Completely hide the main app root during printing */
+          body.is-printing-seller-order #root { display: none !important; }
           
-          /* Collapse the height of the main root to prevent blank pages */
-          body.is-printing-seller-order #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
-          
-          /* Force the receipt container to be visible and at the top */
+          /* Force the receipt container (now at body level via portal) to be visible */
           body.is-printing-seller-order .seller-order-print-wrapper { 
+            display: block !important;
             visibility: visible !important;
-            display: block !important; 
-            position: fixed !important; 
-            top: 0 !important; 
-            left: 0 !important; 
-            width: 100% !important; 
+            position: relative !important;
+            width: 100% !important;
             background: white !important;
-            z-index: 99999 !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           
           body.is-printing-seller-order .seller-order-print-wrapper * { visibility: visible !important; }
@@ -5585,8 +5582,8 @@ const SellerPOSOrders = () => {
         }
       ` }} />
 
-      {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
-      {lastBillDetails && (
+      {/* --- HIDDEN THERMAL RECEIPT (MOVED TO PORTAL FOR ISOLATION) --- */}
+      {lastBillDetails && createPortal(
           <div className="hidden seller-order-print-wrapper bg-white p-0 m-0">
           <div className="receipt-container text-black font-medium" style={{ fontFamily: "'Times New Roman', serif" }}>
               {/* Header */}
@@ -5708,7 +5705,8 @@ const SellerPOSOrders = () => {
                   )}
               </div>
           </div>
-      </div>
+      </div>,
+      document.body
   )}
 
       {/* --- ADD CUSTOMER MODAL --- */}
