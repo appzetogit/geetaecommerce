@@ -1848,7 +1848,8 @@ export default function SellerStockBulkEdit({
             onVariationNameChange={(name) => handleFieldChange(activeVariationModalIndex, 'variationName', name)}
             onSave={(newVariations) => handleFieldChange(activeVariationModalIndex, 'variations', newVariations)}
           />
-       {showSearchScanner && (
+      )}
+      {showSearchScanner && (
           <QRScannerModal
             onClose={stopSearchScanning}
             onScanSuccess={onSearchScanSuccess}
