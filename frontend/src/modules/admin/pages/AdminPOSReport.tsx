@@ -325,12 +325,16 @@ const AdminPOSReport = () => {
         }
 
         setPrintOrder(fullOrder);
+        document.body.classList.add('is-printing-admin-report');
+        
         // Larger delay for mobile browsers to ensure DOM is ready
         setTimeout(() => {
             window.print();
             // Do not clear immediately to allow mobile browsers to finish rasterization
-            // We can clear it after a longer delay or leave it for the next print
-            setTimeout(() => setPrintOrder(null), 3000);
+            setTimeout(() => {
+                setPrintOrder(null);
+                document.body.classList.remove('is-printing-admin-report');
+            }, 3000);
         }, 1000);
         setSelectedActionOrder(null);
     };
@@ -1148,10 +1152,10 @@ const AdminPOSReport = () => {
                     font-family: 'Times New Roman', Times, serif !important;
                   }
                   
-                  body { visibility: hidden !important; }
-                  #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
+                  body.is-printing-admin-report { visibility: hidden !important; }
+                  body.is-printing-admin-report #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
                   
-                  .admin-report-print-wrapper { 
+                  body.is-printing-admin-report .admin-report-print-wrapper { 
                     visibility: visible !important;
                     display: block !important; 
                     position: fixed !important; 
@@ -1162,7 +1166,7 @@ const AdminPOSReport = () => {
                     z-index: 99999 !important;
                   }
                   
-                  .admin-report-print-wrapper * { visibility: visible !important; }
+                  body.is-printing-admin-report .admin-report-print-wrapper * { visibility: visible !important; }
                   
                   .receipt-container { 
                     width: 100% !important; 

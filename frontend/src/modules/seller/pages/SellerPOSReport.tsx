@@ -281,11 +281,16 @@ const SellerPOSReport = () => {
         }
 
         setPrintOrder(fullOrder);
+        document.body.classList.add('is-printing-seller-report');
+
         // Larger delay for mobile browsers to ensure DOM is ready
         setTimeout(() => {
             window.print();
             // Do not clear immediately to allow mobile browsers to finish rasterization
-            setTimeout(() => setPrintOrder(null), 3000);
+            setTimeout(() => {
+                setPrintOrder(null);
+                document.body.classList.remove('is-printing-seller-report');
+            }, 3000);
         }, 1000);
         setSelectedActionOrder(null);
     };
@@ -955,10 +960,10 @@ const SellerPOSReport = () => {
                     font-family: 'Times New Roman', Times, serif !important;
                   }
                   
-                  body { visibility: hidden !important; }
-                  #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
+                  body.is-printing-seller-report { visibility: hidden !important; }
+                  body.is-printing-seller-report #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
                   
-                  .seller-report-print-wrapper { 
+                  body.is-printing-seller-report .seller-report-print-wrapper { 
                     visibility: visible !important;
                     display: block !important; 
                     position: fixed !important; 
@@ -969,7 +974,7 @@ const SellerPOSReport = () => {
                     z-index: 99999 !important;
                   }
                   
-                  .seller-report-print-wrapper * { visibility: visible !important; }
+                  body.is-printing-seller-report .seller-report-print-wrapper * { visibility: visible !important; }
                   
                   .receipt-container { 
                     width: 100% !important; 

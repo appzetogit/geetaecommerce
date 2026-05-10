@@ -3008,7 +3008,13 @@ const AdminPOSOrders = () => {
     } catch (e) {
       console.error('Failed to sync bill settings before print', e);
     }
-    window.print();
+    document.body.classList.add('is-printing-admin-order');
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('is-printing-admin-order');
+      }, 3000);
+    }, 500);
   };
 
   const handleAccessPayment = () => {
@@ -5776,13 +5782,13 @@ const AdminPOSOrders = () => {
           }
           
           /* Hide the main app visually but keep it in DOM */
-          body { visibility: hidden !important; }
+          body.is-printing-admin-order { visibility: hidden !important; }
           
           /* Collapse the height of the main root to prevent blank pages */
-          #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
+          body.is-printing-admin-order #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
           
           /* Force the receipt container to be visible and at the top */
-          .admin-order-print-wrapper { 
+          body.is-printing-admin-order .admin-order-print-wrapper { 
             visibility: visible !important;
             display: block !important; 
             position: fixed !important; 
@@ -5793,7 +5799,7 @@ const AdminPOSOrders = () => {
             z-index: 99999 !important;
           }
           
-          .admin-order-print-wrapper * { visibility: visible !important; }
+          body.is-printing-admin-order .admin-order-print-wrapper * { visibility: visible !important; }
           
           .receipt-container { 
             width: 100% !important; 

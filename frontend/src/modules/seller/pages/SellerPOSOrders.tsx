@@ -2886,7 +2886,13 @@ const SellerPOSOrders = () => {
 
   const handlePrintBill = () => {
     syncBeforePrint();
-    window.print();
+    document.body.classList.add('is-printing-seller-order');
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('is-printing-seller-order');
+      }, 3000);
+    }, 500);
   };
 
   const handleAccessPayment = () => {
@@ -5533,13 +5539,13 @@ const SellerPOSOrders = () => {
           }
           
           /* Hide the main app visually but keep it in DOM */
-          body { visibility: hidden !important; }
+          body.is-printing-seller-order { visibility: hidden !important; }
           
           /* Collapse the height of the main root to prevent blank pages */
-          #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
+          body.is-printing-seller-order #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
           
           /* Force the receipt container to be visible and at the top */
-          .seller-order-print-wrapper { 
+          body.is-printing-seller-order .seller-order-print-wrapper { 
             visibility: visible !important;
             display: block !important; 
             position: fixed !important; 
@@ -5550,7 +5556,7 @@ const SellerPOSOrders = () => {
             z-index: 99999 !important;
           }
           
-          .seller-order-print-wrapper * { visibility: visible !important; }
+          body.is-printing-seller-order .seller-order-print-wrapper * { visibility: visible !important; }
           
           .receipt-container { 
             width: 100% !important; 
