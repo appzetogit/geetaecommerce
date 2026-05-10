@@ -14,6 +14,7 @@ import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { Html5QrcodeSupportedFormats } from "html5-qrcode";
 import QRScannerModal from '../../../components/QRScannerModal';
+import ConfirmModal from '../../../components/ConfirmModal';
 import { useAppContext } from '../../../context/AppContext';
 import { appendPOSStaffBill, getStaffSession } from '../../../utils/staffSession';
 import {
@@ -279,6 +280,13 @@ const SellerPOSOrders = () => {
       return;
     }
 
+    setBillToRemove(billId);
+  };
+
+  const performCloseBill = () => {
+    if (!billToRemove) return;
+    const billId = billToRemove;
+
     setBills(prev => {
       let updated = prev.filter(b => b.id !== billId);
       // If only one bill remains, ensure its name is "Bill 1"
@@ -295,6 +303,7 @@ const SellerPOSOrders = () => {
       }
       return updated;
     });
+    setBillToRemove(null);
   };
 
   // Derived State (Proxies for existing logic)
@@ -513,6 +522,7 @@ const SellerPOSOrders = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingItem, setEditingItem] = useState<CartItem | null>(null);
   const [editingPurchaseItem, setEditingPurchaseItem] = useState<PurchaseItem | null>(null);
+  const [billToRemove, setBillToRemove] = useState<string | null>(null);
 
   // Quick Add Form
   const [quickForm, setQuickForm] = useState({ barcode: '', name: '', price: '', qty: '1', mrp: '', purchasePrice: '', wholesalePrice: '', categoryId: '', brandId: '', addToInventory: false, warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
@@ -6095,6 +6105,17 @@ const SellerPOSOrders = () => {
         </div>
       )}
 
+      {/* --- CONFIRM REMOVE BILL MODAL --- */}
+      <ConfirmModal
+        isOpen={!!billToRemove}
+        title="Remove Bill"
+        message="Are you sure you want to remove this bill? All items in this cart will be lost."
+        onConfirm={performCloseBill}
+        onCancel={() => setBillToRemove(null)}
+        confirmText="Remove"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   );
 };
