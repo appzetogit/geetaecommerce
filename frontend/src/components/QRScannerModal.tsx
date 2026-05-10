@@ -173,7 +173,7 @@ export default function QRScannerModal({
   const [isHighContrast, setIsHighContrast] = useState(false);
 
   // Helper: Synthesize a sharp 'beep' sound for instant feedback
-  const playBeep = (freq = 880) => {
+  const playBeep = (freq = 1000) => {
     try {
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioCtx.createOscillator();
@@ -185,7 +185,7 @@ export default function QRScannerModal({
       oscillator.type = "sine";
       oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime); 
       gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.01);
+      gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.01);
       gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
 
       oscillator.start();
@@ -235,20 +235,9 @@ export default function QRScannerModal({
     const onDecoded = (decodedText: string) => {
       if (handledRef.current) return;
 
-      if (lastDetectedCodeRef.current.code !== decodedText) {
-        lastDetectedCodeRef.current = { code: decodedText, count: 1 };
-        return;
-      } else {
-        lastDetectedCodeRef.current.count += 1;
-      }
-
-      if (lastDetectedCodeRef.current.count < 2) return;
-
       // Instant Feedback
       if (navigator.vibrate) navigator.vibrate(60);
-      playBeep(880);
-
-
+      playBeep(1000);
 
       handledRef.current = true;
       const s = scannerRef.current;
@@ -376,6 +365,7 @@ export default function QRScannerModal({
         /* ignore */
       }
       scannerRef.current = null;
+      playBeep(1000);
       onScanSuccessRef.current(text);
     } catch {
       handledRef.current = false;
