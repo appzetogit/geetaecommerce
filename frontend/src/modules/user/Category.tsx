@@ -377,7 +377,7 @@ export default function CategoryPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
-        <div className="w-24 bg-white border-r border-neutral-100 overflow-y-auto scrollbar-hide flex-shrink-0 py-2">
+        <div className="w-20 bg-white border-r border-neutral-100 overflow-y-auto scrollbar-hide flex-shrink-0 py-2">
           <div className="space-y-1">
             {subcategories.map((subcat) => {
               const isSelected =
@@ -403,7 +403,7 @@ export default function CategoryPage() {
                     isSelected ? "bg-green-50" : "hover:bg-neutral-50"
                   }`}
                   style={{
-                    minHeight: "80px",
+                    minHeight: "72px",
                   }}>
                   {/* Active Indicator - curved blob on left */}
                   {isSelected && (
@@ -412,7 +412,7 @@ export default function CategoryPage() {
 
                   {/* Image Container */}
                   <div
-                    className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl mb-1.5 flex-shrink-0 overflow-hidden transition-all duration-200 shadow-sm ${
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg mb-1 flex-shrink-0 overflow-hidden transition-all duration-200 shadow-sm ${
                       isSelected
                         ? "ring-2 ring-green-600 ring-offset-2 bg-white"
                         : "bg-neutral-50 border border-neutral-100 group-hover:shadow-md"
