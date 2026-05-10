@@ -5539,7 +5539,7 @@ const SellerPOSOrders = () => {
           #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
           
           /* Force the receipt container to be visible and at the top */
-          .receipt-container-wrapper { 
+          .seller-order-print-wrapper { 
             visibility: visible !important;
             display: block !important; 
             position: fixed !important; 
@@ -5550,7 +5550,7 @@ const SellerPOSOrders = () => {
             z-index: 99999 !important;
           }
           
-          .receipt-container-wrapper * { visibility: visible !important; }
+          .seller-order-print-wrapper * { visibility: visible !important; }
           
           .receipt-container { 
             width: 100% !important; 
@@ -5576,7 +5576,8 @@ const SellerPOSOrders = () => {
       ` }} />
 
       {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
-      <div className="hidden print:block receipt-container-wrapper bg-white p-0 m-0">
+      {lastBillDetails && (
+          <div className="hidden print:block seller-order-print-wrapper bg-white p-0 m-0">
           <div className="receipt-container text-black font-medium" style={{ fontFamily: "'Times New Roman', serif" }}>
               {/* Header */}
               <div className="text-left">
@@ -5698,6 +5699,7 @@ const SellerPOSOrders = () => {
               </div>
           </div>
       </div>
+  )}
 
       {/* --- ADD CUSTOMER MODAL --- */}
       {showAddCustomerModal && (

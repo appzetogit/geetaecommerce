@@ -1151,7 +1151,7 @@ const AdminPOSReport = () => {
                   body { visibility: hidden !important; }
                   #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
                   
-                  .receipt-container-wrapper { 
+                  .admin-report-print-wrapper { 
                     visibility: visible !important;
                     display: block !important; 
                     position: fixed !important; 
@@ -1162,7 +1162,7 @@ const AdminPOSReport = () => {
                     z-index: 99999 !important;
                   }
                   
-                  .receipt-container-wrapper * { visibility: visible !important; }
+                  .admin-report-print-wrapper * { visibility: visible !important; }
                   
                   .receipt-container { 
                     width: 100% !important; 
@@ -1189,7 +1189,7 @@ const AdminPOSReport = () => {
 
             {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
             {printOrder && (
-                <div className="hidden print:block receipt-container-wrapper bg-white p-0 m-0">
+                <div className="hidden print:block admin-report-print-wrapper bg-white p-0 m-0">
                     <div className="receipt-container text-black font-medium" style={{ fontFamily: "'Times New Roman', serif" }}>
                         {/* Header */}
                         <div className="text-left">
