@@ -3,7 +3,7 @@ import { deleteSellerPOSOrder, getPOSReport, updateStockLedgerEntry, getPOSStock
 import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { useToast } from '../../../context/ToastContext';
-import { readSellerPosBillSettings, SELLER_POS_BILL_SETTINGS_KEY, SELLER_POS_BILL_SETTINGS_UPDATED_EVENT } from "../../../utils/sellerPosBillSettings";
+import { readSellerPosBillSettings, SELLER_BILL_SETTINGS_KEY, SELLER_BILL_SETTINGS_UPDATED_EVENT } from "../../../utils/sellerPosBillSettings";
 import { useAppContext } from '../../../context/AppContext';
 
 const FiTrendingUp = ({ className }: { className?: string }) => (
@@ -95,7 +95,7 @@ const SellerPOSReport = () => {
         refreshConfig();
         const loadPosBillSettings = () => {
           try {
-            const saved = localStorage.getItem(SELLER_POS_BILL_SETTINGS_KEY);
+            const saved = localStorage.getItem(SELLER_BILL_SETTINGS_KEY);
             if (saved) {
               setPosBillSettings(JSON.parse(saved));
             } else {
@@ -107,17 +107,17 @@ const SellerPOSReport = () => {
         };
         loadPosBillSettings();
         const onStorage = (e: StorageEvent) => {
-          if (e.key === SELLER_POS_BILL_SETTINGS_KEY || e.key === null) {
+          if (e.key === SELLER_BILL_SETTINGS_KEY || e.key === null) {
             loadPosBillSettings();
           }
         };
         const onBillSettingsUpdated = () => loadPosBillSettings();
         window.addEventListener('storage', onStorage);
-        window.addEventListener(SELLER_POS_BILL_SETTINGS_UPDATED_EVENT, onBillSettingsUpdated);
+        window.addEventListener(SELLER_BILL_SETTINGS_UPDATED_EVENT, onBillSettingsUpdated);
         window.addEventListener('focus', onBillSettingsUpdated);
         return () => {
           window.removeEventListener('storage', onStorage);
-          window.removeEventListener(SELLER_POS_BILL_SETTINGS_UPDATED_EVENT, onBillSettingsUpdated);
+          window.removeEventListener(SELLER_BILL_SETTINGS_UPDATED_EVENT, onBillSettingsUpdated);
           window.removeEventListener('focus', onBillSettingsUpdated);
         };
     }, []);

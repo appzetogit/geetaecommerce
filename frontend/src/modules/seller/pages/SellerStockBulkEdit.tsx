@@ -158,6 +158,7 @@ export default function SellerStockBulkEdit({
   const [isScanning, setIsScanning] = useState(false);
   const [scanIndex, setScanIndex] = useState<number | null>(null);
   const [showSearchScanner, setShowSearchScanner] = useState(false);
+  const [searchScannerKey, setSearchScannerKey] = useState(0);
   const lastSearchScanRef = useRef<{ code: string; time: number }>({ code: "", time: 0 });
 
   useEffect(() => {
@@ -165,21 +166,8 @@ export default function SellerStockBulkEdit({
     return () => clearTimeout(handle);
   }, [searchTerm]);
 
-  const stopSearchScanning = async () => {
-    try {
-      if (searchScannerRef.current) {
-        const scanner = searchScannerRef.current;
-        if (scanner.isScanning) {
-          await scanner.stop();
-        }
-        scanner.clear();
-        searchScannerRef.current = null;
-      }
-    } catch (e) {
-      console.warn("Search scanner stop error", e);
-    } finally {
-      setShowSearchScanner(false);
-    }
+  const stopSearchScanning = () => {
+    setShowSearchScanner(false);
   };
 
   const onSearchScanSuccess = (decodedText: string) => {
@@ -194,83 +182,10 @@ export default function SellerStockBulkEdit({
 
     setSearchTerm(cleaned);
     setPage(1);
-    void stopSearchScanning();
+    setShowSearchScanner(false);
   };
 
-  useEffect(() => {
-    const startScanner = async () => {
-      if (!showSearchScanner) return;
 
-      await new Promise((r) => setTimeout(r, 300));
-      const readerId = `bulk-search-reader-${searchScannerKey}`;
-      const element = document.getElementById(readerId);
-      if (!element) return;
-
-      try {
-        if (searchScannerRef.current) {
-          try {
-            if (searchScannerRef.current.isScanning) {
-              await searchScannerRef.current.stop();
-            }
-            searchScannerRef.current.clear();
-          } catch (e) {
-            console.warn("Search scanner cleanup error", e);
-          }
-        }
-
-        const scanner = new Html5Qrcode(readerId, {
-          verbose: false,
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.CODE_93,
-            Html5QrcodeSupportedFormats.ITF,
-            Html5QrcodeSupportedFormats.CODABAR,
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.DATA_MATRIX,
-            Html5QrcodeSupportedFormats.PDF_417,
-          ],
-        });
-        searchScannerRef.current = scanner;
-        await scanner.start(
-          { facingMode: "environment" },
-          {
-            fps: 30,
-            aspectRatio: 1.0,
-            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-              const width = Math.floor(Math.min(viewfinderWidth * 0.85, 400));
-              const height = Math.floor(Math.max(160, Math.min(viewfinderHeight * 0.5, width * 0.6)));
-              return { width, height };
-            },
-            experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-          } as any,
-          onSearchScanSuccess,
-          () => {}
-        );
-      } catch (err) {
-        console.error("Search scanner error:", err);
-        alert("Failed to start camera. Please check permissions.");
-        setShowSearchScanner(false);
-      }
-    };
-
-    if (showSearchScanner) {
-      void startScanner();
-    }
-
-    return () => {
-      if (searchScannerRef.current) {
-        const scanner = searchScannerRef.current;
-        if (scanner.isScanning) {
-          scanner.stop().then(() => scanner.clear()).catch(console.error);
-        }
-      }
-    };
-  }, [showSearchScanner, searchScannerKey]);
 
   const upsertEditedCache = (p: EditableProduct) => {
     if (!p.id) return;

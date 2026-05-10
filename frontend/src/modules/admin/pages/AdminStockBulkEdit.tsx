@@ -161,6 +161,7 @@ export default function AdminStockBulkEdit({
   const [isScanning, setIsScanning] = useState(false);
   const [scanIndex, setScanIndex] = useState<number | null>(null);
   const [showSearchScanner, setShowSearchScanner] = useState(false);
+  const [searchScannerKey, setSearchScannerKey] = useState(0);
   const lastSearchScanRef = useRef<{ code: string; time: number }>({ code: "", time: 0 });
 
   useEffect(() => {
@@ -342,66 +343,21 @@ export default function AdminStockBulkEdit({
   const startScanning = (index: number) => {
     setIsScanning(true);
     setScanIndex(index);
-    setTimeout(() => {
-        const scanner = new Html5Qrcode("bulk-barcode-reader", {
-            verbose: false,
-            formatsToSupport: [
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.CODE_39,
-                Html5QrcodeSupportedFormats.CODE_93,
-                Html5QrcodeSupportedFormats.ITF,
-                Html5QrcodeSupportedFormats.CODABAR,
-                Html5QrcodeSupportedFormats.QR_CODE,
-                Html5QrcodeSupportedFormats.DATA_MATRIX,
-                Html5QrcodeSupportedFormats.PDF_417,
-            ],
-        });
-        scannerRef.current = scanner;
-        scanner.start(
-            { facingMode: "environment" },
-            {
-                fps: 30,
-                aspectRatio: 1.0,
-                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                    const width = Math.floor(Math.min(viewfinderWidth * 0.85, 400));
-                    const height = Math.floor(Math.max(160, Math.min(viewfinderHeight * 0.5, width * 0.6)));
-                    return { width, height };
-                },
-                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-            } as any,
-            (decodedText) => {
-                if (index !== null) {
-                    const currentBarcodes = editableProducts[index].barcode || [];
-                    if (!currentBarcodes.includes(decodedText)) {
-                        handleFieldChange(index, 'barcode', [...currentBarcodes, decodedText]);
-                    }
-                }
-                stopScanning();
-            },
-            () => {}
-        ).catch(err => {
-            console.error(err);
-            setIsScanning(false);
-        });
-    }, 100);
+  };
+
+  const onInlineScanSuccess = (decodedText: string) => {
+      if (scanIndex !== null) {
+          const currentBarcodes = editableProducts[scanIndex].barcode || [];
+          if (!currentBarcodes.includes(decodedText)) {
+              handleFieldChange(scanIndex, 'barcode', [...currentBarcodes, decodedText]);
+          }
+      }
+      setIsScanning(false);
   };
 
   const stopScanning = () => {
-    if (scannerRef.current) {
-        scannerRef.current.stop().then(() => {
-            scannerRef.current?.clear();
-            setIsScanning(false);
-        }).catch(err => {
-            console.error(err);
-            setIsScanning(false);
-        });
-    } else {
-        setIsScanning(false);
-    }
+    setIsScanning(false);
+    setScanIndex(null);
   };
 
   useEffect(() => {
