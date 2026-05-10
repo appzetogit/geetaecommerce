@@ -1005,7 +1005,7 @@ const SellerPOSReport = () => {
 
             {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
             {printOrder && (
-                <div className="hidden print:block seller-report-print-wrapper bg-white p-0 m-0">
+                <div className="hidden seller-report-print-wrapper bg-white p-0 m-0">
                     <div className="receipt-container text-black font-medium" style={{ fontFamily: "'Times New Roman', serif" }}>
                         {/* Header */}
                         <div className="text-left">
