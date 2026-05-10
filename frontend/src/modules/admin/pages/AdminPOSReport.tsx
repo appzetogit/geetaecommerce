@@ -3,7 +3,8 @@ import { getPOSReport, getStockLedger, deletePOSOrder, updateStockLedgerEntry, u
 import jsPDF from "jspdf";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../../context/ToastContext";
-import { readAdminPosBillSettings } from "../../../utils/adminPosBillSettings";
+import { readAdminPosBillSettings, ADMIN_POS_BILL_SETTINGS_KEY, ADMIN_POS_BILL_SETTINGS_UPDATED_EVENT } from "../../../utils/adminPosBillSettings";
+import { useAppContext } from "../../../context/AppContext";
 
 const FiTrendingUp = ({ className }: { className?: string }) => (
   <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -46,6 +47,9 @@ const AdminPOSReport = () => {
     const [editingLedgerEntry, setEditingLedgerEntry] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+    const { config, refreshConfig } = useAppContext();
+    const [posBillSettings, setPosBillSettings] = useState<any>(null);
+    const [printOrder, setPrintOrder] = useState<any>(null);
 
     // Status Update State
     const [showStatusModal, setShowStatusModal] = useState(false);
@@ -91,6 +95,34 @@ const AdminPOSReport = () => {
     useEffect(() => {
         // Initial load (Today default handled by backend if no params)
         fetchData();
+        refreshConfig();
+        const loadPosBillSettings = () => {
+          try {
+            const saved = localStorage.getItem(ADMIN_POS_BILL_SETTINGS_KEY);
+            if (saved) {
+              setPosBillSettings(JSON.parse(saved));
+            } else {
+              setPosBillSettings(null);
+            }
+          } catch (e) {
+            console.error('Failed to load POS bill settings', e);
+          }
+        };
+        loadPosBillSettings();
+        const onStorage = (e: StorageEvent) => {
+          if (e.key === ADMIN_POS_BILL_SETTINGS_KEY || e.key === null) {
+            loadPosBillSettings();
+          }
+        };
+        const onBillSettingsUpdated = () => loadPosBillSettings();
+        window.addEventListener('storage', onStorage);
+        window.addEventListener(ADMIN_POS_BILL_SETTINGS_UPDATED_EVENT, onBillSettingsUpdated);
+        window.addEventListener('focus', onBillSettingsUpdated);
+        return () => {
+          window.removeEventListener('storage', onStorage);
+          window.removeEventListener(ADMIN_POS_BILL_SETTINGS_UPDATED_EVENT, onBillSettingsUpdated);
+          window.removeEventListener('focus', onBillSettingsUpdated);
+        };
     }, []);
 
     const [customStart, setCustomStart] = useState("");
@@ -270,163 +302,6 @@ const AdminPOSReport = () => {
          }
     };
 
-    const escapeHtml = (value: unknown) => {
-        const str = String(value ?? "");
-        return str
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    };
-
-    const openOrderReceiptPrintWindow = (order: any) => {
-        const printWindow = window.open("", "_blank", "width=980,height=760");
-        if (!printWindow) {
-            showToast("Please allow popups to print bill.", "error");
-            return;
-        }
-
-        const billSettings = (readAdminPosBillSettings() as any) || {};
-        const shopName = billSettings.shopName || "GEETA";
-        const address = billSettings.address || "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001";
-        const phone = billSettings.phone || "7898111456";
-
-        const createdAt = new Date(order.orderDate || order.createdAt || Date.now());
-        const dateStr = createdAt.toLocaleDateString("en-IN");
-        const timeStr = createdAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-        const invoiceNum = order.orderNumber || order.invoiceNum || order.billNo || (order._id ? String(order._id).slice(-6).toUpperCase() : "-");
-
-        const items: any[] = order.items || order.cart || order.orderItems || [];
-        let totalQty = 0;
-        let totalMRP = 0;
-        let computedTotal = 0;
-
-        const rowsHtml = items
-            .map((item: any, idx: number) => {
-                const itemName = item.productName || item.product?.productName || item.name || "Item";
-                const qty = Number(item.quantity ?? item.qty ?? 0) || 0;
-                const sp = Number(item.unitPrice ?? item.price ?? item.sellingPrice ?? 0) || 0;
-                const mrp = Number(item.mrp ?? item.compareAtPrice ?? sp) || 0;
-                const amt = Number(item.total ?? (sp * qty)) || 0;
-
-                totalQty += qty;
-                totalMRP += mrp * qty;
-                computedTotal += amt;
-
-                return `
-                  <tr>
-                    <td colspan="5" class="name">${idx + 1}. ${escapeHtml(itemName)}</td>
-                  </tr>
-                  <tr class="meta">
-                    <td class="right">${escapeHtml(qty)}PC</td>
-                    <td class="right">${escapeHtml(mrp.toFixed(2))}</td>
-                    <td class="right">${escapeHtml(sp.toFixed(2))}</td>
-                    <td class="right" colspan="2">${escapeHtml(amt.toFixed(2))}</td>
-                  </tr>
-                `;
-            })
-            .join("");
-
-        const total = Number(order.total ?? order.grandTotal ?? computedTotal) || 0;
-        const savings = Math.max(totalMRP - total, 0);
-        const savingsPercent = totalMRP > 0 ? ((savings / totalMRP) * 100).toFixed(1) : "0";
-
-        const qrCode = billSettings.qrCode
-            ? `<div class="qr"><img src="${escapeHtml(billSettings.qrCode)}" alt="QR" /></div>`
-            : "";
-
-        const html = `
-          <html>
-            <head>
-              <title>Bill - ${escapeHtml(invoiceNum)}</title>
-              <style>
-                * { box-sizing: border-box; }
-                body { margin: 0; padding: 0; color: #000; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-                .receipt { width: 80mm; margin: 0 auto; padding: 8px; font-weight: 600; }
-                .h1 { font-size: 18px; font-weight: 800; text-transform: uppercase; }
-                .small { font-size: 11px; font-weight: 500; white-space: pre-wrap; line-height: 1.2; }
-                .hr { border-top: 1px solid #000; margin: 8px 0; }
-                .dhr { border-top: 1px dashed #000; margin: 8px 0; }
-                .row { display: flex; justify-content: space-between; font-size: 12px; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { padding: 0; font-size: 12px; vertical-align: top; }
-                th { text-align: left; font-weight: 800; }
-                .right { text-align: right; }
-                .name { padding-top: 2px; }
-                .meta td { font-size: 11px; }
-                .saved { display: flex; justify-content: space-between; background: #e5e5e5; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 6px 4px; margin: 6px 0; font-weight: 800; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                .total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; margin-top: 6px; }
-                .paid { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; margin-top: 6px; }
-                .qr { display: flex; justify-content: center; margin-top: 12px; }
-                .qr img { width: 128px; height: 128px; object-fit: contain; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                @page { size: auto; margin: 6mm; }
-              </style>
-            </head>
-            <body>
-              <div class="receipt">
-                <div class="h1">${escapeHtml(shopName)}</div>
-                <div class="small">${escapeHtml(address)}</div>
-                <div class="small">${escapeHtml(phone)}</div>
-
-                <div class="hr"></div>
-
-                <div class="row"><span>MEMO</span><span>${escapeHtml(timeStr)}</span></div>
-                <div class="row"><span>${escapeHtml(dateStr)}</span><span>Bill No: ${escapeHtml(invoiceNum)}</span></div>
-
-                <div class="dhr"></div>
-
-                <table>
-                  <thead>
-                    <tr>
-                      <th colspan="5">Item Name</th>
-                    </tr>
-                    <tr>
-                      <th class="right">Qty</th>
-                      <th class="right">MRP</th>
-                      <th class="right">SP</th>
-                      <th class="right" colspan="2">Amt</th>
-                    </tr>
-                  </thead>
-                </table>
-
-                <div class="dhr"></div>
-
-                <table>
-                  <tbody>
-                    ${rowsHtml || ""}
-                  </tbody>
-                </table>
-
-                <div class="dhr"></div>
-
-                <div class="row" style="font-weight:800;font-size:11px;">
-                  <span>Total Qty.: ${escapeHtml(totalQty)}</span>
-                  <span>Total MRP: Rs ${escapeHtml(totalMRP.toFixed(2))}</span>
-                </div>
-
-                ${savings > 0 ? `<div class="saved"><span>You Saved ${escapeHtml(savingsPercent)} %</span><span>${escapeHtml(savings.toFixed(2))}</span></div>` : ""}
-
-                <div class="total"><span>Total Payable Amount</span><span>${escapeHtml(total.toFixed(2))}</span></div>
-                <div class="paid"><span>${escapeHtml(order.paymentMethod || "Cash")} Paid</span><span>${escapeHtml(total.toFixed(2))}</span></div>
-
-                <div class="dhr"></div>
-
-                ${qrCode}
-              </div>
-              <script>
-                window.onload = function () { setTimeout(function () { window.print(); }, 350); };
-                window.onafterprint = function () { window.close(); };
-              </script>
-            </body>
-          </html>
-        `;
-
-        printWindow.document.open();
-        printWindow.document.write(html);
-        printWindow.document.close();
-    };
-
     const handlePrintBill = async (order: any) => {
         if (!order) return;
 
@@ -442,7 +317,19 @@ const AdminPOSReport = () => {
             setLoading(false);
         }
 
-        openOrderReceiptPrintWindow(fullOrder);
+        try {
+            const fresh = readAdminPosBillSettings();
+            setPosBillSettings(fresh);
+        } catch (e) {
+            console.error('Failed to sync bill settings before print', e);
+        }
+
+        setPrintOrder(fullOrder);
+        // Small delay to ensure state update and DOM rendering of the print div
+        setTimeout(() => {
+            window.print();
+            setPrintOrder(null);
+        }, 300);
         setSelectedActionOrder(null);
     };
 
@@ -1243,6 +1130,183 @@ const AdminPOSReport = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Inject print-specific styles to remove browser margins and force width */}
+            <style dangerouslySetInnerHTML={{ __html: `
+                @media print {
+                  @page { margin: 0; size: auto; }
+                  html, body { 
+                    height: auto !important; 
+                    overflow: visible !important; 
+                    margin: 0 !important; 
+                    padding: 0 !important; 
+                    font-family: 'Times New Roman', Times, serif !important;
+                  }
+                  
+                  body { visibility: hidden !important; }
+                  #root { height: 0 !important; overflow: visible !important; display: block !important; }
+                  
+                  .receipt-container-wrapper { 
+                    visibility: visible !important;
+                    display: block !important; 
+                    position: absolute !important; 
+                    top: 0 !important; 
+                    left: 0 !important; 
+                    width: 100% !important; 
+                    background: white !important;
+                    z-index: 99999 !important;
+                  }
+                  
+                  .receipt-container-wrapper * { visibility: visible !important; }
+                  
+                  .receipt-container { 
+                    width: 100% !important; 
+                    margin: 0 !important; 
+                    padding: 15px !important;
+                    box-sizing: border-box;
+                    font-weight: 600 !important;
+                  }
+                  .receipt-container b, .receipt-container strong, .receipt-container .font-bold, .receipt-container .font-semibold, .receipt-container .font-black {
+                    font-weight: 900 !important;
+                    -webkit-text-stroke: 0.2px black;
+                  }
+
+                  .receipt-line {
+                    border-bottom: 2.5px solid black !important;
+                    margin: 8px 0 !important;
+                  }
+                  .receipt-line-thick {
+                    border-bottom: 4px solid black !important;
+                    margin: 10px 0 !important;
+                  }
+                }
+            ` }} />
+
+            {/* --- HIDDEN THERMAL RECEIPT (VISIBLE ONLY ON PRINT) --- */}
+            {printOrder && (
+                <div className="hidden print:block receipt-container-wrapper bg-white p-0 m-0">
+                    <div className="receipt-container text-black font-medium" style={{ fontFamily: "'Times New Roman', serif" }}>
+                        {/* Header */}
+                        <div className="text-left">
+                            <h1 className="text-3xl font-black uppercase">{posBillSettings?.shopName || 'GEETA'}</h1>
+                            <p className="text-base leading-tight whitespace-pre-wrap font-bold">{posBillSettings?.address || 'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'}</p>
+                            <p className="text-base font-black">{posBillSettings?.phone || '7898111456'}</p>
+                        </div>
+
+                        <div className="receipt-line-thick"></div>
+
+                        {/* Invoice Metadata */}
+                        <div className="space-y-1 text-base">
+                            <div className="flex justify-between">
+                                <span className="font-bold">Invoice Number:</span>
+                                <span className="font-bold">{printOrder.orderNumber || printOrder._id.slice(-6).toUpperCase()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="font-bold">Invoice Date:</span>
+                                <span className="font-bold">
+                                    {new Date(printOrder.orderDate || printOrder.createdAt).toLocaleDateString('en-IN')} {new Date(printOrder.orderDate || printOrder.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="font-bold">Payment Status:</span>
+                                <span className="font-bold">{printOrder.paymentMethod || 'Cash'}</span>
+                            </div>
+                        </div>
+
+                        <div className="receipt-line-thick"></div>
+
+                        <div className="text-center font-black text-base mb-1">Estimated Bill</div>
+
+                        {/* Items Table Headers */}
+                        <div className="grid grid-cols-12 gap-1 font-black text-base border-b-2 border-black pb-1">
+                            <div className="col-span-5">Item-name</div>
+                            <div className="col-span-2 text-center">Qty</div>
+                            <div className="col-span-2 text-right">MRP</div>
+                            <div className="col-span-1 text-right">Sp</div>
+                            <div className="col-span-2 text-right">Total</div>
+                        </div>
+
+                        {/* Items List */}
+                        <div className="py-2 space-y-2">
+                            {(printOrder.items || []).map((item: any, idx: number) => {
+                                const sp = Number(item.unitPrice || item.price || 0);
+                                const mrp = Number(item.mrp || item.compareAtPrice || sp);
+                                const qty = Number(item.quantity || item.qty || 0);
+                                const total = sp * qty;
+                                const itemName = item.productName || item.product?.productName || item.name || "Unknown Item";
+                                
+                                return (
+                                    <div key={idx} className="grid grid-cols-12 gap-1 text-[15px] leading-tight font-bold">
+                                        <div className="col-span-5 font-bold">({idx + 1}) {itemName}</div>
+                                        <div className="col-span-2 text-center font-bold">{qty}</div>
+                                        <div className="col-span-2 text-right font-bold">{mrp > 0 ? mrp.toFixed(0) : '-'}</div>
+                                        <div className="col-span-1 text-right font-bold">{sp.toFixed(0)}</div>
+                                        <div className="col-span-2 text-right font-black">{total.toFixed(0)}</div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+
+                        <div className="receipt-line-thick"></div>
+
+                        {/* Summary Stats */}
+                        {(() => {
+                            const items = printOrder.items || [];
+                            let tQty = 0;
+                            let tMRP = 0;
+                            items.forEach((item: any) => {
+                                const qty = Number(item.quantity || item.qty || 0);
+                                const sp = Number(item.unitPrice || item.price || 0);
+                                const itemMrp = Number(item.mrp || item.compareAtPrice || sp);
+                                tQty += qty;
+                                tMRP += itemMrp * qty;
+                            });
+                            const tBill = Number(printOrder.total || 0);
+                            const tSavings = tMRP - tBill;
+                            const sPercent = tMRP > 0 ? ((tSavings / tMRP) * 100).toFixed(0) : "0";
+
+                            return (
+                                <div className="text-base">
+                                    <div className="flex justify-between mb-1">
+                                        <span className="font-bold">Total Qty.: {tQty}</span>
+                                        <span className="font-black">Total MRP: Rs {tMRP.toFixed(0)}</span>
+                                    </div>
+                                    
+                                    {tSavings > 0 && (
+                                         <div className="flex justify-between bg-gray-200 px-1 py-2 my-2 border-2 border-black" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                                             <span className="font-black text-[18px] uppercase tracking-tighter">YOU SAVED {sPercent}%</span>
+                                             <span className="font-black text-[18px]">{tSavings.toFixed(0)}</span>
+                                         </div>
+                                     )}
+                                </div>
+                            );
+                        })()}
+
+                        <div className="receipt-line-thick"></div>
+
+                        {/* Grand Total */}
+                        <div className="flex justify-between font-black text-xl py-1 border-y border-black mt-1">
+                            <span>Total bill amount:</span>
+                            <span>{Number(printOrder.total || 0).toFixed(0)}</span>
+                        </div>
+
+                        {/* Footer / Notes */}
+                        <div className="text-center mt-6 space-y-2">
+                            <p className="text-sm font-bold">।। आपका विश्वास हमारी ताकत ।।</p>
+                            
+                            {((posBillSettings?.notes?.enabled && posBillSettings?.notes?.text) || (config?.invoiceSettings?.notes?.enabled && config?.invoiceSettings?.notes?.text)) && (
+                                <p className="text-[10px] whitespace-pre-wrap">{posBillSettings?.notes?.enabled ? posBillSettings?.notes?.text : config?.invoiceSettings?.notes?.text}</p>
+                            )}
+
+                            {posBillSettings?.qrCode && (
+                                <div className="mt-4 flex justify-center">
+                                    <img src={posBillSettings.qrCode} alt="QR" className="w-24 h-24 object-contain" style={{ WebkitPrintColorAdjust: 'exact' }} />
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
