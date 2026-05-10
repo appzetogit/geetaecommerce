@@ -325,9 +325,9 @@ export const updateCategory = asyncHandler(
       .populate("parentId", "name")
       .populate("headerCategoryId", "name status");
 
-    // If status changed, sync products
+    // If status changed, invalidate caches (product status sync removed)
     if (statusChanged && updatedCategory) {
-      await syncProductsWithCategoryStatus(id, updatedCategory.status);
+      // await syncProductsWithCategoryStatus(id, updatedCategory.status);
     }
 
     // Invalidate category caches
@@ -464,8 +464,8 @@ export const toggleCategoryStatus = asyncHandler(
     category.status = status;
     await category.save();
 
-    // Sync products visibility
-    await syncProductsWithCategoryStatus(id, status);
+    // Invalidate product caches (product status sync removed)
+    // await syncProductsWithCategoryStatus(id, status);
 
     // Optionally cascade to children
     if (cascadeToChildren === true) {
@@ -948,7 +948,8 @@ export const createProduct = asyncHandler(
         }
       }
 
-      // Verify category is active
+      // Category status verification removed to allow POS billing for inactive category products
+      /*
       if (productData.category) {
         const category = await Category.findById(productData.category);
         if (category && category.status === "Inactive") {
@@ -956,6 +957,7 @@ export const createProduct = asyncHandler(
           productData.inactiveReason = "CategoryDeactivated";
         }
       }
+      */
 
       if (
         !productData.productName ||
@@ -1251,7 +1253,8 @@ export const updateProduct = asyncHandler(
       });
     }
 
-    // Verify category status if category is changed
+    // Category status verification removed to allow POS billing for inactive category products
+    /*
     if (updateData.category) {
       const category = await Category.findById(updateData.category);
       if (category && category.status === "Inactive") {
@@ -1263,6 +1266,7 @@ export const updateProduct = asyncHandler(
         unsetFields.inactiveReason = 1;
       }
     }
+    */
 
     // Apply updates
     Object.keys(updateData).forEach((key) => {
@@ -1601,6 +1605,11 @@ const syncProductsWithCategoryStatus = async (categoryId: string, status: "Activ
     const descendants = await category.getAllDescendants();
     const allCategoryIds = [category._id, ...descendants.map(d => d._id)];
 
+    /* 
+    Status sync disabled: we now keep products Active even if category is Inactive 
+    to allow POS billing. Customer app will handle filtering instead.
+    */
+    /*
     if (status === "Inactive") {
       // Mark products as Inactive if they were Active
       // We check both category and subcategory fields
@@ -1645,6 +1654,7 @@ const syncProductsWithCategoryStatus = async (categoryId: string, status: "Activ
         }
       );
     }
+    */
   } catch (error) {
     console.error("Error syncing products with category status:", error);
   }

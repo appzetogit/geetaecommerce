@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+import QRScannerModal from "./QRScannerModal";
 import { getVariationTypes } from "../services/api/admin/adminVariationTypeService";
 
 export interface Variation {
@@ -50,71 +50,24 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
   const [colorInput, setColorInput] = useState<{name: string, code: string}>({ name: "", code: "#000000" });
   const [isScanning, setIsScanning] = useState(false);
   const [scanIndex, setScanIndex] = useState<number | null>(null);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   const startScanning = (index: number) => {
     setIsScanning(true);
     setScanIndex(index);
-    setTimeout(() => {
-        const scanner = new Html5Qrcode("variation-reader", {
-            verbose: false,
-            formatsToSupport: [
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8,
-                Html5QrcodeSupportedFormats.UPC_A,
-                Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.CODE_39,
-                Html5QrcodeSupportedFormats.CODE_93,
-                Html5QrcodeSupportedFormats.ITF,
-                Html5QrcodeSupportedFormats.CODABAR,
-                Html5QrcodeSupportedFormats.QR_CODE,
-                Html5QrcodeSupportedFormats.DATA_MATRIX,
-                Html5QrcodeSupportedFormats.PDF_417,
-            ],
-        });
-        scannerRef.current = scanner;
-        scanner.start(
-            { facingMode: "environment" },
-            {
-                fps: 30,
-                aspectRatio: 1.0,
-                qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-                    const width = Math.floor(Math.min(viewfinderWidth * 0.85, 400));
-                    const height = Math.floor(Math.max(160, Math.min(viewfinderHeight * 0.5, width * 0.6)));
-                    return { width, height };
-                },
-                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-            } as any,
-            (decodedText) => {
-                if (index !== null) {
-                    const currentBarcodes = localVariations[index].barcode || [];
-                    if (!currentBarcodes.includes(decodedText)) {
-                        handleChange(index, 'barcode', [...currentBarcodes, decodedText]);
-                    }
-                }
-                stopScanning();
-            },
-            () => {}
-        ).catch(err => {
-            console.error(err);
-            setIsScanning(false);
-        });
-    }, 100);
+  };
+
+  const onScanSuccess = (decodedText: string) => {
+    if (scanIndex !== null) {
+      const currentBarcodes = localVariations[scanIndex].barcode || [];
+      if (!currentBarcodes.includes(decodedText)) {
+        handleChange(scanIndex, 'barcode', [...currentBarcodes, decodedText]);
+      }
+    }
+    setIsScanning(false);
   };
 
   const stopScanning = () => {
-    if (scannerRef.current) {
-        scannerRef.current.stop().then(() => {
-            scannerRef.current?.clear();
-            setIsScanning(false);
-        }).catch(err => {
-            console.error(err);
-            setIsScanning(false);
-        });
-    } else {
-        setIsScanning(false);
-    }
+    setIsScanning(false);
   };
 
   useEffect(() => {
@@ -533,24 +486,10 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
         </div>
       </div>
       {isScanning && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80">
-              <div className="bg-white rounded-lg overflow-hidden w-full max-w-sm shadow-2xl">
-                  <div className="bg-[#f187b5] p-3 text-white flex justify-between items-center">
-                      <h3 className="font-bold flex items-center gap-2">
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                          Scan Barcode
-                      </h3>
-                      <button onClick={stopScanning} className="hover:bg-white/20 p-1 rounded-full">&times;</button>
-                  </div>
-                  <div className="aspect-square bg-gray-900 border-y border-gray-700">
-                      <div id="variation-reader" className="w-full h-full"></div>
-                  </div>
-                  <div className="p-4 bg-gray-50 text-center">
-                      <p className="text-xs text-gray-500 mb-3">Place the barcode inside the frame</p>
-                      <button onClick={stopScanning} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold text-xs transition-colors">Cancel</button>
-                  </div>
-              </div>
-          </div>
+        <QRScannerModal
+            onClose={stopScanning}
+            onScanSuccess={onScanSuccess}
+        />
       )}
     </div>
   );

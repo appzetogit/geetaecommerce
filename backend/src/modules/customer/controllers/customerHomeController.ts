@@ -60,6 +60,11 @@ async function fetchSectionData(
         ],
       };
 
+      // Only show products from active categories
+      const activeCategories = await Category.find({ status: "Active" }).select("_id").lean();
+      const activeCategoryIds = activeCategories.map(c => c._id);
+      query.category = { $in: activeCategoryIds };
+
       // Filter by enabled sellers
       const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
       const enabledSellerIds = enabledSellers.map(s => s._id);
@@ -209,6 +214,10 @@ export const getHomeContent = async (req: Request, res: Response) => {
           publish: true,
         };
 
+        // Ensure category is active
+        const activeCategory = await Category.findOne({ _id: categoryId, status: "Active" }).select("_id").lean();
+        if (!activeCategory) return null;
+
         // Fetch 4 active products from the category for preview images
         // We fetch these irrespective of location radius to show category preview
         const categoryProducts = await Product.find(productQuery)
@@ -276,13 +285,17 @@ export const getHomeContent = async (req: Request, res: Response) => {
           seller: { $in: enabledSellerIds }
           // Removed location filter to show preview images irrespective of radius
         },
+        populate: {
+          path: "category",
+          match: { status: "Active" }
+        }
       })
       .sort({ order: 1 })
       .lean();
 
-    // Filter out any products that were null (due to match condition)
+    // Filter out any products that were null (due to match condition or inactive category)
     const validLowestPricesProducts = lowestPricesProducts
-      .filter((item: any) => item.product !== null)
+      .filter((item: any) => item.product !== null && item.product.category !== null)
       .map((item: any) => {
         const product = item.product;
         // Check if the product's seller is within range
@@ -373,9 +386,13 @@ export const getHomeContent = async (req: Request, res: Response) => {
 
     // 7. Cooking Ideas (Fetch some products from 'Food' or 'Grocery' categories)
     // We fetch these irrespective of location radius to show preview images
+    const activeCategories = await Category.find({ status: "Active" }).select("_id").lean();
+    const activeCategoryIds = activeCategories.map(c => c._id);
+
     const foodProductsQuery: any = {
       status: "Active",
       publish: true,
+      category: { $in: activeCategoryIds }
     };
 
     const foodProducts = await Product.find(foodProductsQuery)
@@ -604,6 +621,11 @@ export const getStoreProducts = async (req: Request, res: Response) => {
       // Only show shop-by-store-only products in shop by store section
       isShopByStoreOnly: true,
     };
+
+    // Only show products from active categories
+    const activeCategories = await Category.find({ status: "Active" }).select("_id").lean();
+    const activeCategoryIds = activeCategories.map(c => c._id);
+    query.category = { $in: activeCategoryIds };
 
     console.log(`[getStoreProducts] Looking for shop with storeId: ${storeId}`);
 

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useRef, lazy, Suspense } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Html5Qrcode } from "html5-qrcode";
 import {
   getProducts,
   deleteProduct,
@@ -98,9 +97,7 @@ export default function SellerProductList() {
 
   // Scanner State
   const [showScanner, setShowScanner] = useState(false);
-
   const lastScanRef = useRef({ code: '', time: 0 });
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
 
   // Barcode Selection Modal State
   const [showBarcodeSelectModal, setShowBarcodeSelectModal] = useState(false);
@@ -191,53 +188,13 @@ export default function SellerProductList() {
     setShowScanner(false);
   };
 
-  useEffect(() => {
-    const startScanner = async () => {
-      if (!showScanner) return;
-      await new Promise(r => setTimeout(r, 300));
-      const element = document.getElementById('reader');
-      if (!element) return;
+  const startScanner = () => {
+    setShowScanner(true);
+  };
 
-      try {
-        if (html5QrCodeRef.current) {
-          try {
-            if (html5QrCodeRef.current.isScanning) {
-              await html5QrCodeRef.current.stop();
-            }
-            html5QrCodeRef.current.clear();
-          } catch (e) {
-            console.warn("Scanner stop error", e);
-          }
-        }
-
-        const scanner = new Html5Qrcode("reader");
-        html5QrCodeRef.current = scanner;
-        await scanner.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
-          onScanSuccess,
-          () => {}
-        );
-      } catch (err) {
-        console.error("Scanner Error:", err);
-        alert("Failed to start camera. Please check permissions.");
-        setShowScanner(false);
-      }
-    };
-
-    if (showScanner) {
-      startScanner();
-    }
-
-    return () => {
-      if (html5QrCodeRef.current) {
-        const scanner = html5QrCodeRef.current;
-        if (scanner.isScanning) {
-          scanner.stop().then(() => scanner.clear()).catch(console.error);
-        }
-      }
-    };
-  }, [showScanner]);
+  const stopScanner = () => {
+    setShowScanner(false);
+  };
 
   const handleDelete = async (productId: string) => {
     if (!isEnabled) return;

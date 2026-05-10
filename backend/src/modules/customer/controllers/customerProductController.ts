@@ -39,6 +39,11 @@ export const getProducts = async (req: Request, res: Response) => {
       publish: true,
     };
 
+    // Only show products from active categories
+    const activeCategories = await Category.find({ status: "Active" }).select("_id").lean();
+    const activeCategoryIds = activeCategories.map(c => c._id);
+    query.category = { $in: activeCategoryIds };
+
     // Use $and array to combine conditions safely without overwriting $or blocks
     const andConditions: any[] = [
       {
@@ -259,9 +264,14 @@ export const getSearchSuggestions = async (req: Request, res: Response) => {
     }
 
     const searchRegex = { $regex: q, $options: "i" };
+    // Only suggest products from active categories
+    const activeCategories = await Category.find({ status: "Active" }).select("_id").lean();
+    const activeCategoryIds = activeCategories.map(c => c._id);
+
     const query: any = {
       status: "Active",
       publish: true,
+      category: { $in: activeCategoryIds },
       $or: [
         { productName: searchRegex },
         { tags: searchRegex },
@@ -351,15 +361,19 @@ export const getProductById = async (req: Request, res: Response) => {
       status: "Active",
       publish: true,
     })
-      .populate("category", "name parentId")
+      .populate({
+        path: "category",
+        match: { status: "Active" }, // Ensure category is active
+        select: "name parentId status"
+      })
       .populate("subcategory", "name parentId")
       .populate("brand", "name")
       .populate(
         "seller",
         "storeName city fssaiLicNo address location serviceRadiusKm email isEnabled"
-      ); // Added email to selection to check if it's admin, and isEnabled for online visibility status
+      );
 
-    if (!product) {
+    if (!product || !product.category) { // If category is null due to match filter, hide product
       return res.status(404).json({
         success: false,
         message: "Product not found or unavailable",

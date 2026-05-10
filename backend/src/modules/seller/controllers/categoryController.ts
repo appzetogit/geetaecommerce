@@ -137,7 +137,7 @@ export const getSubcategories = asyncHandler(
     // 1. Get subcategories from new Category model (where parentId = category id)
     const categorySubcategoriesQuery: any = {
       parentId: id,
-      status: "Active", // Only active subcategories
+      // Removed status: "Active" to allow POS billing for inactive categories
     };
     if (searchQuery) {
       categorySubcategoriesQuery.name = searchQuery;

@@ -37,7 +37,7 @@ import {
 } from "../../../services/api/headerCategoryService";
 
 import ThemedDropdown from "../components/ThemedDropdown";
-import { Html5Qrcode } from "html5-qrcode";
+import QRScannerModal from "../../../components/QRScannerModal";
 
 import { getAppSettings } from "../../../services/api/admin/adminSettingsService";
 
@@ -150,7 +150,6 @@ export default function AdminAddProduct() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanTarget, setScanTarget] = useState<"product" | "variation" | "table-variation" | "sku" | "check-exists">("product");
   const [scanTargetIndex, setScanTargetIndex] = useState<number | null>(null);
-  const scannerRef = React.useRef<Html5Qrcode | null>(null);
   const [foundProduct, setFoundProduct] = useState<any>(null);
   const [editingVariationIndex, setEditingVariationIndex] = useState<number | null>(null);
   const [showProductFoundModal, setShowProductFoundModal] = useState(false);
@@ -1338,66 +1337,40 @@ export default function AdminAddProduct() {
   };
 
   const startScanning = (target: "product" | "variation" | "table-variation" | "sku" | "check-exists" = "product", index: number | null = null) => {
-    setIsScanning(true);
     setScanTarget(target);
     setScanTargetIndex(index);
-    // Slight delay to ensure DOM element exists
-    setTimeout(() => {
-        const html5QrCode = new Html5Qrcode("reader");
-        scannerRef.current = html5QrCode;
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    setIsScanning(true);
+  };
 
-        html5QrCode.start(
-            { facingMode: "environment" },
-            config,
-            (decodedText) => {
-                if (target === "check-exists") {
-                    handleCheckExists(decodedText);
-                    stopScanning();
-                    return;
-                }
-                // Success callback
-                 if (target === "product") {
-                     setFormData(prev => ({ ...prev, barcode: [...prev.barcode, decodedText] }));
-                 } else if (target === "sku") {
-                     addBarcode('product', null, decodedText);
-                 } else if (target === "variation") {
-                    setVariationForm(prev => ({ ...prev, barcode: [...prev.barcode, decodedText] }));
-                } else if (target === "table-variation" && index !== null) {
-                    setVariations(prev => {
-                        const n = [...prev];
-                        n[index].barcode = [...(n[index].barcode || []), decodedText];
-                        return n;
-                    });
-                }
-                stopScanning();
-                setSuccessMessage("Barcode Scanned Successfully!");
-                setTimeout(() => setSuccessMessage(""), 3000);
-                // Optional: Play a beep sound
-                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                audio.play().catch(e => console.log('Audio play failed', e));
-        },
-        (errorMessage) => {
-            // Optional: Handle scan error (not critical)
-        }
-        ).catch(err => {
-            console.error("Scanning failed", err);
-            setIsScanning(false);
-            setUploadError("Failed to start camera. Please ensure permissions are granted.");
-        });
-    }, 200);
+  const onScanSuccess = (decodedText: string) => {
+      const target = scanTarget;
+      const index = scanTargetIndex;
+
+      if (target === "check-exists") {
+          handleCheckExists(decodedText);
+          setIsScanning(false);
+          return;
+      }
+      if (target === "product") {
+          setFormData(prev => ({ ...prev, barcode: [...prev.barcode, decodedText] }));
+      } else if (target === "sku") {
+          addBarcode('product', null, decodedText);
+      } else if (target === "variation") {
+          setVariationForm(prev => ({ ...prev, barcode: [...prev.barcode, decodedText] }));
+      } else if (target === "table-variation" && index !== null) {
+          setVariations(prev => {
+              const n = [...prev];
+              n[index].barcode = [...(n[index].barcode || []), decodedText];
+              return n;
+          });
+      }
+      setIsScanning(false);
+      setSuccessMessage("Barcode Scanned Successfully!");
+      setTimeout(() => setSuccessMessage(""), 3000);
   };
 
   const stopScanning = () => {
-      if (scannerRef.current) {
-          scannerRef.current.stop().then(() => {
-              scannerRef.current?.clear();
-              setIsScanning(false);
-          }).catch(err => {
-              console.error("Failed to stop scanner", err);
-              setIsScanning(false);
-          });
-      }
+      setIsScanning(false);
   };
   const addBarcode = (target: 'product' | 'variation' | 'table-variation', index: number | null = null, value: string) => {
     if(!value.trim()) return;
@@ -3849,25 +3822,11 @@ const applySearchedImage = () => {
 
         </form>
       </div>
-      {/* Scanner Modal */}
       {isScanning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative">
-            <div className="p-4 bg-[#f187b5] text-white flex justify-between items-center">
-              <h3 className="font-semibold">Scan Barcode</h3>
-              <button
-                onClick={stopScanning}
-                className="p-1 hover:bg-[#e076a5] rounded-full transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-              </button>
-            </div>
-            <div className="p-4 bg-neutral-900">
-                <div id="reader" className="w-full h-64 bg-neutral-800 rounded-lg overflow-hidden"></div>
-                <p className="text-center text-white text-sm mt-4">Point camera at a barcode to scan</p>
-            </div>
-          </div>
-        </div>
+          <QRScannerModal
+            onClose={stopScanning}
+            onScanSuccess={onScanSuccess}
+          />
       )}
         {/* Unit Pricing Modal */}
         {unitPricingModal.isOpen && (
