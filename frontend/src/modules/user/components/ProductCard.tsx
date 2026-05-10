@@ -256,14 +256,14 @@ export default function ProductCard({
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.2 }}
-      className={`${categoryStyle ? '' : 'bg-white'} rounded-lg shadow-sm overflow-hidden flex flex-col relative`}
-      style={{ backgroundColor: categoryStyle ? '#fff4ed' : '#ffffff' }} // Light peach/orange background as per reference image
+      className={`${categoryStyle ? '' : 'bg-white'} rounded-lg shadow-sm overflow-hidden flex flex-col relative border border-neutral-100 hover:shadow-md transition-shadow`}
+      style={{ backgroundColor: '#ffffff' }} // Changed from orange tint to white
     >
       <div
         onClick={handleCardClick}
         className="cursor-pointer flex-1 flex flex-col"
       >
-        <div className={`w-full ${compact ? 'h-32 md:h-40' : categoryStyle ? 'h-36 md:h-44' : 'h-40 md:h-48'} bg-neutral-100 flex items-center justify-center overflow-hidden relative`}>
+        <div className={`w-full ${compact ? 'h-40 md:h-48' : categoryStyle ? 'h-44 md:h-56' : 'h-48 md:h-60'} bg-neutral-100 flex items-center justify-center overflow-hidden relative`}>
           {product.imageUrl || product.mainImage ? (
             <img
               ref={imageRef}
@@ -292,21 +292,28 @@ export default function ProductCard({
 
           {categoryStyle && showBadge && discount > 0 && (
             <div
-                className="absolute top-2 left-2 z-10 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md"
-                style={{ backgroundColor: '#d35400' }} // Orange offer tag
+                className="absolute top-0 left-0 z-10 text-white text-[10px] font-bold px-2 py-1 rounded-br-lg flex items-center gap-1 shadow-sm transition-transform hover:scale-105"
+                style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
             >
-              {discount}% off
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+              </svg>
+              <span>{discount}% OFF</span>
             </div>
           )}
 
           {!categoryStyle && showBadge && (badgeText || discount > 0) && (
-            <Badge
-              variant="default"
-              className="absolute top-2 left-2 z-10 text-xs px-2 py-1"
-              style={{ backgroundColor: '#d35400' }}
+            <div
+              className="absolute top-0 left-0 z-10 text-white text-[10px] px-2.5 py-1 font-bold rounded-br-xl shadow-md flex items-center gap-1"
+              style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
             >
-              {badgeText || `${discount}% OFF`}
-            </Badge>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                <line x1="7" y1="7" x2="7.01" y2="7"></line>
+              </svg>
+              <span>{badgeText || `${discount}% OFF`}</span>
+            </div>
           )}
 
           {showPackBadge && (
@@ -370,25 +377,34 @@ export default function ProductCard({
                       e.stopPropagation();
                       handleAdd(e);
                     }}
-                    className={`w-full rounded-md font-bold text-xs h-7 px-3 flex items-center justify-center uppercase tracking-wide transition-all duration-200 border ${
+                    className={`w-full rounded-full font-bold text-[11px] h-8 px-4 flex items-center justify-center gap-1.5 uppercase tracking-wider transition-all duration-300 border shadow-sm ${
                       product.isAvailable === false
-                      ? 'bg-neutral-200 text-neutral-400 border-neutral-300 cursor-not-allowed'
-                      : 'active:scale-95'
+                      ? 'bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed'
+                      : 'hover:bg-red-600 hover:text-white hover:border-red-600 hover:shadow-md active:scale-95'
                     }`}
                     style={product.isAvailable !== false ? {
-                        backgroundColor: 'rgba(211, 84, 0, 0.12)',
-                        borderColor: '#d35400',
-                        color: '#d35400'
+                        backgroundColor: 'rgba(239, 68, 68, 0.04)',
+                        borderColor: '#ef4444',
+                        color: '#ef4444'
                     } : {}}
                   >
-                    {product.isAvailable === false ? 'Out of Range' : 'ADD'}
+                    {product.isAvailable === false ? (
+                       'Out of Range'
+                    ) : (
+                      <>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="5" x2="12" y2="19"></line>
+                          <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <span>ADD</span>
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
             ) : (
               <div
-                className="flex items-center justify-center gap-1.5 bg-white rounded-md px-1.5 py-0.5 h-7 w-full border"
-                style={{ borderColor: '#d35400' }}
+                className="flex items-center justify-center gap-1.5 bg-red-50 rounded-full px-1 py-0.5 h-8 w-full border border-red-200 shadow-sm"
               >
                 <Button
                   variant="default"
@@ -397,13 +413,14 @@ export default function ProductCard({
                     e.stopPropagation();
                     handleDecrease(e);
                   }}
-                  className="w-5 h-5 p-0 bg-transparent shadow-none"
-                  style={{ color: '#d35400' }}
+                  className="w-6 h-6 p-0 bg-white hover:bg-red-100 rounded-full shadow-sm text-red-600 transition-colors border border-red-100"
                   aria-label="Decrease quantity"
                 >
-                  −
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
                 </Button>
-                <span className="text-xs font-bold min-w-[1rem] text-center" style={{ color: '#d35400' }}>
+                <span className="text-xs font-black min-w-[1.25rem] text-center text-red-600">
                   {inCartQty}
                 </span>
                 <Button
@@ -414,13 +431,15 @@ export default function ProductCard({
                     e.stopPropagation();
                     handleIncrease(e);
                   }}
-                  className={`w-5 h-5 p-0 bg-transparent shadow-none ${
-                    product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : ''
+                  className={`w-6 h-6 p-0 bg-white hover:bg-red-100 rounded-full shadow-sm text-red-600 transition-colors border border-red-100 ${
+                    product.isAvailable === false ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
-                  style={product.isAvailable !== false ? { color: '#d35400' } : {}}
                   aria-label="Increase quantity"
                 >
-                  +
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
                 </Button>
               </div>
             )}
@@ -433,29 +452,31 @@ export default function ProductCard({
             <>
               {/* 1. Quantity */}
               {!showPackBadge && (product.pack || product.variations?.[0]?.value) && (
-                <p className="text-[9px] text-neutral-600 mb-0.5 leading-tight">
+                <p className="text-[10px] text-neutral-500 mb-0.5 leading-tight font-medium">
                   {product.variations?.[0]?.value || product.pack}
                 </p>
               )}
 
               {/* 2. Name */}
-              <h3 className="text-[10px] font-bold text-neutral-900 mb-0.5 line-clamp-2 leading-tight min-h-[1.75rem] max-h-[1.75rem] overflow-hidden">
+              <h3 className="text-xs md:text-sm font-bold text-neutral-900 mb-0.5 line-clamp-2 leading-tight overflow-hidden">
                 {product.name || product.productName || ''}
               </h3>
 
-              {/* 2.5. Rating */}
-              <div className="mb-0.5">
-                <StarRating
-                  rating={(product.rating || (product as any).rating) || 0}
-                  reviewCount={(product.reviews || (product as any).reviewsCount) || 0}
-                  size="sm"
-                  showCount={true}
-                />
-              </div>
+              {/* 2.5. Rating - Only show if rating exists */}
+              {((product.rating || (product as any).rating) || 0) > 0 && (
+                <div className="mb-0">
+                  <StarRating
+                    rating={(product.rating || (product as any).rating) || 0}
+                    reviewCount={(product.reviews || (product as any).reviewsCount) || 0}
+                    size="sm"
+                    showCount={true}
+                  />
+                </div>
+              )}
 
               {/* 3. Time */}
-               <p className="text-[9px] text-neutral-600 mb-0.5 flex items-center gap-0.5 leading-tight">
-                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+               <p className="text-[10px] text-neutral-500 mb-0.5 flex items-center gap-0.5 leading-tight">
+                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
                    <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                  </svg>
@@ -464,22 +485,21 @@ export default function ProductCard({
 
               {/* 4. Tiered Pricing Static Display (Multi-Row) */}
               {tieredPrices.length > 0 ? (
-                 <div className="flex flex-col gap-0.5 mb-1 mt-auto w-full border-t border-gray-100 pt-1">
+                 <div className="flex flex-col gap-0 mb-1 mt-auto w-full border-t border-gray-100 pt-1">
                     {/* Line 1: Base Price */}
-                    <div className="flex justify-between items-center text-[9px] leading-tight">
+                    <div className="flex justify-between items-center text-[10px] leading-none py-0.5">
                        <span className="text-gray-500 font-medium">1 unit</span>
                        <div className="flex items-center gap-1">
                          <span className="font-semibold text-gray-700">₹{displayPrice}</span>
-                         {/* Optional: Show base discount if needed, but keeping it clean for list */}
                        </div>
                     </div>
                     {/* Additional Tiers */}
                     {tieredPrices.slice().sort((a: any, b: any) => a.minQty - b.minQty).map((tier: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center text-[9px] leading-tight">
-                           <span className="text-[#d35400] font-bold">{tier.minQty}+ units</span>
+                        <div key={idx} className="flex justify-between items-center text-[10px] leading-none py-0.5">
+                           <span className="text-[#ef4444] font-bold">{tier.minQty}+ units</span>
                            <div className="flex items-center gap-1">
                              <span className="font-bold text-gray-900">₹{tier.price}</span>
-                              <span className="text-[#d35400] font-bold bg-orange-50 px-1 rounded-sm">
+                              <span className="text-[#ef4444] font-bold bg-red-50 px-1 rounded-sm">
                                {Math.round(((mrp - tier.price) / mrp) * 100)}% OFF
                              </span>
                            </div>
@@ -488,20 +508,20 @@ export default function ProductCard({
                  </div>
               ) : (
                  discount > 0 && (
-                   <p className="text-[9px] font-semibold text-[#d35400] mb-0.5 leading-tight">
+                   <p className="text-[10px] font-semibold text-[#ef4444] mb-0.5 leading-tight">
                     {discount}% OFF
                   </p>
                  )
               )}
 
               {/* 5. Price with discount */}
-              <div className="mt-auto">
+              <div className="mt-auto pt-0.5">
                 <div className="flex items-baseline gap-1 flex-wrap">
-                  <span className="text-[11px] font-bold text-neutral-900 leading-tight">
+                  <span className="text-sm md:text-base font-bold text-neutral-900 leading-tight">
                     ₹{currentUnitPrice.toLocaleString('en-IN')}
                   </span>
                   {mrp && mrp > displayPrice && (
-                    <span className="text-[8px] text-neutral-500 line-through leading-tight">
+                    <span className="text-[10px] text-neutral-500 line-through leading-tight">
                       ₹{mrp.toLocaleString('en-IN')}
                     </span>
                   )}
@@ -545,11 +565,11 @@ export default function ProductCard({
                       {tieredPrices.map((tier: any, idx: number) => {
                           const tierDiscount = mrp ? Math.round(((mrp - tier.price) / mrp) * 100) : 0;
                           return (
-                               <div key={idx} className="flex justify-between items-center bg-orange-50 px-2 py-1 rounded text-[10px] border border-orange-100">
-                                  <span className="font-bold text-orange-800">Buy {tier.minQty}+</span>
+                               <div key={idx} className="flex justify-between items-center bg-red-50 px-2 py-1 rounded text-[10px] border border-red-100">
+                                  <span className="font-bold text-red-800">Buy {tier.minQty}+</span>
                                   <div className="flex items-center gap-1">
-                                      <span className="font-bold text-orange-700">₹{tier.price}</span>
-                                      {tierDiscount > 0 && <span className="text-[9px] text-[#d35400] font-bold">({tierDiscount}% OFF)</span>}
+                                      <span className="font-bold text-red-700">₹{tier.price}</span>
+                                      {tierDiscount > 0 && <span className="text-[9px] text-[#ef4444] font-bold">({tierDiscount}% OFF)</span>}
                                   </div>
                               </div>
                           );
@@ -558,7 +578,7 @@ export default function ProductCard({
               )}
 
               {showStockInfo && (
-                <p className="text-xs text-[#d35400] mb-2 font-medium">
+                <p className="text-xs text-[#ef4444] mb-2 font-medium">
                   Fast delivery
                 </p>
               )}
@@ -600,38 +620,48 @@ export default function ProductCard({
                   size="sm"
                   disabled={product.isAvailable === false}
                   onClick={handleAdd}
-                  className={`w-full border h-8 rounded-md text-xs font-bold uppercase tracking-wide transition-all duration-200 ${
+                  className={`w-full border h-9 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all duration-300 shadow-sm ${
                     product.isAvailable === false
-                    ? 'border-neutral-300 text-neutral-400 bg-neutral-50 cursor-not-allowed'
-                    : 'active:scale-95'
+                    ? 'border-neutral-200 text-neutral-400 bg-neutral-50 cursor-not-allowed'
+                    : 'hover:bg-red-600 hover:text-white hover:border-red-600 hover:shadow-md active:scale-95'
                   }`}
                   style={product.isAvailable !== false ? {
-                      backgroundColor: 'rgba(211, 84, 0, 0.12)',
-                      borderColor: '#d35400',
-                      color: '#d35400'
+                      backgroundColor: 'rgba(239, 68, 68, 0.04)',
+                      borderColor: '#ef4444',
+                      color: '#ef4444'
                   } : {}}
                 >
-                  {product.isAvailable === false ? 'Out of Range' : 'Add'}
+                  {product.isAvailable === false ? (
+                    'Out of Range'
+                  ) : (
+                    <div className="flex items-center justify-center gap-1.5">
+                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      <span>ADD</span>
+                    </div>
+                  )}
                 </Button>
                 <div className="h-4 mt-1">
                 </div>
               </div>
             ) : (
               <div
-                className="flex items-center justify-center gap-2 bg-white rounded-md px-2 py-0.5 h-8 border"
-                style={{ borderColor: '#d35400' }}
+                className="flex items-center justify-center gap-2 bg-red-50 rounded-full px-2 py-1 h-9 border border-red-200 shadow-sm"
               >
                 <Button
                   variant="default"
                   size="icon"
                   onClick={handleDecrease}
-                  className="w-6 h-6 p-0 bg-transparent shadow-none"
-                  style={{ color: '#d35400' }}
+                  className="w-7 h-7 p-0 bg-white hover:bg-red-100 rounded-full shadow-sm text-red-600 transition-colors border border-red-100"
                   aria-label="Decrease quantity"
                 >
-                  −
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
                 </Button>
-                <span className="text-xs font-bold min-w-[1.5rem] text-center" style={{ color: '#d35400' }}>
+                <span className="text-xs font-black min-w-[1.5rem] text-center text-red-600">
                   {inCartQty}
                 </span>
                 <Button
@@ -639,13 +669,15 @@ export default function ProductCard({
                   size="icon"
                   disabled={product.isAvailable === false}
                   onClick={handleIncrease}
-                  className={`w-6 h-6 p-0 bg-transparent shadow-none ${
-                    product.isAvailable === false ? 'text-neutral-300 cursor-not-allowed' : ''
+                  className={`w-7 h-7 p-0 bg-white hover:bg-red-100 rounded-full shadow-sm text-red-600 transition-colors border border-red-100 ${
+                    product.isAvailable === false ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
-                  style={product.isAvailable !== false ? { color: '#d35400' } : {}}
                   aria-label="Increase quantity"
                 >
-                  +
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
                 </Button>
               </div>
             )}
