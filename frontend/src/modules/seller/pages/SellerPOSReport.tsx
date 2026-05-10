@@ -976,23 +976,27 @@ const SellerPOSReport = () => {
                   
                   body.is-printing-seller-report .seller-report-print-wrapper * { visibility: visible !important; }
                   
-                  .receipt-container { 
+                  body.is-printing-seller-report .receipt-container { 
                     width: 100% !important; 
                     margin: 0 !important; 
                     padding: 15px !important;
                     box-sizing: border-box;
                     font-weight: 600 !important;
                   }
-                  .receipt-container b, .receipt-container strong, .receipt-container .font-bold, .receipt-container .font-semibold, .receipt-container .font-black {
+                  body.is-printing-seller-report .receipt-container b, 
+                  body.is-printing-seller-report .receipt-container strong, 
+                  body.is-printing-seller-report .receipt-container .font-bold, 
+                  body.is-printing-seller-report .receipt-container .font-semibold, 
+                  body.is-printing-seller-report .receipt-container .font-black {
                     font-weight: 900 !important;
                     -webkit-text-stroke: 0.2px black;
                   }
 
-                  .receipt-line {
+                  body.is-printing-seller-report .receipt-line {
                     border-bottom: 2.5px solid black !important;
                     margin: 8px 0 !important;
                   }
-                  .receipt-line-thick {
+                  body.is-printing-seller-report .receipt-line-thick {
                     border-bottom: 4px solid black !important;
                     margin: 10px 0 !important;
                   }
