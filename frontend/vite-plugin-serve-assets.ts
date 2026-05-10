@@ -35,6 +35,7 @@ export function serveAssetsPlugin(): Plugin {
               '.svg': 'image/svg+xml',
               '.mp4': 'video/mp4',
               '.webm': 'video/webm',
+              '.mp3': 'audio/mpeg',
             };
 
             const contentType = mimeTypes[ext] || 'application/octet-stream';

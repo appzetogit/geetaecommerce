@@ -101,7 +101,7 @@
 // }
 
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, useCallback, type ChangeEvent } from "react";
 import {
   Html5Qrcode,
   Html5QrcodeSupportedFormats,
@@ -172,28 +172,52 @@ export default function QRScannerModal({
   const [zoomRange, setZoomRange] = useState({ min: 1, max: 1, step: 0.1 });
   const [isHighContrast, setIsHighContrast] = useState(false);
 
-  // Helper: Synthesize a sharp 'beep' sound for instant feedback
-  const playBeep = (freq = 1000) => {
-    try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioBufferRef = useRef<AudioBuffer | null>(null);
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
+  useEffect(() => {
+    const loadSound = async () => {
+      try {
+        const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+        if (!AudioContextClass) return;
+        
+        const ctx = new AudioContextClass();
+        audioContextRef.current = ctx;
 
-      oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime); 
-      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.01);
-      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+        const response = await fetch('/assets/sound/beep.mp3');
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+        audioBufferRef.current = audioBuffer;
+      } catch (err) {
+        console.warn("Failed to load beep sound:", err);
+      }
+    };
 
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.12);
-    } catch (e) {
-      /* ignore audio errors */
+    loadSound();
+    
+    return () => {
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+      }
+    };
+  }, []);
+
+  const playBeep = useCallback(() => {
+    const ctx = audioContextRef.current;
+    const buffer = audioBufferRef.current;
+    
+    if (!ctx || !buffer) return;
+
+    // Resume context if it was suspended (common browser policy)
+    if (ctx.state === 'suspended') {
+      ctx.resume();
     }
-  };
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+    source.start(0);
+  }, []);
 
   useEffect(() => {
     onScanSuccessRef.current = onScanSuccess;
@@ -237,7 +261,7 @@ export default function QRScannerModal({
 
       // Instant Feedback
       if (navigator.vibrate) navigator.vibrate(60);
-      playBeep(1000);
+      playBeep();
 
       handledRef.current = true;
       const s = scannerRef.current;
@@ -365,7 +389,7 @@ export default function QRScannerModal({
         /* ignore */
       }
       scannerRef.current = null;
-      playBeep(1000);
+      playBeep();
       onScanSuccessRef.current(text);
     } catch {
       handledRef.current = false;
