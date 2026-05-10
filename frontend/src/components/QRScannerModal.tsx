@@ -210,13 +210,24 @@ export default function QRScannerModal({
 
     // Resume context if it was suspended (common browser policy)
     if (ctx.state === 'suspended') {
-      ctx.resume();
+      ctx.resume().catch(() => {});
     }
 
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-    source.start(0);
+    try {
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0);
+    } catch (e) {
+      console.warn("Failed to play beep:", e);
+    }
+  }, []);
+
+  // Helper to 'unlock' audio on first user interaction (required for mobile browsers)
+  const unlockAudio = useCallback(() => {
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume().catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
@@ -421,8 +432,18 @@ export default function QRScannerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden relative shadow-2xl flex flex-col max-h-[90vh]">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4"
+      onClick={unlockAudio}
+      onTouchStart={unlockAudio}
+    >
+      <div 
+        className="bg-white rounded-2xl w-full max-w-md overflow-hidden relative shadow-2xl flex flex-col max-h-[90vh]"
+        onClick={(e) => {
+          e.stopPropagation();
+          unlockAudio();
+        }}
+      >
         <div className="flex justify-between items-center py-2.5 px-4 border-b border-gray-100 shrink-0">
           <div>
             <h3 className="text-base font-bold text-gray-800 leading-tight">Scan barcode</h3>
