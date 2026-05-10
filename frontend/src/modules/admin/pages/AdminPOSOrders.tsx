@@ -5769,63 +5769,79 @@ const AdminPOSOrders = () => {
         </div>
       )}
 
-      {/* Inject print-specific styles to remove browser margins and force width */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          @page { margin: 0; size: auto; }
-          html, body { 
-            height: auto !important; 
-            overflow: visible !important; 
-            margin: 0 !important; 
-            padding: 0 !important; 
-            font-family: 'Times New Roman', Times, serif !important;
-          }
-          
-          /* Completely hide the main app root during printing */
-          body.is-printing-admin-order #root { display: none !important; }
-          
-          /* Force the receipt container (now at body level via portal) to be visible */
-          body.is-printing-admin-order .admin-order-print-wrapper { 
-            display: block !important;
-            visibility: visible !important;
-            position: relative !important;
-            width: 100% !important;
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          
-          body.is-printing-admin-order .admin-order-print-wrapper * { visibility: visible !important; }
-          
-          body.is-printing-admin-order .receipt-container { 
-            width: 100% !important; 
-            margin: 0 !important; 
-            padding: 15px !important;
-            box-sizing: border-box;
-            font-weight: 600 !important;
-          }
-          body.is-printing-admin-order .receipt-container b, 
-          body.is-printing-admin-order .receipt-container strong, 
-          body.is-printing-admin-order .receipt-container .font-bold, 
-          body.is-printing-admin-order .receipt-container .font-semibold, 
-          body.is-printing-admin-order .receipt-container .font-black {
-            font-weight: 900 !important;
-            -webkit-text-stroke: 0.2px black;
-          }
-
-          body.is-printing-admin-order .receipt-line {
-            border-bottom: 2.5px solid black !important;
-            margin: 8px 0 !important;
-          }
-          body.is-printing-admin-order .receipt-line-thick {
-            border-bottom: 4px solid black !important;
-            margin: 10px 0 !important;
-          }
-        }
-      ` }} />
-
       {/* --- HIDDEN THERMAL RECEIPT (MOVED TO PORTAL FOR ISOLATION) --- */}
       {lastBillDetails && createPortal(
+          <>
+          <style dangerouslySetInnerHTML={{ __html: `
+            @media print {
+              @page { margin: 0; size: auto; }
+              html, body { 
+                height: auto !important; 
+                overflow: visible !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                font-family: 'Times New Roman', Times, serif !important;
+                background: white !important;
+              }
+              
+              /* ULTRA AGGRESSIVE: Hide everything that is NOT the print wrapper */
+              body > *:not(.admin-order-print-wrapper) {
+                display: none !important;
+                visibility: hidden !important;
+                height: 0 !important;
+                overflow: hidden !important;
+              }
+              
+              /* Force the receipt container to be visible and occupy full space */
+              .admin-order-print-wrapper { 
+                display: block !important;
+                visibility: visible !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                z-index: 999999 !important;
+              }
+              
+              .admin-order-print-wrapper * { 
+                visibility: visible !important; 
+                display: block; /* Ensure grid/flex children are not accidentally hidden */
+              }
+              
+              /* Fix for grid layouts in print */
+              .admin-order-print-wrapper .grid { display: grid !important; }
+              .admin-order-print-wrapper .flex { display: flex !important; }
+
+              .receipt-container { 
+                width: 100% !important; 
+                margin: 0 !important; 
+                padding: 10px !important;
+                box-sizing: border-box;
+                background: white !important;
+              }
+              
+              .receipt-container b, 
+              .receipt-container strong, 
+              .receipt-container .font-bold, 
+              .receipt-container .font-semibold, 
+              .receipt-container .font-black {
+                font-weight: 900 !important;
+                -webkit-text-stroke: 0.2px black;
+              }
+
+              .receipt-line {
+                border-bottom: 2.5px solid black !important;
+                margin: 8px 0 !important;
+              }
+              .receipt-line-thick {
+                border-bottom: 4px solid black !important;
+                margin: 10px 0 !important;
+              }
+            }
+          ` }} />
           <div className="hidden admin-order-print-wrapper bg-white p-0 m-0">
           <div className="receipt-container text-black font-medium" style={{ fontFamily: "'Times New Roman', serif" }}>
               {/* Header */}
@@ -5947,7 +5963,8 @@ const AdminPOSOrders = () => {
                   )}
               </div>
           </div>
-      </div>,
+      </div>
+      </>,
       document.body
   )}
 
