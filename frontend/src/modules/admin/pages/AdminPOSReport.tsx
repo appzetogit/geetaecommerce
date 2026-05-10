@@ -325,11 +325,13 @@ const AdminPOSReport = () => {
         }
 
         setPrintOrder(fullOrder);
-        // Small delay to ensure state update and DOM rendering of the print div
+        // Larger delay for mobile browsers to ensure DOM is ready
         setTimeout(() => {
             window.print();
-            setPrintOrder(null);
-        }, 300);
+            // Do not clear immediately to allow mobile browsers to finish rasterization
+            // We can clear it after a longer delay or leave it for the next print
+            setTimeout(() => setPrintOrder(null), 3000);
+        }, 1000);
         setSelectedActionOrder(null);
     };
 
@@ -1147,12 +1149,12 @@ const AdminPOSReport = () => {
                   }
                   
                   body { visibility: hidden !important; }
-                  #root { height: 0 !important; overflow: visible !important; display: block !important; }
+                  #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
                   
                   .receipt-container-wrapper { 
                     visibility: visible !important;
                     display: block !important; 
-                    position: absolute !important; 
+                    position: fixed !important; 
                     top: 0 !important; 
                     left: 0 !important; 
                     width: 100% !important; 

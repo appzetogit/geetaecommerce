@@ -5779,13 +5779,13 @@ const AdminPOSOrders = () => {
           body { visibility: hidden !important; }
           
           /* Collapse the height of the main root to prevent blank pages */
-          #root { height: 0 !important; overflow: visible !important; display: block !important; }
+          #root { visibility: hidden !important; height: 0 !important; overflow: visible !important; }
           
           /* Force the receipt container to be visible and at the top */
           .receipt-container-wrapper { 
             visibility: visible !important;
             display: block !important; 
-            position: absolute !important; 
+            position: fixed !important; 
             top: 0 !important; 
             left: 0 !important; 
             width: 100% !important; 
