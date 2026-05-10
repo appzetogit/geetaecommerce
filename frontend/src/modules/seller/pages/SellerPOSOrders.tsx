@@ -5907,9 +5907,7 @@ const SellerPOSOrders = () => {
         <QRScannerModal
             onScanSuccess={(decodedText) => {
                 onScanSuccess(decodedText, null);
-                if (scanTarget !== 'inventory') {
-                    setShowScanner(false);
-                }
+                setShowScanner(false);
             }}
             onScanFailure={(err) => console.warn(err)}
             onClose={() => setShowScanner(false)}

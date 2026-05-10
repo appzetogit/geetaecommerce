@@ -6150,9 +6150,7 @@ const AdminPOSOrders = () => {
         <QRScannerModal
             onScanSuccess={(decodedText) => {
                 submitScanQuery(decodedText);
-                if (scanTarget !== 'inventory') {
-                   setShowScanner(false);
-                }
+                setShowScanner(false);
             }}
             onScanFailure={(err) => console.warn(err)}
             onClose={() => setShowScanner(false)}
