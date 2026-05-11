@@ -490,7 +490,7 @@ export default function ProductCard({
                     <div className="flex justify-between items-center text-[10px] leading-none py-0.5">
                        <span className="text-gray-500 font-medium">1 unit</span>
                        <div className="flex items-center gap-1">
-                         <span className="font-semibold text-gray-700">₹{displayPrice}</span>
+                         <span className="font-semibold text-red-600">₹{displayPrice}</span>
                        </div>
                     </div>
                     {/* Additional Tiers */}
@@ -498,7 +498,7 @@ export default function ProductCard({
                         <div key={idx} className="flex justify-between items-center text-[10px] leading-none py-0.5">
                            <span className="text-[#ef4444] font-bold">{tier.minQty}+ units</span>
                            <div className="flex items-center gap-1">
-                             <span className="font-bold text-gray-900">₹{tier.price}</span>
+                             <span className="font-bold text-red-600">₹{tier.price}</span>
                               <span className="text-[#ef4444] font-bold bg-red-50 px-1 rounded-sm">
                                {Math.round(((mrp - tier.price) / mrp) * 100)}% OFF
                              </span>
@@ -517,11 +517,11 @@ export default function ProductCard({
               {/* 5. Price with discount */}
               <div className="mt-auto pt-0.5">
                 <div className="flex items-baseline gap-1 flex-wrap">
-                  <span className="text-sm md:text-base font-bold text-neutral-900 leading-tight">
+                  <span className="text-sm md:text-base font-bold text-[#ef4444] leading-tight">
                     ₹{currentUnitPrice.toLocaleString('en-IN')}
                   </span>
                   {mrp && mrp > displayPrice && (
-                    <span className="text-[10px] text-neutral-500 line-through leading-tight">
+                    <span className="text-[10px] text-red-400 line-through leading-tight">
                       ₹{mrp.toLocaleString('en-IN')}
                     </span>
                   )}
@@ -558,7 +558,7 @@ export default function ProductCard({
                       <div className="flex justify-between items-center bg-gray-50 px-2 py-1 rounded text-[10px]">
                           <span className="font-medium text-gray-600">Buy 1</span>
                           <div className="flex items-center gap-1">
-                              <span className="font-bold text-gray-800">₹{displayPrice}</span>
+                              <span className="font-bold text-red-600">₹{displayPrice}</span>
                           </div>
                       </div>
                       {/* Additional Tiers */}
@@ -594,11 +594,11 @@ export default function ProductCard({
 
               <div className="mt-auto mb-2">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-base font-bold text-neutral-900">
+                  <span className="text-base font-bold text-[#ef4444]">
                     ₹{displayPrice}
                   </span>
                   {mrp && mrp > displayPrice && (
-                    <span className="text-xs text-neutral-500 line-through">
+                    <span className="text-xs text-red-400 line-through">
                       ₹{mrp}
                     </span>
                   )}

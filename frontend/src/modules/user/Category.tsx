@@ -213,7 +213,7 @@ export default function CategoryPage() {
         <p className="text-gray-600 mb-6 max-w-xs">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
+          className="px-6 py-2 bg-red-600 text-white rounded-full font-medium hover:bg-red-700 transition-colors"
         >
           Try Refreshing
         </button>
@@ -400,21 +400,21 @@ export default function CategoryPage() {
                     navigate({ search: newParams.toString() }, { replace: true });
                   }}
                   className={`w-full flex flex-col items-center justify-center py-2 relative transition-all duration-200 group ${
-                    isSelected ? "bg-green-50" : "hover:bg-neutral-50"
+                    isSelected ? "bg-red-50" : "hover:bg-neutral-50"
                   }`}
                   style={{
                     minHeight: "72px",
                   }}>
                   {/* Active Indicator - curved blob on left */}
                   {isSelected && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-green-600 rounded-r-full"></div>
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-red-600 rounded-r-full"></div>
                   )}
 
                   {/* Image Container */}
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg mb-1 flex-shrink-0 overflow-hidden transition-all duration-200 shadow-sm ${
                       isSelected
-                        ? "ring-2 ring-green-600 ring-offset-2 bg-white"
+                        ? "ring-2 ring-red-600 ring-offset-2 bg-white"
                         : "bg-neutral-50 border border-neutral-100 group-hover:shadow-md"
                     }`}>
                     {subcat.image ? (
@@ -441,7 +441,7 @@ export default function CategoryPage() {
                   <span
                     className={`text-[10px] text-center leading-tight px-1 transition-colors ${
                       isSelected
-                        ? "font-bold text-green-700"
+                        ? "font-bold text-red-600"
                         : "text-neutral-500 group-hover:text-neutral-900"
                     }`}
                     style={{
@@ -702,7 +702,7 @@ export default function CategoryPage() {
                             </span>
                             <div className="w-5 h-5 flex items-center justify-center flex-shrink-0 ml-2">
                               {isChecked ? (
-                                <div className="w-5 h-5 border-2 border-green-600 bg-green-600 rounded-sm flex items-center justify-center">
+                                <div className="w-5 h-5 border-2 border-red-600 bg-red-600 rounded-sm flex items-center justify-center">
                                   <svg
                                     className="w-3 h-3 text-white"
                                     fill="none"
@@ -733,14 +733,14 @@ export default function CategoryPage() {
                 <div className="px-5 py-4 border-t border-neutral-200 flex gap-3 bg-white">
                   <button
                     onClick={handleClearFilters}
-                    className="flex-1 px-4 py-2.5 border border-green-600 text-green-600 rounded-lg font-medium text-sm hover:bg-green-50 transition-colors bg-white">
+                    className="flex-1 px-4 py-2.5 border border-red-600 text-red-600 rounded-lg font-medium text-sm hover:bg-red-50 transition-colors bg-white">
                     Clear Filter
                   </button>
                   <button
                     onClick={handleApplyFilters}
                     className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
                       selectedFilters.length > 0
-                        ? "bg-green-600 text-white hover:bg-green-700"
+                        ? "bg-red-600 text-white hover:bg-red-700"
                         : "bg-neutral-300 text-neutral-500 cursor-not-allowed"
                     }`}
                     disabled={selectedFilters.length === 0}>

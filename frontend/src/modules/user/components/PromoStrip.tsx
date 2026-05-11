@@ -170,12 +170,26 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
                     id: card._id || card.categoryId?._id || card.categoryId,
                     badge: card.badge || `Up to ${card.discountPercentage || 0}% OFF`,
                     title: card.title || category?.name || "",
-                    categoryId: category?._id || card.categoryId, // Use _id for fetching subcategories
-                    slug: category?.slug || card.categoryId, // Use slug for navigation
+                    categoryId: category?._id || card.categoryId,
+                    slug: category?.slug || card.categoryId,
                     imageUrl: category?.image,
                     bgColor: "bg-yellow-50",
                   };
                 });
+            }
+
+            // Fallback to general categories if PromoStrip exists but has no category cards
+            if (fetchedCards.length === 0 && response.data.categories && response.data.categories.length > 0) {
+              fetchedCards = response.data.categories
+                .slice(0, 4)
+                .map((c: any) => ({
+                  id: c._id || c.id,
+                  badge: "Top Selling",
+                  title: c.name,
+                  categoryId: c.slug || c._id,
+                  slug: c.slug,
+                  bgColor: c.color || "bg-yellow-50",
+                }));
             }
 
             // Map featured products from PromoStrip
@@ -228,9 +242,10 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
               .slice(0, 4)
               .map((c: any) => ({
                 id: c._id || c.id,
-                badge: "Up to 50% OFF",
+                badge: "Top Selling",
                 title: c.name,
                 categoryId: c.slug || c._id,
+                slug: c.slug,
                 bgColor: c.color || "bg-yellow-50",
               }));
           }

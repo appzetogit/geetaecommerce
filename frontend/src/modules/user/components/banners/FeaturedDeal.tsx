@@ -117,8 +117,8 @@ export default function FeaturedDeal() {
                          <div className="relative w-24 h-24 flex-shrink-0 bg-neutral-50 rounded-lg overflow-hidden flex items-center justify-center">
                              {discount > 0 && (
                                 <span
-                                    className="absolute top-0 left-0 text-white text-[10px] font-bold px-2 py-1 rounded-br-lg z-10"
-                                    style={{ backgroundColor: theme.primary[0] }}
+                                    className="absolute top-0 left-0 text-white text-[10px] font-bold px-2 py-1 rounded-br-lg z-10 shadow-sm"
+                                    style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
                                 >
                                     -₹{mrp - displayPrice}
                                 </span>
@@ -139,8 +139,8 @@ export default function FeaturedDeal() {
                                  {product.name}
                              </h4>
                              <div className="flex items-center gap-2 mt-1">
-                                 <span className="text-xs text-slate-400 line-through">₹{mrp}</span>
-                                 <span className="text-sm font-bold text-slate-900">₹{displayPrice}</span>
+                                 <span className="text-xs text-red-400 line-through">₹{mrp}</span>
+                                 <span className="text-sm font-bold text-[#ef4444]">₹{displayPrice}</span>
                              </div>
 
                              {/* Decoration circle */}

@@ -243,13 +243,13 @@ export default function AddToCartAnimation({
       // Kill any existing animations first
       gsap.killTweensOf(linkRef.current);
 
-      // Enhanced pulse animation with glow effect
+      // Enhanced pulse animation with red glow effect
       const tl = gsap.timeline();
 
-      // Step 1: Scale up with glow
+      // Step 1: Scale up with red glow
       tl.to(linkRef.current, {
         scale: 1.08,
-        boxShadow: '0 10px 25px rgba(230, 126, 34, 0.4)',
+        boxShadow: '0 10px 25px rgba(239, 68, 68, 0.4)',
         duration: 0.15,
         ease: 'power2.out',
         transformOrigin: 'center center',
@@ -258,7 +258,7 @@ export default function AddToCartAnimation({
         // Step 2: Bounce back
         .to(linkRef.current, {
           scale: 1.0,
-          boxShadow: '0 4px 12px rgba(230, 126, 34, 0.3)',
+          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
           duration: 0.2,
           ease: 'power2.inOut',
         })
@@ -308,6 +308,24 @@ export default function AddToCartAnimation({
 
   return (
     <>
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .shimmer-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 255, 255, 0.2),
+            transparent
+          );
+          animation: shimmer 2s infinite;
+        }
+      `}</style>
+      
       {/* Removed product thumbnail - blasting out */}
       {removedProduct && (
         <div
@@ -374,11 +392,14 @@ export default function AddToCartAnimation({
             <Link
               ref={linkRef}
               to={cart.itemCount > 0 ? linkTo : '/cart'}
-              className={`bg-gradient-to-r from-orange-700 via-orange-600 to-orange-700 text-white rounded-full shadow-xl shadow-orange-900/30 px-3 py-2 flex items-center gap-2 hover:from-orange-800 hover:via-orange-700 hover:to-orange-800 transition-all duration-300 pointer-events-auto border border-orange-800/30 backdrop-blur-sm ${pillClassName}`}
+              className={`relative overflow-hidden bg-gradient-to-r from-red-700 via-red-600 to-red-700 text-white rounded-full shadow-xl shadow-red-900/30 px-3 py-2 flex items-center gap-2 hover:from-red-800 hover:via-red-700 hover:to-red-800 transition-all duration-300 pointer-events-auto border border-red-800/30 backdrop-blur-sm ${pillClassName}`}
             >
+              {/* Shimmer Effect */}
+              <div className="shimmer-overlay" />
+              
               {/* Left: Cart Icon or Product thumbnails */}
               {cart.itemCount > 0 ? (
-                <div className="flex items-center -space-x-4">
+                <div className="flex items-center -space-x-4 relative z-10">
                   {thumbnailItems.map((item, idx) => {
                     const prod = item.product;
                     if (!prod) return null;
@@ -417,7 +438,7 @@ export default function AddToCartAnimation({
                 </div>
               ) : (
                 <motion.div
-                  className="w-7 h-7 flex items-center justify-center"
+                  className="w-7 h-7 flex items-center justify-center relative z-10"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 500 }}
@@ -450,7 +471,7 @@ export default function AddToCartAnimation({
 
               {/* Middle: Text */}
               <motion.div
-                className="flex flex-col"
+                className="flex flex-col relative z-10"
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1, duration: 0.3 }}
@@ -468,7 +489,7 @@ export default function AddToCartAnimation({
 
               {/* Right: Arrow icon */}
               <motion.div
-                className="ml-auto bg-white/25 rounded-full p-1 backdrop-blur-sm"
+                className="ml-auto bg-white/25 rounded-full p-1 backdrop-blur-sm relative z-10"
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15, duration: 0.3 }}
