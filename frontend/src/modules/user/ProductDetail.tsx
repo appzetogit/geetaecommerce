@@ -15,6 +15,7 @@ import Badge from '../../components/ui/badge';
 import { getProductById, getProducts } from '../../services/api/customerProductService';
 import WishlistButton from '../../components/WishlistButton';
 import StarRating from "../../components/ui/StarRating";
+import ProductCard from "./components/ProductCard";
 import { calculateProductPrice, getApplicableUnitPrice } from '../../utils/priceUtils';
 
 export default function ProductDetail() {
@@ -1296,179 +1297,15 @@ export default function ProductDetail() {
                   const similarInCartQty = similarCartItem?.quantity || 0;
 
                   return (
-                    <div
-                      key={similarProduct.id}
-                      className="w-full bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden relative">
-                      {/* Heart icon - top right */}
-                      <WishlistButton
-                        productId={similarProduct.id || similarProduct._id}
-                        size="sm"
-                        className="absolute top-2 right-2 shadow-md"
-                      />
-
-                      {/* Image */}
-                      <div
-                        onClick={() =>
-                          navigate(
-                            `/product/${
-                              similarProduct.id || similarProduct._id
-                            }`,
-                            { state: { fromStore: true } }
-                          )
-                        }
-                        className="w-full h-32 bg-neutral-100 flex items-center justify-center overflow-hidden cursor-pointer">
-                        {similarProduct.imageUrl || similarProduct.mainImage ? (
-                          <img
-                            src={
-                              similarProduct.imageUrl ||
-                              similarProduct.mainImage
-                            }
-                            alt={
-                              similarProduct.name || similarProduct.productName
-                            }
-                            className="w-full h-full object-cover"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-neutral-400 text-2xl">
-                            {(
-                              similarProduct.name ||
-                              similarProduct.productName ||
-                              "P"
-                            )
-                              .charAt(0)
-                              .toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Info */}
-                      <div className="p-3">
-                        <h4 className="text-sm font-semibold text-neutral-900 mb-1 line-clamp-2 min-h-[2.5rem]">
-                          {similarProduct.name || similarProduct.productName}
-                        </h4>
-
-                        {/* Rating and Delivery time */}
-                        <div className="flex flex-col gap-1 mb-2">
-                          <StarRating
-                            rating={similarProduct.rating || 0}
-                            reviewCount={similarProduct.reviews || 0}
-                            size="sm"
-                            showCount={true}
-                          />
-                          <p className="text-[10px] text-neutral-600 flex items-center gap-1">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
-                              <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                            </svg>
-                            <span>{formatDeliveryTime((similarProduct as any)?.deliveryTime, "15 MINS")}</span>
-                          </p>
-                        </div>
-
-                        {/* Price display for similar products */}
-                        <div className="mb-2">
-                          {(() => {
-                            const { displayPrice, mrp, discount: sDiscount, hasDiscount: sHasDiscount } = calculateProductPrice(similarProduct);
-                            return (
-                              <div className="flex flex-col">
-                                {sHasDiscount && (
-                                  <Badge className="!bg-blue-500 !text-white !border-blue-500 text-[10px] px-1.5 py-0.5 rounded-full font-semibold mb-1 w-fit">
-                                    {sDiscount}% OFF
-                                  </Badge>
-                                )}
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-sm font-bold text-neutral-900">
-                                    ₹{displayPrice.toLocaleString('en-IN')}
-                                  </span>
-                                  {sHasDiscount && (
-                                    <span className="text-[10px] text-neutral-500 line-through">
-                                      ₹{mrp.toLocaleString('en-IN')}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-
-                        {/* ADD button or Quantity stepper */}
-                        <AnimatePresence mode="wait">
-                          {similarInCartQty === 0 ? (
-                            <motion.div
-                              key="add-button"
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              transition={{ duration: 0.2 }}
-                              className="flex justify-center w-full">
-                              <Button
-                                variant="outline"
-                                size="default"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  addToCart(similarProduct);
-                                }}
-                                className="w-full border-2 border-green-600 text-green-600 bg-transparent hover:bg-green-50 rounded-full font-semibold text-sm h-9">
-                                ADD
-                              </Button>
-                            </motion.div>
-                          ) : (
-                            <motion.div
-                              key="stepper"
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              transition={{ duration: 0.2 }}
-                              className="flex items-center justify-center gap-2 bg-white border-2 border-green-600 rounded-full px-2 py-1.5 w-full">
-                              <motion.div whileTap={{ scale: 0.9 }}>
-                                <Button
-                                  variant="default"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateQuantity(
-                                      similarProduct.id,
-                                      similarInCartQty - 1
-                                    );
-                                  }}
-                                  className="w-7 h-7 p-0"
-                                  aria-label="Decrease quantity">
-                                  −
-                                </Button>
-                              </motion.div>
-                              <motion.span
-                                key={similarInCartQty}
-                                initial={{ scale: 1.2, y: -4 }}
-                                animate={{ scale: 1, y: 0 }}
-                                transition={{
-                                  type: "spring",
-                                  stiffness: 500,
-                                  damping: 15,
-                                }}
-                                className="text-sm font-bold text-green-600 min-w-[1.5rem] text-center">
-                                {similarInCartQty}
-                              </motion.span>
-                              <motion.div whileTap={{ scale: 0.9 }}>
-                                <Button
-                                  variant="default"
-                                  size="icon"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateQuantity(
-                                      similarProduct.id,
-                                      similarInCartQty + 1
-                                    );
-                                  }}
-                                  className="w-7 h-7 p-0"
-                                  aria-label="Increase quantity">
-                                  +
-                                </Button>
-                              </motion.div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
+                    <ProductCard
+                      key={similarProduct.id || similarProduct._id}
+                      product={similarProduct}
+                      categoryStyle={true}
+                      showBadge={true}
+                      showHeartIcon={true}
+                      showRating={true}
+                      compact={true}
+                    />
                   );
                 })}
               </div>
