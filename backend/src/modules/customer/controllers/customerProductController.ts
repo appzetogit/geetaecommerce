@@ -153,42 +153,29 @@ export const getProducts = async (req: Request, res: Response) => {
       }
 
       if (subcategoryId) {
-        // If we matching a subcategory, we should remove any broad parent category filter
-        // to ensure we find products that might only be tagged with the subcategory ID.
-        delete query.category;
-
         // Match the ID in either the category OR subcategory field of the product
-        const subMatch = [
-          { subcategory: subcategoryId },
-          { category: subcategoryId }
-        ];
-
-        if (query.$or) {
-          // If there's already an $or (like for isShopByStoreOnly), we must use $and to merge them
-          const existingOr = query.$or;
-          delete query.$or;
-          query.$and = [
-            { $or: existingOr },
-            { $or: subMatch }
-          ];
-        } else {
-          query.$or = subMatch;
-        }
+        andConditions.push({
+          $or: [
+            { subcategory: subcategoryId },
+            { category: subcategoryId }
+          ]
+        });
       }
     }
 
     if (brand) {
-      query.brand = brand;
+      andConditions.push({ brand });
     }
 
     if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = Number(minPrice);
-      if (maxPrice) query.price.$lte = Number(maxPrice);
+      const priceQuery: any = {};
+      if (minPrice) priceQuery.$gte = Number(minPrice);
+      if (maxPrice) priceQuery.$lte = Number(maxPrice);
+      andConditions.push({ price: priceQuery });
     }
 
     if (minDiscount) {
-      query.discount = { $gte: Number(minDiscount) };
+      andConditions.push({ discount: { $gte: Number(minDiscount) } });
     }
 
     if (search) {
@@ -462,10 +449,11 @@ export const getProductById = async (req: Request, res: Response) => {
 
 
     // Find similar products (by category)
+    // 2. Build the final query
+    const subSubId = product.subSubCategory;
     const subId = (product.subcategory as any)?._id || product.subcategory;
     const catId = (product.category as any)?._id || product.category;
 
-    // 2. Build the final query
     const similarProductsQuery: any = {
       _id: { $ne: product._id },
       status: "Active",
@@ -480,15 +468,23 @@ export const getProductById = async (req: Request, res: Response) => {
       ]
     };
 
-    // Strict matching for "just above level" category
-    if (subId) {
-      // If product has a subcategory, only show products in the same subcategory
+    // Case 1: If product has a sub-sub-category, show products from that same sub-sub-category
+    if (subSubId) {
+      similarProductsQuery.subSubCategory = subSubId;
+      if (subId) similarProductsQuery.subcategory = subId;
+      if (catId) similarProductsQuery.category = catId;
+    }
+    // Case 2: If product has a subcategory, show products from that same subcategory
+    else if (subId) {
       similarProductsQuery.subcategory = subId;
-    } else if (catId) {
-      // If no subcategory, show products in the same main category
-      // We also ensure it matches products that don't have a subcategory to stay at the same level
+      similarProductsQuery.subSubCategory = { $in: [null, ""] };
+      if (catId) similarProductsQuery.category = catId;
+    } 
+    // Case 3: If no subcategory, show products from the same main category
+    else if (catId) {
       similarProductsQuery.category = catId;
       similarProductsQuery.subcategory = { $eq: null };
+      similarProductsQuery.subSubCategory = { $in: [null, ""] };
     }
 
     // Filter similar products by location

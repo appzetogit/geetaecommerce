@@ -12,7 +12,7 @@ import { useLocation } from '../../hooks/useLocation';
 import { useLoading } from '../../context/LoadingContext';
 import Button from '../../components/ui/button';
 import Badge from '../../components/ui/badge';
-import { getProductById } from '../../services/api/customerProductService';
+import { getProductById, getProducts } from '../../services/api/customerProductService';
 import WishlistButton from '../../components/WishlistButton';
 import StarRating from "../../components/ui/StarRating";
 import { calculateProductPrice, getApplicableUnitPrice } from '../../utils/priceUtils';
@@ -55,6 +55,9 @@ export default function ProductDetail() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [similarProductsPage, setSimilarProductsPage] = useState(1);
+  const [isSimilarLoading, setIsSimilarLoading] = useState(false);
+  const [hasMoreSimilar, setHasMoreSimilar] = useState(true);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -118,7 +121,10 @@ export default function ProductDetail() {
           // Reset selected variant and image when product changes
           setSelectedVariantIndex(null);
           setSelectedImageIndex(0);
-          setSimilarProducts(response.data.similarProducts || []);
+          const similar = response.data.similarProducts || [];
+          setSimilarProducts(similar);
+          setSimilarProductsPage(1);
+          setHasMoreSimilar(similar.length >= 6);
 
           // Fetch reviews
           fetchReviews(id);
@@ -136,25 +142,76 @@ export default function ProductDetail() {
       }
     };
 
-    const fetchReviews = async (productId: string) => {
-      setReviewsLoading(true);
-      try {
-        const { getProductReviews } = await import(
-          "../../services/api/customerReviewService"
-        );
-        const res = await getProductReviews(productId);
-        if (res.success) {
-          setReviews(res.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch reviews", err);
-      } finally {
-        setReviewsLoading(false);
-      }
-    };
-
     fetchProduct();
   }, [id, location?.latitude, location?.longitude]);
+
+  const fetchReviews = async (productId: string) => {
+    setReviewsLoading(true);
+    try {
+      const { getProductReviews } = await import(
+        "../../services/api/customerReviewService"
+      );
+      const res = await getProductReviews(productId);
+      if (res.success) {
+        setReviews(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch reviews", err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleLoadMoreSimilar = async () => {
+    if (isSimilarLoading || !hasMoreSimilar || !product) return;
+    
+    setIsSimilarLoading(true);
+    try {
+      const nextPage = similarProductsPage + 1;
+      // Use subcategory or category as fallback
+      const targetCategoryId = product.subcategory?._id || product.subcategory?.id || (typeof product.subcategory === 'string' ? product.subcategory : null) || product.category?._id || product.category?.id || (typeof product.category === 'string' ? product.category : null);
+      
+      if (!targetCategoryId) {
+        setHasMoreSimilar(false);
+        return;
+      }
+
+      const response = await getProducts({
+        category: targetCategoryId,
+        page: nextPage,
+        limit: 12, // Fetch more to ensure we have enough after filtering duplicates
+        latitude: location?.latitude,
+        longitude: location?.longitude
+      });
+
+      if (response.success && response.data) {
+        const existingIds = new Set(similarProducts.map(p => p._id || p.id));
+        const currentProductId = product._id || product.id;
+        
+        const newProducts = response.data.filter(
+          (p: any) => 
+            (p._id || p.id) !== currentProductId && 
+            !existingIds.has(p._id || p.id)
+        ).slice(0, 6);
+
+        if (newProducts.length > 0) {
+          setSimilarProducts(prev => [...prev, ...newProducts]);
+          setSimilarProductsPage(nextPage);
+        }
+        
+        // If we got fewer products than requested or it's clearly the end
+        if (response.data.length < 6 || response.pagination.page >= response.pagination.pages) {
+          setHasMoreSimilar(false);
+        }
+      } else {
+        setHasMoreSimilar(false);
+      }
+    } catch (err) {
+      console.error("Failed to load more similar products", err);
+    } finally {
+      setIsSimilarLoading(false);
+    }
+  };
 
   // Update selected image when variant changes if the variant has a specific image
   useEffect(() => {
@@ -1223,23 +1280,12 @@ export default function ProductDetail() {
         {similarProducts.length > 0 && (
           <div className="mt-6 mb-24">
             <div className="bg-neutral-100/50 border-t border-b border-neutral-200/50 py-4 px-3">
-              <div className="flex items-center justify-between mb-4 px-1">
+              <div className="flex items-center mb-4 px-1">
                 <h3 className="text-lg font-semibold text-neutral-900">
                   Top products in this category
                 </h3>
-                {(product?.subcategory?._id || product?.subcategory?.id || category?.id) && (
-                  <button
-                    onClick={() => {
-                      const targetId = product?.subcategory?._id || product?.subcategory?.id || category?.id;
-                      navigate(`/category/${targetId}`, { state: { scrollToProduct: product._id || product.id } });
-                    }}
-                    className="text-sm font-semibold text-green-600 hover:text-green-700 transition-colors"
-                  >
-                    View All
-                  </button>
-                )}
               </div>
-              <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth pb-2 px-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-2 px-1">
                 {similarProducts.map((similarProduct) => {
                   const similarCartItem = cart.items.find(
                     (item) =>
@@ -1252,7 +1298,7 @@ export default function ProductDetail() {
                   return (
                     <div
                       key={similarProduct.id}
-                      className="flex-shrink-0 w-40 bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden relative">
+                      className="w-full bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden relative">
                       {/* Heart icon - top right */}
                       <WishlistButton
                         productId={similarProduct.id || similarProduct._id}
@@ -1426,6 +1472,22 @@ export default function ProductDetail() {
                   );
                 })}
               </div>
+              {(product?.subcategory?._id || product?.subcategory?.id || category?.id) && hasMoreSimilar && (
+                <div className="mt-6 flex justify-center pb-2">
+                  <button
+                    onClick={handleLoadMoreSimilar}
+                    disabled={isSimilarLoading}
+                    className="text-sm font-semibold text-green-600 hover:text-green-700 transition-colors border border-green-600 px-6 py-2 rounded-full hover:bg-green-50 shadow-sm disabled:opacity-50 min-w-[120px]"
+                  >
+                    {isSimilarLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span>loading...</span>
+                      </div>
+                    ) : 'view more'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
