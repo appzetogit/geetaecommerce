@@ -1277,6 +1277,43 @@ export default function ProductDetail() {
           )}
         </div>
 
+        {/* View More from Brand Single Line Link */}
+        {product?.brand && (
+          <div className="px-4 md:px-6 lg:px-8 py-6 mb-2 border-b border-neutral-100 flex justify-center overflow-hidden">
+            <motion.div
+              whileHover={{ x: 5 }}
+              onClick={() => {
+                  const brandId = typeof product.brand === 'object' ? (product.brand._id || product.brand.id) : product.brand;
+                  navigate(`/brand/${brandId}`);
+              }}
+              className="group cursor-pointer flex items-center gap-2 max-w-full"
+            >
+              <div className="relative">
+                <motion.span
+                  animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
+                  transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                  style={{
+                    backgroundImage: "linear-gradient(90deg, #ef4444, #ff8a8a, #ef4444)",
+                    backgroundSize: "200% auto",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent"
+                  }}
+                  className="text-[11px] sm:text-[13px] md:text-sm font-black uppercase tracking-widest whitespace-nowrap inline-block"
+                >
+                  Explore more products from {typeof product.brand === 'object' ? product.brand.name : 'this brand'} brand
+                </motion.span>
+                <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-[#ef4444] transition-all duration-300 group-hover:w-full"></span>
+              </div>
+              
+              <div className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-[#ef4444] group-hover:bg-[#ef4444] group-hover:text-white transition-all duration-300 shadow-sm">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {/* Top products in this category */}
         {similarProducts.length > 0 && (
           <div className="mt-6 mb-24">

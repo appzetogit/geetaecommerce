@@ -938,6 +938,24 @@ export const createProduct = asyncHandler(
         delete productData.headerCategoryId;
       }
 
+      // Map frontend field names to model field names (standardization)
+      if (productData.categoryId) {
+        productData.category = productData.categoryId;
+        delete productData.categoryId;
+      }
+      if (productData.subcategoryId) {
+        productData.subcategory = productData.subcategoryId;
+        delete productData.subcategoryId;
+      }
+      if (productData.brandId) {
+        productData.brand = productData.brandId;
+        delete productData.brandId;
+      }
+      if (productData.taxId) {
+        productData.tax = productData.taxId;
+        delete productData.taxId;
+      }
+
       // Fallback: if category is missing (e.g. quick-add from POS), assign first active category
       if (!productData.category) {
         const defaultCategory = await Category.findOne({ status: "Active" })
@@ -1228,6 +1246,24 @@ export const updateProduct = asyncHandler(
     const { id } = req.params;
     const updateData = req.body;
     stripInvalidProductObjectIds(updateData);
+    
+    // Map frontend field names to model field names (standardization)
+    if (updateData.categoryId) {
+      updateData.category = updateData.categoryId;
+      delete updateData.categoryId;
+    }
+    if (updateData.subcategoryId) {
+      updateData.subcategory = updateData.subcategoryId;
+      delete updateData.subcategoryId;
+    }
+    if (updateData.brandId) {
+      updateData.brand = updateData.brandId;
+      delete updateData.brandId;
+    }
+    if (updateData.taxId) {
+      updateData.tax = updateData.taxId;
+      delete updateData.taxId;
+    }
 
     // Handle sparse unique fields (like SKU) - if empty/null, unset them to avoid duplicate null/empty string errors
     const unsetFields: any = {};

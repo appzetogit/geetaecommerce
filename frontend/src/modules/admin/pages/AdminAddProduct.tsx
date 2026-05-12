@@ -1517,10 +1517,10 @@ export default function AdminAddProduct() {
       const productData = {
         productName: formData.productName,
         headerCategoryId: formData.headerCategory || undefined, // Schema has headerCategoryId
-        category: formData.category || undefined, // Schema has category
-        subcategory: formData.subcategory || undefined, // Schema has subcategory
-        subSubCategory: formData.subSubCategory || undefined, // Schema has subSubCategory
-        brand: formData.brand || undefined, // Schema has brand
+        categoryId: formData.category || undefined, // Schema has categoryId
+        subcategoryId: formData.subcategory || undefined, // Schema has subcategoryId
+        subSubCategoryId: formData.subSubCategory || undefined, // Schema has subSubCategoryId
+        brandId: formData.brand || undefined, // Schema has brandId
         publish: formData.publish === "Yes",
         popular: formData.popular === "Yes",
         dealOfDay: formData.dealOfDay === "Yes",
@@ -1965,7 +1965,7 @@ const applySearchedImage = () => {
                  </div>
             </div>
 
-            {/* 2. Product Name */}
+             {/* 2. Product Name */}
             <div>
                <label className="block text-sm font-semibold text-neutral-700 mb-1">
                  Name <span className="text-red-500">*</span>
@@ -1978,6 +1978,19 @@ const applySearchedImage = () => {
                  placeholder="Enter Product Name"
                  className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
                />
+            </div>
+
+            {/* Brand Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                Brand
+              </label>
+              <ThemedDropdown
+                options={brands.map(b => ({ id: b._id, label: b.name, value: b._id }))}
+                value={formData.brand}
+                onChange={(val) => setFormData(prev => ({ ...prev, brand: val }))}
+                placeholder="Select Brand"
+              />
             </div>
 
             {/* 3. Prices (Simulating Variation Form for consistency) */}
@@ -2348,20 +2361,6 @@ const applySearchedImage = () => {
                     onChange={(val) => setFormData(prev => ({ ...prev, dealOfDay: val }))}
                   />
                 </div>
-
-                {shouldShowField('brand') && (
-                  <div>
-                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                      Brand
-                    </label>
-                    <ThemedDropdown
-                      options={brands.map(brand => ({ id: brand._id, label: brand.name, value: brand._id }))}
-                      value={formData.brand}
-                      onChange={(val) => setFormData(prev => ({ ...prev, brand: val }))}
-                      placeholder="Select Brand"
-                    />
-                  </div>
-                )}
 
                 {shouldShowField('tags') && (
                 <div className="md:col-span-2">
@@ -3795,6 +3794,7 @@ const applySearchedImage = () => {
                     onChange={(val) => setFormData(prev => ({ ...prev, isShopByStoreOnly: val }))}
                   />
                 </div>
+
                   {shouldShowField('select_store') && (
                   <div>
                     <label className="block text-sm font-semibold text-neutral-700 mb-2">

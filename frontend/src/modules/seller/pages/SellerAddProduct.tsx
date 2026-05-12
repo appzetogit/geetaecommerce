@@ -1624,6 +1624,19 @@ export default function SellerAddProduct() {
                />
             </div>
 
+            {/* Brand Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-neutral-700 mb-1">
+                Brand
+              </label>
+              <ThemedDropdown
+                options={brands.map(brand => ({ id: brand._id, label: brand.name, value: brand._id }))}
+                value={formData.brand}
+                onChange={(val) => setFormData(prev => ({ ...prev, brand: val }))}
+                placeholder="Select Brand"
+              />
+            </div>
+
             {/* 3. Pricing & Stock (Top Level - Matches Admin) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="order-2">
@@ -1957,20 +1970,6 @@ export default function SellerAddProduct() {
                     onChange={(val) => setFormData(prev => ({ ...prev, dealOfDay: val }))}
                   />
                 </div>
-
-                {shouldShowField('brand') && (
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Brand
-                  </label>
-                  <ThemedDropdown
-                    options={brands.map(brand => ({ id: brand._id, label: brand.name, value: brand._id }))}
-                    value={formData.brand}
-                    onChange={(val) => setFormData(prev => ({ ...prev, brand: val }))}
-                    placeholder="Select Brand"
-                  />
-                </div>
-                )}
 
                 {shouldShowField('tags') && (
                 <div className="md:col-span-2">
