@@ -3671,11 +3671,11 @@ const SellerPOSOrders = () => {
                                       return (
                                       <React.Fragment key={index}>
                                           {/* --- MOBILE VIEW (Card Style) --- */}
-                                          <div className={`${mobileCartView === 'list' ? 'block' : 'hidden'} md:hidden bg-white border border-gray-200 rounded-xl p-1.5 shadow-sm mb-1.5 relative overflow-hidden group shrink-0`}>
+                                          <div className={`${mobileCartView === 'list' ? 'block' : 'hidden'} md:hidden bg-white border border-gray-200 rounded-xl p-1 shadow-sm mb-1 relative overflow-hidden group shrink-0`}>
                                                {/* Main Row: Image, Info, and Price */}
-                                               <div className="flex items-start gap-2 mb-1">
+                                               <div className="flex items-start gap-2 mb-0.5">
                                                    {/* Large Image */}
-                                                   <div className="w-14 h-14 flex-shrink-0 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-1 overflow-hidden shadow-sm">
+                                                   <div className="w-12 h-12 flex-shrink-0 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-0.5 overflow-hidden shadow-sm">
                                                         {item.mainImage ? (
                                                             <img src={item.mainImage} alt="" className="w-full h-full object-contain" />
                                                         ) : (
@@ -3685,11 +3685,11 @@ const SellerPOSOrders = () => {
 
                                                    {/* Product Details & Price */}
                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex justify-between items-start mb-0.5 gap-2">
-                                                            <div className="flex items-start gap-1.5 min-w-0">
-                                                                 <span className="bg-gray-100 text-gray-500 text-[9px] font-bold px-1 py-0.5 rounded flex-shrink-0 mt-0.5">#{index + 1}</span>
+                                                        <div className="flex justify-between items-start mb-0 gap-2">
+                                                            <div className="flex items-start gap-1 min-w-0">
+                                                                 <span className="bg-gray-100 text-gray-500 text-[8px] font-bold px-1 py-0.5 rounded flex-shrink-0 mt-0.5">#{index + 1}</span>
                                                                  <div className="min-w-0">
-                                                                      <h4 className="text-[13px] font-semibold text-gray-800 leading-tight line-clamp-2">{item.productName}</h4>
+                                                                      <h4 className="text-[12px] font-black text-gray-800 leading-tight line-clamp-1">{item.productName}</h4>
                                                                       {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
                                                                           <div className="text-[9px] text-[#f187b5] font-bold mt-0.5">
                                                                               {(item as any).warrantyType}: {(item as any).warrantyDuration}
@@ -3697,7 +3697,7 @@ const SellerPOSOrders = () => {
                                                                       )}
                                                                   </div>
                                                             </div>
-                                                            <div className="font-bold text-gray-900 text-[15px] flex-shrink-0">₹{sp * item.qty}</div>
+                                                            <div className="font-bold text-gray-900 text-[13px] flex-shrink-0">₹{sp * item.qty}</div>
                                                         </div>
 
                                                         <div className="flex flex-col text-[11px]">
@@ -3714,34 +3714,34 @@ const SellerPOSOrders = () => {
 
                                               {/* Bottom Row: Actions & Quantity */}
                                               <div className="flex items-center justify-between">
-                                                  <div className="flex items-center gap-1.5">
+                                                  <div className="flex items-center gap-8">
                                                       <button
                                                          onClick={() => removeFromCart(item._id)}
-                                                         className="w-7 h-7 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
+                                                         className="w-6 h-6 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
                                                       >
-                                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                         <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                       </button>
                                                       <button
-                                                         onClick={() => openEditModal(item)}
-                                                         className="px-2 py-1 flex items-center gap-1 bg-white border border-gray-300 rounded-lg text-[11px] font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
-                                                      >
-                                                          <svg className="w-2.5 h-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                                                          Edit
-                                                      </button>
+                                                          onClick={() => openEditModal(item)}
+                                                          className="px-4 py-1 flex items-center gap-1.5 bg-white border border-gray-300 rounded-lg text-[11px] font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm"
+                                                       >
+                                                           <svg className="w-2.5 h-2.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                           Edit
+                                                       </button>
                                                   </div>
 
                                                   {/* Quantity Control */}
-                                                  <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
+                                                  <div className="flex items-center bg-gray-50 rounded-lg p-0 border border-gray-200">
                                                        <button
                                                          onClick={() => updateQuantity(item._id, -1)}
-                                                         className="w-6 h-6 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-base"
+                                                         className="w-5.5 h-5.5 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-sm"
                                                        >−</button>
-                                                       <div className="w-8 flex items-center justify-center text-xs font-bold text-gray-800">
+                                                       <div className="w-6 flex items-center justify-center text-[11px] font-bold text-gray-800">
                                                            {item.qty}
                                                        </div>
                                                        <button
                                                          onClick={() => updateQuantity(item._id, 1)}
-                                                         className="w-6 h-6 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-base"
+                                                         className="w-5.5 h-5.5 flex items-center justify-center text-[#f187b5] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-sm"
                                                        >+</button>
                                                   </div>
                                               </div>
