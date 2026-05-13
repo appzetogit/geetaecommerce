@@ -199,7 +199,7 @@ export default function SellerSignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-seller-50 to-seller-50 flex flex-col items-center justify-start md:justify-center px-4 pt-14 pb-8 md:py-4">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--primary-alpha-10)] to-[var(--primary-alpha-10)] flex flex-col items-center justify-start md:justify-center px-4 pt-14 pb-8 md:py-4">
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
@@ -214,7 +214,7 @@ export default function SellerSignUp() {
       {/* Sign Up Card */}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header Section */}
-        <div className="px-6 py-1 text-center border-b border-[#f187b5]/20 bg-[#f187b5]">
+        <div className="px-6 py-1 text-center border-b border-[var(--primary-color)]/20 bg-[var(--primary-color)]">
           <div className="mb-1">
             <img
               src="/assets/geetastoreslogo.png"
@@ -250,7 +250,7 @@ export default function SellerSignUp() {
                     onChange={handleInputChange}
                     placeholder="Enter your name"
                     required
-                    className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-seller-500 focus:ring-2 focus:ring-seller-200"
+                    className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                     disabled={loading}
                   />
                 </div>
@@ -259,7 +259,7 @@ export default function SellerSignUp() {
                   <label className="block text-sm font-medium text-neutral-700 mb-2">
                     Mobile Number <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex items-center bg-white border border-neutral-300 rounded-lg overflow-hidden focus-within:border-seller-500 focus-within:ring-2 focus-within:ring-seller-200">
+                  <div className="flex items-center bg-white border border-neutral-300 rounded-lg overflow-hidden focus-within:border-[var(--primary-color)] focus-within:ring-2 focus-within:ring-[var(--primary-alpha-30)]">
                     <div className="px-3 py-2.5 text-sm font-medium text-neutral-600 border-r border-neutral-300 bg-neutral-50">
                       +91
                     </div>
@@ -288,7 +288,7 @@ export default function SellerSignUp() {
                     onChange={handleInputChange}
                     placeholder="Enter email address"
                     required
-                    className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-seller-500 focus:ring-2 focus:ring-seller-200"
+                    className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                     disabled={loading}
                   />
                 </div>
@@ -304,7 +304,7 @@ export default function SellerSignUp() {
                     onChange={handleInputChange}
                     placeholder="Enter store name"
                     required
-                    className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-seller-500 focus:ring-2 focus:ring-seller-200"
+                    className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                     disabled={loading}
                   />
                 </div>
@@ -328,7 +328,7 @@ export default function SellerSignUp() {
                               checked={checked}
                               onChange={() => toggleCategory(cat.name)}
                               disabled={loading}
-                              className="h-4 w-4 text-seller-600 border-neutral-300 rounded focus:ring-seller-500"
+                              className="h-4 w-4 text-[var(--primary-dark)] border-neutral-300 rounded focus:ring-[var(--primary-color)]"
                             />
                             <span>{cat.name}</span>
                           </label>
@@ -388,7 +388,7 @@ export default function SellerSignUp() {
                     min="0.1"
                     max="100"
                     step="0.1"
-                    className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-seller-500 focus:ring-2 focus:ring-seller-200"
+                    className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                     disabled={loading}
                   />
                   <p className="mt-1 text-xs text-neutral-500">
@@ -407,7 +407,7 @@ export default function SellerSignUp() {
                     onChange={handleInputChange}
                     placeholder="Enter city"
                     required
-                    className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-seller-500 focus:ring-2 focus:ring-seller-200"
+                    className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                     disabled={loading}
                   />
                 </div>
@@ -433,7 +433,7 @@ export default function SellerSignUp() {
                       value={formData.panCard}
                       onChange={handleInputChange}
                       placeholder="PAN Card Number"
-                      className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-seller-500 focus:ring-2 focus:ring-seller-200"
+                      className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                       disabled={loading}
                     />
                   </div>
@@ -446,7 +446,7 @@ export default function SellerSignUp() {
                       value={formData.taxName}
                       onChange={handleInputChange}
                       placeholder="Tax Name"
-                      className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-seller-500 focus:ring-2 focus:ring-seller-200"
+                      className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                       disabled={loading}
                     />
                   </div>
@@ -459,7 +459,7 @@ export default function SellerSignUp() {
                       value={formData.taxNumber}
                       onChange={handleInputChange}
                       placeholder="Tax Number"
-                      className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-seller-500 focus:ring-2 focus:ring-seller-200"
+                      className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                       disabled={loading}
                     />
                   </div>
@@ -472,7 +472,7 @@ export default function SellerSignUp() {
                       value={formData.ifsc}
                       onChange={handleInputChange}
                       placeholder="IFSC Code"
-                      className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-seller-500 focus:ring-2 focus:ring-seller-200"
+                      className="w-full px-3 py-1.5 md:py-2 text-sm border border-neutral-300 rounded-lg focus:outline-none focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                       disabled={loading}
                     />
                   </div>
@@ -489,7 +489,7 @@ export default function SellerSignUp() {
                 type="submit"
                 disabled={loading}
                 className={`w-full py-3 rounded-xl font-bold text-sm transition-all shadow-lg active:scale-[0.98] ${!loading
-                  ? 'bg-gradient-to-r from-[#f187b5] to-[#e076a5] text-white hover:shadow-xl'
+                  ? 'bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-dark)] text-white hover:shadow-xl'
                   : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                   }`}
               >
@@ -508,7 +508,7 @@ export default function SellerSignUp() {
                   <button
                     type="button"
                     onClick={() => navigate('/seller/login')}
-                    className="text-[#f187b5] hover:text-[#e076a5] font-bold"
+                    className="text-[var(--primary-color)] hover:text-[var(--primary-dark)] font-bold"
                   >
                     Login
                   </button>
@@ -557,7 +557,7 @@ export default function SellerSignUp() {
                     }
                   }}
                   disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-seller-600 text-white hover:bg-seller-700 transition-colors"
+                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-[var(--primary-dark)] text-white hover:bg-[var(--primary-darker)] transition-colors"
                 >
                   {loading ? 'Sending...' : 'Resend OTP'}
                 </button>

@@ -16,6 +16,7 @@ import { notFound } from "./middleware/notFound";
 import { ensureDefaultAdmin } from "./utils/ensureDefaultAdmin";
 import { seedHeaderCategories } from "./utils/seedHeaderCategories";
 import { initializeSocket } from "./socket/socketService";
+import ThemeSettings from "./models/ThemeSettings";
 
 // Load environment variables
 dotenv.config();
@@ -151,6 +152,10 @@ async function startServer() {
   await connectDB();
   await ensureDefaultAdmin();
   await seedHeaderCategories();
+
+  // Ensure default theme settings exist
+  await ThemeSettings.getSettings();
+  console.log("   \x1b[36mTheme:\x1b[0m ✓ Default theme initialized");
 
   httpServer.timeout = 300000; // 5 minutes
   httpServer.listen(PORT, () => {

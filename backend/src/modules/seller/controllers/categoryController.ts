@@ -62,7 +62,14 @@ export const getCategoryById = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    const category = await Category.findById(id);
+    let category;
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+
+    if (isObjectId) {
+      category = await Category.findById(id);
+    } else {
+      category = await Category.findOne({ slug: id });
+    }
 
     if (!category) {
       return res.status(404).json({
@@ -109,14 +116,25 @@ export const getSubcategories = asyncHandler(
       sortOrder = "asc",
     } = req.query;
 
-    // Verify parent category exists
-    const parentCategory = await Category.findById(id);
+    // Support both MongoDB ID and slug
+    let parentCategory;
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(id);
+
+    if (isObjectId) {
+      parentCategory = await Category.findById(id);
+    } else {
+      parentCategory = await Category.findOne({ slug: id });
+    }
+
     if (!parentCategory) {
       return res.status(404).json({
         success: false,
         message: "Parent category not found",
       });
     }
+
+    // Use the actual ID for subsequent queries
+    const categoryId = parentCategory._id;
 
     // Pagination
     const pageNum = parseInt(page as string);
@@ -136,7 +154,7 @@ export const getSubcategories = asyncHandler(
 
     // 1. Get subcategories from new Category model (where parentId = category id)
     const categorySubcategoriesQuery: any = {
-      parentId: id,
+      parentId: categoryId,
       // Removed status: "Active" to allow POS billing for inactive categories
     };
     if (searchQuery) {
@@ -152,7 +170,7 @@ export const getSubcategories = asyncHandler(
       .lean();
 
     // 2. Get subcategories from old SubCategory model (for backward compatibility)
-    const oldSubcategoryQuery: any = { category: id };
+    const oldSubcategoryQuery: any = { category: categoryId };
     if (searchQuery) {
       oldSubcategoryQuery.name = searchQuery;
     }
@@ -392,8 +410,34 @@ export const getSubSubCategories = asyncHandler(
     const { subCategoryId } = req.params;
     const { search, isActive } = req.query;
 
-    // Query Category model where parentId is the subcategory ID
-    const query: any = { parentId: subCategoryId };
+    // Support both MongoDB ID and slug for subCategoryId
+    let subCategory;
+    const isObjectId = /^[0-9a-fA-F]{24}$/.test(subCategoryId);
+
+    if (isObjectId) {
+      subCategory = await Category.findById(subCategoryId);
+    } else {
+      subCategory = await Category.findOne({ slug: subCategoryId });
+    }
+
+    if (!subCategory) {
+      // Also check SubCategory model for backward compatibility
+      if (isObjectId) {
+        subCategory = await SubCategory.findById(subCategoryId);
+      } else {
+        subCategory = await SubCategory.findOne({ slug: subCategoryId });
+      }
+    }
+
+    if (!subCategory) {
+      return res.status(404).json({
+        success: false,
+        message: "Subcategory not found",
+      });
+    }
+
+    // Query Category model where parentId is the actual subcategory ID
+    const query: any = { parentId: subCategory._id };
 
     if (isActive === "true") {
       query.status = "Active";

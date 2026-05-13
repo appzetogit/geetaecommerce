@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
 import {
@@ -471,7 +471,7 @@ const SellerPurchaseReport: React.FC = () => {
               type="button"
               onClick={() => setEditMode((prev) => !prev)}
               className={`inline-flex items-center px-5 py-2 text-white text-xs font-black rounded-lg active:scale-95 transition-all shadow-sm ${
-                editMode ? 'bg-indigo-700' : 'bg-indigo-600 hover:bg-indigo-700'
+                editMode ? 'bg-[var(--primary-darker)]' : 'bg-[var(--primary-dark)] hover:bg-[var(--primary-darker)]'
               }`}
             >
               {editMode ? 'Done Editing' : 'Bulk Edit'}
@@ -559,7 +559,7 @@ const SellerPurchaseReport: React.FC = () => {
                             type="text"
                             value={row.supplier}
                             onChange={(e) => handleCellEdit(row.entryId, row.itemIndex, 'supplier', e.target.value)}
-                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-bold"
+                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-bold"
                           />
                         ) : (
                           row.supplier
@@ -571,7 +571,7 @@ const SellerPurchaseReport: React.FC = () => {
                             type="text"
                             value={row.gstNo}
                             onChange={(e) => handleCellEdit(row.entryId, row.itemIndex, 'gstNo', e.target.value)}
-                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-mono"
+                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-mono"
                           />
                         ) : (
                           row.gstNo
@@ -583,7 +583,7 @@ const SellerPurchaseReport: React.FC = () => {
                             type="text"
                             value={row.productName}
                             onChange={(e) => handleCellEdit(row.entryId, row.itemIndex, 'productName', e.target.value)}
-                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-bold"
+                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-bold"
                           />
                         ) : (
                           row.productName
@@ -596,7 +596,7 @@ const SellerPurchaseReport: React.FC = () => {
                             min="0"
                             value={row.qty}
                             onChange={(e) => handleCellEdit(row.entryId, row.itemIndex, 'qty', e.target.value)}
-                            className="w-20 ml-auto px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-bold text-right"
+                            className="w-20 ml-auto px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-bold text-right"
                           />
                         ) : (
                           row.qty
@@ -610,7 +610,7 @@ const SellerPurchaseReport: React.FC = () => {
                             step="0.01"
                             value={row.purchasePrice}
                             onChange={(e) => handleCellEdit(row.entryId, row.itemIndex, 'purchasePrice', e.target.value)}
-                            className="w-24 ml-auto px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-bold text-right"
+                            className="w-24 ml-auto px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-bold text-right"
                           />
                         ) : (
                           row.purchasePrice.toFixed(2)
@@ -624,7 +624,7 @@ const SellerPurchaseReport: React.FC = () => {
                             step="0.01"
                             value={row.gst}
                             onChange={(e) => handleCellEdit(row.entryId, row.itemIndex, 'gst', e.target.value)}
-                            className="w-20 ml-auto px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-bold text-right"
+                            className="w-20 ml-auto px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-bold text-right"
                           />
                         ) : (
                           row.gst
@@ -633,13 +633,13 @@ const SellerPurchaseReport: React.FC = () => {
                       <td className="px-4 py-3 text-right" onClick={(e) => editMode && e.stopPropagation()}>{row.gross.toFixed(2)}</td>
                       <td className="px-4 py-3 text-right" onClick={(e) => editMode && e.stopPropagation()}>{row.discount.toFixed(2)}</td>
                       <td className="px-4 py-3 text-right" onClick={(e) => editMode && e.stopPropagation()}>{row.tax.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-right font-bold text-[#f187b5]" onClick={(e) => editMode && e.stopPropagation()}>{row.net.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right font-bold text-[var(--primary-color)]" onClick={(e) => editMode && e.stopPropagation()}>{row.net.toFixed(2)}</td>
                       <td className="px-4 py-3" onClick={(e) => editMode && e.stopPropagation()}>
                         {editMode ? (
                           <select
                             value={row.paymentMode}
                             onChange={(e) => handleCellEdit(row.entryId, row.itemIndex, 'paymentMode', e.target.value)}
-                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-bold"
+                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-bold"
                           >
                             <option value="Cash">Cash</option>
                             <option value="Credit">Credit</option>
@@ -655,7 +655,7 @@ const SellerPurchaseReport: React.FC = () => {
                             type="date"
                             value={row.date}
                             onChange={(e) => handleCellEdit(row.entryId, row.itemIndex, 'date', e.target.value)}
-                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-bold"
+                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-bold"
                           />
                         ) : (
                           row.date
@@ -708,11 +708,11 @@ const SellerPurchaseReport: React.FC = () => {
                   />
                 )}
                 <ActionItem
-                  icon={<svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>}
+                  icon={<svg className="w-5 h-5 text-[var(--primary-color)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>}
                   title="Edit Order"
                   subtitle="Modify order details"
                   onClick={handleEditOrder}
-                  iconBg="bg-purple-50"
+                  iconBg="bg-[var(--primary-alpha-10)]"
                 />
                 <ActionItem
                   icon={<svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>}

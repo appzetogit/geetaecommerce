@@ -247,8 +247,8 @@ export default function AdminSubCategory() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <h1 className="text-2xl font-semibold text-neutral-800">SubCategory</h1>
-        <div className="text-sm text-blue-500">
-          <span className="text-blue-500 hover:underline cursor-pointer">
+        <div className="text-sm text-[var(--primary-color)]">
+          <span className="text-[var(--primary-color)] hover:underline cursor-pointer">
             Home
           </span>{" "}
           <span className="text-neutral-400">/</span> Dashboard
@@ -258,7 +258,7 @@ export default function AdminSubCategory() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Left Panel - Add SubCategory */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+          <div className="bg-[var(--primary-dark)] text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">
               Add SubCategory
             </h2>
@@ -277,7 +277,7 @@ export default function AdminSubCategory() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                 disabled={uploading}>
                 <option value="">Select category</option>
                 {categories.map((cat) => (
@@ -298,7 +298,7 @@ export default function AdminSubCategory() {
                 value={subcategoryName}
                 onChange={(e) => setSubcategoryName(e.target.value)}
                 placeholder="Enter Category Name"
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                 disabled={uploading}
               />
             </div>
@@ -308,7 +308,7 @@ export default function AdminSubCategory() {
               <label className="block text-sm font-medium text-neutral-700 mb-2">
                 SubCategory Image:
               </label>
-              <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center cursor-pointer hover:border-teal-500 transition-colors">
+              <label className="block border-2 border-dashed border-neutral-300 rounded-lg p-4 text-center cursor-pointer hover:border-[var(--primary-color)] transition-colors">
                 {subcategoryImagePreview ? (
                   <div className="space-y-2">
                     <img
@@ -364,7 +364,7 @@ export default function AdminSubCategory() {
               disabled={uploading}
               className={`w-full py-2.5 rounded text-sm font-medium transition-colors ${uploading
                   ? "bg-neutral-400 cursor-not-allowed text-white"
-                  : "bg-teal-600 hover:bg-teal-700 text-white"
+                  : "bg-[var(--primary-dark)] hover:bg-[var(--primary-darker)] text-white"
                 }`}>
               {uploading
                 ? "Saving..."
@@ -391,7 +391,7 @@ export default function AdminSubCategory() {
 
         {/* Right Panel - View SubCategory */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-teal-600 text-white px-4 sm:px-6 py-3">
+          <div className="bg-[var(--primary-dark)] text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">
               View SubCategory
             </h2>
@@ -409,7 +409,7 @@ export default function AdminSubCategory() {
                     setEntriesPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="px-2 py-1 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500">
+                  className="px-2 py-1 border border-neutral-300 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]">
                   <option value={10}>10</option>
                   <option value={25}>25</option>
                   <option value={50}>50</option>
@@ -421,7 +421,7 @@ export default function AdminSubCategory() {
               {/* Export Button */}
               <button
                 onClick={handleExport}
-                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
+                className="bg-[var(--primary-dark)] hover:bg-[var(--primary-darker)] text-white px-4 py-2 rounded text-sm font-medium flex items-center gap-2 transition-colors">
                 <svg
                   width="16"
                   height="16"
@@ -460,7 +460,7 @@ export default function AdminSubCategory() {
                     setCurrentPage(1);
                   }}
                   placeholder="Search..."
-                  className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 min-w-[150px]"
+                  className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] min-w-[150px]"
                 />
               </div>
             </div>
@@ -632,7 +632,7 @@ export default function AdminSubCategory() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleEdit(subCategory._id)}
-                              className="p-1.5 bg-green-100 hover:bg-green-200 text-green-700 rounded transition-colors"
+                              className="p-1.5 bg-[var(--primary-alpha-20)] hover:bg-green-200 text-[var(--primary-darker)] rounded transition-colors"
                               title="Edit">
                               <svg
                                 width="16"
@@ -711,7 +711,7 @@ export default function AdminSubCategory() {
                     key={page}
                     onClick={() => setCurrentPage(page)}
                     className={`px-3 py-1 border border-neutral-300 rounded text-sm ${currentPage === page
-                        ? "bg-teal-600 text-white border-teal-600"
+                        ? "bg-[var(--primary-dark)] text-white border-[var(--primary-dark)]"
                         : "text-neutral-700 hover:bg-neutral-50"
                       }`}>
                     {page}
@@ -751,7 +751,7 @@ export default function AdminSubCategory() {
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
         Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-teal-600 hover:text-teal-700">
+        <a href="#" className="text-[var(--primary-dark)] hover:text-[var(--primary-darker)]">
           Geeta Stores - 10 Minute App
         </a>
       </div>

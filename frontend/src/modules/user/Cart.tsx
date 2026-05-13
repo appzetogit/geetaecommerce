@@ -41,7 +41,7 @@ export default function Cart() {
           {cart.items.length > 0 && (
             <button
               onClick={clearCart}
-              className="text-sm md:text-base text-red-600 font-medium hover:text-red-700 transition-colors"
+              className="text-sm md:text-base text-[var(--customer-primary-dark)] font-medium hover:text-red-700 transition-colors"
             >
               Clear All
             </button>
@@ -65,10 +65,10 @@ export default function Cart() {
               <div className="mt-4 pt-4 border-t border-dashed border-gray-200">
                  {nextRule ? (
                      <div className="text-center mb-4 text-sm text-gray-700">
-                         Add <span className="font-bold text-teal-700">₹{(nextRule.minCartValue - currentTotal).toLocaleString('en-IN')}</span> more to unlock <span className="font-bold">{nextRule.giftProduct?.productName || 'Gift'}</span> 🎁
+                         Add <span className="font-bold text-[var(--customer-primary-dark)]">₹{(nextRule.minCartValue - currentTotal).toLocaleString('en-IN')}</span> more to unlock <span className="font-bold">{nextRule.giftProduct?.productName || 'Gift'}</span> 🎁
                      </div>
                  ) : (
-                     <div className="text-green-600 font-medium text-center mb-4 flex items-center justify-center gap-2">
+                     <div className="text-[var(--customer-primary-dark)] font-medium text-center mb-4 flex items-center justify-center gap-2">
                          <span className="text-lg">🎉</span> All Free Gifts Unlocked!
                      </div>
                  )}
@@ -80,7 +80,7 @@ export default function Cart() {
 
                      {/* Progress Line */}
                      <div
-                        className="absolute top-1/2 left-0 h-1.5 bg-gradient-to-r from-teal-400 to-green-500 rounded-full -translate-y-1/2 z-0 transition-all duration-700 ease-out"
+                        className="absolute top-1/2 left-0 h-1.5 bg-gradient-to-r from-[var(--customer-primary-light)] to-[var(--customer-primary)] rounded-full -translate-y-1/2 z-0 transition-all duration-700 ease-out"
                         style={{ width: `${Math.min(100, (currentTotal / maxTarget) * 100)}%` }}
                      ></div>
 
@@ -96,7 +96,7 @@ export default function Cart() {
                                 style={{ left: `${position}%`, transform: `translate(-${position === 100 ? '100' : '50'}%, -50%)` }}
                              >
                                  {/* Icon Circle */}
-                                 <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center bg-white transition-all duration-300 ${isUnlocked ? 'border-green-500 text-green-500 shadow-md scale-110' : 'border-gray-300 text-gray-300'}`}>
+                                 <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center bg-white transition-all duration-300 ${isUnlocked ? 'border-[var(--customer-primary)] text-[var(--customer-primary)] shadow-md scale-110' : 'border-gray-300 text-gray-300'}`}>
                                      {isUnlocked ? (
                                          <span className="text-sm font-bold">✓</span>
                                      ) : (
@@ -106,7 +106,7 @@ export default function Cart() {
 
                                  {/* Label */}
                                  <div className="absolute top-9 w-24 text-center">
-                                     <span className={`text-[10px] font-bold block ${isUnlocked ? 'text-green-600' : 'text-gray-400'}`}>
+                                     <span className={`text-[10px] font-bold block ${isUnlocked ? 'text-[var(--customer-primary-dark)]' : 'text-gray-400'}`}>
                                          {isUnlocked ? 'Unlocked' : `₹${rule.minCartValue}`}
                                      </span>
                                      <span className="text-[9px] text-gray-500 leading-tight block truncate mx-auto max-w-full">
@@ -179,12 +179,12 @@ export default function Cart() {
                         )}
                       </div>
                       {hasDiscount && (
-                        <span className="text-xs text-green-600 font-medium">
+                        <span className="text-xs text-[var(--customer-primary-dark)] font-medium">
                           {Math.round(((mrp - applicableUnitPrice) / mrp) * 100)}% OFF
                         </span>
                       )}
                       {isTieredApplied && (
-                         <span className="text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded">
+                         <span className="text-[10px] text-[var(--customer-primary-dark)] font-medium bg-[var(--customer-primary-alpha-10)] px-1.5 py-0.5 rounded">
                            Bulk Price Applied
                          </span>
                       )}
@@ -198,7 +198,7 @@ export default function Cart() {
                            const vTitle = (prod as any).variantTitle || (prod as any).pack;
                            updateQuantity(prodId, qty - 1, vId, vTitle);
                         }}
-                        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-neutral-600 hover:text-red-500 disabled:opacity-50 transition-colors"
+                        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-neutral-600 hover:text-[var(--customer-primary)] disabled:opacity-50 transition-colors"
                         disabled={loading}
                       >
                         -
@@ -210,14 +210,14 @@ export default function Cart() {
                            const vTitle = (prod as any).variantTitle || (prod as any).pack;
                            updateQuantity(prodId, qty + 1, vId, vTitle);
                         }}
-                        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-neutral-600 hover:text-green-600 disabled:opacity-50 transition-colors"
+                        className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-neutral-600 hover:text-[var(--customer-primary-dark)] disabled:opacity-50 transition-colors"
                         disabled={loading}
                       >
                         +
                       </button>
                     </div>
                     ) : (
-                        <div className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded">
+                        <div className="text-xs font-bold text-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] px-2 py-1 rounded">
                             FREE GIFT
                         </div>
                     )}
@@ -228,7 +228,7 @@ export default function Cart() {
                 {!isFreeGift && (
                 <button
                   onClick={() => removeFromCart(prodId)}
-                  className="text-neutral-400 hover:text-red-500 p-1 md:p-2 transition-colors self-start"
+                  className="text-neutral-400 hover:text-[var(--customer-primary)] p-1 md:p-2 transition-colors self-start"
                   disabled={loading}
                   aria-label="Remove item"
                 >
@@ -258,12 +258,12 @@ export default function Cart() {
             </div>
             <div className="flex justify-between text-neutral-700 md:text-base">
               <span>Delivery Charges</span>
-              <span className={`font-medium ${deliveryFee === 0 ? 'text-green-600' : ''}`}>
+              <span className={`font-medium ${deliveryFee === 0 ? 'text-[var(--customer-primary-dark)]' : ''}`}>
                 {deliveryFee === 0 ? 'Free' : `₹${deliveryFee.toLocaleString('en-IN')}`}
               </span>
             </div>
             {(cart.total || 0) < (appConfig.freeDeliveryThreshold || 500) && (
-              <div className="text-xs md:text-sm text-green-600 bg-green-50 px-2 py-1 rounded">
+              <div className="text-xs md:text-sm text-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] px-2 py-1 rounded">
                 Add ₹{((appConfig.freeDeliveryThreshold || 500) - (cart.total || 0)).toLocaleString('en-IN')} more for free delivery
               </div>
             )}

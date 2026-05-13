@@ -26,7 +26,7 @@ export default function PartyPopper({ show, onComplete }: PartyPopperProps) {
   const [rightParticles, setRightParticles] = useState<ConfettiParticle[]>([]);
   const [showPoppers, setShowPoppers] = useState(false);
 
-  const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#f97316', '#06b6d4'];
+  const colors = ['#10b981', '#3b82f6', '#f59e0b', 'var(--customer-primary)', '#8b5cf6', '#ec4899', '#f97316', '#06b6d4'];
 
   useEffect(() => {
     if (show) {

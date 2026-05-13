@@ -73,9 +73,9 @@ export default function Search() {
         const productElement = document.getElementById(`product-${targetProductId}`);
         if (productElement) {
           productElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          productElement.classList.add('ring-2', 'ring-green-500', 'ring-offset-2', 'transition-all');
+          productElement.classList.add('ring-2', 'ring-[var(--customer-primary)]', 'ring-offset-2', 'transition-all');
           setTimeout(() => {
-            productElement.classList.remove('ring-2', 'ring-green-500', 'ring-offset-2');
+            productElement.classList.remove('ring-2', 'ring-[var(--customer-primary)]', 'ring-offset-2');
           }, 2000);
         } else {
           // Fallback to coordinates
@@ -128,7 +128,7 @@ export default function Search() {
           </h2>
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--customer-primary-dark)]"></div>
             </div>
           ) : searchResults.length > 0 ? (
             <>
@@ -161,7 +161,7 @@ export default function Search() {
         <>
           {contentLoading && (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--customer-primary-dark)]"></div>
             </div>
           )}
 
@@ -172,7 +172,7 @@ export default function Search() {
                 {trendingItems.map((item) => (
                   <div
                     key={item.id || item._id}
-                    className="bg-white rounded-lg border-2 border-green-600 p-3 cursor-pointer hover:shadow-md transition-shadow"
+                    className="bg-white rounded-lg border-2 border-[var(--customer-primary-dark)] p-3 cursor-pointer hover:shadow-md transition-shadow"
                     onClick={() => navigate(item.type === 'category' ? `/category/${item.id || item._id}` : `/product/${item.id || item._id}`)}
                   >
                     <div className="w-full h-24 rounded-lg mb-2 overflow-hidden bg-neutral-50 flex items-center justify-center">

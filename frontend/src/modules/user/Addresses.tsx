@@ -50,7 +50,7 @@ export default function Addresses() {
                 </div>
                 <Button
                     onClick={() => navigate('/checkout/address')}
-                    className="bg-green-600 text-white rounded-lg text-xs py-1.5 h-auto"
+                    className="bg-[var(--customer-primary-dark)] text-white rounded-lg text-xs py-1.5 h-auto"
                 >
                     ADD NEW
                 </Button>
@@ -59,7 +59,7 @@ export default function Addresses() {
             <div className="px-4 space-y-4">
                 {loading ? (
                     <div className="flex justify-center pt-20">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--customer-primary-dark)]"></div>
                     </div>
                 ) : addresses.length > 0 ? (
                     <div className="space-y-4">
@@ -81,7 +81,7 @@ export default function Addresses() {
                                                 {addr.type}
                                             </span>
                                             {addr.isDefault && (
-                                                <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded uppercase">
+                                                <span className="text-[10px] font-bold bg-[var(--customer-primary-alpha-20)] text-[var(--customer-primary-dark)] px-2 py-0.5 rounded uppercase">
                                                     Default
                                                 </span>
                                             )}
@@ -95,11 +95,11 @@ export default function Addresses() {
                                 <div className="mt-4 pt-4 border-t border-neutral-100 flex gap-4">
                                     <button
                                         onClick={() => handleDelete(addr._id)}
-                                        className="text-xs font-bold text-red-500 hover:text-red-600 uppercase tracking-wider"
+                                        className="text-xs font-bold text-[var(--customer-primary)] hover:text-[var(--customer-primary-dark)] uppercase tracking-wider"
                                     >
                                         Delete
                                     </button>
-                                    <button className="text-xs font-bold text-green-600 hover:text-green-700 uppercase tracking-wider">
+                                    <button className="text-xs font-bold text-[var(--customer-primary-dark)] hover:text-[var(--customer-primary-dark)] uppercase tracking-wider">
                                         Edit
                                     </button>
                                 </div>
@@ -111,7 +111,7 @@ export default function Addresses() {
                         <div className="text-6xl mb-4">📍</div>
                         <h2 className="text-lg font-bold text-neutral-900 mb-2">No saved addresses</h2>
                         <p className="text-sm mb-6">Add an address to start ordering</p>
-                        <Button onClick={() => navigate('/checkout/address')} className="bg-green-600 text-white rounded-full px-8">
+                        <Button onClick={() => navigate('/checkout/address')} className="bg-[var(--customer-primary-dark)] text-white rounded-full px-8">
                             Add New Address
                         </Button>
                     </div>

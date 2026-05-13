@@ -194,8 +194,8 @@ export default function AdminBestsellerCards() {
                     <h1 className="text-2xl font-semibold text-neutral-800">
                         Bestseller Cards
                     </h1>
-                    <div className="text-sm text-[#f187b5]">
-                        <span className="text-[#f187b5] hover:underline cursor-pointer">
+                    <div className="text-sm text-[var(--primary-color)]">
+                        <span className="text-[var(--primary-color)] hover:underline cursor-pointer">
                             Home
                         </span>{" "}
                         <span className="text-neutral-400">/</span> Bestseller Cards
@@ -207,7 +207,7 @@ export default function AdminBestsellerCards() {
             {(success || error) && (
                 <div className="px-6">
                     {success && (
-                        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+                        <div className="bg-[var(--primary-alpha-10)] border border-green-200 text-[var(--primary-darker)] px-4 py-3 rounded mb-4">
                             {success}
                         </div>
                     )}
@@ -221,7 +221,7 @@ export default function AdminBestsellerCards() {
 
             {/* Max Cards Info */}
             <div className="px-4 mb-4">
-                <div className="bg-[#f187b5]/10 border border-[#f187b5]/20 text-[#f187b5] px-4 py-2 rounded text-sm">
+                <div className="bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/20 text-[var(--primary-color)] px-4 py-2 rounded text-sm">
                     Active cards: {activeCardsCount} / {MAX_ACTIVE_CARDS} (Maximum {MAX_ACTIVE_CARDS} active cards allowed)
                 </div>
             </div>
@@ -246,7 +246,7 @@ export default function AdminBestsellerCards() {
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     placeholder="e.g., Fresh Vegetables"
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none"
                                 />
                             </div>
 
@@ -258,7 +258,7 @@ export default function AdminBestsellerCards() {
                                 <select
                                     value={selectedCategory}
                                     onChange={(e) => setSelectedCategory(e.target.value)}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none"
                                 >
                                     <option value="">Select a category</option>
                                     {categories.map((cat) => (
@@ -285,7 +285,7 @@ export default function AdminBestsellerCards() {
                                     }
                                     placeholder="Auto-assign"
                                     min="0"
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none"
                                 />
                                 <p className="text-xs text-neutral-500 mt-1">
                                     Leave empty to auto-assign at the end
@@ -299,7 +299,7 @@ export default function AdminBestsellerCards() {
                                         type="checkbox"
                                         checked={isActive}
                                         onChange={(e) => setIsActive(e.target.checked)}
-                                        className="h-4 w-4 text-[#f187b5] focus:ring-[#f187b5] border-gray-300 rounded"
+                                        className="h-4 w-4 text-[var(--primary-color)] focus:ring-[var(--primary-color)] border-gray-300 rounded"
                                     />
                                     <span className="ml-2 text-sm font-medium text-neutral-700">
                                         Active (Show on home page)
@@ -316,7 +316,7 @@ export default function AdminBestsellerCards() {
                                 className={`w-full px-4 py-2 rounded font-medium transition-colors ${
                                     loading
                                         ? "bg-gray-400 cursor-not-allowed text-white"
-                                        : "bg-[#f187b5] hover:bg-[#e076a5] text-white"
+                                        : "bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white"
                                 }`}
                             >
                                 {loading
@@ -338,7 +338,7 @@ export default function AdminBestsellerCards() {
 
                     {/* Right Section: View Cards Table */}
                     <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col">
-                        <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-lg">
+                        <div className="bg-[var(--primary-color)] text-white px-6 py-4 rounded-t-lg">
                             <h2 className="text-lg font-semibold">View Cards</h2>
                         </div>
 
@@ -353,7 +353,7 @@ export default function AdminBestsellerCards() {
                                         setRowsPerPage(Number(e.target.value));
                                         setCurrentPage(1);
                                     }}
-                                    className="w-16 px-2 py-1.5 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none"
+                                    className="w-16 px-2 py-1.5 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none"
                                 />
                                 <span className="text-sm text-neutral-600">entries</span>
                             </div>
@@ -407,7 +407,7 @@ export default function AdminBestsellerCards() {
                                                     <span
                                                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                             card.isActive
-                                                                ? "bg-[#f187b5]/10 text-[#f187b5]"
+                                                                ? "bg-[var(--primary-color)]/10 text-[var(--primary-color)]"
                                                                 : "bg-gray-100 text-gray-800"
                                                         }`}
                                                     >
@@ -418,7 +418,7 @@ export default function AdminBestsellerCards() {
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             onClick={() => handleEdit(card)}
-                                                            className="p-1.5 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded transition-colors"
+                                                            className="p-1.5 bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white rounded transition-colors"
                                                             title="Edit"
                                                         >
                                                             <svg

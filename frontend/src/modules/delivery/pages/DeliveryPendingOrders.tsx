@@ -30,11 +30,11 @@ export default function DeliveryPendingOrders() {
       case 'Ready for pickup':
         return 'bg-yellow-100 text-yellow-700';
       case 'Out for delivery':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]';
       case 'Pending':
         return 'bg-orange-100 text-orange-700';
       case 'Picked up':
-        return 'bg-indigo-100 text-indigo-700';
+        return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]';
       default:
         return 'bg-neutral-100 text-neutral-700';
     }

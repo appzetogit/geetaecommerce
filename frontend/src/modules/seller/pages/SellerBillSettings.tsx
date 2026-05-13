@@ -175,7 +175,7 @@ const SellerBillSettings = () => {
               name="shopName"
               value={settings.shopName}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#f187b5] focus:border-[#f187b5]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
               placeholder="Enter your shop name"
             />
           </div>
@@ -189,7 +189,7 @@ const SellerBillSettings = () => {
               value={settings.address}
               onChange={handleChange}
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#f187b5] focus:border-[#f187b5]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
               placeholder="Enter shop address"
             />
           </div>
@@ -204,7 +204,7 @@ const SellerBillSettings = () => {
               maxLength={10}
               value={settings.phone}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#f187b5] focus:border-[#f187b5]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
               placeholder="Enter contact number"
             />
           </div>
@@ -224,7 +224,7 @@ const SellerBillSettings = () => {
                             enabled: !prev.notes?.enabled
                         }
                     }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.notes?.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.notes?.enabled ? 'bg-[var(--primary-color)]' : 'bg-gray-200'}`}
                 >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.notes?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -242,7 +242,7 @@ const SellerBillSettings = () => {
                         }
                     }))}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#f187b5] focus:border-[#f187b5]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                     placeholder="Enter notes (e.g. Thank you for your business)"
                 />
             )}
@@ -263,7 +263,7 @@ const SellerBillSettings = () => {
                             enabled: !prev.terms?.enabled
                         }
                     }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.terms?.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.terms?.enabled ? 'bg-[var(--primary-color)]' : 'bg-gray-200'}`}
                 >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.terms?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -281,7 +281,7 @@ const SellerBillSettings = () => {
                         }
                     }))}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#f187b5] focus:border-[#f187b5]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                     placeholder="Enter terms and conditions..."
                 />
             )}
@@ -302,7 +302,7 @@ const SellerBillSettings = () => {
                             enabled: !prev.gst?.enabled
                         }
                     }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.gst?.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.gst?.enabled ? 'bg-[var(--primary-color)]' : 'bg-gray-200'}`}
                 >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.gst?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -320,7 +320,7 @@ const SellerBillSettings = () => {
                             text: e.target.value
                         }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#f187b5] focus:border-[#f187b5]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                     placeholder="Enter GST Number"
                 />
             )}
@@ -341,7 +341,7 @@ const SellerBillSettings = () => {
                             enabled: !prev.fssai?.enabled
                         }
                     }))}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.fssai?.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.fssai?.enabled ? 'bg-[var(--primary-color)]' : 'bg-gray-200'}`}
                 >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.fssai?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -359,7 +359,7 @@ const SellerBillSettings = () => {
                             text: e.target.value
                         }
                     }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[#f187b5] focus:border-[#f187b5]"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                     placeholder="Enter FSSAI Number"
                 />
             )}
@@ -368,7 +368,7 @@ const SellerBillSettings = () => {
           <div className="pt-4">
             <button
               type="submit"
-              className="px-6 py-2 bg-[#f187b5] text-white rounded-md hover:bg-[#e076a5] transition-colors font-medium"
+              className="px-6 py-2 bg-[var(--primary-color)] text-white rounded-md hover:bg-[var(--primary-dark)] transition-colors font-medium"
             >
               Save Settings
             </button>

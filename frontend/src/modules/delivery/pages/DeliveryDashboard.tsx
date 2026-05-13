@@ -156,11 +156,11 @@ export default function DeliveryDashboard() {
         {/* Real-time Seller Radius Indicator */}
         <div
           onClick={() => isOnline && navigate('/delivery/sellers-in-range')}
-          className={`p-4 rounded-xl border cursor-pointer transition-all active:scale-95 ${isOnline ? 'bg-teal-50 border-teal-100 hover:bg-teal-100' : 'bg-neutral-50 border-neutral-200'}`}
+          className={`p-4 rounded-xl border cursor-pointer transition-all active:scale-95 ${isOnline ? 'bg-[var(--primary-alpha-10)] border-teal-100 hover:bg-[var(--primary-alpha-20)]' : 'bg-neutral-50 border-neutral-200'}`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-full ${isOnline ? 'bg-teal-100 text-teal-600' : 'bg-neutral-200 text-neutral-400'}`}>
+              <div className={`p-2 rounded-full ${isOnline ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-dark)]' : 'bg-neutral-200 text-neutral-400'}`}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
                   <circle cx="12" cy="10" r="3" />
@@ -181,9 +181,9 @@ export default function DeliveryDashboard() {
               <div className="flex items-center gap-2">
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-[var(--primary-color)]"></span>
                 </span>
-                <span className="text-xl font-bold text-teal-600">{sellersInRangeCount}</span>
+                <span className="text-xl font-bold text-[var(--primary-dark)]">{sellersInRangeCount}</span>
               </div>
             )}
           </div>
@@ -260,7 +260,7 @@ export default function DeliveryDashboard() {
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${order.status === 'Ready for pickup'
                         ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-blue-100 text-blue-700'
+                        : 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]'
                         }`}
                     >
                       {order.status}

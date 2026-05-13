@@ -172,7 +172,7 @@ export default function StorePage() {
 
                 {loading ? (
                     <div className="flex justify-center p-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--customer-primary-dark)]"></div>
                     </div>
                 ) : products.length > 0 ? (
                   <>
@@ -194,7 +194,7 @@ export default function StorePage() {
                 ) : (
                     <div className="text-center py-20 text-neutral-500">
                         <p>No products found in this store yet.</p>
-                        <Link to="/" className="text-green-600 font-medium mt-2 inline-block">Explore other categories</Link>
+                        <Link to="/" className="text-[var(--customer-primary-dark)] font-medium mt-2 inline-block">Explore other categories</Link>
                     </div>
                 )}
             </div>

@@ -471,8 +471,8 @@ export default function DeliveryOrderDetail() {
                 <span className="ml-2 font-semibold text-lg text-neutral-800">Order Details</span>
 
                 <div className="ml-auto">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
-                        order.status === 'Picked up' ? 'bg-indigo-100 text-indigo-700' :
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${order.status === 'Delivered' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' :
+                        order.status === 'Picked up' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' :
                             order.status === 'Ready for pickup' ? 'bg-yellow-100 text-yellow-700' :
                                 'bg-orange-100 text-orange-700'
                         }`}>
@@ -557,8 +557,8 @@ export default function DeliveryOrderDetail() {
                                         <p className="text-sm text-neutral-500">{seller.address}, {seller.city}</p>
                                     </div>
                                     {seller.latitude && seller.longitude && (
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                            <Icons.MapPin size={16} className="text-blue-600" />
+                                        <div className="w-8 h-8 rounded-full bg-[var(--primary-alpha-20)] flex items-center justify-center">
+                                            <Icons.MapPin size={16} className="text-[var(--primary-dark)]" />
                                         </div>
                                     )}
                                 </div>
@@ -586,7 +586,7 @@ export default function DeliveryOrderDetail() {
                                 {statusFlow.map((step, idx) => (
                                     <div key={idx} className="flex flex-col items-center flex-1">
                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 ${idx <= currentStatusIndex
-                                            ? 'bg-blue-600 border-blue-600 text-white'
+                                            ? 'bg-[var(--primary-dark)] border-[var(--primary-dark)] text-white'
                                             : 'bg-white border-neutral-200 text-neutral-300'
                                             }`}>
                                             {idx <= currentStatusIndex ? <Icons.CheckCircle size={14} /> : idx + 1}
@@ -597,13 +597,13 @@ export default function DeliveryOrderDetail() {
                             {/* Connecting Line */}
                             <div className="absolute top-4 left-0 w-full h-0.5 bg-neutral-100 -z-0">
                                 <div
-                                    className="h-full bg-blue-600 transition-all duration-500"
+                                    className="h-full bg-[var(--primary-dark)] transition-all duration-500"
                                     style={{ width: `${(currentStatusIndex / (statusFlow.length - 1)) * 100}%` }}
                                 ></div>
                             </div>
                             <div className="flex justify-between text-[10px] text-neutral-500 font-medium mt-2">
                                 {statusFlow.map((step, idx) => (
-                                    <span key={idx} className={`text-center flex-1 transition-colors ${idx === currentStatusIndex ? 'text-blue-600 font-bold' : ''}`}>
+                                    <span key={idx} className={`text-center flex-1 transition-colors ${idx === currentStatusIndex ? 'text-[var(--primary-dark)] font-bold' : ''}`}>
                                         {step === 'Ready for pickup' ? 'Ready' : step}
                                     </span>
                                 ))}
@@ -621,14 +621,14 @@ export default function DeliveryOrderDetail() {
                     </h3>
                     <div className="space-y-4">
                         <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600">
+                            <div className="w-10 h-10 rounded-full bg-[var(--primary-alpha-10)] flex items-center justify-center flex-shrink-0 text-[var(--primary-dark)]">
                                 <Icons.User size={20} />
                             </div>
                             <div>
                                 <p className="font-medium text-neutral-900">{order.customerName}</p>
                                 <p className="text-sm text-neutral-500">Customer</p>
                             </div>
-                            <a href={`tel:${order.customerPhone}`} className="ml-auto p-3 bg-green-500 text-white rounded-full hover:bg-green-600 shadow-md transition-transform hover:scale-105 active:scale-95">
+                            <a href={`tel:${order.customerPhone}`} className="ml-auto p-3 bg-[var(--primary-color)] text-white rounded-full hover:bg-[var(--primary-dark)] shadow-md transition-transform hover:scale-105 active:scale-95">
                                 <Icons.Phone size={20} />
                             </a>
                         </div>
@@ -673,19 +673,19 @@ export default function DeliveryOrderDetail() {
 
                     <div className="space-y-3">
                         {order.items?.map((item: any, idx: number) => (
-                            <div key={idx} className={`flex justify-between items-center py-2 border-b border-neutral-50 last:border-0 ${item.isFreeGift ? 'bg-green-50 p-2 rounded border border-green-100' : ''}`}>
+                            <div key={idx} className={`flex justify-between items-center py-2 border-b border-neutral-50 last:border-0 ${item.isFreeGift ? 'bg-[var(--primary-alpha-10)] p-2 rounded border border-green-100' : ''}`}>
                                 <div className="flex items-center gap-3">
-                                    <span className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${item.isFreeGift ? 'bg-green-200 text-green-800' : 'bg-neutral-100 text-neutral-600'}`}>
+                                    <span className={`w-6 h-6 rounded flex items-center justify-center text-xs font-bold ${item.isFreeGift ? 'bg-green-200 text-[var(--primary-darker)]' : 'bg-neutral-100 text-neutral-600'}`}>
                                         {item.quantity}x
                                     </span>
                                     <div>
                                         <span className={`text-sm font-medium ${item.isFreeGift ? 'text-green-900' : 'text-neutral-700'}`}>
                                             {item.name || item.productName || item.product?.productName}
                                         </span>
-                                        {item.isFreeGift && <span className="block text-[10px] text-green-600 font-bold uppercase tracking-wider">Free Gift</span>}
+                                        {item.isFreeGift && <span className="block text-[10px] text-[var(--primary-dark)] font-bold uppercase tracking-wider">Free Gift</span>}
                                     </div>
                                 </div>
-                                <span className={`text-sm font-semibold ${item.isFreeGift ? 'text-green-700' : 'text-neutral-900'}`}>
+                                <span className={`text-sm font-semibold ${item.isFreeGift ? 'text-[var(--primary-darker)]' : 'text-neutral-900'}`}>
                                     {item.isFreeGift ? 'FREE' : `₹${item.price * item.quantity}`}
                                 </span>
                             </div>
@@ -720,7 +720,7 @@ export default function DeliveryOrderDetail() {
                 <div className="fixed bottom-24 left-6 right-6 z-30">
                     <button
                         onClick={handleSendOtp}
-                        className="w-full py-4 rounded-2xl bg-green-600 backdrop-blur-md border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] text-white font-bold text-lg transition-transform active:scale-[0.98] flex items-center justify-center gap-3 overflow-hidden group"
+                        className="w-full py-4 rounded-2xl bg-[var(--primary-dark)] backdrop-blur-md border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] text-white font-bold text-lg transition-transform active:scale-[0.98] flex items-center justify-center gap-3 overflow-hidden group"
                         disabled={otpSending}
                     >
                         <span className="relative z-10">{otpSending ? 'Sending OTP...' : 'Send Delivery OTP'}</span>
@@ -738,7 +738,7 @@ export default function DeliveryOrderDetail() {
                         value={otpValue}
                         onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="Enter 6-digit OTP"
-                        className="w-full px-4 py-3 border border-neutral-300 rounded-xl text-lg font-semibold text-center mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-neutral-300 rounded-xl text-lg font-semibold text-center mb-3 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
                         maxLength={6}
                     />
                     <div className="flex gap-3">
@@ -753,7 +753,7 @@ export default function DeliveryOrderDetail() {
                         </button>
                         <button
                             onClick={handleVerifyOtp}
-                            className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors"
+                            className="flex-1 py-3 rounded-xl bg-[var(--primary-dark)] text-white font-semibold hover:bg-[var(--primary-darker)] transition-colors"
                             disabled={otpVerifying || otpValue.length !== 6}
                         >
                             {otpVerifying ? 'Verifying...' : 'Verify OTP'}

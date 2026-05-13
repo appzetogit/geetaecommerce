@@ -33,9 +33,9 @@ export default function Brands() {
   // Function to generate deterministic pastel color based on string
   const getBackgroundColor = (name: string) => {
     const colors = [
-      'bg-red-50', 'bg-orange-50', 'bg-amber-50', 'bg-yellow-50',
-      'bg-lime-50', 'bg-green-50', 'bg-emerald-50', 'bg-teal-50',
-      'bg-cyan-50', 'bg-sky-50', 'bg-blue-50', 'bg-indigo-50',
+      'bg-[var(--customer-primary-alpha-10)]', 'bg-[var(--customer-primary-alpha-10)]', 'bg-[var(--customer-primary-alpha-10)]', 'bg-yellow-50',
+      'bg-lime-50', 'bg-[var(--customer-primary-alpha-10)]', 'bg-emerald-50', 'bg-[var(--customer-primary-alpha-10)]',
+      'bg-cyan-50', 'bg-sky-50', 'bg-[var(--customer-primary-alpha-10)]', 'bg-indigo-50',
       'bg-violet-50', 'bg-purple-50', 'bg-fuchsia-50', 'bg-pink-50',
       'bg-rose-50'
     ];
@@ -55,10 +55,10 @@ export default function Brands() {
   if (error) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <p className="text-red-500 mb-4">{error}</p>
+        <p className="text-[var(--customer-primary)] mb-4">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700"
+          className="px-4 py-2 bg-[var(--customer-primary-dark)] text-white rounded hover:bg-[var(--customer-primary-dark)]"
         >
           Retry
         </button>

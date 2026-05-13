@@ -168,7 +168,7 @@ export default function LiveTrackingMap({
             {isTracking && (
                 <div className="absolute bottom-3 left-3 z-10 bg-white px-3 py-2 rounded-lg shadow-lg flex items-center gap-2">
                     <motion.div
-                        className="w-2 h-2 rounded-full bg-green-500"
+                        className="w-2 h-2 rounded-full bg-[var(--customer-primary)]"
                         animate={{ opacity: [1, 0.3, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
                     />

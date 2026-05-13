@@ -182,7 +182,7 @@ export default function Checkout() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <div className="w-12 h-12 border-4 border-[var(--customer-primary-dark)] border-t-transparent rounded-full animate-spin mb-4"></div>
           <p className="text-sm font-medium text-neutral-600">
             {cartLoading ? 'Loading checkout...' : 'Redirecting...'}
           </p>
@@ -668,7 +668,7 @@ export default function Checkout() {
                 style={{
                   left: `${Math.random() * 100}%`,
                   top: `-10%`,
-                  backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][Math.floor(Math.random() * 6)],
+                  backgroundColor: ['#22c55e', '#3b82f6', '#f59e0b', 'var(--customer-primary)', '#8b5cf6', '#ec4899'][Math.floor(Math.random() * 6)],
                   animation: `confettiFall ${2 + Math.random() * 2}s linear ${Math.random() * 2}s infinite`,
                   transform: `rotate(${Math.random() * 360}deg)`,
                 }}
@@ -685,14 +685,14 @@ export default function Checkout() {
             >
               {/* Outer ring animation */}
               <div
-                className="absolute inset-0 w-32 h-32 rounded-full border-4 border-green-500"
+                className="absolute inset-0 w-32 h-32 rounded-full border-4 border-[var(--customer-primary)]"
                 style={{
                   animation: 'ringPulse 1.5s ease-out infinite',
                   opacity: 0.3
                 }}
               />
               {/* Main circle */}
-              <div className="w-32 h-32 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-2xl">
+              <div className="w-32 h-32 bg-gradient-to-br from-[var(--customer-primary)] to-[var(--customer-primary-dark)] rounded-full flex items-center justify-center shadow-2xl">
                 <svg
                   className="w-16 h-16 text-white"
                   viewBox="0 0 24 24"
@@ -727,7 +727,7 @@ export default function Checkout() {
               style={{ animation: 'slideUp 0.5s ease-out 0.6s both' }}
             >
               <div className="flex items-center justify-center gap-2 mb-2">
-                <div className="w-5 h-5 text-red-500">
+                <div className="w-5 h-5 text-[var(--customer-primary)]">
                   <svg viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
                   </svg>
@@ -746,14 +746,14 @@ export default function Checkout() {
               className="mt-12 text-center"
               style={{ animation: 'slideUp 0.5s ease-out 0.8s both' }}
             >
-              <h3 className="text-3xl font-bold text-green-600 mb-2">Order Placed!</h3>
+              <h3 className="text-3xl font-bold text-[var(--customer-primary-dark)] mb-2">Order Placed!</h3>
               <p className="text-gray-600">Your order is on the way</p>
             </div>
 
             {/* Action Button */}
             <button
               onClick={handleGoToOrders}
-              className="mt-10 bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-12 rounded-xl shadow-lg transition-all hover:shadow-xl hover:scale-105"
+              className="mt-10 bg-[var(--customer-primary-dark)] hover:bg-[var(--customer-primary-darker)] text-white font-semibold py-4 px-12 rounded-xl shadow-lg transition-all hover:shadow-xl hover:scale-105"
               style={{ animation: 'slideUp 0.5s ease-out 1s both' }}
             >
               Track Your Order
@@ -793,7 +793,7 @@ export default function Checkout() {
                 editAddress: savedAddress
               }
             })}
-            className="text-xs text-green-600 font-medium hover:text-green-700 transition-colors"
+            className="text-xs text-[var(--customer-primary-dark)] font-medium hover:text-[var(--customer-primary-dark)] transition-colors"
           >
             Add details
           </button>
@@ -809,14 +809,14 @@ export default function Checkout() {
           </div>
 
           <div
-            className={`border rounded-lg p-2.5 cursor-pointer transition-all ${selectedAddress ? 'border-green-600 bg-green-50' : 'border-neutral-300 bg-white'
+            className={`border rounded-lg p-2.5 cursor-pointer transition-all ${selectedAddress ? 'border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)]' : 'border-neutral-300 bg-white'
               }`}
             onClick={() => setSelectedAddress(savedAddress)}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedAddress ? 'border-green-600 bg-green-600' : 'border-neutral-400'
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedAddress ? 'border-[var(--customer-primary-dark)] bg-[var(--customer-primary-dark)]' : 'border-neutral-400'
                     }`}>
                     {selectedAddress && (
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -840,7 +840,7 @@ export default function Checkout() {
                     }
                   });
                 }}
-                className="text-xs text-green-600 font-medium ml-2"
+                className="text-xs text-[var(--customer-primary-dark)] font-medium ml-2"
               >
                 Edit
               </button>
@@ -854,7 +854,7 @@ export default function Checkout() {
         <div className="bg-white rounded-lg border border-neutral-200 p-2.5">
           {/* Delivery info */}
           <div className="flex items-center gap-1.5 mb-2">
-            <div className="w-5 h-5 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+            <div className="w-5 h-5 rounded-full bg-[var(--customer-primary-dark)] flex items-center justify-center flex-shrink-0">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="2" />
                 <path d="M12 6v6l4 2" stroke="white" strokeWidth="2" strokeLinecap="round" />
@@ -882,7 +882,7 @@ export default function Checkout() {
                         </span>
                         {nextRule && (
                              <span className="text-[10px] text-gray-500">
-                                Add <span className="font-bold text-teal-700">₹{nextRule.minCartValue - currentTotal}</span> more
+                                Add <span className="font-bold text-[var(--customer-primary-dark)]">₹{nextRule.minCartValue - currentTotal}</span> more
                              </span>
                         )}
                     </div>
@@ -894,7 +894,7 @@ export default function Checkout() {
 
                          {/* Progress Line */}
                          <div
-                            className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-teal-400 to-green-500 rounded-full -translate-y-1/2 z-0 transition-all duration-300"
+                            className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-[var(--customer-primary-light)] to-[var(--customer-primary)] rounded-full -translate-y-1/2 z-0 transition-all duration-300"
                             style={{ width: `${Math.min(100, (currentTotal / maxTarget) * 100)}%` }}
                          ></div>
 
@@ -910,7 +910,7 @@ export default function Checkout() {
                                     style={{ left: `${position}%`, transform: `translate(-${position === 100 ? '100' : '50'}%, -50%)` }}
                                  >
                                      {/* Icon Circle */}
-                                     <div className={`w-6 h-6 rounded-full border flex items-center justify-center bg-white transition-all duration-300 ${isUnlocked ? 'border-green-500 text-green-500 shadow-sm' : 'border-gray-300 text-gray-300'}`}>
+                                     <div className={`w-6 h-6 rounded-full border flex items-center justify-center bg-white transition-all duration-300 ${isUnlocked ? 'border-[var(--customer-primary)] text-[var(--customer-primary)] shadow-sm' : 'border-gray-300 text-gray-300'}`}>
                                          {isUnlocked ? (
                                              <span className="text-[10px] font-bold">✓</span>
                                          ) : (
@@ -921,7 +921,7 @@ export default function Checkout() {
                                      {/* Label */}
                                      {/* Only show label if it's the next target or last one to avoid clutter */}
                                      <div className="absolute top-7 w-16 text-center">
-                                         <span className={`text-[8px] font-bold block ${isUnlocked ? 'text-green-600' : 'text-gray-400'}`}>
+                                         <span className={`text-[8px] font-bold block ${isUnlocked ? 'text-[var(--customer-primary-dark)]' : 'text-gray-400'}`}>
                                              ₹{rule.minCartValue}
                                          </span>
                                      </div>
@@ -968,7 +968,7 @@ export default function Checkout() {
                     </div>
                   )}
                   {isFreeGift && (
-                      <div className="absolute top-0 left-0 right-0 bg-green-500 text-white text-[8px] text-center font-bold">
+                      <div className="absolute top-0 left-0 right-0 bg-[var(--customer-primary)] text-white text-[8px] text-center font-bold">
                           FREE
                       </div>
                   )}
@@ -978,7 +978,7 @@ export default function Checkout() {
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xs font-semibold text-neutral-900 mb-0.5 line-clamp-2">
                     {prod?.name}
-                    {isFreeGift && <span className="ml-1 text-green-600 font-bold">(Free Gift)</span>}
+                    {isFreeGift && <span className="ml-1 text-[var(--customer-primary-dark)] font-bold">(Free Gift)</span>}
                   </h3>
                   <p className="text-[10px] text-neutral-600 mb-0.5">{item.quantity} × {prod?.pack}</p>
 
@@ -988,7 +988,7 @@ export default function Checkout() {
                       e.stopPropagation();
                       if (prod) handleMoveToWishlist(prod);
                     }}
-                    className="text-[10px] text-[#d35400] font-medium mb-1.5 hover:text-orange-700 transition-colors"
+                    className="text-[10px] text-[#d35400] font-medium mb-1.5 hover:text-[var(--customer-primary-dark)] transition-colors"
                   >
                     Move to wishlist
                   </button>
@@ -997,7 +997,7 @@ export default function Checkout() {
                   {/* Quantity Selector */}
                   <div className="flex items-center justify-between mt-1.5">
                     {isFreeGift ? (
-                        <div className="text-xs text-green-600 font-bold bg-green-50 px-2 py-1 rounded">
+                        <div className="text-xs text-[var(--customer-primary-dark)] font-bold bg-[var(--customer-primary-alpha-10)] px-2 py-1 rounded">
                             Standard Qty: 1
                         </div>
                     ) : (
@@ -1013,7 +1013,7 @@ export default function Checkout() {
                           const pId = prod.id || prod._id || '';
                           updateQuantity(pId as string, (item.quantity || 1) - 1, vId, vTitle);
                         }}
-                        className="w-5 h-5 flex items-center justify-center text-[#d35400] font-bold hover:bg-orange-50 rounded-full transition-colors text-xs"
+                        className="w-5 h-5 flex items-center justify-center text-[#d35400] font-bold hover:bg-[var(--customer-primary-alpha-10)] rounded-full transition-colors text-xs"
                       >
                         −
                       </button>
@@ -1031,7 +1031,7 @@ export default function Checkout() {
                            const pId = prod.id || prod._id || '';
                            updateQuantity(pId as string, (item.quantity || 1) + 1, vId, vTitle);
                         }}
-                        className="w-5 h-5 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors text-xs"
+                        className="w-5 h-5 flex items-center justify-center text-[var(--customer-primary-dark)] font-bold hover:bg-[var(--customer-primary-alpha-10)] rounded-full transition-colors text-xs"
                       >
                         +
                       </button>
@@ -1044,11 +1044,11 @@ export default function Checkout() {
                       ) : (
                           <div className="flex flex-col items-end">
                             <span className="text-xs font-bold text-neutral-900">
-                                ₹{(getApplicableUnitPrice(prod, item.variant, item.quantity) * (item.quantity || 0)).toFixed(0)}
+                                ₹{(getApplicableUnitPrice(prod, item.variant, item.quantity) * (item.quantity || 0)).toFixed(2)}
                             </span>
                              {/* Show tier info if active */}
                              {getApplicableUnitPrice(prod, item.variant, item.quantity) < calculateProductPrice(prod, item.variant).displayPrice && (
-                                <span className="text-[9px] text-green-600 font-medium">
+                                <span className="text-[9px] text-[var(--customer-primary-dark)] font-medium">
                                     Bulk Applied
                                 </span>
                              )}
@@ -1121,7 +1121,7 @@ export default function Checkout() {
 
                       {/* Red Discount Badge - Top Left */}
                       {discount > 0 && (
-                        <div className="absolute top-1 left-1 z-10 bg-red-600 text-white text-[9px] font-bold px-1 py-0.5 rounded">
+                        <div className="absolute top-1 left-1 z-10 bg-[var(--customer-primary-dark)] text-white text-[9px] font-bold px-1 py-0.5 rounded">
                           {discount}% OFF
                         </div>
                       )}
@@ -1171,7 +1171,7 @@ export default function Checkout() {
                                 const variantTitle = (inCartItem?.product as any)?.variantTitle || (inCartItem?.product as any)?.pack;
                                 updateQuantity(productId, inCartQty - 1, variantId, variantTitle);
                               }}
-                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
+                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-[var(--customer-primary-darker)] rounded transition-colors p-0 leading-none"
                                 style={{ lineHeight: 1, fontSize: '14px' }}
                               >
                                 <span className="relative top-[-1px]">−</span>
@@ -1195,7 +1195,7 @@ export default function Checkout() {
                                   const variantTitle = (inCartItem?.product as any)?.variantTitle || (inCartItem?.product as any)?.pack;
                                   updateQuantity(productId, inCartQty + 1, variantId, variantTitle);
                                 }}
-                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
+                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-[var(--customer-primary-darker)] rounded transition-colors p-0 leading-none"
                                 style={{ lineHeight: 1, fontSize: '14px' }}
                               >
                                 <span className="relative top-[-1px]">+</span>
@@ -1257,7 +1257,7 @@ export default function Checkout() {
 
                     {/* Discount - Blue Text */}
                     {discount > 0 && (
-                      <div className="text-[9px] text-blue-600 font-semibold mb-0.5">
+                      <div className="text-[9px] text-[var(--customer-primary-dark)] font-semibold mb-0.5">
                         {discount}% OFF
                       </div>
                     )}
@@ -1279,11 +1279,11 @@ export default function Checkout() {
                     {/* Bottom Link */}
                     <div
                       onClick={() => navigate(`/category/${product.categoryId || product.category || 'all'}`)}
-                      className="w-full bg-orange-50 text-[#d35400] text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-orange-100 transition-colors mt-auto cursor-pointer"
+                      className="w-full bg-[var(--customer-primary-alpha-10)] text-[#d35400] text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-[var(--customer-primary-alpha-20)] transition-colors mt-auto cursor-pointer"
                     >
                       <span>See more like this</span>
                       <div className="flex items-center gap-0.5">
-                        <div className="w-px h-2 bg-orange-200"></div>
+                        <div className="w-px h-2 bg-[var(--customer-primary-alpha-30)]"></div>
                         <svg width="6" height="6" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M0 0L8 4L0 8Z" fill="#d35400" />
                         </svg>
@@ -1299,7 +1299,7 @@ export default function Checkout() {
 
       {/* Get FREE delivery banner */}
       {deliveryCharge > 0 && (
-        <div className="px-4 py-2 bg-blue-50 border-b border-blue-100">
+        <div className="px-4 py-2 bg-[var(--customer-primary-alpha-10)] border-b border-blue-100">
           <div className="flex items-center gap-2 mb-1.5">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M5 13h14M5 13l4-4m-4 4l4 4" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1312,13 +1312,13 @@ export default function Checkout() {
                   <path d="M9 18l6-6-6-6" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
-              <p className="text-[10px] text-blue-600 mt-0.5">Add products worth ₹{amountNeededForFreeDelivery} more</p>
+              <p className="text-[10px] text-[var(--customer-primary-dark)] mt-0.5">Add products worth ₹{amountNeededForFreeDelivery} more</p>
             </div>
           </div>
           {/* Progress bar */}
-          <div className="w-full h-1 bg-blue-200 rounded-full overflow-hidden">
+          <div className="w-full h-1 bg-[var(--customer-primary-alpha-30)] rounded-full overflow-hidden">
             <div
-              className="h-full bg-blue-600 transition-all duration-300"
+              className="h-full bg-[var(--customer-primary-dark)] transition-all duration-300"
               style={{ width: `${Math.min(100, ((199 - amountNeededForFreeDelivery) / 199) * 100)}%` }}
             />
           </div>
@@ -1328,21 +1328,21 @@ export default function Checkout() {
       {/* Coupon Section */}
       {selectedCoupon ? (
         <div className="px-4 py-1.5 border-b border-neutral-200">
-          <div className="flex items-center justify-between bg-green-50 rounded-lg p-2 border border-green-200">
+          <div className="flex items-center justify-between bg-[var(--customer-primary-alpha-10)] rounded-lg p-2 border border-green-200">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="w-6 h-6 rounded-full bg-green-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-6 h-6 rounded-full bg-[var(--customer-primary-dark)] flex items-center justify-center flex-shrink-0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-green-700 truncate">{selectedCoupon?.code}</p>
-                <p className="text-[10px] text-green-600 truncate">{selectedCoupon?.title}</p>
+                <p className="text-xs font-semibold text-[var(--customer-primary-dark)] truncate">{selectedCoupon?.code}</p>
+                <p className="text-[10px] text-[var(--customer-primary-dark)] truncate">{selectedCoupon?.title}</p>
               </div>
             </div>
             <button
               onClick={handleRemoveCoupon}
-              className="text-xs text-green-600 font-medium ml-2 flex-shrink-0"
+              className="text-xs text-[var(--customer-primary-dark)] font-medium ml-2 flex-shrink-0"
             >
               Remove
             </button>
@@ -1372,7 +1372,7 @@ export default function Checkout() {
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-neutral-700">Items total</span>
               {savedAmount > 0 && (
-                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">
+                <span className="text-[10px] bg-[var(--customer-primary-alpha-20)] text-blue-700 px-1.5 py-0.5 rounded-full font-medium">
                   Saved ₹{savedAmount}
                 </span>
               )}
@@ -1398,11 +1398,11 @@ export default function Checkout() {
               <span className="text-xs text-neutral-700">Delivery charge</span>
             </div>
             <div className="flex flex-col items-end">
-              <span className={`text-xs font-medium ${deliveryCharge === 0 ? 'text-green-600' : 'text-neutral-900'}`}>
+              <span className={`text-xs font-medium ${deliveryCharge === 0 ? 'text-[var(--customer-primary-dark)]' : 'text-neutral-900'}`}>
                 {deliveryCharge === 0 ? 'FREE' : `₹${deliveryCharge}`}
               </span>
               {deliveryCharge > 0 && (
-                <span className="text-[10px] text-orange-600 mt-0.5">
+                <span className="text-[10px] text-[var(--customer-primary-dark)] mt-0.5">
                   Free delivery on orders above ₹{config.freeDeliveryThreshold}
                 </span>
               )}
@@ -1417,11 +1417,11 @@ export default function Checkout() {
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span className="text-xs text-neutral-700">Coupon discount</span>
-                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
+                <span className="text-[10px] bg-[var(--customer-primary-alpha-20)] text-[var(--customer-primary-dark)] px-1.5 py-0.5 rounded-full font-medium">
                   {selectedCoupon.code}
                 </span>
               </div>
-              <span className="text-xs font-medium text-green-600">-₹{currentCouponDiscount.toLocaleString('en-IN')}</span>
+              <span className="text-xs font-medium text-[var(--customer-primary-dark)]">-₹{currentCouponDiscount.toLocaleString('en-IN')}</span>
             </div>
           )}
 
@@ -1446,11 +1446,11 @@ export default function Checkout() {
                   <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span className="text-xs text-neutral-700">Online Payment Discount</span>
-                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
+                <span className="text-[10px] bg-[var(--customer-primary-alpha-20)] text-[var(--customer-primary-dark)] px-1.5 py-0.5 rounded-full font-medium">
                   {onlineDiscountPercentage}% OFF
                 </span>
               </div>
-              <span className="text-xs font-medium text-green-600">-₹{onlineDiscountAmount.toFixed(2)}</span>
+              <span className="text-xs font-medium text-[var(--customer-primary-dark)]">-₹{onlineDiscountAmount.toFixed(2)}</span>
             </div>
           )}
 
@@ -1477,14 +1477,14 @@ export default function Checkout() {
 
           {/* Online Payment Discount Incentive */}
           {onlineDiscountAmount > 0 && (
-            <div className="mt-2 bg-green-50 rounded-lg p-2.5 border border-dashed border-green-300">
+            <div className="mt-2 bg-[var(--customer-primary-alpha-10)] rounded-lg p-2.5 border border-dashed border-green-300">
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="w-5 h-5 bg-[var(--customer-primary-alpha-20)] rounded-full flex items-center justify-center">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                <p className="text-[11px] font-semibold text-green-700">
+                <p className="text-[11px] font-semibold text-[var(--customer-primary-dark)]">
                   Save ₹{onlineDiscountAmount.toFixed(2)} extra by paying online!
                 </p>
               </div>
@@ -1500,8 +1500,8 @@ export default function Checkout() {
           className="w-full flex items-center justify-between bg-neutral-50 rounded-lg p-2 hover:bg-neutral-100 transition-colors"
         >
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="text-blue-600 font-bold text-sm">%</span>
+            <div className="w-8 h-8 rounded-full bg-[var(--customer-primary-alpha-20)] flex items-center justify-center">
+              <span className="text-[var(--customer-primary-dark)] font-bold text-sm">%</span>
             </div>
             <div className="text-left">
               <p className="text-xs font-semibold text-neutral-900">Add GSTIN</p>
@@ -1529,7 +1529,7 @@ export default function Checkout() {
               setShowCustomTipInput(false);
             }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg border-2 font-medium text-xs ${tipAmount === 20 && !showCustomTipInput
-              ? 'border-green-600 bg-green-50 text-green-700'
+              ? 'border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)]'
               : 'border-neutral-300 bg-white text-neutral-700'
               }`}
           >
@@ -1541,7 +1541,7 @@ export default function Checkout() {
               setShowCustomTipInput(false);
             }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg border-2 font-medium text-xs ${tipAmount === 30 && !showCustomTipInput
-              ? 'border-green-600 bg-green-50 text-green-700'
+              ? 'border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)]'
               : 'border-neutral-300 bg-white text-neutral-700'
               }`}
           >
@@ -1553,7 +1553,7 @@ export default function Checkout() {
               setShowCustomTipInput(false);
             }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg border-2 font-medium text-xs ${tipAmount === 50 && !showCustomTipInput
-              ? 'border-green-600 bg-green-50 text-green-700'
+              ? 'border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)]'
               : 'border-neutral-300 bg-white text-neutral-700'
               }`}
           >
@@ -1565,7 +1565,7 @@ export default function Checkout() {
               setTipAmount(null);
             }}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg border-2 font-medium text-xs ${showCustomTipInput
-              ? 'border-green-600 bg-green-50 text-green-700'
+              ? 'border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)]'
               : 'border-neutral-300 bg-white text-neutral-700'
               }`}
           >
@@ -1592,7 +1592,7 @@ export default function Checkout() {
                 }
               }}
               placeholder="Enter custom tip amount"
-              className="flex-1 px-3 py-1.5 bg-white border-2 border-green-600 rounded-lg text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-green-500"
+              className="flex-1 px-3 py-1.5 bg-white border-2 border-[var(--customer-primary-dark)] rounded-lg text-xs text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-[var(--customer-primary)]"
               min="0"
               step="1"
             />
@@ -1616,14 +1616,14 @@ export default function Checkout() {
           onClick={() => setGiftPackaging(!giftPackaging)}
           className={`w-full flex items-center justify-between rounded-lg p-2 transition-colors ${
             giftPackaging
-              ? 'bg-green-50 border-2 border-green-600'
+              ? 'bg-[var(--customer-primary-alpha-10)] border-2 border-[var(--customer-primary-dark)]'
               : 'bg-neutral-50 border-2 border-transparent hover:bg-neutral-100'
           }`}
         >
           <div className="flex items-center gap-2">
             <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
               giftPackaging
-                ? 'border-green-600 bg-green-600'
+                ? 'border-[var(--customer-primary-dark)] bg-[var(--customer-primary-dark)]'
                 : 'border-neutral-400 bg-white'
             }`}>
               {giftPackaging && (
@@ -1636,7 +1636,7 @@ export default function Checkout() {
               <path d="M20 7h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2z" stroke="currentColor" strokeWidth="2" fill="none" />
             </svg>
             <div className="text-left">
-              <p className={`text-xs font-semibold ${giftPackaging ? 'text-green-700' : 'text-neutral-900'}`}>
+              <p className={`text-xs font-semibold ${giftPackaging ? 'text-[var(--customer-primary-dark)]' : 'text-neutral-900'}`}>
                 Gift Packaging
               </p>
               <p className="text-[10px] text-neutral-600">
@@ -1645,7 +1645,7 @@ export default function Checkout() {
             </div>
           </div>
           {giftPackaging && (
-            <span className="text-xs font-semibold text-green-600">₹30</span>
+            <span className="text-xs font-semibold text-[var(--customer-primary-dark)]">₹30</span>
           )}
         </button>
       </div>
@@ -1658,7 +1658,7 @@ export default function Checkout() {
             onClick={() => setIsPaymentDropdownOpen(!isPaymentDropdownOpen)}
             className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl transition-all ${
               isPaymentDropdownOpen
-                ? 'border-blue-600 ring-1 ring-blue-600 bg-white'
+                ? 'border-[var(--customer-primary-dark)] ring-1 ring-[var(--customer-primary-dark)] bg-white'
                 : 'border-neutral-300 bg-white'
             }`}
           >
@@ -1674,7 +1674,7 @@ export default function Checkout() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className={`text-neutral-500 transition-transform duration-200 ${isPaymentDropdownOpen ? 'rotate-180 text-blue-600' : ''}`}
+              className={`text-neutral-500 transition-transform duration-200 ${isPaymentDropdownOpen ? 'rotate-180 text-[var(--customer-primary-dark)]' : ''}`}
             >
               <path d="M6 9l6 6 6-6" />
             </svg>
@@ -1702,7 +1702,7 @@ export default function Checkout() {
                     }}
                     className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50 border-b border-neutral-100 last:border-0 group text-left"
                   >
-                    <span className={`text-sm font-medium ${selectedPaymentMethod === method.id ? 'text-blue-600' : 'text-neutral-700'}`}>
+                    <span className={`text-sm font-medium ${selectedPaymentMethod === method.id ? 'text-[var(--customer-primary-dark)]' : 'text-neutral-700'}`}>
                       {method.label}
                     </span>
                     <span className="text-neutral-300 group-hover:text-neutral-500 transition-colors">→</span>
@@ -1732,12 +1732,12 @@ export default function Checkout() {
             <motion.span
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
-              className="text-red-500 text-sm"
+              className="text-[var(--customer-primary)] text-sm"
             >
               ❤️
             </motion.span>
             <span className="text-[10px] font-medium">by</span>
-            <span className="text-[10px] font-semibold text-green-600">Geeta Stores</span>
+            <span className="text-[10px] font-semibold text-[var(--customer-primary-dark)]">Geeta Stores</span>
           </div>
         </div>
       </div>
@@ -1771,7 +1771,7 @@ export default function Checkout() {
                   }
                 }}
                 placeholder="Enter 15-character GSTIN"
-                className="w-full px-4 py-3 bg-white border-2 border-neutral-300 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-4 py-3 bg-white border-2 border-neutral-300 rounded-lg text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-[var(--customer-primary)] focus:border-[var(--customer-primary)]"
                 maxLength={15}
               />
               <p className="text-xs text-neutral-500 mt-1">
@@ -1786,7 +1786,7 @@ export default function Checkout() {
                   alert('Please enter a valid 15-character GSTIN');
                 }
               }}
-              className="w-full bg-green-600 text-white py-3 px-4 font-bold text-sm uppercase tracking-wide hover:bg-green-700 transition-colors rounded-lg"
+              className="w-full bg-[var(--customer-primary-dark)] text-white py-3 px-4 font-bold text-sm uppercase tracking-wide hover:bg-[var(--customer-primary-darker)] transition-colors rounded-lg"
             >
               Save GSTIN
             </button>
@@ -1885,7 +1885,7 @@ export default function Checkout() {
                     <div
                       key={coupon._id}
                       className={`border-2 rounded-lg p-2.5 transition-all ${isSelected
-                        ? 'border-green-600 bg-green-50'
+                        ? 'border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)]'
                         : meetsMinOrder
                           ? 'border-neutral-200 bg-white'
                           : 'border-neutral-200 bg-neutral-50 opacity-60'
@@ -1894,7 +1894,7 @@ export default function Checkout() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-bold text-green-600">{coupon.code}</span>
+                            <span className="text-xs font-bold text-[var(--customer-primary-dark)]">{coupon.code}</span>
                             <span className="text-xs font-semibold text-neutral-900">{coupon.title}</span>
                           </div>
                           <p className="text-[10px] text-neutral-600 mb-1">{coupon.description}</p>
@@ -1905,7 +1905,7 @@ export default function Checkout() {
                           )}
                         </div>
                         {isSelected ? (
-                          <div className="flex items-center gap-1 text-green-600">
+                          <div className="flex items-center gap-1 text-[var(--customer-primary-dark)]">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                               <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
@@ -1916,7 +1916,7 @@ export default function Checkout() {
                             onClick={() => meetsMinOrder && handleApplyCoupon(coupon)}
                             disabled={!meetsMinOrder || isValidatingCoupon}
                             className={`px-3 py-1 rounded text-xs font-medium transition-colors ${meetsMinOrder
-                              ? 'bg-green-600 text-white hover:bg-green-700'
+                              ? 'bg-[var(--customer-primary-dark)] text-white hover:bg-[var(--customer-primary-darker)]'
                               : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                               }`}
                           >
@@ -1940,7 +1940,7 @@ export default function Checkout() {
             onClick={handlePlaceOrderClick}
             disabled={cart.items.length === 0 || outOfStockItems.length > 0}
             className={`w-full py-3 px-4 font-bold text-sm uppercase tracking-wide transition-colors ${cart.items.length > 0 && outOfStockItems.length === 0
-              ? 'bg-green-600 text-white hover:bg-green-700'
+              ? 'bg-[var(--customer-primary-dark)] text-white hover:bg-[var(--customer-primary-darker)]'
               : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
               }`}
           >
@@ -1953,7 +1953,7 @@ export default function Checkout() {
                 editAddress: savedAddress
               }
             })}
-            className="w-full bg-green-600 text-white py-3 px-4 font-bold text-sm uppercase tracking-wide hover:bg-green-700 transition-colors"
+            className="w-full bg-[var(--customer-primary-dark)] text-white py-3 px-4 font-bold text-sm uppercase tracking-wide hover:bg-[var(--customer-primary-darker)] transition-colors"
           >
             Choose address at next step
           </button>
@@ -1976,25 +1976,25 @@ export default function Checkout() {
 
                      {isProcessingPayment ? (
                         <div className="flex flex-col items-center justify-center py-8">
-                            <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                            <div className="w-10 h-10 border-4 border-[var(--customer-primary-dark)] border-t-transparent rounded-full animate-spin mb-4"></div>
                             <p className="text-sm font-medium text-gray-600">Processing Payment...</p>
                         </div>
                      ) : (
                         <div className="space-y-3">
                             <button
                               onClick={() => handlePaymentSelection('Razorpay')}
-                              className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+                              className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[var(--customer-primary)] hover:bg-[var(--customer-primary-alpha-10)] transition-all text-left"
                             >
                                 <div className="flex items-center gap-3">
-                                   <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">R</div>
+                                   <div className="w-8 h-8 rounded-full bg-[var(--customer-primary-alpha-20)] flex items-center justify-center text-[var(--customer-primary-dark)] font-bold">R</div>
                                    <div>
                                        <span className="block font-semibold text-gray-700 group-hover:text-blue-700">Razorpay</span>
                                        {onlineDiscountAmount > 0 && (
-                                           <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">₹{(grandTotal - onlineDiscountAmount).toFixed(2)} (-₹{onlineDiscountAmount.toFixed(2)})</span>
+                                           <span className="text-[10px] bg-[var(--customer-primary-alpha-20)] text-[var(--customer-primary-dark)] px-1.5 py-0.5 rounded font-bold">₹{(grandTotal - onlineDiscountAmount).toFixed(2)} (-₹{onlineDiscountAmount.toFixed(2)})</span>
                                        )}
                                    </div>
                                 </div>
-                                <span className="text-gray-300 group-hover:text-blue-500">→</span>
+                                <span className="text-gray-300 group-hover:text-[var(--customer-primary)]">→</span>
                             </button>
 
                             <button
@@ -2006,7 +2006,7 @@ export default function Checkout() {
                                    <div>
                                        <span className="block font-semibold text-gray-700 group-hover:text-purple-700">Cashfree</span>
                                        {onlineDiscountAmount > 0 && (
-                                           <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">₹{(grandTotal - onlineDiscountAmount).toFixed(2)} (-₹{onlineDiscountAmount.toFixed(2)})</span>
+                                           <span className="text-[10px] bg-[var(--customer-primary-alpha-20)] text-[var(--customer-primary-dark)] px-1.5 py-0.5 rounded font-bold">₹{(grandTotal - onlineDiscountAmount).toFixed(2)} (-₹{onlineDiscountAmount.toFixed(2)})</span>
                                        )}
                                    </div>
                                 </div>
@@ -2015,13 +2015,13 @@ export default function Checkout() {
 
                              <button
                               onClick={() => handlePaymentSelection('Cash')}
-                              className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all"
+                              className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[var(--customer-primary)] hover:bg-[var(--customer-primary-alpha-10)] transition-all"
                             >
                                 <div className="flex items-center gap-3">
-                                   <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold text-xs">COD</div>
-                                   <span className="font-semibold text-gray-700 group-hover:text-green-700">Cash on Delivery</span>
+                                   <div className="w-8 h-8 rounded-full bg-[var(--customer-primary-alpha-20)] flex items-center justify-center text-[var(--customer-primary-dark)] font-bold text-xs">COD</div>
+                                   <span className="font-semibold text-gray-700 group-hover:text-[var(--customer-primary-dark)]">Cash on Delivery</span>
                                 </div>
-                                <span className="text-gray-300 group-hover:text-green-500">→</span>
+                                <span className="text-gray-300 group-hover:text-[var(--customer-primary)]">→</span>
                             </button>
                          </div>
                      )}

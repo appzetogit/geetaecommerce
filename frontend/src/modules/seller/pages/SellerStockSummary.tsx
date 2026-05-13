@@ -232,7 +232,7 @@ const SellerStockSummary = () => {
             <div className="flex flex-wrap gap-2 text-white">
               <button
                 onClick={() => setEditMode(!editMode)}
-                className={`inline-flex items-center px-4 py-2 text-white text-sm font-semibold rounded-lg active:scale-95 transition-all shadow-sm ${editMode ? 'bg-[#d06b99]' : 'bg-[#f187b5] hover:bg-[#e076a5]'}`}>
+                className={`inline-flex items-center px-4 py-2 text-white text-sm font-semibold rounded-lg active:scale-95 transition-all shadow-sm ${editMode ? 'bg-[var(--primary-dark)]' : 'bg-[var(--primary-color)] hover:bg-[var(--primary-dark)]'}`}>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
@@ -249,7 +249,7 @@ const SellerStockSummary = () => {
 
               <button
                 onClick={downloadExcel}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm">
+                className="inline-flex items-center px-4 py-2 bg-[var(--primary-dark)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--primary-darker)] active:scale-95 transition-all shadow-sm">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -273,7 +273,7 @@ const SellerStockSummary = () => {
               onClick={() => handleDateFilterChange('today')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'today'
-                  ? 'bg-white text-seller-600 shadow-sm'
+                  ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}>
               Today
@@ -282,7 +282,7 @@ const SellerStockSummary = () => {
               onClick={() => handleDateFilterChange('tomorrow')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'tomorrow'
-                  ? 'bg-white text-seller-600 shadow-sm'
+                  ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}>
               Tomorrow
@@ -291,7 +291,7 @@ const SellerStockSummary = () => {
               onClick={() => handleDateFilterChange('last7days')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'last7days'
-                  ? 'bg-white text-seller-600 shadow-sm'
+                  ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}>
               Last 7 Days
@@ -300,7 +300,7 @@ const SellerStockSummary = () => {
               onClick={() => handleDateFilterChange('last30days')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'last30days'
-                  ? 'bg-white text-seller-600 shadow-sm'
+                  ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}>
               Last 30 Days
@@ -309,7 +309,7 @@ const SellerStockSummary = () => {
               onClick={() => handleDateFilterChange('alltime')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'alltime'
-                  ? 'bg-white text-seller-600 shadow-sm'
+                  ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}>
               All Time
@@ -318,12 +318,12 @@ const SellerStockSummary = () => {
               onClick={() => handleDateFilterChange('custom')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'custom'
-                  ? 'bg-seller-600 text-white shadow-sm'
-                  : 'text-seller-600 hover:bg-seller-50'
+                  ? 'bg-[var(--primary-dark)] text-white shadow-sm'
+                  : 'text-[var(--primary-dark)] hover:bg-[var(--primary-alpha-10)]'
               }`}>
               Custom
             </button>
-            <button className="p-2 text-seller-600 hover:bg-seller-50 rounded-lg transition-all">
+            <button className="p-2 text-[var(--primary-dark)] hover:bg-[var(--primary-alpha-10)] rounded-lg transition-all">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
@@ -332,7 +332,7 @@ const SellerStockSummary = () => {
 
           {/* Custom Date Range Picker */}
           {showCustomDatePicker && (
-            <div className="mt-4 p-4 bg-seller-50 rounded-lg border border-seller-200">
+            <div className="mt-4 p-4 bg-[var(--primary-alpha-10)] rounded-lg border border-[var(--primary-alpha-30)]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">Start Date</label>
@@ -340,7 +340,7 @@ const SellerStockSummary = () => {
                     type="date"
                     value={customDateRange.start}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -349,7 +349,7 @@ const SellerStockSummary = () => {
                     type="date"
                     value={customDateRange.end}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all"
                   />
                 </div>
               </div>
@@ -365,7 +365,7 @@ const SellerStockSummary = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by product name, variant, category, brand, or EAN..."
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all"
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all"
               />
             </div>
             <div>
@@ -373,7 +373,7 @@ const SellerStockSummary = () => {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all">
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all">
                 <option value="">All Categories</option>
                 {categories.map(cat => (
                   <option key={cat._id} value={cat._id}>{cat.name}</option>
@@ -385,7 +385,7 @@ const SellerStockSummary = () => {
               <select
                 value={pagination.limit}
                 onChange={(e) => setPagination(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }))}
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all"
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all"
               >
                 {[10, 20, 50, 100, 500].map(val => (
                   <option key={val} value={val}>{val}</option>
@@ -409,21 +409,21 @@ const SellerStockSummary = () => {
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Stock Quantity</p>
-            <p className="text-3xl font-black text-blue-600 mt-2">
+            <p className="text-3xl font-black text-[var(--primary-dark)] mt-2">
               {data.reduce((sum, item) => sum + item.quantity, 0)}
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Stock Value (MRP)</p>
-            <p className="text-3xl font-black text-purple-600 mt-2">
+            <p className="text-3xl font-black text-[var(--primary-dark)] mt-2">
               ₹{data.reduce((sum, item) => sum + item.totalMRP, 0).toLocaleString()}
             </p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Potential Revenue (SP)</p>
-            <p className="text-3xl font-black text-green-600 mt-2">
+            <p className="text-3xl font-black text-[var(--primary-dark)] mt-2">
               ₹{data.reduce((sum, item) => sum + item.totalSP, 0).toLocaleString()}
             </p>
           </div>
@@ -438,7 +438,7 @@ const SellerStockSummary = () => {
                       type="checkbox"
                       checked={selectedRows.size === data.length && data.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-seller-600 rounded border-gray-300 focus:ring-seller-500"
+                      className="w-4 h-4 text-[var(--primary-dark)] rounded border-gray-300 focus:ring-[var(--primary-color)]"
                     />
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider sticky left-10 bg-gray-50 z-10">Name</th>
@@ -448,7 +448,7 @@ const SellerStockSummary = () => {
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">MRP</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Selling Price</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Opening Stock</th>
-                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-blue-50">Quantity</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-[var(--primary-alpha-10)]">Quantity</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Discount ₹</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Discount %</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Total MRP</th>
@@ -471,7 +471,7 @@ const SellerStockSummary = () => {
                  {loading ? (
                    <tr>
                       <td colSpan={26} className="px-6 py-24 text-center">
-                       <div className="w-10 h-10 border-4 border-seller-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                       <div className="w-10 h-10 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                        <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em]">Syncing Inventory...</p>
                      </td>
                    </tr>
@@ -489,7 +489,7 @@ const SellerStockSummary = () => {
                           type="checkbox"
                           checked={selectedRows.has(item._id)}
                           onChange={() => handleSelectRow(item._id)}
-                          className="w-4 h-4 text-seller-600 rounded border-gray-300 focus:ring-seller-500"
+                          className="w-4 h-4 text-[var(--primary-dark)] rounded border-gray-300 focus:ring-[var(--primary-color)]"
                         />
                       </td>
                       <td className="px-3 py-3 sticky left-10 bg-white">
@@ -498,7 +498,7 @@ const SellerStockSummary = () => {
                             type="text"
                             value={item.name}
                             onChange={(e) => handleCellEdit(item._id, 'name', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-semibold"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-semibold"
                           />
                         ) : (
                           <span className="text-sm font-semibold text-gray-900">{item.name}</span>
@@ -510,7 +510,7 @@ const SellerStockSummary = () => {
                             type="text"
                             value={item.variantName}
                             onChange={(e) => handleCellEdit(item._id, 'variantName', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">{item.variantName}</span>
@@ -522,7 +522,7 @@ const SellerStockSummary = () => {
                             type="text"
                             value={item.uom}
                             onChange={(e) => handleCellEdit(item._id, 'uom', e.target.value)}
-                            className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">{item.uom}</span>
@@ -534,7 +534,7 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.purchaseValue}
                             onChange={(e) => handleCellEdit(item._id, 'purchaseValue', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">₹{item.purchaseValue}</span>
@@ -546,7 +546,7 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.mrp}
                             onChange={(e) => handleCellEdit(item._id, 'mrp', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-semibold"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-semibold"
                           />
                         ) : (
                           <span className="text-sm font-semibold text-gray-900">₹{item.mrp}</span>
@@ -558,10 +558,10 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.sellingPrice}
                             onChange={(e) => handleCellEdit(item._id, 'sellingPrice', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-semibold text-green-600"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-semibold text-[var(--primary-dark)]"
                           />
                         ) : (
-                          <span className="text-sm font-semibold text-green-600">₹{item.sellingPrice}</span>
+                          <span className="text-sm font-semibold text-[var(--primary-dark)]">₹{item.sellingPrice}</span>
                         )}
                       </td>
                       <td className="px-3 py-3">
@@ -570,22 +570,22 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.openingStock}
                             onChange={(e) => handleCellEdit(item._id, 'openingStock', parseInt(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">{item.openingStock}</span>
                         )}
                       </td>
-                      <td className="px-3 py-3 bg-blue-50">
+                      <td className="px-3 py-3 bg-[var(--primary-alpha-10)]">
                         {editMode ? (
                           <input
                             type="number"
                             value={item.quantity}
                             onChange={(e) => handleCellEdit(item._id, 'quantity', parseInt(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-bold text-blue-700"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-bold text-[var(--primary-darker)]"
                           />
                         ) : (
-                          <span className="text-sm font-bold text-blue-700">{item.quantity}</span>
+                          <span className="text-sm font-bold text-[var(--primary-darker)]">{item.quantity}</span>
                         )}
                       </td>
                       <td className="px-3 py-3">
@@ -594,7 +594,7 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.totalDiscountRs}
                             onChange={(e) => handleCellEdit(item._id, 'totalDiscountRs', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none text-orange-600"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none text-orange-600"
                           />
                         ) : (
                           <span className="text-sm text-orange-600">₹{item.totalDiscountRs}</span>
@@ -606,7 +606,7 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.totalDiscountPercent}
                             onChange={(e) => handleCellEdit(item._id, 'totalDiscountPercent', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none text-orange-600"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none text-orange-600"
                           />
                         ) : (
                           <span className="text-sm text-orange-600">{item.totalDiscountPercent.toFixed(2)}%</span>
@@ -618,7 +618,7 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.totalMRP}
                             onChange={(e) => handleCellEdit(item._id, 'totalMRP', parseFloat(e.target.value))}
-                            className="w-24 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-semibold"
+                            className="w-24 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-semibold"
                           />
                         ) : (
                           <span className="text-sm font-semibold text-gray-900">₹{item.totalMRP.toLocaleString()}</span>
@@ -630,10 +630,10 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.totalSP}
                             onChange={(e) => handleCellEdit(item._id, 'totalSP', parseFloat(e.target.value))}
-                            className="w-24 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-semibold text-green-600"
+                            className="w-24 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-semibold text-[var(--primary-dark)]"
                           />
                         ) : (
-                          <span className="text-sm font-semibold text-green-600">₹{item.totalSP.toLocaleString()}</span>
+                          <span className="text-sm font-semibold text-[var(--primary-dark)]">₹{item.totalSP.toLocaleString()}</span>
                         )}
                       </td>
                       <td className="px-3 py-3">
@@ -642,7 +642,7 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.totalPurchasePrice}
                             onChange={(e) => handleCellEdit(item._id, 'totalPurchasePrice', parseFloat(e.target.value))}
-                            className="w-24 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-24 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">₹{item.totalPurchasePrice.toLocaleString()}</span>
@@ -654,7 +654,7 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.wholesalePrice}
                             onChange={(e) => handleCellEdit(item._id, 'wholesalePrice', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">₹{item.wholesalePrice}</span>
@@ -666,10 +666,10 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.onlineOfferPrice}
                             onChange={(e) => handleCellEdit(item._id, 'onlineOfferPrice', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none text-purple-600"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none text-[var(--primary-dark)]"
                           />
                         ) : (
-                          <span className="text-sm text-purple-600">₹{item.onlineOfferPrice}</span>
+                          <span className="text-sm text-[var(--primary-dark)]">₹{item.onlineOfferPrice}</span>
                         )}
                       </td>
                       <td className="px-3 py-3">
@@ -678,7 +678,7 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.lowStockQty}
                             onChange={(e) => handleCellEdit(item._id, 'lowStockQty', parseInt(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className={`text-sm font-medium ${item.quantity <= item.lowStockQty ? 'text-red-600' : 'text-gray-700'}`}>
@@ -692,7 +692,7 @@ const SellerStockSummary = () => {
                             type="text"
                             value={item.supplier}
                             onChange={(e) => handleCellEdit(item._id, 'supplier', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">{item.supplier}</span>
@@ -704,10 +704,10 @@ const SellerStockSummary = () => {
                             type="text"
                             value={item.category}
                             onChange={(e) => handleCellEdit(item._id, 'category', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
-                          <span className="text-xs px-2 py-1 bg-seller-100 text-seller-700 rounded-full font-medium">{item.category}</span>
+                          <span className="text-xs px-2 py-1 bg-[var(--primary-alpha-20)] text-[var(--primary-darker)] rounded-full font-medium">{item.category}</span>
                         )}
                       </td>
                       <td className="px-3 py-3">
@@ -716,7 +716,7 @@ const SellerStockSummary = () => {
                             type="text"
                             value={item.ean}
                             onChange={(e) => handleCellEdit(item._id, 'ean', e.target.value)}
-                            className="w-full px-2 py-1 text-xs font-mono border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-full px-2 py-1 text-xs font-mono border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-xs font-mono text-gray-600">{item.ean}</span>
@@ -728,7 +728,7 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.gst}
                             onChange={(e) => handleCellEdit(item._id, 'gst', parseFloat(e.target.value))}
-                            className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">{item.gst}%</span>
@@ -740,7 +740,7 @@ const SellerStockSummary = () => {
                             type="text"
                             value={item.hsn}
                             onChange={(e) => handleCellEdit(item._id, 'hsn', e.target.value)}
-                            className="w-20 px-2 py-1 text-xs font-mono border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-20 px-2 py-1 text-xs font-mono border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-xs font-mono text-gray-600">{item.hsn}</span>
@@ -752,7 +752,7 @@ const SellerStockSummary = () => {
                             type="number"
                             value={item.cess}
                             onChange={(e) => handleCellEdit(item._id, 'cess', parseFloat(e.target.value))}
-                            className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">{item.cess}%</span>
@@ -764,7 +764,7 @@ const SellerStockSummary = () => {
                             type="text"
                             value={item.brand}
                             onChange={(e) => handleCellEdit(item._id, 'brand', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">{item.brand}</span>
@@ -776,7 +776,7 @@ const SellerStockSummary = () => {
                             type="date"
                             value={item.expiryDate}
                             onChange={(e) => handleCellEdit(item._id, 'expiryDate', e.target.value)}
-                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-full px-2 py-1 text-xs border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-xs text-gray-600">{item.expiryDate}</span>
@@ -796,13 +796,13 @@ const SellerStockSummary = () => {
         {pagination.pages > 1 && (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <div className="text-xs font-black text-gray-400 uppercase tracking-widest">
-              Showing <span className="text-seller-600">{data.length}</span> of <span className="text-seller-600">{pagination.total}</span> Records
+              Showing <span className="text-[var(--primary-dark)]">{data.length}</span> of <span className="text-[var(--primary-dark)]">{pagination.total}</span> Records
             </div>
             <div className="flex items-center gap-2">
               <button
                 disabled={pagination.page === 1}
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                className="p-2 border border-gray-100 rounded-xl hover:bg-gray-50 disabled:opacity-30 transition-all font-black text-seller-600">
+                className="p-2 border border-gray-100 rounded-xl hover:bg-gray-50 disabled:opacity-30 transition-all font-black text-[var(--primary-dark)]">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
 
@@ -819,7 +819,7 @@ const SellerStockSummary = () => {
                     <button
                       key={p}
                       onClick={() => setPagination(prev => ({ ...prev, page: p }))}
-                      className={`w-9 h-9 flex items-center justify-center rounded-xl text-xs font-black transition-all ${pagination.page === p ? 'bg-seller-600 text-white shadow-lg shadow-seller-200' : 'hover:bg-seller-50 text-gray-500'}`}>
+                      className={`w-9 h-9 flex items-center justify-center rounded-xl text-xs font-black transition-all ${pagination.page === p ? 'bg-[var(--primary-dark)] text-white shadow-lg shadow-seller-200' : 'hover:bg-[var(--primary-alpha-10)] text-gray-500'}`}>
                       {p}
                     </button>
                   );
@@ -829,7 +829,7 @@ const SellerStockSummary = () => {
               <button
                 disabled={pagination.page === pagination.pages}
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                className="p-2 border border-gray-100 rounded-xl hover:bg-gray-50 disabled:opacity-30 transition-all font-black text-seller-600">
+                className="p-2 border border-gray-100 rounded-xl hover:bg-gray-50 disabled:opacity-30 transition-all font-black text-[var(--primary-dark)]">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M9 18l6-6-6-6"/></svg>
               </button>
             </div>

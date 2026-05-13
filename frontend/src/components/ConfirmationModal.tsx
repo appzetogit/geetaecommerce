@@ -18,7 +18,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   confirmText = "Confirm",
   cancelText = "Cancel",
-  confirmButtonClass = "bg-teal-600 hover:bg-teal-700 text-white",
+  confirmButtonClass = "bg-[var(--customer-primary-dark)] hover:bg-[var(--customer-primary-dark)] text-white",
   onConfirm,
   onCancel,
   loading = false,
@@ -36,14 +36,14 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <button
             onClick={onCancel}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--customer-primary)]"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 ${confirmButtonClass} ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
+            className={`px-4 py-2 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--customer-primary)] ${confirmButtonClass} ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
           >
             {loading ? "Processing..." : confirmText}
           </button>

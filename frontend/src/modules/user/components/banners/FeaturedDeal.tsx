@@ -22,11 +22,18 @@ export default function FeaturedDeal() {
 
         // Check for multiple IDs first
         if (config.featuredDealProductIds && config.featuredDealProductIds.length > 0) {
-             const promises = config.featuredDealProductIds.map(id => getProductById(id));
+             const promises = config.featuredDealProductIds.map(async (id) => {
+                 try {
+                     return await getProductById(id);
+                 } catch (error) {
+                     console.warn(`[FeaturedDeal] Product ID ${id} not found or error occurred:`, error);
+                     return null;
+                 }
+             });
              const results = await Promise.all(promises);
 
              results.forEach(res => {
-                 if (res.success && res.data) {
+                 if (res && res.success && res.data) {
                      products.push({
                         ...res.data,
                         id: (res.data as any)._id || (res.data as any).id,
@@ -118,7 +125,7 @@ export default function FeaturedDeal() {
                              {discount > 0 && (
                                 <span
                                     className="absolute top-0 left-0 text-white text-[10px] font-bold px-2 py-1 rounded-br-lg z-10 shadow-sm"
-                                    style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
+                                    style={{ background: 'linear-gradient(135deg, var(--customer-primary) 0%, var(--customer-primary-dark) 100%)' }}
                                 >
                                     -₹{mrp - displayPrice}
                                 </span>
@@ -140,7 +147,7 @@ export default function FeaturedDeal() {
                              </h4>
                              <div className="flex items-center gap-2 mt-1">
                                  <span className="text-xs text-red-400 line-through">₹{mrp}</span>
-                                 <span className="text-sm font-bold text-[#ef4444]">₹{displayPrice}</span>
+                                 <span className="text-sm font-bold text-[var(--customer-primary)]">₹{displayPrice}</span>
                              </div>
 
                              {/* Decoration circle */}

@@ -249,7 +249,8 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
                       }
                     }}
                     placeholder="Search orders, customers, products..."
-                    className="w-full px-4 py-2 pl-10 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5]"
+                    className="w-full px-4 py-2 pl-10 border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2"
+                    style={{ '--tw-ring-color': 'var(--primary-color, var(--primary-color))' } as any}
                     autoFocus
                   />
                   <svg
@@ -323,12 +324,12 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
                           if (notif.link) navigate(notif.link);
                           setShowNotificationsDropdown(false);
                         }}
-                        className={`px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer ${!notif.isRead ? 'bg-[#f187b5]/10' : ''
-                          }`}
+                        className={`px-4 py-3 hover:bg-neutral-50 transition-colors cursor-pointer`}
+                        style={!notif.isRead ? { backgroundColor: 'var(--primary-alpha-10, rgba(241,135,181,0.1))' } : {}}
                       >
                         <div className="flex gap-3">
-                          <div className={`w-2 h-2 mt-1.5 rounded-full flex-shrink-0 ${!notif.isRead ? 'bg-[#f187b5]' : 'bg-neutral-300'
-                            }`} />
+                          <div className="w-2 h-2 mt-1.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: !notif.isRead ? 'var(--primary-color, var(--primary-color))' : '#d4d4d4' }} />
                           <div className="flex-1">
                             <p className="text-sm font-medium text-neutral-900 leading-tight">
                               {notif.title}
@@ -361,7 +362,8 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
                       navigate('/admin/notification');
                       setShowNotificationsDropdown(false);
                     }}
-                    className="w-full text-center text-sm text-[#f187b5] hover:text-[#e076a5] font-medium"
+                    className="w-full text-center text-sm font-medium"
+                    style={{ color: 'var(--primary-color, var(--primary-color))' }}
                   >
                     View All Notifications
                   </button>

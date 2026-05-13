@@ -57,7 +57,7 @@ export default function AdminSellerUserLimit() {
               min={1}
               value={limitInput}
               onChange={(e) => setLimitInput(e.target.value)}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5]"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)]"
               placeholder="Enter user limit"
             />
           </div>
@@ -70,7 +70,7 @@ export default function AdminSellerUserLimit() {
             <button
               type="button"
               onClick={handleSave}
-              className="rounded-lg bg-[#f187b5] px-5 py-2 text-sm font-semibold text-white hover:bg-[#e076a5]"
+              className="rounded-lg bg-[var(--primary-color)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-dark)]"
             >
               Save
             </button>

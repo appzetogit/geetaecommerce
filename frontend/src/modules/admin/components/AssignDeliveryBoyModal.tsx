@@ -164,7 +164,7 @@ export default function AssignDeliveryBoyModal({
                             <select
                                 value={selectedDeliveryBoyId}
                                 onChange={(e) => setSelectedDeliveryBoyId(e.target.value)}
-                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5]"
+                                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                                 disabled={submitting}
                             >
                                 <option value="">-- Select Delivery Boy --</option>
@@ -180,19 +180,19 @@ export default function AssignDeliveryBoyModal({
 
                     {/* Selected Delivery Boy Details */}
                     {selectedDeliveryBoyId && (
-                        <div className="mb-4 p-3 bg-[#f187b5]/10 border border-[#f187b5]/30 rounded-lg">
+                        <div className="mb-4 p-3 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/30 rounded-lg">
                             {(() => {
                                 const selected = deliveryBoys.find((db) => db._id === selectedDeliveryBoyId);
                                 if (!selected) return null;
                                 return (
                                     <div className="space-y-1">
-                                        <p className="text-sm font-medium text-[#f187b5]">{selected.name}</p>
-                                        <p className="text-xs text-[#f187b5]/80">Mobile: {selected.mobile}</p>
-                                        <p className="text-xs text-[#f187b5]/80">City: {selected.city}</p>
+                                        <p className="text-sm font-medium text-[var(--primary-color)]">{selected.name}</p>
+                                        <p className="text-xs text-[var(--primary-color)]/80">Mobile: {selected.mobile}</p>
+                                        <p className="text-xs text-[var(--primary-color)]/80">City: {selected.city}</p>
                                         <p className="text-xs">
                                             <span
                                                 className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${selected.available === 'Available'
-                                                        ? 'bg-green-100 text-green-800'
+                                                        ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]'
                                                         : 'bg-red-100 text-red-800'
                                                     }`}
                                             >
@@ -220,7 +220,7 @@ export default function AssignDeliveryBoyModal({
                         disabled={!selectedDeliveryBoyId || submitting || deliveryBoys.length === 0}
                         className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${!selectedDeliveryBoyId || submitting || deliveryBoys.length === 0
                                 ? 'bg-neutral-400 cursor-not-allowed'
-                                : 'bg-[#f187b5] hover:bg-[#e076a5]'
+                                : 'bg-[var(--primary-color)] hover:bg-[var(--primary-dark)]'
                             }`}
                     >
                         {submitting ? 'Assigning...' : 'Assign Delivery Boy'}

@@ -130,11 +130,11 @@ export default function AdminFundTransfer() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-t-lg px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ backgroundColor: '#f187b5' }}>
+      <div className="rounded-t-lg px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4" style={{ backgroundColor: 'var(--primary-color)' }}>
         <h1 className="text-white text-xl font-bold">View Fund Transfer</h1>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-white text-[#f187b5] px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-neutral-50 transition-colors flex items-center gap-2"
+          className="bg-white text-[var(--primary-color)] px-4 py-2 rounded-lg text-sm font-bold shadow-sm hover:bg-neutral-50 transition-colors flex items-center gap-2"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -157,14 +157,14 @@ export default function AdminFundTransfer() {
                  type="date"
                  value={fromDate}
                  onChange={(e) => setFromDate(e.target.value)}
-                 className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#f187b5]"
+                 className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[var(--primary-color)]"
                />
                <span className="text-sm font-medium text-neutral-600">To Date</span>
                <input
                  type="date"
                  value={toDate}
                  onChange={(e) => setToDate(e.target.value)}
-                 className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#f187b5]"
+                 className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[var(--primary-color)]"
                />
             </div>
 
@@ -172,7 +172,7 @@ export default function AdminFundTransfer() {
             <select
               value={selectedDeliveryBoy}
               onChange={(e) => setSelectedDeliveryBoy(e.target.value)}
-              className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#f187b5] min-w-[150px]"
+              className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[var(--primary-color)] min-w-[150px]"
             >
               <option value="all">All Delivery Boy</option>
               {deliveryBoys.map(boy => (
@@ -184,7 +184,7 @@ export default function AdminFundTransfer() {
             <select
               value={selectedMethod}
               onChange={(e) => setSelectedMethod(e.target.value)}
-              className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#f187b5] min-w-[120px]"
+              className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[var(--primary-color)] min-w-[120px]"
             >
               <option value="all">Total Method</option>
               <option value="Cash">Cash</option>
@@ -202,7 +202,7 @@ export default function AdminFundTransfer() {
                 <select
                   value={entriesPerPage}
                   onChange={(e) => setEntriesPerPage(Number(e.target.value))}
-                  className="px-2 py-1 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#f187b5]"
+                  className="px-2 py-1 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[var(--primary-color)]"
                 >
                   <option value={10}>10</option>
                   <option value={20}>20</option>
@@ -216,11 +216,11 @@ export default function AdminFundTransfer() {
                   placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[#f187b5]"
+                  className="px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:border-[var(--primary-color)]"
                 />
                 <button
                   className="text-white px-4 py-2 rounded text-sm flex items-center gap-2 transition-colors"
-                  style={{ backgroundColor: '#f187b5' }}
+                  style={{ backgroundColor: 'var(--primary-color)' }}
                 >
                   Export
                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -258,7 +258,7 @@ export default function AdminFundTransfer() {
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         item.type === 'Credit'
-                          ? 'bg-green-100 text-green-800'
+                          ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]'
                           : 'bg-red-100 text-red-800'
                       }`}>
                         {item.type}
@@ -309,7 +309,7 @@ export default function AdminFundTransfer() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
              {/* Modal Header */}
-             <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between" style={{ backgroundColor: '#f187b5' }}>
+             <div className="px-6 py-4 border-b border-neutral-100 flex items-center justify-between" style={{ backgroundColor: 'var(--primary-color)' }}>
                 <h3 className="font-bold text-white">Add Fund Transfer</h3>
                 <button onClick={() => setShowModal(false)} className="text-white hover:bg-white/20 rounded-full p-1 transition-colors">
                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -326,7 +326,7 @@ export default function AdminFundTransfer() {
                    <select
                       value={newTransfer.deliveryBoy}
                       onChange={(e) => setNewTransfer({...newTransfer, deliveryBoy: e.target.value})}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:border-[#f187b5]"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:border-[var(--primary-color)]"
                       required
                    >
                      <option value="">Select Delivery Boy</option>
@@ -342,7 +342,7 @@ export default function AdminFundTransfer() {
                       type="number"
                       value={newTransfer.amount}
                       onChange={(e) => setNewTransfer({...newTransfer, amount: e.target.value})}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:border-[#f187b5]"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:border-[var(--primary-color)]"
                       placeholder="Enter amount"
                       required
                    />
@@ -353,7 +353,7 @@ export default function AdminFundTransfer() {
                    <textarea
                       value={newTransfer.message}
                       onChange={(e) => setNewTransfer({...newTransfer, message: e.target.value})}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:border-[#f187b5]"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:border-[var(--primary-color)]"
                       rows={3}
                       placeholder="Enter a message or remark"
                    />
@@ -365,7 +365,7 @@ export default function AdminFundTransfer() {
                       type="date"
                       value={newTransfer.date}
                       onChange={(e) => setNewTransfer({...newTransfer, date: e.target.value})}
-                      className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:border-[#f187b5]"
+                      className="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:border-[var(--primary-color)]"
                       required
                    />
                 </div>
@@ -381,7 +381,7 @@ export default function AdminFundTransfer() {
                    <button
                      type="submit"
                      className="px-4 py-2 text-sm font-bold text-white rounded shadow-md transition-colors"
-                     style={{ backgroundColor: '#f187b5' }}
+                     style={{ backgroundColor: 'var(--primary-color)' }}
                    >
                      Submit
                    </button>

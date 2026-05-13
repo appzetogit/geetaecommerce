@@ -198,6 +198,10 @@ router.use("/seller/taxes", taxRoutes);
 // Add more routes here
 // router.use('/users', userRoutes);
 
+// Theme routes (public read, admin write)
+import themeRoutes from "./themeRoutes";
+router.use("/theme", themeRoutes);
+
 // Banner routes (public read, admin write)
 router.use("/banners", bannerRoutes);
 router.use("/flash-deals", flashDealRoutes);

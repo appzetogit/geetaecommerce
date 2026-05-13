@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Suspense, lazy, startTransition } from "react";
 import { CartProvider } from "./context/CartContext";
 import { OrdersProvider } from "./context/OrdersContext";
@@ -224,10 +224,12 @@ const AdminOnlineOrderReport = lazy(() => import("./modules/admin/pages/AdminOnl
 const AdminPOSInvoiceReport = lazy(() => import("./modules/admin/pages/AdminPOSInvoiceReport"));
 const AdminAbandonedCarts = lazy(() => import("./modules/admin/pages/AdminAbandonedCarts"));
 const AdminPOSBillSettings = lazy(() => import("./modules/admin/pages/AdminPOSBillSettings"));
+const AdminThemeSettings = lazy(() => import("./modules/admin/pages/AdminThemeSettings"));
 
 import { useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import { AppProvider } from "./context/AppContext";
+import { BrandingThemeProvider } from "./context/BrandingThemeContext";
 
 const AdminManageStaff = lazy(() => import("./modules/admin/pages/AdminManageStaff"));
 const AdminStoreSettings = lazy(() => import("./modules/admin/pages/AdminStoreSettings"));
@@ -301,6 +303,7 @@ function App() {
             <IconLoader />
             <AuthProvider>
             <NotificationHandler />
+            <BrandingThemeProvider>
             <ThemeProvider>
               <LocationProvider>
                 <ToastProvider>
@@ -581,6 +584,7 @@ function App() {
                               <Route path="staff-bill-report" element={<StaffBillReport />} />
                             <Route path="settings/store" element={<AdminStoreSettings />} />
                             <Route path="app-settings" element={<AdminAppSettings />} />
+                            <Route path="settings/theme" element={<AdminThemeSettings />} />
 
                             {/* Report Routes */}
                             <Route path="reports/sales/summary" element={<AdminReportSalesSummary />} />
@@ -670,6 +674,7 @@ function App() {
               </LocationProvider>
 
             </ThemeProvider>
+            </BrandingThemeProvider>
           </AuthProvider>
           </AppProvider>
         </AxiosLoadingInterceptor>

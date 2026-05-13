@@ -277,7 +277,7 @@ const SellerLossSummary = () => {
             <div className="flex flex-wrap gap-2 text-white">
               <button
                 onClick={() => setShowAddLossModal(true)}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 active:scale-95 transition-all shadow-sm">
+                className="inline-flex items-center px-4 py-2 bg-[var(--primary-dark)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--primary-darker)] active:scale-95 transition-all shadow-sm">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                 </svg>
@@ -286,7 +286,7 @@ const SellerLossSummary = () => {
 
               <button
                 onClick={() => setEditMode(!editMode)}
-                className={`inline-flex items-center px-4 py-2 text-white text-sm font-semibold rounded-lg active:scale-95 transition-all shadow-sm ${editMode ? 'bg-[#d06b99]' : 'bg-[#f187b5] hover:bg-[#e076a5]'}`}>
+                className={`inline-flex items-center px-4 py-2 text-white text-sm font-semibold rounded-lg active:scale-95 transition-all shadow-sm ${editMode ? 'bg-[var(--primary-dark)]' : 'bg-[var(--primary-color)] hover:bg-[var(--primary-dark)]'}`}>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
@@ -303,7 +303,7 @@ const SellerLossSummary = () => {
 
               <button
                 onClick={downloadExcel}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm">
+                className="inline-flex items-center px-4 py-2 bg-[var(--primary-dark)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--primary-darker)] active:scale-95 transition-all shadow-sm">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -328,7 +328,7 @@ const SellerLossSummary = () => {
                 onClick={() => handleDateFilterChange(type)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   dateFilterType === type
-                    ? 'bg-white text-seller-600 shadow-sm'
+                    ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}>
                 {type.charAt(0).toUpperCase() + type.slice(1).replace(/(\d)/, ' $1')}
@@ -337,14 +337,14 @@ const SellerLossSummary = () => {
             <button
               onClick={() => handleDateFilterChange('custom')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                dateFilterType === 'custom' ? 'bg-seller-600 text-white shadow-sm' : 'text-seller-600 hover:bg-seller-50'
+                dateFilterType === 'custom' ? 'bg-[var(--primary-dark)] text-white shadow-sm' : 'text-[var(--primary-dark)] hover:bg-[var(--primary-alpha-10)]'
               }`}>
               Custom
             </button>
           </div>
 
           {showCustomDatePicker && (
-            <div className="mt-4 p-4 bg-seller-50 rounded-lg border border-seller-200">
+            <div className="mt-4 p-4 bg-[var(--primary-alpha-10)] rounded-lg border border-[var(--primary-alpha-30)]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">Start Date</label>
@@ -352,7 +352,7 @@ const SellerLossSummary = () => {
                     type="date"
                     value={customDateRange.start}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-seller-200 outline-none"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none"
                   />
                 </div>
                 <div>
@@ -361,7 +361,7 @@ const SellerLossSummary = () => {
                     type="date"
                     value={customDateRange.end}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-seller-200 outline-none"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none"
                   />
                 </div>
               </div>
@@ -377,7 +377,7 @@ const SellerLossSummary = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by product name, reason, or SKU..."
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all"
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all"
               />
             </div>
             <div>
@@ -385,7 +385,7 @@ const SellerLossSummary = () => {
               <select
                 value={pagination.limit}
                 onChange={(e) => setPagination(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }))}
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all"
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all"
               >
                 {[10, 20, 50, 100, 500].map(val => (
                   <option key={val} value={val}>{val}</option>
@@ -412,7 +412,7 @@ const SellerLossSummary = () => {
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Date</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Product Name</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Weight/UOM</th>
-                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase bg-blue-50/50">Quantity</th>
+                  <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase bg-[var(--primary-alpha-10)]/50">Quantity</th>
                   <th className="px-4 py-3 text-xs font-bold text-gray-600 uppercase">Reason</th>
                 </tr>
               </thead>
@@ -434,7 +434,7 @@ const SellerLossSummary = () => {
                       <td className="px-4 py-3 whitespace-nowrap text-gray-600">{new Date(item.date).toLocaleDateString()}</td>
                       <td className="px-4 py-3 font-semibold text-gray-900">{item.productName}</td>
                       <td className="px-4 py-3"><span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">{item.weight}</span></td>
-                      <td className="px-4 py-3 bg-blue-100/30 text-blue-700 font-bold">{item.quantity}</td>
+                      <td className="px-4 py-3 bg-[var(--primary-alpha-20)]/30 text-[var(--primary-darker)] font-bold">{item.quantity}</td>
                       <td className="px-4 py-3"><span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium">{item.reason}</span></td>
                     </tr>
                   ))
@@ -469,7 +469,7 @@ const SellerLossSummary = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <p className="text-xs font-bold text-gray-400 uppercase">Total Records</p>
-            <p className="text-3xl font-black text-blue-600 mt-2">{pagination.total}</p>
+            <p className="text-3xl font-black text-[var(--primary-dark)] mt-2">{pagination.total}</p>
           </div>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <p className="text-xs font-bold text-gray-400 uppercase">Total Items Lost</p>
@@ -477,7 +477,7 @@ const SellerLossSummary = () => {
           </div>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <p className="text-xs font-bold text-gray-400 uppercase">Unique Products Affected</p>
-            <p className="text-3xl font-black text-purple-600 mt-2">{new Set(data.map(item => item.productName)).size}</p>
+            <p className="text-3xl font-black text-[var(--primary-dark)] mt-2">{new Set(data.map(item => item.productName)).size}</p>
           </div>
         </div>
       </div>
@@ -485,7 +485,7 @@ const SellerLossSummary = () => {
       {showAddLossModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
-            <div className="px-6 py-4 bg-gradient-to-r from-seller-500 to-seller-600 text-white flex items-center justify-between">
+            <div className="px-6 py-4 bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-dark)] text-white flex items-center justify-between">
               <h2 className="text-xl font-bold">Record Inventory Loss</h2>
               <button onClick={() => setShowAddLossModal(false)} className="hover:rotate-90 transition-transform"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
             </div>
@@ -505,7 +505,7 @@ const SellerLossSummary = () => {
                         }
                       }}
                       placeholder="Search product..."
-                      className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-seller-200"
+                      className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                     />
                     {newLoss.productId && (
                       <button
@@ -537,9 +537,9 @@ const SellerLossSummary = () => {
                             setProductSearch(p.productName);
                             setProducts([]);
                           }}
-                          className="px-4 py-2 hover:bg-seller-50 cursor-pointer text-sm border-b last:border-0 flex justify-between items-center">
+                          className="px-4 py-2 hover:bg-[var(--primary-alpha-10)] cursor-pointer text-sm border-b last:border-0 flex justify-between items-center">
                           <span>{p.productName} <span className="text-xs text-gray-400">({p.sku})</span></span>
-                          <span className="text-xs font-bold text-seller-600">Stock: {p.stock}</span>
+                          <span className="text-xs font-bold text-[var(--primary-dark)]">Stock: {p.stock}</span>
                         </div>
                       ))}
                     </div>
@@ -554,7 +554,7 @@ const SellerLossSummary = () => {
                   <select
                     value={newLoss.variationId || ""}
                     onChange={(e) => setNewLoss({ ...newLoss, variationId: e.target.value })}
-                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-seller-200">
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[var(--primary-alpha-30)]">
                     <option value="">Choose a variation...</option>
                     {products.find(p => p._id === newLoss.productId)!.variations!.map(v => (
                       <option key={v._id} value={v._id}>
@@ -572,7 +572,7 @@ const SellerLossSummary = () => {
                     type="number"
                     value={newLoss.quantity || ''}
                     onChange={(e) => setNewLoss({ ...newLoss, quantity: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-seller-200"
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                     min="1"
                   />
                   {newLoss.productId && (
@@ -590,7 +590,7 @@ const SellerLossSummary = () => {
                   <select
                     value={newLoss.reason}
                     onChange={(e) => setNewLoss({ ...newLoss, reason: e.target.value })}
-                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-seller-200">
+                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[var(--primary-alpha-30)]">
                     {["Missing", "Damaged", "Expired", "Theft", "Broken", "Other"].map(r => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </div>
@@ -602,7 +602,7 @@ const SellerLossSummary = () => {
                   type="date"
                   value={newLoss.date}
                   onChange={(e) => setNewLoss({ ...newLoss, date: e.target.value })}
-                  className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-seller-200"
+                  className="w-full px-4 py-2 text-sm border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-[var(--primary-alpha-30)]"
                 />
               </div>
             </div>
@@ -612,7 +612,7 @@ const SellerLossSummary = () => {
               <button
                 onClick={handleAddLoss}
                 disabled={!newLoss.productId || newLoss.quantity <= 0 || loading}
-                className="flex-1 py-2 bg-seller-600 text-white font-bold rounded-lg hover:bg-seller-700 transition-colors disabled:opacity-50">
+                className="flex-1 py-2 bg-[var(--primary-dark)] text-white font-bold rounded-lg hover:bg-[var(--primary-darker)] transition-colors disabled:opacity-50">
                 {loading ? 'Processing...' : 'Add Loss Record'}
               </button>
             </div>

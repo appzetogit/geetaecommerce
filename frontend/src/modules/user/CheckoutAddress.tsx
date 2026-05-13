@@ -281,7 +281,7 @@ export default function CheckoutAddress() {
               value="myself"
               checked={orderingFor === 'myself'}
               onChange={(e) => setOrderingFor(e.target.value as 'myself' | 'someone-else')}
-              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-0"
+              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-[var(--customer-primary-dark)] focus:ring-2 focus:ring-[var(--customer-primary)] focus:ring-offset-0"
               style={{
                 backgroundImage: orderingFor === 'myself'
                   ? 'radial-gradient(circle, rgb(22, 163, 74) 35%, transparent 40%)'
@@ -300,7 +300,7 @@ export default function CheckoutAddress() {
               value="someone-else"
               checked={orderingFor === 'someone-else'}
               onChange={(e) => setOrderingFor(e.target.value as 'myself' | 'someone-else')}
-              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-0"
+              className="w-4 h-4 appearance-none border-2 border-neutral-300 rounded-full bg-white checked:bg-white checked:border-[var(--customer-primary-dark)] focus:ring-2 focus:ring-[var(--customer-primary)] focus:ring-offset-0"
               style={{
                 backgroundImage: orderingFor === 'someone-else'
                   ? 'radial-gradient(circle, rgb(22, 163, 74) 35%, transparent 40%)'
@@ -319,7 +319,7 @@ export default function CheckoutAddress() {
       {orderingFor === 'myself' && (
         <div className="px-4 py-2.5 border-b border-neutral-200">
           <label className="block text-xs font-medium text-neutral-700 mb-2">
-            Save address as <span className="text-red-500">*</span>
+            Save address as <span className="text-[var(--customer-primary)]">*</span>
           </label>
           <div className="flex items-center gap-2 flex-wrap">
             {[
@@ -332,7 +332,7 @@ export default function CheckoutAddress() {
                 key={type.id}
                 onClick={() => setAddressType(type.id as typeof addressType)}
                 className={`px-3 py-1.5 rounded-lg border-2 text-xs font-medium transition-colors flex items-center gap-1.5 ${addressType === type.id
-                  ? 'border-green-600 bg-green-50 text-green-700'
+                  ? 'border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)]'
                   : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
                   }`}
               >
@@ -348,109 +348,109 @@ export default function CheckoutAddress() {
       <div className="px-4 py-3 space-y-3">
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            Name <span className="text-red-500">*</span>
+            Name <span className="text-[var(--customer-primary)]">*</span>
           </label>
           <input
             type="text"
             value={address.name}
             onChange={(e) => handleInputChange('name', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.name ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[var(--customer-primary)] focus:border-[var(--customer-primary)] transition-colors ${errors.name ? 'border-[var(--customer-primary)]' : 'border-neutral-200'
               }`}
             placeholder="Enter your name"
           />
-          {errors.name && <p className="text-[10px] text-red-500 mt-0.5">{errors.name}</p>}
+          {errors.name && <p className="text-[10px] text-[var(--customer-primary)] mt-0.5">{errors.name}</p>}
         </div>
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            Mobile Number <span className="text-red-500">*</span>
+            Mobile Number <span className="text-[var(--customer-primary)]">*</span>
           </label>
           <input
             type="tel"
             value={address.phone}
             onChange={(e) => handleInputChange('phone', e.target.value.replace(/\D/g, ''))}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.phone ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[var(--customer-primary)] focus:border-[var(--customer-primary)] transition-colors ${errors.phone ? 'border-[var(--customer-primary)]' : 'border-neutral-200'
               }`}
             placeholder="Enter mobile number"
             maxLength={10}
           />
-          {errors.phone && <p className="text-[10px] text-red-500 mt-0.5">{errors.phone}</p>}
+          {errors.phone && <p className="text-[10px] text-[var(--customer-primary)] mt-0.5">{errors.phone}</p>}
         </div>
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            Flat / House No. <span className="text-red-500">*</span>
+            Flat / House No. <span className="text-[var(--customer-primary)]">*</span>
           </label>
           <input
             type="text"
             value={address.flat}
             onChange={(e) => handleInputChange('flat', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.flat ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[var(--customer-primary)] focus:border-[var(--customer-primary)] transition-colors ${errors.flat ? 'border-[var(--customer-primary)]' : 'border-neutral-200'
               }`}
             placeholder="Flat/House No."
           />
-          {errors.flat && <p className="text-[10px] text-red-500 mt-0.5">{errors.flat}</p>}
+          {errors.flat && <p className="text-[10px] text-[var(--customer-primary)] mt-0.5">{errors.flat}</p>}
         </div>
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            Street / Area <span className="text-red-500">*</span>
+            Street / Area <span className="text-[var(--customer-primary)]">*</span>
           </label>
           <input
             type="text"
             value={address.street}
             onChange={(e) => handleInputChange('street', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.street ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[var(--customer-primary)] focus:border-[var(--customer-primary)] transition-colors ${errors.street ? 'border-[var(--customer-primary)]' : 'border-neutral-200'
               }`}
             placeholder="Street/Area"
           />
-          {errors.street && <p className="text-[10px] text-red-500 mt-0.5">{errors.street}</p>}
+          {errors.street && <p className="text-[10px] text-[var(--customer-primary)] mt-0.5">{errors.street}</p>}
         </div>
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            City <span className="text-red-500">*</span>
+            City <span className="text-[var(--customer-primary)]">*</span>
           </label>
           <input
             type="text"
             value={address.city}
             onChange={(e) => handleInputChange('city', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.city ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[var(--customer-primary)] focus:border-[var(--customer-primary)] transition-colors ${errors.city ? 'border-[var(--customer-primary)]' : 'border-neutral-200'
               }`}
             placeholder="City"
           />
-          {errors.city && <p className="text-[10px] text-red-500 mt-0.5">{errors.city}</p>}
+          {errors.city && <p className="text-[10px] text-[var(--customer-primary)] mt-0.5">{errors.city}</p>}
         </div>
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            State <span className="text-red-500">*</span>
+            State <span className="text-[var(--customer-primary)]">*</span>
           </label>
           <input
             type="text"
             value={address.state || ''}
             onChange={(e) => handleInputChange('state', e.target.value)}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.state ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[var(--customer-primary)] focus:border-[var(--customer-primary)] transition-colors ${errors.state ? 'border-[var(--customer-primary)]' : 'border-neutral-200'
               }`}
             placeholder="State"
           />
-          {errors.state && <p className="text-[10px] text-red-500 mt-0.5">{errors.state}</p>}
+          {errors.state && <p className="text-[10px] text-[var(--customer-primary)] mt-0.5">{errors.state}</p>}
         </div>
 
         <div>
           <label className="block text-xs font-medium text-neutral-700 mb-1">
-            Pincode <span className="text-red-500">*</span>
+            Pincode <span className="text-[var(--customer-primary)]">*</span>
           </label>
           <input
             type="text"
             value={address.pincode}
             onChange={(e) => handleInputChange('pincode', e.target.value.replace(/\D/g, ''))}
-            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 transition-colors ${errors.pincode ? 'border-red-500' : 'border-neutral-200'
+            className={`w-full px-3 py-2 bg-white border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[var(--customer-primary)] focus:border-[var(--customer-primary)] transition-colors ${errors.pincode ? 'border-[var(--customer-primary)]' : 'border-neutral-200'
               }`}
             placeholder="Pincode"
             maxLength={6}
           />
-          {errors.pincode && <p className="text-[10px] text-red-500 mt-0.5">{errors.pincode}</p>}
+          {errors.pincode && <p className="text-[10px] text-[var(--customer-primary)] mt-0.5">{errors.pincode}</p>}
         </div>
       </div>
 
@@ -478,7 +478,7 @@ export default function CheckoutAddress() {
                     </div>
                   </div>
                   <div className="font-semibold text-neutral-900 ml-2 flex-shrink-0">
-                    ₹{(displayPrice * qty).toFixed(0)}
+                    ₹{(displayPrice * qty).toFixed(2)}
                   </div>
                 </div>
               );
@@ -488,7 +488,7 @@ export default function CheckoutAddress() {
           <div className="border-t border-neutral-200 pt-2.5 space-y-1.5">
             <div className="flex justify-between text-xs text-neutral-700">
               <span>Subtotal</span>
-              <span className="font-medium">₹{cart.total.toFixed(0)}</span>
+              <span className="font-medium">₹{cart.total.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-xs text-neutral-700">
               <span>Platform Fee</span>
@@ -496,14 +496,14 @@ export default function CheckoutAddress() {
             </div>
             <div className="flex justify-between text-xs text-neutral-700">
               <span>Delivery Charges</span>
-              <span className={`font-medium ${deliveryFee === 0 ? 'text-green-600' : ''}`}>
+              <span className={`font-medium ${deliveryFee === 0 ? 'text-[var(--customer-primary-dark)]' : ''}`}>
                 {deliveryFee === 0 ? 'Free' : `₹${deliveryFee}`}
               </span>
             </div>
             <div className="border-t border-neutral-200 pt-2 mt-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-bold text-neutral-900">Total</span>
-                <span className="text-base font-bold text-neutral-900">₹{totalAmount.toFixed(0)}</span>
+                <span className="text-base font-bold text-neutral-900">₹{totalAmount.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -516,7 +516,7 @@ export default function CheckoutAddress() {
           onClick={handleSaveAddress}
           disabled={!isFormValid || isSaving}
           className={`w-full py-3 px-4 font-semibold text-sm transition-colors ${isFormValid && !isSaving
-            ? 'bg-green-600 text-white hover:bg-green-700'
+            ? 'bg-[var(--customer-primary-dark)] text-white hover:bg-[var(--customer-primary-darker)]'
             : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
             }`}
         >

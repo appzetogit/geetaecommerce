@@ -1386,6 +1386,25 @@ const menuSections: MenuSection[] = [
         badge: "Hot",
       },
       {
+        label: "Theme Settings",
+        path: "/admin/settings/theme",
+        icon: (
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+          </svg>
+        ),
+        badge: "New",
+      },
+      {
         label: "Product Settings",
         path: "/admin/product-display-settings",
         icon: (
@@ -1641,7 +1660,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
     .filter((section) => section.items.length > 0);
 
   return (
-    <aside className="w-64 bg-[#f187b5] h-screen flex flex-col shadow-2xl relative overflow-hidden">
+    <aside className="w-64 h-screen flex flex-col shadow-2xl relative overflow-hidden" style={{ backgroundColor: 'var(--sidebar-color, var(--primary-color))' }}>
       {/* Decorative background element for premium feel */}
       <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-black/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -1795,7 +1814,7 @@ export default function AdminSidebar({ onClose }: AdminSidebarProps) {
                           {item.label}
                         </span>
                         {item.badge && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#ec4899] text-white ml-auto">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white ml-auto" style={{ backgroundColor: 'var(--primary-color, var(--primary-color))' }}>
                             {item.badge}
                           </span>
                         )}

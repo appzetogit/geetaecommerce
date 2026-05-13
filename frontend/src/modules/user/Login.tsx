@@ -156,7 +156,7 @@ export default function Login() {
             </div>
 
             {error && (
-              <div className="w-full mb-1 px-4 relative z-10 text-xs text-red-600 bg-red-50 p-2 rounded">
+              <div className="w-full mb-1 px-4 relative z-10 text-xs text-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] p-2 rounded">
                 {error}
               </div>
             )}
@@ -167,7 +167,7 @@ export default function Login() {
                 onClick={handleContinue}
                 disabled={mobileNumber.length !== 10 || loading}
                 className={`w-full py-2 sm:py-2.5 rounded-lg font-semibold text-sm transition-colors border px-3 ${mobileNumber.length === 10 && !loading
-                  ? 'bg-orange-50 text-orange-600 border-orange-500 hover:bg-orange-100'
+                  ? 'bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)] border-[var(--customer-primary)] hover:bg-[var(--customer-primary-alpha-20)]'
                   : 'bg-neutral-300 text-neutral-500 cursor-not-allowed border-neutral-300'
                   }`}
               >
@@ -190,7 +190,7 @@ export default function Login() {
               <OTPInput onComplete={handleOTPComplete} disabled={loading} />
             </div>
             {error && (
-              <div className="w-full mb-1 px-4 relative z-10 text-xs text-red-600 bg-red-50 p-2 rounded text-center">
+              <div className="w-full mb-1 px-4 relative z-10 text-xs text-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] p-2 rounded text-center">
                 {error}
               </div>
             )}
@@ -208,7 +208,7 @@ export default function Login() {
               <button
                 onClick={handleContinue}
                 disabled={loading}
-                className="flex-1 py-2 rounded-lg font-semibold text-xs bg-orange-50 text-orange-600 border border-orange-500 hover:bg-orange-100 transition-colors"
+                className="flex-1 py-2 rounded-lg font-semibold text-xs bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)] border border-[var(--customer-primary)] hover:bg-[var(--customer-primary-alpha-20)] transition-colors"
               >
                 {loading ? 'Verifying...' : 'Resend OTP'}
               </button>
@@ -223,7 +223,7 @@ export default function Login() {
               Don't have an account?{' '}
               <button
                 onClick={() => navigate('/signup')}
-                className="text-orange-600 hover:text-orange-700 font-semibold"
+                className="text-[var(--customer-primary-dark)] hover:text-[var(--customer-primary-dark)] font-semibold"
               >
                 Sign Up
               </button>

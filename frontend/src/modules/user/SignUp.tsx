@@ -253,7 +253,7 @@ export default function SignUp() {
                 onChange={handleInputChange}
                 placeholder="Full Name"
                 required
-                className="w-full px-3 py-2 sm:py-2.5 text-sm border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 bg-white"
+                className="w-full px-3 py-2 sm:py-2.5 text-sm border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-[var(--customer-primary)] bg-white"
                 style={{ color: '#9ca3af', backgroundColor: '#ffffff' }}
                 disabled={loading}
               />
@@ -261,7 +261,7 @@ export default function SignUp() {
 
             {/* Mobile Input */}
             <div className="mb-2">
-              <div className="flex items-center bg-white border border-neutral-300 rounded-lg overflow-hidden focus-within:border-orange-500 transition-colors">
+              <div className="flex items-center bg-white border border-neutral-300 rounded-lg overflow-hidden focus-within:border-[var(--customer-primary)] transition-colors">
                 <div className="px-3 py-2 sm:py-2.5 text-sm font-medium text-neutral-400 border-r border-neutral-300 bg-white">
                   +91
                 </div>
@@ -289,7 +289,7 @@ export default function SignUp() {
                 onChange={handleInputChange}
                 placeholder="Email Address"
                 required
-                className="w-full px-3 py-2 sm:py-2.5 text-sm border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 bg-white"
+                className="w-full px-3 py-2 sm:py-2.5 text-sm border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-[var(--customer-primary)] bg-white"
                 style={{ color: '#9ca3af', backgroundColor: '#ffffff' }}
                 disabled={loading}
               />
@@ -303,14 +303,14 @@ export default function SignUp() {
                 value={formData.dateOfBirth}
                 onChange={handleInputChange}
                 placeholder="Date of Birth (Optional)"
-                className="w-full px-3 py-2 sm:py-2.5 text-sm border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 bg-white"
+                className="w-full px-3 py-2 sm:py-2.5 text-sm border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-[var(--customer-primary)] bg-white"
                 style={{ color: '#9ca3af', backgroundColor: '#ffffff' }}
                 disabled={loading}
               />
             </div>
 
             {error && (
-              <div className="text-xs text-red-600 bg-red-50 p-2 rounded text-center">
+              <div className="text-xs text-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] p-2 rounded text-center">
                 {error}
               </div>
             )}
@@ -320,7 +320,7 @@ export default function SignUp() {
               type="submit"
               disabled={loading || !formData.name || formData.mobile.length !== 10 || !formData.email}
               className={`w-full py-2 sm:py-2.5 rounded-lg font-semibold text-sm transition-colors border px-3 ${formData.name && formData.mobile.length === 10 && formData.email && !loading
-                ? 'bg-orange-50 text-orange-600 border-orange-500 hover:bg-orange-100'
+                ? 'bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)] border-[var(--customer-primary)] hover:bg-[var(--customer-primary-alpha-20)]'
                 : 'bg-neutral-300 text-neutral-500 cursor-not-allowed border-neutral-300'
                 }`}
             >
@@ -334,7 +334,7 @@ export default function SignUp() {
                 <button
                   type="button"
                   onClick={() => navigate('/login')}
-                  className="text-orange-600 hover:text-orange-700 font-semibold"
+                  className="text-[var(--customer-primary-dark)] hover:text-[var(--customer-primary-dark)] font-semibold"
                 >
                   Login
                 </button>
@@ -354,7 +354,7 @@ export default function SignUp() {
               <OTPInput onComplete={handleOTPComplete} disabled={loading} />
             </div>
             {error && (
-              <div className="w-full mb-1 px-4 relative z-10 text-xs text-red-600 bg-red-50 p-2 rounded text-center">
+              <div className="w-full mb-1 px-4 relative z-10 text-xs text-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] p-2 rounded text-center">
                 {error}
               </div>
             )}
@@ -372,7 +372,7 @@ export default function SignUp() {
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="flex-1 py-2 rounded-lg font-semibold text-xs bg-orange-50 text-orange-600 border border-orange-500 hover:bg-orange-100 transition-colors"
+                className="flex-1 py-2 rounded-lg font-semibold text-xs bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)] border border-[var(--customer-primary)] hover:bg-[var(--customer-primary-alpha-20)] transition-colors"
               >
                 {loading ? 'Verifying...' : 'Resend OTP'}
               </button>

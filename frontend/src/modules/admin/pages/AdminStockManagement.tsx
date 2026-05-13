@@ -1285,13 +1285,13 @@ export default function AdminStockManagement() {
         {/* Main Panel */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
           {/* Header */}
-          <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
+          <div className="bg-[var(--primary-color)] text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
             <h2 className="text-lg font-semibold">View Stock Management</h2>
              {hasUnsavedChanges && (
                 <button
                     onClick={handleSaveChanges}
                     disabled={savingChanges}
-                    className="bg-white text-[#f187b5] px-4 py-1.5 rounded font-bold text-sm hover:bg-neutral-100 transition-colors shadow-sm flex items-center gap-2"
+                    className="bg-white text-[var(--primary-color)] px-4 py-1.5 rounded font-bold text-sm hover:bg-neutral-100 transition-colors shadow-sm flex items-center gap-2"
                 >
                     {savingChanges ? "Saving..." : "Save Changes"}
                 </button>
@@ -1312,7 +1312,7 @@ export default function AdminStockManagement() {
                     setFilterCategory(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                   <option value="All Category">All Category</option>
                   {categories.map((cat) => (
                     <option key={cat._id} value={cat._id}>
@@ -1331,7 +1331,7 @@ export default function AdminStockManagement() {
                     setFilterSeller(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                   {sellerOptions.map((s) => (
                     <option key={s.value} value={s.value}>
                       {s.label}
@@ -1349,7 +1349,7 @@ export default function AdminStockManagement() {
                     setFilterStatus(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>
                       {status}
@@ -1367,7 +1367,7 @@ export default function AdminStockManagement() {
                     setFilterStock(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                   {STOCK_OPTIONS.map((stock) => (
                     <option key={stock} value={stock}>
                       {stock}
@@ -1385,7 +1385,7 @@ export default function AdminStockManagement() {
                     setFilterRedundant(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                   <option value="None">None</option>
                   <option value="All Redundant">All Redundant</option>
                   <option value="Name">Duplicate Name</option>
@@ -1408,7 +1408,7 @@ export default function AdminStockManagement() {
                         setRowsPerPage(Number(e.target.value));
                         setCurrentPage(1);
                       }}
-                      className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                      className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                       <option value={10}>10</option>
                       <option value={20}>20</option>
                       <option value={50}>50</option>
@@ -1424,7 +1424,7 @@ export default function AdminStockManagement() {
                       </span>
                       <input
                         type="text"
-                        className="pl-14 pr-10 py-2 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-[#f187b5] w-full sm:w-48"
+                        className="pl-14 pr-10 py-2 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] w-full sm:w-48"
                         value={searchTerm}
                         onChange={(e) => {
                           setSearchTerm(e.target.value);
@@ -1436,7 +1436,7 @@ export default function AdminStockManagement() {
                         onClick={() => {
                           setShowScanner(true);
                         }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-[#f187b5] transition-colors"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-[var(--primary-color)] transition-colors"
                         title="Scan Barcode"
                       >
                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1451,7 +1451,7 @@ export default function AdminStockManagement() {
                   <div className="flex items-center gap-1 bg-neutral-100 p-1 rounded">
                     <button
                       onClick={() => setViewMode("list")}
-                      className={`p-1.5 rounded transition-all ${viewMode === "list" ? "bg-white text-[#f187b5] shadow-sm" : "text-neutral-500 hover:text-neutral-700"}`}
+                      className={`p-1.5 rounded transition-all ${viewMode === "list" ? "bg-white text-[var(--primary-color)] shadow-sm" : "text-neutral-500 hover:text-neutral-700"}`}
                       title="List View"
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1465,7 +1465,7 @@ export default function AdminStockManagement() {
                     </button>
                     <button
                       onClick={() => setViewMode("grid")}
-                      className={`p-1.5 rounded transition-all ${viewMode === "grid" ? "bg-white text-[#f187b5] shadow-sm" : "text-neutral-500 hover:text-neutral-700"}`}
+                      className={`p-1.5 rounded transition-all ${viewMode === "grid" ? "bg-white text-[var(--primary-color)] shadow-sm" : "text-neutral-500 hover:text-neutral-700"}`}
                       title="Grid View"
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1482,7 +1482,7 @@ export default function AdminStockManagement() {
               <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center">
                 <button
                   onClick={() => navigate("/admin/product/add")}
-                  className="bg-[#f187b5] hover:bg-[#e076a5] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                  className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1491,7 +1491,7 @@ export default function AdminStockManagement() {
                 </button>
                 <button
                   onClick={() => setShowBulkEdit(true)}
-                  className="bg-[#f187b5] hover:bg-[#e076a5] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                  className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -1500,14 +1500,14 @@ export default function AdminStockManagement() {
                 </button>
                 <button
                   onClick={() => setShowBulkImport(true)}
-                  className="bg-[#f187b5] hover:bg-[#e076a5] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors"
+                  className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors"
                 >
                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                   Import
                 </button>
                 <button
                   onClick={handleExport}
-                  className="bg-[#f187b5] hover:bg-[#e076a5] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                  className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
                   Export
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
@@ -1519,7 +1519,7 @@ export default function AdminStockManagement() {
                   className={`px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors ${
                     selectedProductIdsForShare.size === 0
                       ? "bg-neutral-200 text-neutral-500 cursor-not-allowed"
-                      : "bg-[#f187b5] hover:bg-[#e076a5] text-white"
+                      : "bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white"
                   }`}
                   title="Share selected products"
                 >
@@ -1636,7 +1636,7 @@ export default function AdminStockManagement() {
                             product.barcode.map((b: string) => (
                               <span
                                 key={b}
-                                className="bg-pink-50 text-[#AD1457] px-2 py-0.5 rounded border border-pink-100/50 text-[10px] font-medium"
+                                className="bg-pink-50 text-[var(--primary-dark)] px-2 py-0.5 rounded border border-pink-100/50 text-[10px] font-medium"
                               >
                                 {b}
                               </span>
@@ -1645,7 +1645,7 @@ export default function AdminStockManagement() {
                             product.barcode.split(", ").map((b: string) => (
                               <span
                                 key={b}
-                                className="bg-pink-50 text-[#AD1457] px-2 py-0.5 rounded border border-pink-100/50 text-[10px] font-medium"
+                                className="bg-pink-50 text-[var(--primary-dark)] px-2 py-0.5 rounded border border-pink-100/50 text-[10px] font-medium"
                               >
                                 {b}
                               </span>
@@ -1677,7 +1677,7 @@ export default function AdminStockManagement() {
                       <td className="p-4 align-middle text-sm font-bold text-neutral-800 text-right">
                         {product.stock}
                       </td>
-                      <td className="p-4 align-middle text-sm text-[#f187b5] text-right">
+                      <td className="p-4 align-middle text-sm text-[var(--primary-color)] text-right">
                         {product.offerPrice > 0 ? product.offerPrice : "-"}
                       </td>
                       <td className="p-4 align-middle text-sm text-neutral-800 text-right">
@@ -1700,7 +1700,7 @@ export default function AdminStockManagement() {
                           title="Click to toggle status"
                           className={`px-3 py-1 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95 ${
                             product.publish
-                              ? "bg-[#f187b5]/10 text-[#f187b5] hover:bg-[#f187b5]/20"
+                              ? "bg-[var(--primary-color)]/10 text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20"
                               : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                           }`}
                         >
@@ -1711,7 +1711,7 @@ export default function AdminStockManagement() {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleEdit(product.productId)}
-                            className="p-1 text-[#f187b5] hover:bg-[#f187b5]/20 rounded"
+                            className="p-1 text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20 rounded"
                             title="Edit Details"
                           >
                             <svg
@@ -1753,7 +1753,7 @@ export default function AdminStockManagement() {
                             onClick={() =>
                               handlePrintBarcode(product.barcode, product.name, product.price, product.compareAtPrice)
                             }
-                            className="p-1 text-[#f187b5] hover:bg-[#f187b5]/20 rounded"
+                            className="p-1 text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20 rounded"
                             title="Print Barcode"
                           >
                             <svg
@@ -1777,7 +1777,7 @@ export default function AdminStockManagement() {
                           </button>
                           <button
                             onClick={() => handleShareProducts([product.productId])}
-                            className="p-1 text-[#f187b5] hover:bg-[#f187b5]/20 rounded"
+                            className="p-1 text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20 rounded"
                             title="Share Product"
                           >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1820,7 +1820,7 @@ export default function AdminStockManagement() {
                         }}
                         className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold shadow-sm transition-all ${
                           product.publish
-                            ? "bg-[#f187b5] text-white"
+                            ? "bg-[var(--primary-color)] text-white"
                             : "bg-white text-gray-500 border border-gray-200"
                         }`}
                       >
@@ -1854,12 +1854,12 @@ export default function AdminStockManagement() {
                     {/* Product Info */}
                     <div className="p-2 flex-1 flex flex-col min-h-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-[8px] font-bold text-[#f187b5] uppercase truncate max-w-[70%]">
+                        <span className="text-[8px] font-bold text-[var(--primary-color)] uppercase truncate max-w-[70%]">
                           {product.category}
                         </span>
                         <button
                           onClick={() => setSelectedProductDetails(product)}
-                          className="text-[9px] font-bold text-blue-600 hover:underline"
+                          className="text-[9px] font-bold text-[var(--primary-dark)] hover:underline"
                         >
                           Edit
                         </button>
@@ -1876,7 +1876,7 @@ export default function AdminStockManagement() {
                         </div>
                         <div className="flex flex-col border-l border-neutral-200 pl-1">
                           <span className="text-[7px] text-neutral-500 font-bold uppercase leading-none mb-0.5">Stock</span>
-                          <span className={`${typeof product.stock === 'number' && product.stock <= (product.lowStockQuantity || 5) ? 'text-red-600' : 'text-green-600'} text-[10px] font-black leading-none`}>
+                          <span className={`${typeof product.stock === 'number' && product.stock <= (product.lowStockQuantity || 5) ? 'text-red-600' : 'text-[var(--primary-dark)]'} text-[10px] font-black leading-none`}>
                             {product.stock}
                           </span>
                         </div>
@@ -1888,7 +1888,7 @@ export default function AdminStockManagement() {
                            <span className="bg-neutral-100 text-neutral-600 text-[7px] px-1 rounded font-bold truncate max-w-full">S: {product.sku}</span>
                          )}
                          {product.unit && (
-                            <span className="bg-blue-50 text-blue-600 text-[7px] px-1 rounded font-bold">{product.unit}</span>
+                            <span className="bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] text-[7px] px-1 rounded font-bold">{product.unit}</span>
                          )}
                       </div>
 
@@ -1897,7 +1897,7 @@ export default function AdminStockManagement() {
                         <div className="flex gap-1">
                           <button
                             onClick={() => setSelectedProductDetails(product)}
-                            className="w-6 h-6 flex items-center justify-center bg-[#f187b5]/10 text-[#f187b5] rounded hover:bg-[#f187b5] hover:text-white transition-all"
+                            className="w-6 h-6 flex items-center justify-center bg-[var(--primary-color)]/10 text-[var(--primary-color)] rounded hover:bg-[var(--primary-color)] hover:text-white transition-all"
                             title="Edit"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1907,7 +1907,7 @@ export default function AdminStockManagement() {
                           </button>
                           <button
                             onClick={() => handlePrintBarcode(product.barcode, product.name, product.price, product.compareAtPrice)}
-                            className="w-6 h-6 flex items-center justify-center bg-blue-50 text-blue-600 rounded hover:bg-blue-600 hover:text-white transition-all"
+                            className="w-6 h-6 flex items-center justify-center bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] rounded hover:bg-[var(--primary-dark)] hover:text-white transition-all"
                             title="Barcode"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1918,7 +1918,7 @@ export default function AdminStockManagement() {
                           </button>
                           <button
                             onClick={() => handleShareProducts([product.productId])}
-                            className="w-6 h-6 flex items-center justify-center bg-[#f187b5]/10 text-[#f187b5] rounded hover:bg-[#f187b5] hover:text-white transition-all"
+                            className="w-6 h-6 flex items-center justify-center bg-[var(--primary-color)]/10 text-[var(--primary-color)] rounded hover:bg-[var(--primary-color)] hover:text-white transition-all"
                             title="Share"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1958,9 +1958,9 @@ export default function AdminStockManagement() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className={`p-2 border border-[#f187b5] rounded ${currentPage === 1
+                className={`p-2 border border-[var(--primary-color)] rounded ${currentPage === 1
                   ? "text-neutral-400 cursor-not-allowed bg-neutral-50 border-neutral-300"
-                  : "text-[#f187b5] hover:bg-[#f187b5]/20"
+                  : "text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20"
                   }`}
                 aria-label="Previous page">
                 <svg
@@ -1978,7 +1978,7 @@ export default function AdminStockManagement() {
                   />
                 </svg>
               </button>
-              <button className="px-3 py-1.5 border border-[#f187b5] bg-[#f187b5] text-white rounded font-medium text-sm">
+              <button className="px-3 py-1.5 border border-[var(--primary-color)] bg-[var(--primary-color)] text-white rounded font-medium text-sm">
                 {currentPage}
               </button>
               <button
@@ -1986,9 +1986,9 @@ export default function AdminStockManagement() {
                   setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                 }
                 disabled={currentPage === totalPages}
-                className={`p-2 border border-[#f187b5] rounded ${currentPage === totalPages
+                className={`p-2 border border-[var(--primary-color)] rounded ${currentPage === totalPages
                   ? "text-neutral-400 cursor-not-allowed bg-neutral-50 border-neutral-300"
-                  : "text-[#f187b5] hover:bg-[#f187b5]/20"
+                  : "text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20"
                   }`}
                 aria-label="Next page">
                 <svg
@@ -2014,7 +2014,7 @@ export default function AdminStockManagement() {
       {/* Footer */}
       <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
         Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-[#f187b5] hover:underline">
+        <a href="#" className="text-[var(--primary-color)] hover:underline">
           Geeta Stores - 10 Minute App
         </a>
       </footer>
@@ -2055,7 +2055,7 @@ export default function AdminStockManagement() {
       {showBarcodeSelectModal && barcodeSelectData && (
           <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 backdrop-blur-[2px]">
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm animate-in fade-in zoom-in duration-200 overflow-hidden">
-                  <div className="bg-[#f187b5] px-4 py-3 text-white flex justify-between items-center">
+                  <div className="bg-[var(--primary-color)] px-4 py-3 text-white flex justify-between items-center">
                       <h3 className="font-bold text-lg">Select Barcode to Print</h3>
                       <button onClick={() => setShowBarcodeSelectModal(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -2071,11 +2071,11 @@ export default function AdminStockManagement() {
                                       setShowBarcodeSelectModal(false);
                                       executePrintBarcode(b, barcodeSelectData.name, barcodeSelectData.sp, barcodeSelectData.mrp);
                                   }}
-                                  className="w-full text-left bg-gray-50 hover:bg-[#f187b5]/10 border border-gray-200 hover:border-[#f187b5] p-3 rounded-lg group transition-all"
+                                  className="w-full text-left bg-gray-50 hover:bg-[var(--primary-color)]/10 border border-gray-200 hover:border-[var(--primary-color)] p-3 rounded-lg group transition-all"
                               >
                                   <div className="flex justify-between items-center">
-                                      <span className="font-mono text-base font-bold text-gray-800 group-hover:text-[#f187b5]">{b}</span>
-                                      <svg className="w-5 h-5 text-gray-400 group-hover:text-[#f187b5] opacity-0 group-hover:opacity-100 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <span className="font-mono text-base font-bold text-gray-800 group-hover:text-[var(--primary-color)]">{b}</span>
+                                      <svg className="w-5 h-5 text-gray-400 group-hover:text-[var(--primary-color)] opacity-0 group-hover:opacity-100 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9l-5 5-5-5"></path>
                                       </svg>
                                   </div>
@@ -2098,7 +2098,7 @@ export default function AdminStockManagement() {
       {selectedProductDetails && (
         <div className="fixed inset-0 bg-black/60 z-[120] flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl animate-in fade-in zoom-in duration-200 overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center sticky top-0 z-10">
+            <div className="bg-[var(--primary-color)] px-6 py-4 text-white flex justify-between items-center sticky top-0 z-10">
               <div>
                 <h3 className="font-bold text-xl uppercase tracking-tight leading-none">Edit Product Details</h3>
                 <p className="text-[10px] opacity-90 mt-1 font-medium tracking-wide">QUICK EDIT MODE</p>
@@ -2133,7 +2133,7 @@ export default function AdminStockManagement() {
                      <div className="flex flex-col">
                         <label className="text-[10px] font-bold text-neutral-500 uppercase mb-1">Category</label>
                         <select 
-                          className="text-xs font-bold text-[#f187b5] border border-neutral-200 rounded px-2 py-1 bg-white focus:ring-1 focus:ring-[#f187b5]"
+                          className="text-xs font-bold text-[var(--primary-color)] border border-neutral-200 rounded px-2 py-1 bg-white focus:ring-1 focus:ring-[var(--primary-color)]"
                           value={selectedProductDetails.categoryId}
                           onChange={(e) => {
                             const cat = categories.find(c => c._id === e.target.value);
@@ -2146,7 +2146,7 @@ export default function AdminStockManagement() {
                      <div className="flex flex-col">
                         <label className="text-[10px] font-bold text-neutral-500 uppercase mb-1">Status</label>
                         <select 
-                          className={`text-xs font-bold border rounded px-2 py-1 bg-white focus:ring-1 focus:ring-[#f187b5] ${selectedProductDetails.publish ? 'text-green-600 border-green-100' : 'text-gray-400 border-gray-100'}`}
+                          className={`text-xs font-bold border rounded px-2 py-1 bg-white focus:ring-1 focus:ring-[var(--primary-color)] ${selectedProductDetails.publish ? 'text-[var(--primary-dark)] border-green-100' : 'text-gray-400 border-gray-100'}`}
                           value={selectedProductDetails.publish ? 'true' : 'false'}
                           onChange={(e) => setSelectedProductDetails({...selectedProductDetails, publish: e.target.value === 'true'})}
                         >
@@ -2197,10 +2197,10 @@ export default function AdminStockManagement() {
                   { label: "HSN Code", value: selectedProductDetails.hsnCode, key: 'hsnCode' },
                   { label: "Size", value: selectedProductDetails.sizeName, key: 'sizeName' },
                   { label: "Color", value: selectedProductDetails.colorName, key: 'colorName' },
-                  { label: "Stock", value: selectedProductDetails.stock, key: 'stock', type: 'number', color: 'text-green-600' },
+                  { label: "Stock", value: selectedProductDetails.stock, key: 'stock', type: 'number', color: 'text-[var(--primary-dark)]' },
                   { label: "Low Stock Alert", value: selectedProductDetails.lowStockQuantity, key: 'lowStockQuantity', type: 'number' },
                   { label: "MRP", value: selectedProductDetails.compareAtPrice, key: 'compareAtPrice', type: 'number', prefix: '₹' },
-                  { label: "Selling Price", value: selectedProductDetails.price, key: 'price', type: 'number', prefix: '₹', color: 'text-[#f187b5]' },
+                  { label: "Selling Price", value: selectedProductDetails.price, key: 'price', type: 'number', prefix: '₹', color: 'text-[var(--primary-color)]' },
                   { label: "Purchase Price", value: selectedProductDetails.purchasePrice, key: 'purchasePrice', type: 'number', prefix: '₹' },
                   { label: "Wholesale Price", value: selectedProductDetails.wholesalePrice, key: 'wholesalePrice', type: 'number', prefix: '₹' },
                   { label: "Offer Price", value: selectedProductDetails.offerPrice, key: 'offerPrice', type: 'number', prefix: '₹' },
@@ -2252,8 +2252,8 @@ export default function AdminStockManagement() {
               {/* Inventory Valuation (Read Only) */}
               <div className="mt-6 grid grid-cols-2 gap-4">
                 <div className="bg-pink-50/50 p-3 rounded-lg border border-pink-100 flex items-center justify-between opacity-80">
-                  <span className="text-xs font-bold text-[#f187b5]">Inventory (MRP Value)</span>
-                  <span className="text-sm font-black text-[#f187b5]">₹{(typeof selectedProductDetails.stock === 'number' ? selectedProductDetails.stock * selectedProductDetails.compareAtPrice : 0).toLocaleString()}</span>
+                  <span className="text-xs font-bold text-[var(--primary-color)]">Inventory (MRP Value)</span>
+                  <span className="text-sm font-black text-[var(--primary-color)]">₹{(typeof selectedProductDetails.stock === 'number' ? selectedProductDetails.stock * selectedProductDetails.compareAtPrice : 0).toLocaleString()}</span>
                 </div>
                 <div className="bg-neutral-100 p-3 rounded-lg border border-neutral-200 flex items-center justify-between opacity-80">
                   <span className="text-xs font-bold text-neutral-600">Inventory (Pur Value)</span>
@@ -2274,7 +2274,7 @@ export default function AdminStockManagement() {
                   handleEdit(selectedProductDetails.productId);
                   setSelectedProductDetails(null);
                 }}
-                className="px-6 py-2 border border-[#f187b5] text-[#f187b5] rounded-lg font-bold hover:bg-[#f187b5]/5 transition-colors text-sm"
+                className="px-6 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-lg font-bold hover:bg-[var(--primary-color)]/5 transition-colors text-sm"
               >
                 Full Edit
               </button>
@@ -2344,7 +2344,7 @@ export default function AdminStockManagement() {
                      setIsSavingProduct(false);
                    }
                 }}
-                className="px-6 py-2 bg-[#f187b5] text-white rounded-lg font-bold hover:bg-[#e076a5] transition-colors text-sm flex items-center gap-2"
+                className="px-6 py-2 bg-[var(--primary-color)] text-white rounded-lg font-bold hover:bg-[var(--primary-dark)] transition-colors text-sm flex items-center gap-2"
               >
                 {isSavingProduct ? (
                   <>

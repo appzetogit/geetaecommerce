@@ -153,9 +153,9 @@ export default function SellerWithdrawalRequests() {
         <div>
           <h1 className="text-2xl font-bold text-neutral-800">View Withdrawal Request List</h1>
           <div className="text-sm text-neutral-600 mt-1">
-            <span className="text-[#f187b5] hover:text-[#e076a5] cursor-pointer" onClick={() => navigate('/seller')}>Home</span>
+            <span className="text-[var(--primary-color)] hover:text-[var(--primary-dark)] cursor-pointer" onClick={() => navigate('/seller')}>Home</span>
             <span className="mx-2">/</span>
-            <span className="text-[#f187b5] hover:text-[#e076a5] cursor-pointer" onClick={() => navigate('/seller/wallet')}>Wallet</span>
+            <span className="text-[var(--primary-color)] hover:text-[var(--primary-dark)] cursor-pointer" onClick={() => navigate('/seller/wallet')}>Wallet</span>
             <span className="mx-2">/</span>
             <span className="text-neutral-800">Withdrawal Requests</span>
           </div>
@@ -165,11 +165,11 @@ export default function SellerWithdrawalRequests() {
       {/* Main Content */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
         {/* Header with Add Button */}
-        <div className="p-4 sm:p-6 border-b border-neutral-200 bg-[#f187b5] flex items-center justify-between">
+        <div className="p-4 sm:p-6 border-b border-neutral-200 bg-[var(--primary-color)] flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">View Withdrawal Request List</h2>
           <button
             onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-white text-[#f187b5] hover:bg-neutral-50 text-sm font-bold rounded transition-colors flex items-center gap-2"
+            className="px-4 py-2 bg-white text-[var(--primary-color)] hover:bg-neutral-50 text-sm font-bold rounded transition-colors flex items-center gap-2"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -190,13 +190,13 @@ export default function SellerWithdrawalRequests() {
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
+                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none"
                 />
                 <input
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
+                  className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none"
                 />
               </div>
             </div>
@@ -223,7 +223,7 @@ export default function SellerWithdrawalRequests() {
               <select
                 value={entriesPerPage}
                 onChange={(e) => setEntriesPerPage(Number(e.target.value))}
-                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
+                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none"
               >
                 <option value="10">10</option>
                 <option value="25">25</option>
@@ -236,7 +236,7 @@ export default function SellerWithdrawalRequests() {
             <div className="flex items-end">
               <button
                 onClick={handleExport}
-                className="px-4 py-2 bg-[#f187b5] hover:bg-[#e076a5] text-white text-sm font-medium rounded transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
+                className="px-4 py-2 bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white text-sm font-medium rounded transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -255,7 +255,7 @@ export default function SellerWithdrawalRequests() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search..."
-                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none"
+                className="flex-1 px-3 py-2 bg-white border border-neutral-300 rounded text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none"
               />
             </div>
           </div>
@@ -279,7 +279,7 @@ export default function SellerWithdrawalRequests() {
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-sm text-neutral-500">
                     <div className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#f187b5]"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[var(--primary-color)]"></div>
                       <span>Loading requests...</span>
                     </div>
                   </td>
@@ -299,7 +299,7 @@ export default function SellerWithdrawalRequests() {
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
                         withdrawal.status === 'Approved' || withdrawal.status === 'Completed'
-                          ? 'bg-green-100 text-green-700'
+                          ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]'
                           : withdrawal.status === 'Pending'
                           ? 'bg-yellow-50 text-yellow-700'
                           : 'bg-red-50 text-red-600'
@@ -345,7 +345,7 @@ export default function SellerWithdrawalRequests() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md animate-in zoom-in duration-200">
             {/* Modal Header */}
-            <div className="bg-[#f187b5] px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
+            <div className="bg-[var(--primary-color)] px-6 py-4 flex justify-between items-center text-white rounded-t-2xl">
               <h3 className="text-lg font-bold">New Withdrawal Request</h3>
               <button
                 onClick={() => setShowModal(false)}
@@ -370,7 +370,7 @@ export default function SellerWithdrawalRequests() {
                     value={formAmount}
                     onChange={(e) => setFormAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full pl-8 pr-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-base"
+                    className="w-full pl-8 pr-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none text-base"
                   />
                 </div>
               </div>
@@ -383,7 +383,7 @@ export default function SellerWithdrawalRequests() {
                   onChange={(e) => setFormMessage(e.target.value)}
                   placeholder="Enter your message..."
                   rows={4}
-                  className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-base resize-none"
+                  className="w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none text-base resize-none"
                 />
               </div>
 
@@ -393,12 +393,12 @@ export default function SellerWithdrawalRequests() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setFormMethod('Bank Transfer')}
-                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-xl transition-all ${formMethod === 'Bank Transfer' ? 'border-[#f187b5] bg-[#f187b5]/5 text-[#f187b5]' : 'border-neutral-100 bg-white text-neutral-500'}`}>
+                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-xl transition-all ${formMethod === 'Bank Transfer' ? 'border-[var(--primary-color)] bg-[var(--primary-color)]/5 text-[var(--primary-color)]' : 'border-neutral-100 bg-white text-neutral-500'}`}>
                     <span className="text-xs font-bold">Bank Transfer</span>
                   </button>
                   <button
                     onClick={() => setFormMethod('UPI')}
-                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-xl transition-all ${formMethod === 'UPI' ? 'border-[#f187b5] bg-[#f187b5]/5 text-[#f187b5]' : 'border-neutral-100 bg-white text-neutral-500'}`}>
+                    className={`flex items-center justify-center gap-2 p-2.5 border-2 rounded-xl transition-all ${formMethod === 'UPI' ? 'border-[var(--primary-color)] bg-[var(--primary-color)]/5 text-[var(--primary-color)]' : 'border-neutral-100 bg-white text-neutral-500'}`}>
                     <span className="text-xs font-bold">UPI</span>
                   </button>
                 </div>
@@ -417,7 +417,7 @@ export default function SellerWithdrawalRequests() {
                           value={bankDetails.accountHolderName}
                           onChange={(e) => setBankDetails({ ...bankDetails, accountHolderName: e.target.value })}
                           placeholder="John Doe"
-                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-xs font-semibold shadow-sm"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none text-xs font-semibold shadow-sm"
                         />
                       </div>
                       <div className="space-y-1">
@@ -427,7 +427,7 @@ export default function SellerWithdrawalRequests() {
                           value={bankDetails.accountNumber}
                           onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
                           placeholder="000011112222"
-                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-xs font-semibold shadow-sm"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none text-xs font-semibold shadow-sm"
                         />
                       </div>
                     </div>
@@ -439,7 +439,7 @@ export default function SellerWithdrawalRequests() {
                           value={bankDetails.bankName}
                           onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
                           placeholder="HDFC Bank"
-                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-xs font-semibold shadow-sm"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none text-xs font-semibold shadow-sm"
                         />
                       </div>
                       <div className="space-y-1">
@@ -449,7 +449,7 @@ export default function SellerWithdrawalRequests() {
                           value={bankDetails.ifscCode}
                           onChange={(e) => setBankDetails({ ...bankDetails, ifscCode: e.target.value })}
                           placeholder="HDFC0000"
-                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-xs font-bold text-[#f187b5] uppercase shadow-sm"
+                          className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none text-xs font-bold text-[var(--primary-color)] uppercase shadow-sm"
                         />
                       </div>
                     </div>
@@ -463,7 +463,7 @@ export default function SellerWithdrawalRequests() {
                         value={upiId}
                         onChange={(e) => setUpiId(e.target.value)}
                         placeholder="yourname@upi"
-                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none text-sm font-bold text-neutral-900 shadow-sm"
+                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-neutral-200 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none text-sm font-bold text-neutral-900 shadow-sm"
                       />
                     </div>
                   </div>
@@ -483,7 +483,7 @@ export default function SellerWithdrawalRequests() {
               </button>
               <button
                 onClick={handleSubmitRequest}
-                className="flex-1 px-4 py-3 bg-[#f187b5] hover:bg-[#e076a5] text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
                 disabled={isSubmitting}
               >
                 {isSubmitting && <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}

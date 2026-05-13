@@ -384,9 +384,9 @@ export default function AdminStockBulkImport({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-[#f187b5] text-white rounded-t-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-[var(--primary-color)] text-white rounded-t-lg">
           <h2 className="text-lg font-semibold">Bulk Import Products</h2>
-          <button onClick={onClose} className="text-white hover:bg-[#e076a5] p-2 rounded">✕</button>
+          <button onClick={onClose} className="text-white hover:bg-[var(--primary-dark)] p-2 rounded">✕</button>
         </div>
 
         <div className="flex-1 overflow-auto p-6 flex flex-col gap-6">
@@ -397,13 +397,13 @@ export default function AdminStockBulkImport({
               <p className="text-neutral-500 mb-6 max-w-md">Upload an Excel file (.xlsx, .xls) containing your product data. Ensure columns match the Product List structure.</p>
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-[#f187b5] text-white px-6 py-3 rounded-lg hover:bg-[#e076a5] transition"
+                className="bg-[var(--primary-color)] text-white px-6 py-3 rounded-lg hover:bg-[var(--primary-dark)] transition"
               >
                 Choose File
               </button>
               <button
                 onClick={handleDownloadTemplate}
-                 className="mt-2 text-sm text-[#f187b5] hover:underline"
+                 className="mt-2 text-sm text-[var(--primary-color)] hover:underline"
               >
                   Excel Format
               </button>
@@ -496,10 +496,10 @@ export default function AdminStockBulkImport({
                           <span>{progress.current} / {progress.total}</span>
                       </div>
                       <div className="w-full bg-neutral-200 rounded-full h-2.5">
-                          <div className="bg-[#f187b5] h-2.5 rounded-full" style={{ width: `${(progress.current / progress.total) * 100}%` }}></div>
+                          <div className="bg-[var(--primary-color)] h-2.5 rounded-full" style={{ width: `${(progress.current / progress.total) * 100}%` }}></div>
                       </div>
                       <div className="flex gap-4 text-xs">
-                          <span className="text-[#f187b5]">Success: {progress.success}</span>
+                          <span className="text-[var(--primary-color)]">Success: {progress.success}</span>
                           <span className="text-red-600">Failed: {progress.failed}</span>
                       </div>
                   </div>
@@ -514,7 +514,7 @@ export default function AdminStockBulkImport({
           <button
              onClick={handleUpload}
              disabled={!file || uploading || previewData.length === 0}
-             className={`px-4 py-2 rounded text-white flex items-center gap-2 ${!file || uploading ? "bg-neutral-400 cursor-not-allowed" : "bg-[#f187b5] hover:bg-[#e076a5]"}`}
+             className={`px-4 py-2 rounded text-white flex items-center gap-2 ${!file || uploading ? "bg-neutral-400 cursor-not-allowed" : "bg-[var(--primary-color)] hover:bg-[var(--primary-dark)]"}`}
           >
              {uploading ? "Importing..." : "Upload & Import"}
           </button>

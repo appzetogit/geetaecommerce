@@ -201,7 +201,7 @@ export default function AdminStoreSettings() {
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-[#f187b5]" />
+                <Loader2 className="h-8 w-8 animate-spin text-[var(--primary-color)]" />
             </div>
         );
     }
@@ -222,7 +222,7 @@ export default function AdminStoreSettings() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 rounded-xl bg-[#f187b5] px-6 py-2.5 font-semibold text-white shadow-lg shadow-[#f187b5]/20 hover:bg-[#e076a5] transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-xl bg-[var(--primary-color)] px-6 py-2.5 font-semibold text-white shadow-lg shadow-[var(--primary-color)]/20 hover:bg-[var(--primary-dark)] transition-all disabled:opacity-50"
                 >
                     {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                     <span>Save Changes</span>
@@ -233,14 +233,14 @@ export default function AdminStoreSettings() {
                 {/* Visual Identity Section */}
                 <div className="rounded-3xl bg-white p-8 shadow-sm border border-neutral-100">
                     <h2 className="text-lg font-bold text-neutral-800 mb-6 flex items-center gap-2">
-                        <Camera className="h-5 w-5 text-[#f187b5]" />
+                        <Camera className="h-5 w-5 text-[var(--primary-color)]" />
                         App Visuals
                     </h2>
 
                     <div className="flex flex-wrap items-center gap-12">
                         {/* App Logo */}
                         <div className="flex flex-col items-center gap-4">
-                            <div className="group relative h-32 w-32 flex items-center justify-center rounded-[2rem] border-2 border-dashed border-neutral-200 bg-neutral-50 shadow-inner transition-all hover:border-[#f187b5]/50 hover:bg-[#f187b5]/5 overflow-hidden">
+                            <div className="group relative h-32 w-32 flex items-center justify-center rounded-[2rem] border-2 border-dashed border-neutral-200 bg-neutral-50 shadow-inner transition-all hover:border-[var(--primary-color)]/50 hover:bg-[var(--primary-color)]/5 overflow-hidden">
                                 {formData.appLogo ? (
                                     <img src={formData.appLogo} alt="App Logo" className="h-20 w-20 object-contain transition-transform group-hover:scale-110" />
                                 ) : (
@@ -251,7 +251,7 @@ export default function AdminStoreSettings() {
                                 <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="h-10 w-10 flex items-center justify-center rounded-full bg-white shadow-lg text-[#f187b5] scale-90 group-hover:scale-100 transition-transform"
+                                        className="h-10 w-10 flex items-center justify-center rounded-full bg-white shadow-lg text-[var(--primary-color)] scale-90 group-hover:scale-100 transition-transform"
                                     >
                                         {uploadingLogo ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-6 w-6" />}
                                     </button>
@@ -272,7 +272,7 @@ export default function AdminStoreSettings() {
 
                         {/* Favicon */}
                         <div className="flex flex-col items-center gap-4">
-                            <div className="group relative h-24 w-24 flex items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 shadow-inner transition-all hover:border-[#f187b5]/50 hover:bg-[#f187b5]/5 overflow-hidden">
+                            <div className="group relative h-24 w-24 flex items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 shadow-inner transition-all hover:border-[var(--primary-color)]/50 hover:bg-[var(--primary-color)]/5 overflow-hidden">
                                 {formData.appFavicon ? (
                                     <img src={formData.appFavicon} alt="Favicon" className="h-12 w-12 object-contain" />
                                 ) : (
@@ -283,7 +283,7 @@ export default function AdminStoreSettings() {
                                 <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <button
                                         onClick={() => faviconInputRef.current?.click()}
-                                        className="h-8 w-8 flex items-center justify-center rounded-full bg-white shadow-lg text-[#f187b5]"
+                                        className="h-8 w-8 flex items-center justify-center rounded-full bg-white shadow-lg text-[var(--primary-color)]"
                                     >
                                         {uploadingFavicon ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
                                     </button>
@@ -317,7 +317,7 @@ export default function AdminStoreSettings() {
                                 value={formData.appName}
                                 onChange={handleInputChange}
                                 placeholder="e.g. Geeta Stores"
-                                className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none"
+                                className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[var(--primary-color)]/5 transition-all outline-none"
                             />
                         </div>
 
@@ -325,7 +325,7 @@ export default function AdminStoreSettings() {
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-neutral-600 ml-1">Customer Support Phone</label>
                                 <div className="relative group">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-neutral-100 text-neutral-400 group-focus-within:text-[#f187b5] transition-colors">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-neutral-100 text-neutral-400 group-focus-within:text-[var(--primary-color)] transition-colors">
                                         <Phone className="h-4 w-4" />
                                     </div>
                                     <input
@@ -334,7 +334,7 @@ export default function AdminStoreSettings() {
                                         value={formData.contactPhone}
                                         onChange={handleInputChange}
                                         placeholder="Mobile Number"
-                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 pl-16 pr-4 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none"
+                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 pl-16 pr-4 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[var(--primary-color)]/5 transition-all outline-none"
                                     />
                                 </div>
                             </div>
@@ -342,7 +342,7 @@ export default function AdminStoreSettings() {
                             <div className="space-y-2">
                                 <label className="text-sm font-bold text-neutral-600 ml-1">Official Email Address</label>
                                 <div className="relative group">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-neutral-100 text-neutral-400 group-focus-within:text-[#f187b5] transition-colors">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-neutral-100 text-neutral-400 group-focus-within:text-[var(--primary-color)] transition-colors">
                                         <Mail className="h-4 w-4" />
                                     </div>
                                     <input
@@ -351,7 +351,7 @@ export default function AdminStoreSettings() {
                                         value={formData.contactEmail}
                                         onChange={handleInputChange}
                                         placeholder="Email Address"
-                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 pl-16 pr-4 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none"
+                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 pl-16 pr-4 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[var(--primary-color)]/5 transition-all outline-none"
                                     />
                                 </div>
                             </div>
@@ -363,7 +363,7 @@ export default function AdminStoreSettings() {
                                 <span className="text-[10px] text-neutral-400 font-normal uppercase italic tracking-widest">(Used for Deliveries)</span>
                             </label>
                             <div className="relative group">
-                                <div className="absolute left-4 top-4 h-10 w-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-neutral-100 text-[#f187b5]">
+                                <div className="absolute left-4 top-4 h-10 w-10 flex items-center justify-center rounded-xl bg-white shadow-sm border border-neutral-100 text-[var(--primary-color)]">
                                     <MapPin className="h-4 w-4" />
                                 </div>
                                 <textarea
@@ -372,7 +372,7 @@ export default function AdminStoreSettings() {
                                     onChange={handleInputChange}
                                     rows={3}
                                     placeholder="Full store address..."
-                                    className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 pl-16 pr-4 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none resize-none"
+                                    className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 pl-16 pr-4 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[var(--primary-color)]/5 transition-all outline-none resize-none"
                                 />
                             </div>
                         </div>
@@ -386,7 +386,7 @@ export default function AdminStoreSettings() {
                     <div className="grid gap-5">
                         {/* Facebook */}
                         <div className="group flex items-center gap-4 rounded-2xl border border-neutral-100 bg-neutral-50/20 p-3 pr-5 focus-within:border-blue-200 focus-within:ring-4 focus-within:ring-blue-50 transition-all">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] border border-blue-100">
                                 <Facebook className="h-6 w-6" />
                             </div>
                             <div className="flex-1">
@@ -444,7 +444,7 @@ export default function AdminStoreSettings() {
                             </button>
                         </div>
 
-                        <button className="flex items-center gap-2 text-xs font-bold text-[#f187b5] hover:underline transition-all mt-2 ml-1">
+                        <button className="flex items-center gap-2 text-xs font-bold text-[var(--primary-color)] hover:underline transition-all mt-2 ml-1">
                             <Plus className="h-3 w-3" />
                             Add More Connections
                         </button>
@@ -464,7 +464,7 @@ export default function AdminStoreSettings() {
                                 </div>
                                 <button
                                     onClick={() => handleToggleInvoiceSetting('notes')}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.notes.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.notes.enabled ? 'bg-[var(--primary-color)]' : 'bg-gray-200'}`}
                                 >
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.invoiceSettings.notes.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
@@ -478,7 +478,7 @@ export default function AdminStoreSettings() {
                                         value={formData.invoiceSettings.notes.text}
                                         onChange={handleInputChange}
                                         placeholder="Enter note..."
-                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none"
+                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[var(--primary-color)]/5 transition-all outline-none"
                                     />
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400">
                                         <Save className="h-4 w-4" />
@@ -496,7 +496,7 @@ export default function AdminStoreSettings() {
                                 </div>
                                 <button
                                     onClick={() => handleToggleInvoiceSetting('terms')}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.terms.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.terms.enabled ? 'bg-[var(--primary-color)]' : 'bg-gray-200'}`}
                                 >
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.invoiceSettings.terms.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
@@ -510,7 +510,7 @@ export default function AdminStoreSettings() {
                                         onChange={handleInputChange}
                                         placeholder="Enter terms and conditions..."
                                         rows={3}
-                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none resize-none"
+                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[var(--primary-color)]/5 transition-all outline-none resize-none"
                                     />
                                     <div className="absolute right-4 top-4 text-neutral-400">
                                         <Save className="h-4 w-4" />
@@ -528,7 +528,7 @@ export default function AdminStoreSettings() {
                                 </div>
                                 <button
                                     onClick={() => handleToggleInvoiceSetting('gst')}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.gst?.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.gst?.enabled ? 'bg-[var(--primary-color)]' : 'bg-gray-200'}`}
                                 >
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.invoiceSettings.gst?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
@@ -542,7 +542,7 @@ export default function AdminStoreSettings() {
                                         value={formData.invoiceSettings.gst?.text || ''}
                                         onChange={handleInputChange}
                                         placeholder="Enter GST Number"
-                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none"
+                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[var(--primary-color)]/5 transition-all outline-none"
                                     />
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400">
                                         <Save className="h-4 w-4" />
@@ -560,7 +560,7 @@ export default function AdminStoreSettings() {
                                 </div>
                                 <button
                                     onClick={() => handleToggleInvoiceSetting('fssai')}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.fssai?.enabled ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.invoiceSettings.fssai?.enabled ? 'bg-[var(--primary-color)]' : 'bg-gray-200'}`}
                                 >
                                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.invoiceSettings.fssai?.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
@@ -574,7 +574,7 @@ export default function AdminStoreSettings() {
                                         value={formData.invoiceSettings.fssai?.text || ''}
                                         onChange={handleInputChange}
                                         placeholder="Enter FSSAI Number"
-                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[#f187b5] focus:ring-4 focus:ring-[#f187b5]/5 transition-all outline-none"
+                                        className="w-full rounded-2xl border-neutral-200 bg-neutral-50/30 px-5 py-4 text-neutral-800 font-medium placeholder:text-neutral-400 focus:border-[var(--primary-color)] focus:ring-4 focus:ring-[var(--primary-color)]/5 transition-all outline-none"
                                     />
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400">
                                         <Save className="h-4 w-4" />

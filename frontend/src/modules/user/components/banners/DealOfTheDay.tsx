@@ -30,11 +30,18 @@ export default function DealOfTheDay() {
 
         // Check for multiple IDs first
         if (config.dealOfTheDayProductIds && config.dealOfTheDayProductIds.length > 0) {
-             const promises = config.dealOfTheDayProductIds.map(id => getProductById(id));
+             const promises = config.dealOfTheDayProductIds.map(async (id) => {
+                 try {
+                     return await getProductById(id);
+                 } catch (error) {
+                     console.warn(`[DealOfTheDay] Product ID ${id} not found or error occurred:`, error);
+                     return null;
+                 }
+             });
              const results = await Promise.all(promises);
 
              results.forEach(res => {
-                 if (res.success && res.data) {
+                 if (res && res.success && res.data) {
                      products.push({
                         ...res.data,
                         id: (res.data as any)._id || (res.data as any).id,
@@ -148,7 +155,7 @@ export default function DealOfTheDay() {
                              {discount > 0 && (
                                 <span
                                     className="absolute -top-1 -left-1 text-white text-sm font-bold px-3 py-1 rounded-full shadow-sm z-10"
-                                    style={{ backgroundColor: '#ef4444' }}
+                                    style={{ backgroundColor: 'var(--customer-primary)' }}
                                 >
                                     {discount}% OFF
                                 </span>

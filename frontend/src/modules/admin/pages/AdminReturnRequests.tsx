@@ -113,7 +113,7 @@ export default function AdminReturnRequests() {
            <input
              type="text"
              placeholder="Search Order ID or User..."
-             className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+             className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
              value={searchTerm}
              onChange={(e) => setSearchTerm(e.target.value)}
            />
@@ -153,7 +153,7 @@ export default function AdminReturnRequests() {
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         request.status === "Approved" || request.status === "Completed"
-                          ? "bg-green-100 text-green-800"
+                          ? "bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]"
                           : request.status === "Rejected"
                           ? "bg-red-100 text-red-800"
                           : "bg-yellow-100 text-yellow-800"
@@ -168,7 +168,7 @@ export default function AdminReturnRequests() {
                            <>
                              <button
                                 onClick={() => handleAcceptClick(request._id)}
-                                className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                                className="px-3 py-1 bg-[var(--primary-dark)] text-white text-xs rounded hover:bg-[var(--primary-darker)] transition-colors"
                              >
                                Accept
                              </button>
@@ -208,7 +208,7 @@ export default function AdminReturnRequests() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Select Delivery Boy</label>
                 <select
-                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none"
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--primary-color)] outline-none"
                   value={selectedDeliveryBoy}
                   onChange={(e) => setSelectedDeliveryBoy(e.target.value)}
                 >
@@ -227,7 +227,7 @@ export default function AdminReturnRequests() {
                 </button>
                 <button
                   onClick={handleConfirmAccept}
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-[var(--primary-dark)] text-white rounded-lg hover:bg-[var(--primary-darker)] font-medium disabled:opacity-50"
                   disabled={!selectedDeliveryBoy}
                 >
                   Confirm & Approve

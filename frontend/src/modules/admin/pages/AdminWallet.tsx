@@ -188,16 +188,16 @@ export default function AdminWallet() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-neutral-800">Wallet Management</h1>
         <div className="text-sm">
-          <span className="text-[#f187b5]">Admin</span> / <span>Wallet</span>
+          <span className="text-[var(--primary-color)]">Admin</span> / <span>Wallet</span>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#f187b5] p-6 rounded-xl text-white shadow-lg">
+        <div className="bg-[var(--primary-color)] p-6 rounded-xl text-white shadow-lg">
           <h3 className="text-pink-100 text-sm font-medium">Total Earnings</h3>
           <p className="text-3xl font-bold mt-1">₹{stats.totalEarnings.toLocaleString()}</p>
         </div>
-        <div className="bg-[#f187b5] p-6 rounded-xl text-white shadow-lg">
+        <div className="bg-[var(--primary-color)] p-6 rounded-xl text-white shadow-lg">
           <h3 className="text-pink-100 text-sm font-medium">Paid Earnings</h3>
           <p className="text-3xl font-bold mt-1">₹{stats.paidEarnings.toLocaleString()}</p>
         </div>
@@ -205,7 +205,7 @@ export default function AdminWallet() {
           <h3 className="text-yellow-100 text-sm font-medium">Pending Earnings</h3>
           <p className="text-3xl font-bold mt-1">₹{stats.pendingEarnings.toLocaleString()}</p>
         </div>
-        <div className="bg-[#f187b5] p-6 rounded-xl text-white shadow-lg">
+        <div className="bg-[var(--primary-color)] p-6 rounded-xl text-white shadow-lg">
           <h3 className="text-pink-100 text-sm font-medium">Seller Payouts</h3>
           <p className="text-3xl font-bold mt-1">₹{stats.thisMonthEarnings.toLocaleString()}</p>
         </div>
@@ -223,7 +223,7 @@ export default function AdminWallet() {
               key={tab.id}
               onClick={() => { setActiveTab(tab.id as TabType); setCurrentPage(1); }}
               className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.id ? "border-[#f187b5] text-[#f187b5]" : "border-transparent text-neutral-500 hover:text-neutral-700"
+                activeTab === tab.id ? "border-[var(--primary-color)] text-[var(--primary-color)]" : "border-transparent text-neutral-500 hover:text-neutral-700"
               }`}
             >
               {tab.label}
@@ -302,11 +302,11 @@ export default function AdminWallet() {
                     <tr key={tr._id} className="hover:bg-neutral-50 transition-colors">
                       <td className="px-6 py-4 text-sm">{new Date(tr.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4 text-sm font-medium">{tr.sellerId?.storeName || 'System'}</td>
-                      <td className={`px-6 py-4 text-sm font-bold ${tr.type === 'Credit' ? 'text-green-600' : 'text-red-600'}`}>
+                      <td className={`px-6 py-4 text-sm font-bold ${tr.type === 'Credit' ? 'text-[var(--primary-dark)]' : 'text-red-600'}`}>
                         {tr.type === 'Credit' ? '+' : '-'} ₹{tr.amount}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${tr.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${tr.status === 'Completed' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' : 'bg-yellow-100 text-yellow-700'}`}>
                           {tr.status}
                         </span>
                       </td>
@@ -318,19 +318,19 @@ export default function AdminWallet() {
                       <td className="px-6 py-4 text-sm font-medium">{req.sellerId?.storeName}</td>
                       <td className="px-6 py-4 text-sm font-bold">₹{req.amount}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${req.status === 'Completed' || req.status === 'Approved' ? 'bg-green-100 text-green-700' : req.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${req.status === 'Completed' || req.status === 'Approved' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' : req.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
                           {req.status}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
                         {req.status === 'Pending' && (
                           <div className="flex gap-2">
-                            <button onClick={() => handleApproveWithdraw(req._id)} disabled={processing} className="text-teal-600 font-bold hover:underline">Approve</button>
+                            <button onClick={() => handleApproveWithdraw(req._id)} disabled={processing} className="text-[var(--primary-dark)] font-bold hover:underline">Approve</button>
                             <button onClick={() => handleRejectWithdraw(req._id)} disabled={processing} className="text-red-600 font-bold hover:underline">Reject</button>
                           </div>
                         )}
                         {req.status === 'Approved' && (
-                          <button onClick={() => handleCompleteWithdraw(req._id)} disabled={processing} className="text-blue-600 font-bold hover:underline">Mark Paid</button>
+                          <button onClick={() => handleCompleteWithdraw(req._id)} disabled={processing} className="text-[var(--primary-dark)] font-bold hover:underline">Mark Paid</button>
                         )}
                       </td>
                     </tr>
@@ -338,7 +338,7 @@ export default function AdminWallet() {
                   {activeTab === 'balance' && sellerBalances.map(bal => (
                     <tr key={bal.userId} className="hover:bg-neutral-50 transition-colors">
                       <td className="px-6 py-4 text-sm font-medium">{bal.userName}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-teal-600">₹{bal.currentBalance.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-[var(--primary-dark)]">₹{bal.currentBalance.toLocaleString()}</td>
                       <td className="px-6 py-4 text-sm">₹{bal.totalEarnings.toLocaleString()}</td>
                       <td className="px-6 py-4 text-sm">₹{bal.totalWithdrawn.toLocaleString()}</td>
                     </tr>
@@ -346,9 +346,9 @@ export default function AdminWallet() {
                   {activeTab === 'earning' && adminEarnings.map(ea => (
                     <tr key={ea._id} className="hover:bg-neutral-50 transition-colors">
                       <td className="px-6 py-4 text-sm">{ea.date}</td>
-                      <td className="px-6 py-4 text-sm font-medium text-teal-600">{ea.source}</td>
+                      <td className="px-6 py-4 text-sm font-medium text-[var(--primary-dark)]">{ea.source}</td>
                       <td className="px-6 py-4 text-sm text-neutral-500">{ea.description}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-green-600">₹{ea.amount.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-[var(--primary-dark)]">₹{ea.amount.toLocaleString()}</td>
                     </tr>
                   ))}
                   {((activeTab === 'transaction' && transactions.length === 0) ||

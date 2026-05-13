@@ -246,7 +246,7 @@ export default function OrderNotificationCard({
                 paddingTop: 'env(safe-area-inset-top, 0)',
             }}
         >
-            <div className="bg-white rounded-xl shadow-2xl border-2 border-teal-500 p-4 sm:p-6">
+            <div className="bg-white rounded-xl shadow-2xl border-2 border-[var(--primary-color)] p-4 sm:p-6">
                 {/* Header with pulsing indicator */}
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                     <div className="flex items-center gap-3">
@@ -283,7 +283,7 @@ export default function OrderNotificationCard({
 
                     <div>
                         <p className="text-xs sm:text-sm text-neutral-600">Order Amount</p>
-                        <p className="text-lg sm:text-xl font-bold text-teal-600">₹{notification.total.toFixed(2)}</p>
+                        <p className="text-lg sm:text-xl font-bold text-[var(--primary-dark)]">₹{notification.total.toFixed(2)}</p>
                     </div>
                 </div>
 
@@ -300,7 +300,7 @@ export default function OrderNotificationCard({
                     <button
                         onClick={handleAccept}
                         disabled={isProcessing}
-                        className="flex-1 px-4 py-3 sm:py-3 bg-teal-600 active:bg-teal-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+                        className="flex-1 px-4 py-3 sm:py-3 bg-[var(--primary-dark)] active:bg-[var(--primary-darker)] text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                         style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                         {isProcessing ? 'Processing...' : 'Accept'}

@@ -241,7 +241,7 @@ export default function AdminTaxes() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
           {/* Left Panel: Add Tax */}
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col">
-            <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-lg">
+            <div className="bg-[var(--primary-color)] text-white px-6 py-4 rounded-t-lg">
               <h2 className="text-lg font-semibold">Add Tax</h2>
             </div>
             <div className="p-6 flex-1 flex flex-col">
@@ -255,7 +255,7 @@ export default function AdminTaxes() {
                     value={taxTitle}
                     onChange={(e) => setTaxTitle(e.target.value)}
                     placeholder="Enter Tax Title"
-                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none"
                   />
                 </div>
                 <div>
@@ -270,7 +270,7 @@ export default function AdminTaxes() {
                     min="0"
                     max="100"
                     step="0.01"
-                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none"
                   />
                 </div>
               </div>
@@ -278,7 +278,7 @@ export default function AdminTaxes() {
                 <button
                   onClick={handleAddTax}
                   disabled={submitting}
-                  className="w-full bg-[#f187b5] hover:bg-[#e076a5] disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium transition-colors flex items-center justify-center">
+                  className="w-full bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] disabled:bg-neutral-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium transition-colors flex items-center justify-center">
                   {submitting ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -307,7 +307,7 @@ export default function AdminTaxes() {
 
           {/* Right Panel: View Tax */}
           <div className="bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col">
-            <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-lg">
+            <div className="bg-[var(--primary-color)] text-white px-6 py-4 rounded-t-lg">
               <h2 className="text-lg font-semibold">View Tax</h2>
             </div>
 
@@ -321,7 +321,7 @@ export default function AdminTaxes() {
                     setRowsPerPage(Number(e.target.value));
                     setCurrentPage(1);
                   }}
-                  className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                  className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                   <option value={10}>10</option>
                   <option value={20}>20</option>
                   <option value={50}>50</option>
@@ -332,7 +332,7 @@ export default function AdminTaxes() {
                 <div className="relative">
                   <button
                     onClick={handleExport}
-                    className="bg-[#f187b5] hover:bg-[#e076a5] text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors">
+                    className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors">
                     Export
                     <svg
                       width="10"
@@ -354,7 +354,7 @@ export default function AdminTaxes() {
                   </span>
                   <input
                     type="text"
-                    className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-[#f187b5] w-48"
+                    className="pl-14 pr-3 py-1.5 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] w-48"
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
@@ -407,7 +407,7 @@ export default function AdminTaxes() {
                     <tr>
                       <td colSpan={5} className="p-8 text-center">
                         <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#f187b5] mr-2"></div>
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--primary-color)] mr-2"></div>
                           Loading taxes...
                         </div>
                       </td>
@@ -443,7 +443,7 @@ export default function AdminTaxes() {
                         <td className="p-4 align-middle border border-neutral-200">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${tax.status === "Active"
-                                ? "bg-[#f187b5]/10 text-[#f187b5]"
+                                ? "bg-[var(--primary-color)]/10 text-[var(--primary-color)]"
                                 : "bg-red-100 text-red-800"
                               }`}>
                             {tax.status}
@@ -454,7 +454,7 @@ export default function AdminTaxes() {
                             <button
                               onClick={() => handleEdit(tax)}
                               disabled={submitting}
-                              className="p-1.5 text-[#f187b5] hover:bg-[#f187b5]/20 disabled:text-neutral-400 disabled:cursor-not-allowed rounded transition-colors"
+                              className="p-1.5 text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20 disabled:text-neutral-400 disabled:cursor-not-allowed rounded transition-colors"
                               title="Edit">
                               <svg
                                 width="16"
@@ -518,9 +518,9 @@ export default function AdminTaxes() {
                     setCurrentPage((prev) => Math.max(1, prev - 1))
                   }
                   disabled={currentPage === 1}
-                  className={`p-2 border border-teal-600 rounded ${currentPage === 1
+                  className={`p-2 border border-[var(--primary-dark)] rounded ${currentPage === 1
                       ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
-                      : "text-[#f187b5] hover:bg-[#f187b5]/20"
+                      : "text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20"
                     }`}
                   aria-label="Previous page">
                   <svg
@@ -538,7 +538,7 @@ export default function AdminTaxes() {
                     />
                   </svg>
                 </button>
-                <button className="px-3 py-1.5 border border-[#f187b5] bg-[#f187b5] text-white rounded font-medium text-sm">
+                <button className="px-3 py-1.5 border border-[var(--primary-color)] bg-[var(--primary-color)] text-white rounded font-medium text-sm">
                   {currentPage}
                 </button>
                 <button
@@ -546,9 +546,9 @@ export default function AdminTaxes() {
                     setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                   }
                   disabled={currentPage === totalPages}
-                  className={`p-2 border border-teal-600 rounded ${currentPage === totalPages
+                  className={`p-2 border border-[var(--primary-dark)] rounded ${currentPage === totalPages
                       ? "text-neutral-400 cursor-not-allowed bg-neutral-50"
-                      : "text-[#f187b5] hover:bg-[#f187b5]/20"
+                      : "text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20"
                     }`}
                   aria-label="Next page">
                   <svg
@@ -575,7 +575,7 @@ export default function AdminTaxes() {
       {/* Footer */}
       <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
         Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-[#f187b5] hover:underline">
+        <a href="#" className="text-[var(--primary-color)] hover:underline">
           Geeta Stores - 10 Minute App
         </a>
       </footer>

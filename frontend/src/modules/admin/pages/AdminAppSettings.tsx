@@ -134,7 +134,7 @@ export default function AdminAppSettings() {
             case 'shiprocket': return (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-400">
                     <div className="flex items-center gap-4 border-b pb-4">
-                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                        <div className="p-3 bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] rounded-xl">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                         </div>
                         <div>
@@ -154,7 +154,7 @@ export default function AdminAppSettings() {
                                 <input
                                     type="email"
                                     placeholder="Enter your Shiprocket email"
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                                     defaultValue="deepak@brostartup.com"
                                 />
                             </div>
@@ -163,7 +163,7 @@ export default function AdminAppSettings() {
                                 <input
                                     type="password"
                                     placeholder="••••••••"
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                                     defaultValue="********"
                                 />
                             </div>
@@ -171,13 +171,13 @@ export default function AdminAppSettings() {
                                 <label className="text-sm font-semibold text-gray-700 ml-1">Base API URL</label>
                                 <input
                                     type="text"
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                                     defaultValue="https://apiv2.shiprocket.in"
                                 />
                             </div>
 
                             <div className="flex justify-end pt-2">
-                                <button className="px-8 py-3 bg-[#f187b5] text-white font-bold rounded-2xl hover:bg-[#db76a3] shadow-lg active:scale-95 transition-all">
+                                <button className="px-8 py-3 bg-[var(--primary-color)] text-white font-bold rounded-2xl hover:bg-[var(--primary-color)] shadow-lg active:scale-95 transition-all">
                                     Save Configuration
                                 </button>
                             </div>
@@ -195,7 +195,7 @@ export default function AdminAppSettings() {
                          <InputGroup label="Currency Code" value="USD" />
                          <div className='md:col-span-2'>
                              <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
-                             <select className="w-full border-gray-300 rounded-md shadow-sm focus:border-[#f187b5] focus:ring focus:ring-[#f187b5] focus:ring-opacity-50 p-2 border">
+                             <select className="w-full border-gray-300 rounded-md shadow-sm focus:border-[var(--primary-color)] focus:ring focus:ring-[var(--primary-color)] focus:ring-opacity-50 p-2 border">
                                 <option>UTC</option>
                                 <option>IST (India)</option>
                                 <option>EST (US)</option>
@@ -214,8 +214,8 @@ export default function AdminAppSettings() {
         <div className="flex flex-col md:flex-row h-[calc(100vh-64px)] overflow-hidden bg-gray-50 font-sans">
             {/* Left Sidebar */}
             <div className="w-full md:w-64 bg-white border-r border-gray-200 overflow-y-auto flex-shrink-0 shadow-sm z-10">
-                <div className="p-4 border-b border-gray-100 bg-[#f187b5]/10">
-                    <h2 className="font-bold text-[#f187b5] text-lg">App Setting</h2>
+                <div className="p-4 border-b border-gray-100 bg-[var(--primary-color)]/10">
+                    <h2 className="font-bold text-[var(--primary-color)] text-lg">App Setting</h2>
                 </div>
                 <div className="py-2">
                     {tabs.map(tab => (
@@ -224,7 +224,7 @@ export default function AdminAppSettings() {
                             onClick={() => handleTabChange(tab.id)}
                             className={`w-full flex items-center px-4 py-3 text-sm font-medium transition-all duration-200 border-l-4 ${
                                 activeTab === tab.id
-                                ? 'border-[#f187b5] text-[#f187b5] bg-pink-50'
+                                ? 'border-[var(--primary-color)] text-[var(--primary-color)] bg-pink-50'
                                 : 'border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                             }`}
                         >
@@ -245,7 +245,7 @@ export default function AdminAppSettings() {
                         <button
                             onClick={handleUpdate}
                             disabled={isLoading}
-                            className={`px-6 py-2.5 rounded-lg text-white font-medium shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f187b5] ${isLoading ? 'bg-pink-300 cursor-not-allowed' : 'bg-[#f187b5] hover:bg-[#e076a5]'}`}
+                            className={`px-6 py-2.5 rounded-lg text-white font-medium shadow-md transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--primary-color)] ${isLoading ? 'bg-pink-300 cursor-not-allowed' : 'bg-[var(--primary-color)] hover:bg-[var(--primary-dark)]'}`}
                         >
                             {isLoading ? 'Updating...' : 'Update'}
                         </button>
@@ -266,7 +266,7 @@ function InputGroup({ label, type = "text", value, onChange, placeholder }: { la
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-colors"
                 autoComplete="off"
             />
         </div>
@@ -287,7 +287,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean, onChange: () =>
         <button
             type="button"
             onClick={onChange}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-[#f187b5]' : 'bg-gray-200'}`}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${checked ? 'bg-[var(--primary-color)]' : 'bg-gray-200'}`}
         >
             <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
         </button>

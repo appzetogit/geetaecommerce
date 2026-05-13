@@ -111,7 +111,7 @@ export default function FAQ() {
                 height="40"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="text-green-600 md:w-12 md:h-12"
+                className="text-[var(--customer-primary-dark)] md:w-12 md:h-12"
               >
                 <path
                   d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
@@ -188,7 +188,7 @@ export default function FAQ() {
                 height="48"
                 viewBox="0 0 24 24"
                 fill="none"
-                className="mx-auto mb-4 text-green-600"
+                className="mx-auto mb-4 text-[var(--customer-primary-dark)]"
               >
                 <path
                   d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
@@ -213,7 +213,7 @@ export default function FAQ() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
                   href="mailto:help@Geeta Stores.com"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors text-sm"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--customer-primary-dark)] text-white rounded-lg font-semibold hover:bg-[var(--customer-primary-darker)] transition-colors text-sm"
                 >
                   <svg
                     width="18"
@@ -240,7 +240,7 @@ export default function FAQ() {
                 </a>
                 <a
                   href="tel:+91-XXXXX-XXXXX"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-green-600 border-2 border-green-600 rounded-lg font-semibold hover:bg-green-50 transition-colors text-sm"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-[var(--customer-primary-dark)] border-2 border-[var(--customer-primary-dark)] rounded-lg font-semibold hover:bg-[var(--customer-primary-alpha-10)] transition-colors text-sm"
                 >
                   <svg
                     width="18"

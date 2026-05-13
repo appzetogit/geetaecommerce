@@ -189,8 +189,8 @@ export default function AdminUsers() {
             <div className="p-6 pb-0">
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-semibold text-neutral-800">User List</h1>
-                    <div className="text-sm text-[#f187b5]">
-                        <span className="text-[#f187b5] hover:underline cursor-pointer">Home</span>{' '}
+                    <div className="text-sm text-[var(--primary-color)]">
+                        <span className="text-[var(--primary-color)] hover:underline cursor-pointer">Home</span>{' '}
                         <span className="text-neutral-400">/</span> User List
                     </div>
                 </div>
@@ -201,7 +201,7 @@ export default function AdminUsers() {
                 {/* Main Panel */}
                 <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
                     {/* Header */}
-                    <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
+                    <div className="bg-[var(--primary-color)] text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
                         <h2 className="text-lg font-semibold">View Users</h2>
                         <div className="flex items-center gap-2">
                             <span className="text-sm">Show</span>
@@ -211,7 +211,7 @@ export default function AdminUsers() {
                                     setEntriesPerPage(Number(e.target.value));
                                     setCurrentPage(1);
                                 }}
-                                className="bg-white text-[#f187b5] border border-[#f187b5]/30 rounded py-1 px-2 text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer"
+                                className="bg-white text-[var(--primary-color)] border border-[var(--primary-color)]/30 rounded py-1 px-2 text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer"
                             >
                                 <option value={10}>10</option>
                                 <option value={20}>20</option>
@@ -299,7 +299,7 @@ export default function AdminUsers() {
                                     <tr>
                                         <td colSpan={11} className="p-8 text-center">
                                             <div className="flex items-center justify-center">
-                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#f187b5] mr-2"></div>
+                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--primary-color)] mr-2"></div>
                                                 Loading users...
                                             </div>
                                         </td>
@@ -332,7 +332,7 @@ export default function AdminUsers() {
                                             <td className="p-4 align-middle">{new Date(user.registrationDate).toLocaleString()}</td>
                                             <td className="p-4 align-middle">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.status === 'Active'
-                                                    ? 'bg-[#f187b5]/10 text-[#f187b5]'
+                                                    ? 'bg-[var(--primary-color)]/10 text-[var(--primary-color)]'
                                                     : user.status === 'Suspended'
                                                         ? 'bg-red-100 text-red-800'
                                                         : 'bg-yellow-100 text-yellow-800'
@@ -350,7 +350,7 @@ export default function AdminUsers() {
                                                         onClick={() => handleStatusChange(user._id, user.status === 'Active' ? 'Suspended' : 'Active')}
                                                         className={`p-1.5 text-white rounded transition-colors ${user.status === 'Active'
                                                             ? 'bg-red-600 hover:bg-red-700'
-                                                            : 'bg-[#f187b5] hover:bg-[#e076a5]'
+                                                            : 'bg-[var(--primary-color)] hover:bg-[var(--primary-dark)]'
                                                             }`}
                                                         title={user.status === 'Active' ? 'Suspend User' : 'Activate User'}
                                                     >
@@ -383,9 +383,9 @@ export default function AdminUsers() {
                             <button
                                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                                 disabled={currentPage === 1}
-                                className={`p-2 border border-[#f187b5] rounded ${currentPage === 1
+                                className={`p-2 border border-[var(--primary-color)] rounded ${currentPage === 1
                                     ? 'text-neutral-400 cursor-not-allowed bg-neutral-50'
-                                    : 'text-[#f187b5] hover:bg-[#f187b5]/10'
+                                    : 'text-[var(--primary-color)] hover:bg-[var(--primary-color)]/10'
                                     }`}
                                 aria-label="Previous page"
                             >
@@ -420,9 +420,9 @@ export default function AdminUsers() {
                                     <button
                                         key={pageNum}
                                         onClick={() => setCurrentPage(pageNum)}
-                                        className={`px-3 py-1.5 border border-[#f187b5] rounded font-medium text-sm ${currentPage === pageNum
-                                            ? 'bg-[#f187b5] text-white'
-                                            : 'text-[#f187b5] hover:bg-[#f187b5]/10'
+                                        className={`px-3 py-1.5 border border-[var(--primary-color)] rounded font-medium text-sm ${currentPage === pageNum
+                                            ? 'bg-[var(--primary-color)] text-white'
+                                            : 'text-[var(--primary-color)] hover:bg-[var(--primary-color)]/10'
                                             }`}
                                     >
                                         {pageNum}
@@ -435,9 +435,9 @@ export default function AdminUsers() {
                             <button
                                 onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                                 disabled={currentPage === totalPages}
-                                className={`p-2 border border-[#f187b5] rounded ${currentPage === totalPages
+                                className={`p-2 border border-[var(--primary-color)] rounded ${currentPage === totalPages
                                     ? 'text-neutral-400 cursor-not-allowed bg-neutral-50'
-                                    : 'text-[#f187b5] hover:bg-[#f187b5]/10'
+                                    : 'text-[var(--primary-color)] hover:bg-[var(--primary-color)]/10'
                                     }`}
                                 aria-label="Next page"
                             >
@@ -465,7 +465,7 @@ export default function AdminUsers() {
             {/* Footer */}
             <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
                 Copyright © 2025. Developed By{' '}
-                <a href="#" className="text-[#f187b5] hover:underline">Geeta Stores - 10 Minute App</a>
+                <a href="#" className="text-[var(--primary-color)] hover:underline">Geeta Stores - 10 Minute App</a>
             </footer>
         </div>
     );

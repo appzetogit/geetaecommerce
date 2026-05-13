@@ -70,7 +70,7 @@ export default function FeaturedThisWeek() {
                 </div>
               </div>
               <div className="absolute top-12 right-2 w-8 h-8 bg-yellow-200/30 rounded-full blur-sm"></div>
-              <div className="absolute bottom-16 left-2 w-6 h-6 bg-orange-200/30 rounded-full blur-sm"></div>
+              <div className="absolute bottom-16 left-2 w-6 h-6 bg-[var(--customer-primary-alpha-30)]/30 rounded-full blur-sm"></div>
               <div className="relative h-32 mt-10 overflow-hidden bg-yellow-50">
                 {newlyLaunchedProducts.map((product, idx) => (
                   <div
@@ -111,12 +111,12 @@ export default function FeaturedThisWeek() {
                 <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_white_1px,_transparent_1px)] bg-[length:20px_20px]"></div>
               </div>
               <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20">
-                <div className="bg-gradient-to-r from-red-500 to-red-600 px-3 py-1 rounded-full shadow-lg border border-red-400/50">
+                <div className="bg-gradient-to-r from-[var(--customer-primary)] to-[var(--customer-primary-dark)] px-3 py-1 rounded-full shadow-lg border border-red-400/50">
                   <span className="text-white text-[9px] font-black tracking-wide">Featured</span>
                 </div>
               </div>
               <div className="absolute top-8 right-3 w-12 h-12 bg-yellow-400/20 rounded-full blur-md"></div>
-              <div className="absolute bottom-8 left-3 w-10 h-10 bg-red-500/20 rounded-full blur-md"></div>
+              <div className="absolute bottom-8 left-3 w-10 h-10 bg-[var(--customer-primary)]/20 rounded-full blur-md"></div>
               <div className="flex items-center justify-center h-full px-2 relative z-10">
                 <div className="text-center">
                   <div
@@ -151,7 +151,7 @@ export default function FeaturedThisWeek() {
                 <div className="absolute inset-0 bg-[linear-gradient(45deg,_transparent_25%,_white_25%,_white_50%,_transparent_50%,_transparent_75%,_white_75%,_white)] bg-[length:20px_20px]"></div>
               </div>
               <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20">
-                <div className="bg-gradient-to-r from-red-500 to-red-600 px-3 py-1 rounded-full shadow-lg border border-red-400/50">
+                <div className="bg-gradient-to-r from-[var(--customer-primary)] to-[var(--customer-primary-dark)] px-3 py-1 rounded-full shadow-lg border border-red-400/50">
                   <span className="text-white text-[9px] font-black tracking-wide">Featured</span>
                 </div>
               </div>

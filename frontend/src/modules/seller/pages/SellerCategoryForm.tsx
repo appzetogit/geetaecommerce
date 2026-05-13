@@ -353,7 +353,7 @@ export default function SellerCategoryForm({
               <label className="block text-sm font-medium text-neutral-700 mb-2">
                 Parent Category
               </label>
-              <div className="w-full px-3 py-2 border border-[#f187b5]/30 bg-[#f187b5]/10 rounded-lg text-[#f187b5] font-semibold">
+              <div className="w-full px-3 py-2 border border-[var(--primary-color)]/30 bg-[var(--primary-color)]/10 rounded-lg text-[var(--primary-color)] font-semibold">
                 {parentCategory.name}
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function SellerCategoryForm({
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] ${
                 errors.name ? "border-red-300" : "border-neutral-300"
               }`}
               placeholder="Enter category name"
@@ -389,7 +389,7 @@ export default function SellerCategoryForm({
               value={formData.headerCategoryId || ""}
               onChange={handleInputChange}
               disabled={lockHeaderCategory}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] ${
                 errors.headerCategoryId ? "border-red-300" : "border-neutral-300"
               } ${lockHeaderCategory ? "bg-neutral-50 cursor-not-allowed" : ""}`}
             >
@@ -401,7 +401,7 @@ export default function SellerCategoryForm({
               ))}
             </select>
             {lockHeaderCategory && (
-              <p className="mt-1 text-xs text-[#f187b5]">
+              <p className="mt-1 text-xs text-[var(--primary-color)]">
                 Inherited from parent category
               </p>
             )}
@@ -420,8 +420,8 @@ export default function SellerCategoryForm({
             <label
               className={`block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
                 isDragging
-                  ? "border-[#f187b5] bg-[#f187b5]/10"
-                  : "border-neutral-300 hover:border-[#f187b5]"
+                  ? "border-[var(--primary-color)] bg-[var(--primary-color)]/10"
+                  : "border-neutral-300 hover:border-[var(--primary-color)]"
               }`}
               onDragEnter={handleDragEnter}
               onDragOver={handleDragOver}
@@ -490,7 +490,7 @@ export default function SellerCategoryForm({
                 name="parentId"
                 value={formData.parentId || ""}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]"
+                className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
               >
                 <option value="">None (Root Category)</option>
                 {availableParents.map((p) => (
@@ -512,7 +512,7 @@ export default function SellerCategoryForm({
               name="order"
               value={formData.order}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]"
+              className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
             />
           </div>
 
@@ -529,7 +529,7 @@ export default function SellerCategoryForm({
                     status: e.target.checked ? "Active" : "Inactive",
                   }))
                 }
-                className="w-4 h-4 text-[#f187b5] border-neutral-300 rounded focus:ring-[#f187b5]"
+                className="w-4 h-4 text-[var(--primary-color)] border-neutral-300 rounded focus:ring-[var(--primary-color)]"
               />
               <span className="text-sm font-medium text-neutral-700">
                 Active Status
@@ -567,7 +567,7 @@ export default function SellerCategoryForm({
                     name="isBestseller"
                     checked={formData.isBestseller}
                     onChange={handleInputChange}
-                    className="w-4 h-4 text-[#f187b5] border-neutral-300 rounded focus:ring-[#f187b5]"
+                    className="w-4 h-4 text-[var(--primary-color)] border-neutral-300 rounded focus:ring-[var(--primary-color)]"
                   />
                   <span className="text-sm text-neutral-700">Is Bestseller</span>
                 </label>
@@ -577,7 +577,7 @@ export default function SellerCategoryForm({
                     name="hasWarning"
                     checked={formData.hasWarning}
                     onChange={handleInputChange}
-                    className="w-4 h-4 text-[#f187b5] border-neutral-300 rounded focus:ring-[#f187b5]"
+                    className="w-4 h-4 text-[var(--primary-color)] border-neutral-300 rounded focus:ring-[var(--primary-color)]"
                   />
                   <span className="text-sm text-neutral-700">Has Warning</span>
                 </label>
@@ -610,7 +610,7 @@ export default function SellerCategoryForm({
             <button
               type="submit"
               disabled={submitting || uploading}
-              className="px-6 py-2 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-6 py-2 bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {submitting
                 ? "Saving..."

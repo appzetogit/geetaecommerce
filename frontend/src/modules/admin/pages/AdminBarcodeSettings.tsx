@@ -107,7 +107,7 @@ export default function AdminBarcodeSettings() {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full bg-neutral-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f187b5]"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)]"></div>
             </div>
         );
     }
@@ -123,7 +123,7 @@ export default function AdminBarcodeSettings() {
                 <button
                     onClick={handleSave}
                     disabled={saving || !canEdit}
-                    className="bg-[#f187b5] hover:bg-[#e076a5] text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-colors text-sm flex items-center gap-2"
+                    className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white font-semibold py-2 px-6 rounded-lg shadow-sm transition-colors text-sm flex items-center gap-2"
                 >
                     {saving ? 'Saving...' : 'Save Settings'}
                 </button>
@@ -148,7 +148,7 @@ export default function AdminBarcodeSettings() {
                                     value={settings.width}
                                     onChange={handleChange}
                                         disabled={!canEdit}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none transition-all"
                                 />
                                 <p className="text-xs text-neutral-400 mt-1">e.g. 38</p>
                             </div>
@@ -160,7 +160,7 @@ export default function AdminBarcodeSettings() {
                                     value={settings.height}
                                     onChange={handleChange}
                                         disabled={!canEdit}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none transition-all"
                                 />
                                 <p className="text-xs text-neutral-400 mt-1">e.g. 25</p>
                             </div>
@@ -182,7 +182,7 @@ export default function AdminBarcodeSettings() {
                                     value={settings.productNameSize}
                                     onChange={handleChange}
                                     disabled={!canEdit}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none transition-all"
                                 />
                             </div>
                              <div>
@@ -193,7 +193,7 @@ export default function AdminBarcodeSettings() {
                                     value={settings.fontSize}
                                     onChange={handleChange}
                                     disabled={!canEdit}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none transition-all"
                                 />
                             </div>
                             <div>
@@ -204,7 +204,7 @@ export default function AdminBarcodeSettings() {
                                     value={settings.barcodeHeight}
                                     onChange={handleChange}
                                     disabled={!canEdit}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none transition-all"
                                 />
                             </div>
                             <div>
@@ -215,7 +215,7 @@ export default function AdminBarcodeSettings() {
                                     value={settings.barcodeWidth}
                                     onChange={handleChange}
                                     disabled={!canEdit}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none transition-all"
                                 />
                             </div>
                         </div>
@@ -236,7 +236,7 @@ export default function AdminBarcodeSettings() {
                                         checked={settings.showName}
                                         onChange={handleChange}
                                         disabled={!canEdit}
-                                        className="w-5 h-5 text-[#f187b5] rounded focus:ring-[#f187b5] border-neutral-300"
+                                        className="w-5 h-5 text-[var(--primary-color)] rounded focus:ring-[var(--primary-color)] border-neutral-300"
                                     />
                                     <span className="text-neutral-700 font-medium">Show Product Name</span>
                                 </label>
@@ -247,7 +247,7 @@ export default function AdminBarcodeSettings() {
                                         checked={settings.showPrice}
                                         onChange={handleChange}
                                         disabled={!canEdit}
-                                        className="w-5 h-5 text-[#f187b5] rounded focus:ring-[#f187b5] border-neutral-300"
+                                        className="w-5 h-5 text-[var(--primary-color)] rounded focus:ring-[var(--primary-color)] border-neutral-300"
                                     />
                                     <span className="text-neutral-700 font-medium">Show Price (MRP/SP)</span>
                                 </label>
@@ -263,7 +263,7 @@ export default function AdminBarcodeSettings() {
                                         onChange={handleChange}
                                         disabled={!canEdit}
                                         placeholder="e.g. MRP"
-                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
+                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none transition-all"
                                     />
                                 </div>
                                 <div>
@@ -275,7 +275,7 @@ export default function AdminBarcodeSettings() {
                                         onChange={handleChange}
                                         disabled={!canEdit}
                                         placeholder="e.g. SP"
-                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] outline-none transition-all"
+                                        className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none transition-all"
                                     />
                                 </div>
                             </div>

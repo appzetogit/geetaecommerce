@@ -266,7 +266,7 @@ const SellerPOSCustomerOrders = () => {
     if (loading && !customer) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <FiLoader className="w-10 h-10 text-[#f187b5] animate-spin mb-4" />
+                <FiLoader className="w-10 h-10 text-[var(--primary-color)] animate-spin mb-4" />
                 <p className="text-gray-500 font-medium">Loading Customer Orders...</p>
             </div>
         );
@@ -300,7 +300,7 @@ const SellerPOSCustomerOrders = () => {
                     </button>
                     <button
                       onClick={() => fetchData(dateRange.start || undefined, dateRange.end || undefined)}
-                      className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] rounded-xl font-semibold hover:bg-[#f187b5]/20 transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-[var(--primary-color)]/10 text-[var(--primary-color)] rounded-xl font-semibold hover:bg-[var(--primary-color)]/20 transition-colors flex items-center gap-2"
                     >
                         <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -327,7 +327,7 @@ const SellerPOSCustomerOrders = () => {
                                     <button
                                         key={period}
                                         onClick={() => applyDateFilter(period)}
-                                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === period ? 'border-[#f187b5] bg-[#f187b5]/10 text-[#f187b5]' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
+                                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === period ? 'border-[var(--primary-color)] bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedPeriod === period ? 'bg-white' : 'bg-gray-100'}`}>
@@ -341,7 +341,7 @@ const SellerPOSCustomerOrders = () => {
 
                                 <button
                                     onClick={() => applyDateFilter("Custom Range")}
-                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === "Custom Range" ? 'border-[#f187b5] bg-[#f187b5]/10 text-[#f187b5]' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
+                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === "Custom Range" ? 'border-[var(--primary-color)] bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedPeriod === "Custom Range" ? 'bg-white' : 'bg-gray-100'}`}>
@@ -349,13 +349,13 @@ const SellerPOSCustomerOrders = () => {
                                         </div>
                                         <span className="font-medium">Custom Range</span>
                                     </div>
-                                    {selectedPeriod === "Custom Range" && <div className="w-2 h-2 rounded-full bg-[#f187b5]"></div>}
+                                    {selectedPeriod === "Custom Range" && <div className="w-2 h-2 rounded-full bg-[var(--primary-color)]"></div>}
                                 </button>
                             </div>
 
                             {selectedPeriod === "Custom Range" && (
                                 <div className="mt-4 pt-4 border-t border-gray-100 animate-in slide-in-from-top-2">
-                                     <h4 className="text-sm font-bold text-[#f187b5] mb-3 bg-[#f187b5]/10 px-3 py-1 rounded-md inline-block">Select Date Range</h4>
+                                     <h4 className="text-sm font-bold text-[var(--primary-color)] mb-3 bg-[var(--primary-color)]/10 px-3 py-1 rounded-md inline-block">Select Date Range</h4>
                                      <div className="flex gap-3 mb-4">
                                          <div className="flex-1">
                                              <label className="text-xs font-semibold text-gray-500 mb-1 block">Start Date</label>
@@ -363,7 +363,7 @@ const SellerPOSCustomerOrders = () => {
                                                 type="date"
                                                 value={customStart}
                                                 onChange={(e) => setCustomStart(e.target.value)}
-                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] outline-none bg-gray-50 focus:bg-white"
+                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none bg-gray-50 focus:bg-white"
                                              />
                                          </div>
                                          <div className="flex-1">
@@ -372,7 +372,7 @@ const SellerPOSCustomerOrders = () => {
                                                 type="date"
                                                 value={customEnd}
                                                 onChange={(e) => setCustomEnd(e.target.value)}
-                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] outline-none bg-gray-50 focus:bg-white"
+                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none bg-gray-50 focus:bg-white"
                                              />
                                          </div>
                                      </div>
@@ -385,7 +385,7 @@ const SellerPOSCustomerOrders = () => {
                                          </button>
                                          <button
                                             onClick={handleApplyCustomFilter}
-                                            className="flex-1 py-2.5 bg-[#f187b5] text-white font-semibold rounded-xl hover:bg-[#e076a5] transition-colors shadow-sm"
+                                            className="flex-1 py-2.5 bg-[var(--primary-color)] text-white font-semibold rounded-xl hover:bg-[var(--primary-dark)] transition-colors shadow-sm"
                                          >
                                             Apply Filter
                                          </button>
@@ -409,7 +409,7 @@ const SellerPOSCustomerOrders = () => {
                          <button
                           key={opt.id}
                           onClick={() => setFilter(opt.id)}
-                          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter === opt.id ? 'bg-[#f187b5] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                          className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter === opt.id ? 'bg-[var(--primary-color)] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                         >
                             {opt.label}
                         </button>
@@ -443,12 +443,12 @@ const SellerPOSCustomerOrders = () => {
                                         <td className="px-6 py-4 text-sm text-gray-600">{order.items?.length || 0} items</td>
                                         <td className="px-6 py-4 font-bold text-gray-900">₹{(order.total || order.grandTotal || 0).toLocaleString()}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentMethod === 'Cash' ? 'bg-[#f187b5]/10 text-[#f187b5]' : 'bg-blue-100 text-blue-700'}`}>
+                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentMethod === 'Cash' ? 'bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]'}`}>
                                                 {order.paymentMethod}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-[#f187b5]/10 text-[#f187b5]' : 'bg-red-100 text-red-700'}`}>
+                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'bg-red-100 text-red-700'}`}>
                                                 {order.paymentStatus || (order.paymentMethod === 'Cash' ? 'Paid' : 'Pending')}
                                             </span>
                                         </td>
@@ -458,7 +458,7 @@ const SellerPOSCustomerOrders = () => {
                                         <td className="px-6 py-4">
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setSelectedActionOrder(order); }}
-                                                className="bg-[#f187b5]/10 text-[#f187b5] p-2 rounded-lg hover:bg-[#f187b5]/20 transition-colors"
+                                                className="bg-[var(--primary-color)]/10 text-[var(--primary-color)] p-2 rounded-lg hover:bg-[var(--primary-color)]/20 transition-colors"
                                                 title="View Actions"
                                             >
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
@@ -494,7 +494,7 @@ const SellerPOSCustomerOrders = () => {
                                         setSelectedActionOrder(null);
                                     }}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-[#f187b5]/10 text-[#f187b5] flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <div className="w-10 h-10 rounded-full bg-[var(--primary-color)]/10 text-[var(--primary-color)] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
                                     </div>
                                     <div>
@@ -508,7 +508,7 @@ const SellerPOSCustomerOrders = () => {
                                     className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
                                     onClick={() => handleViewBill(selectedActionOrder)}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-[#f187b5]/10 text-[#f187b5] flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <div className="w-10 h-10 rounded-full bg-[var(--primary-color)]/10 text-[var(--primary-color)] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                     </div>
                                     <div>
@@ -525,7 +525,7 @@ const SellerPOSCustomerOrders = () => {
                                         setSelectedActionOrder(null);
                                     }}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <div className="w-10 h-10 rounded-full bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                     </div>
                                     <div>

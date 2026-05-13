@@ -235,7 +235,7 @@ const SellerPOSSupplierDetail = () => {
         doc.save(`${supplier.name.replace(/\s+/g, '_')}_Khata.pdf`);
     };
 
-    if (loading) return <div className="p-10 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f187b5] mx-auto mb-4"></div>Loading Ledger...</div>;
+    if (loading) return <div className="p-10 text-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary-color)] mx-auto mb-4"></div>Loading Ledger...</div>;
     if (!supplier) return <div className="p-10 text-center">Supplier not found</div>;
 
     const totalPurchased = transactions.filter(t => t.type === 'Purchase' || (t.type === 'Manual' && t.amount > 0)).reduce((sum, t) => sum + t.amount, 0);
@@ -255,7 +255,7 @@ const SellerPOSSupplierDetail = () => {
                             <div className="flex flex-wrap items-center gap-2 mt-1">
                                 <span className="text-sm text-gray-400 font-bold font-mono">{supplier.phone}</span>
                                 {supplier.gstNumber && (
-                                    <span className="text-[10px] bg-indigo-50 text-indigo-600 font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">GST: {supplier.gstNumber}</span>
+                                    <span className="text-[10px] bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">GST: {supplier.gstNumber}</span>
                                 )}
                             </div>
                         </div>
@@ -293,7 +293,7 @@ const SellerPOSSupplierDetail = () => {
                             </div>
                             <div>
                                 <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Total Paid</p>
-                                <p className="text-xl font-bold text-[#f187b5]">₹{totalPaid.toLocaleString()}</p>
+                                <p className="text-xl font-bold text-[var(--primary-color)]">₹{totalPaid.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
@@ -318,7 +318,7 @@ const SellerPOSSupplierDetail = () => {
                             transactions.map((t, idx) => (
                                 <div key={t._id || idx} className="p-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
                                     <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${t.amount < 0 ? 'bg-green-50 text-green-500' : 'bg-red-50 text-red-500'}`}>
+                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${t.amount < 0 ? 'bg-[var(--primary-alpha-10)] text-[var(--primary-color)]' : 'bg-red-50 text-red-500'}`}>
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 {t.amount < 0
                                                     ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -332,7 +332,7 @@ const SellerPOSSupplierDetail = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className={`text-base font-black ${t.amount < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                        <p className={`text-base font-black ${t.amount < 0 ? 'text-[var(--primary-color)]' : 'text-red-500'}`}>
                                             {t.amount < 0 ? '-' : '+'}₹{Math.abs(t.amount).toLocaleString()}
                                         </p>
                                         <p className="text-[10px] font-bold text-gray-300">Bal: ₹{t.balanceAfter.toLocaleString()}</p>
@@ -363,7 +363,7 @@ const SellerPOSSupplierDetail = () => {
                     </button>
                     <button
                         onClick={() => { resetForm(); setShowPayModal(true); }}
-                        className="flex-1 py-4 bg-[#f187b5] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-pink-100 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        className="flex-1 py-4 bg-[var(--primary-color)] text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-pink-100 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                         Pay Supplier
@@ -375,7 +375,7 @@ const SellerPOSSupplierDetail = () => {
             {(showPayModal || showDebtModal) && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white w-full max-w-sm rounded-t-[2.5rem] sm:rounded-3xl shadow-2xl overflow-hidden slide-in-from-bottom-5">
-                        <div className={`p-8 text-white text-center ${showPayModal ? 'bg-[#f187b5]' : 'bg-gray-900'}`}>
+                        <div className={`p-8 text-white text-center ${showPayModal ? 'bg-[var(--primary-color)]' : 'bg-gray-900'}`}>
                             <h3 className="text-2xl font-black">{showPayModal ? 'Pay Supplier' : 'Add Purchase Debt'}</h3>
                             <p className="text-white/60 text-[10px] font-bold uppercase mt-1 tracking-widest">
                                 {showPayModal ? 'Decrease balance you owe' : 'Increase balance you owe'}
@@ -384,7 +384,7 @@ const SellerPOSSupplierDetail = () => {
                         <form onSubmit={showPayModal ? handlePaySupplier : handleAddDebt} className="p-8 space-y-6">
                             <div className="relative">
                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Enter Amount</label>
-                                <div className="flex items-center border-b-2 border-gray-100 focus-within:border-[#f187b5] transition-colors pb-3">
+                                <div className="flex items-center border-b-2 border-gray-100 focus-within:border-[var(--primary-color)] transition-colors pb-3">
                                     <span className="text-4xl font-black text-gray-200 mr-2">₹</span>
                                     <input
                                         type="number" required min="1" autoFocus
@@ -400,7 +400,7 @@ const SellerPOSSupplierDetail = () => {
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Description / Bill No.</label>
                                     <input
                                         type="text" required
-                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#f187b5]/10 outline-none"
+                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[var(--primary-color)]/10 outline-none"
                                         placeholder={showPayModal ? "Cash payment / NEFT Ref" : "Bill #123 / Goods received"}
                                         value={note} onChange={e => setNote(e.target.value)}
                                     />
@@ -409,7 +409,7 @@ const SellerPOSSupplierDetail = () => {
                                     <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Transaction Date</label>
                                     <input
                                         type="date" required
-                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[#f187b5]/10 outline-none"
+                                        className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-[var(--primary-color)]/10 outline-none"
                                         value={date} onChange={e => setDate(e.target.value)}
                                     />
                                 </div>
@@ -420,7 +420,7 @@ const SellerPOSSupplierDetail = () => {
                                 <button
                                     type="submit"
                                     disabled={isActionLoading}
-                                    className={`flex-[2] py-4 rounded-2xl text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-lg transition-all active:scale-[0.98] ${showPayModal ? 'bg-[#f187b5] shadow-pink-100' : 'bg-gray-900 shadow-gray-200'}`}
+                                    className={`flex-[2] py-4 rounded-2xl text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-lg transition-all active:scale-[0.98] ${showPayModal ? 'bg-[var(--primary-color)] shadow-pink-100' : 'bg-gray-900 shadow-gray-200'}`}
                                 >
                                     {isActionLoading ? 'Processing...' : (showPayModal ? 'Save Payment' : 'Save Debt')}
                                 </button>

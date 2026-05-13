@@ -22,9 +22,9 @@ const formatDate = (dateString: string) => {
 const getStatusColor = (status: string) => {
   switch (status) {
     case 'Delivered':
-      return 'bg-green-100 text-green-700';
+      return 'bg-[var(--customer-primary-alpha-20)] text-[var(--customer-primary-dark)]';
     case 'On the way':
-      return 'bg-blue-100 text-blue-700';
+      return 'bg-[var(--customer-primary-alpha-20)] text-blue-700';
     case 'Accepted':
       return 'bg-yellow-100 text-yellow-700';
     case 'Placed':
@@ -197,7 +197,7 @@ export default function OrderAgain() {
 
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <div className="text-xs font-bold text-neutral-900">
-                        ₹{order.totalAmount.toFixed(0)}
+                        ₹{order.totalAmount.toFixed(2)}
                       </div>
                       <div className="text-[10px] text-neutral-500">
                         {order.totalItems} {order.totalItems === 1 ? 'item' : 'items'}
@@ -208,8 +208,8 @@ export default function OrderAgain() {
                           onClick={(e) => handleOrderAgain(order, e)}
                           disabled={addedOrders.has(order.id)}
                           className={`mt-1 text-[10px] font-semibold px-3 py-1 rounded-md transition-colors shadow-sm ${addedOrders.has(order.id)
-                            ? 'bg-orange-200 text-neutral-600 cursor-not-allowed'
-                            : 'bg-green-600 text-white hover:bg-green-700 cursor-pointer'
+                            ? 'bg-[var(--customer-primary-alpha-30)] text-neutral-600 cursor-not-allowed'
+                            : 'bg-[var(--customer-primary-dark)] text-white hover:bg-[var(--customer-primary-darker)] cursor-pointer'
                             }`}
                         >
                           {addedOrders.has(order.id) ? 'Added to Cart!' : 'Order Again'}
@@ -273,7 +273,7 @@ export default function OrderAgain() {
 
                       {/* Red Discount Badge - Top Left */}
                       {discount > 0 && (
-                        <div className="absolute top-1 left-1 z-10 bg-red-600 text-white text-[9px] font-bold px-1 py-0.5 rounded">
+                        <div className="absolute top-1 left-1 z-10 bg-[var(--customer-primary-dark)] text-white text-[9px] font-bold px-1 py-0.5 rounded">
                           {discount}% OFF
                         </div>
                       )}
@@ -322,7 +322,7 @@ export default function OrderAgain() {
                                   e.stopPropagation();
                                   updateQuantity(product.id, inCartQty - 1);
                                 }}
-                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
+                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-[var(--customer-primary-darker)] rounded transition-colors p-0 leading-none"
                                 style={{ lineHeight: 1, fontSize: '14px' }}
                               >
                                 <span className="relative top-[-1px]">−</span>
@@ -344,7 +344,7 @@ export default function OrderAgain() {
                                   e.stopPropagation();
                                   updateQuantity(product.id, inCartQty + 1);
                                 }}
-                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-green-700 rounded transition-colors p-0 leading-none"
+                                className="w-4 h-4 flex items-center justify-center text-white font-bold hover:bg-[var(--customer-primary-darker)] rounded transition-colors p-0 leading-none"
                                 style={{ lineHeight: 1, fontSize: '14px' }}
                               >
                                 <span className="relative top-[-1px]">+</span>
@@ -399,7 +399,7 @@ export default function OrderAgain() {
 
                     {/* Discount - Blue Text */}
                     {discount > 0 && (
-                      <div className="text-[9px] text-blue-600 font-semibold mb-0.5">
+                      <div className="text-[9px] text-[var(--customer-primary-dark)] font-semibold mb-0.5">
                         {discount}% OFF
                       </div>
                     )}
@@ -421,11 +421,11 @@ export default function OrderAgain() {
                     {/* Bottom Link */}
                     <div
                       onClick={() => navigate(`/category/${product.categoryId || 'all'}`)}
-                      className="w-full bg-orange-50 text-[#d35400] text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-orange-100 transition-colors mt-auto cursor-pointer"
+                      className="w-full bg-[var(--customer-primary-alpha-10)] text-[#d35400] text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-[var(--customer-primary-alpha-20)] transition-colors mt-auto cursor-pointer"
                     >
                       <span>See more like this</span>
                       <div className="flex items-center gap-0.5">
-                        <div className="w-px h-2 bg-orange-200"></div>
+                        <div className="w-px h-2 bg-[var(--customer-primary-alpha-30)]"></div>
                         <svg width="6" height="6" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M0 0L8 4L0 8Z" fill="#d35400" />
                         </svg>
@@ -463,7 +463,7 @@ export default function OrderAgain() {
                   {/* Geeta Stores text inside basket */}
                   <div className="relative z-10 text-center px-4">
                     <span className="text-2xl font-extrabold text-neutral-900 tracking-tight drop-shadow-sm">Geeta Stores</span>
-                    <span className="inline-block w-2.5 h-2.5 bg-green-500 rounded-full ml-1.5 shadow-sm"></span>
+                    <span className="inline-block w-2.5 h-2.5 bg-[var(--customer-primary)] rounded-full ml-1.5 shadow-sm"></span>
                   </div>
                 </div>
               </div>

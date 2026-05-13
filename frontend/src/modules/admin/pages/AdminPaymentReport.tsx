@@ -189,7 +189,7 @@ const AdminPaymentReport = () => {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setEditMode(!editMode)}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 active:scale-95 transition-all shadow-sm">
+                className="inline-flex items-center px-4 py-2 bg-[var(--primary-dark)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--primary-darker)] active:scale-95 transition-all shadow-sm">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
@@ -206,7 +206,7 @@ const AdminPaymentReport = () => {
 
               <button
                 onClick={downloadExcel}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm">
+                className="inline-flex items-center px-4 py-2 bg-[var(--primary-dark)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--primary-darker)] active:scale-95 transition-all shadow-sm">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -231,7 +231,7 @@ const AdminPaymentReport = () => {
                 onClick={() => handleDateFilterChange(type)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all ${
                   dateFilterType === type
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-[var(--primary-dark)] text-white shadow-sm'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}>
                 {type === 'last7days' ? 'Last 7 Days' : type === 'last30days' ? 'Last 30 Days' : type}
@@ -241,15 +241,15 @@ const AdminPaymentReport = () => {
               onClick={() => handleDateFilterChange('custom')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'custom'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-indigo-600 hover:bg-indigo-50'
+                  ? 'bg-[var(--primary-dark)] text-white shadow-sm'
+                  : 'text-[var(--primary-dark)] hover:bg-[var(--primary-alpha-10)]'
               }`}>
               Custom
             </button>
           </div>
 
           {showCustomDatePicker && (
-            <div className="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200 animate-in fade-in slide-in-from-top-2">
+            <div className="mt-4 p-4 bg-[var(--primary-alpha-10)] rounded-lg border border-indigo-200 animate-in fade-in slide-in-from-top-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wider">Start Date</label>
@@ -286,14 +286,14 @@ const AdminPaymentReport = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by Order ID, Transaction ID, or Customer name..."
-                className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all shadow-sm"
+                className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-indigo-200 outline-none transition-all shadow-sm"
               />
             </div>
             <div>
               <select
                 value={pagination.limit}
                 onChange={(e) => setPagination(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }))}
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
               >
                 {[10, 20, 50, 100, 500].map(val => (
                   <option key={val} value={val}>Show {val} records</option>
@@ -309,8 +309,8 @@ const AdminPaymentReport = () => {
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all group">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Transactions</p>
-              <div className="p-2 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors">
-                <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 bg-[var(--primary-alpha-10)] rounded-lg group-hover:bg-[var(--primary-alpha-20)] transition-colors">
+                <svg className="w-5 h-5 text-[var(--primary-dark)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -321,37 +321,37 @@ const AdminPaymentReport = () => {
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all group">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Page Rev</p>
-              <div className="p-2 bg-green-50 rounded-lg group-hover:bg-green-100 transition-colors">
-                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 bg-[var(--primary-alpha-10)] rounded-lg group-hover:bg-[var(--primary-alpha-20)] transition-colors">
+                <svg className="w-5 h-5 text-[var(--primary-dark)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-black text-green-600">₹{totalAmount.toLocaleString()}</p>
+            <p className="text-3xl font-black text-[var(--primary-dark)]">₹{totalAmount.toLocaleString()}</p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all group">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">POS Payments</p>
-              <div className="p-2 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 bg-[var(--primary-alpha-10)] rounded-lg group-hover:bg-[var(--primary-alpha-20)] transition-colors">
+                <svg className="w-5 h-5 text-[var(--primary-dark)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-black text-blue-600">₹{totalPOS.toLocaleString()}</p>
+            <p className="text-3xl font-black text-[var(--primary-dark)]">₹{totalPOS.toLocaleString()}</p>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all group">
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Online Payments</p>
-              <div className="p-2 bg-purple-50 rounded-lg group-hover:bg-purple-100 transition-colors">
-                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-2 bg-[var(--primary-alpha-10)] rounded-lg group-hover:bg-[var(--primary-alpha-20)] transition-colors">
+                <svg className="w-5 h-5 text-[var(--primary-dark)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                 </svg>
               </div>
             </div>
-            <p className="text-3xl font-black text-purple-600">₹{totalOnline.toLocaleString()}</p>
+            <p className="text-3xl font-black text-[var(--primary-dark)]">₹{totalOnline.toLocaleString()}</p>
           </div>
         </div>
 
@@ -365,7 +365,7 @@ const AdminPaymentReport = () => {
                       type="checkbox"
                       checked={selectedRows.size === data.length && data.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                      className="w-4 h-4 text-[var(--primary-dark)] rounded border-gray-300 focus:ring-[var(--primary-color)]"
                     />
                   </th>
                   <th className="px-5 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Date</th>
@@ -399,20 +399,20 @@ const AdminPaymentReport = () => {
                           type="checkbox"
                           checked={selectedRows.has(item._id)}
                           onChange={() => handleSelectRow(item._id)}
-                          className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                          className="w-4 h-4 text-[var(--primary-dark)] rounded border-gray-300 focus:ring-[var(--primary-color)]"
                         />
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap text-gray-900 font-medium">{item.date}</td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded">{item.paymentId}</span>
                       </td>
-                      <td className="px-5 py-4 whitespace-nowrap font-semibold text-indigo-600">{item.orderNumber}</td>
+                      <td className="px-5 py-4 whitespace-nowrap font-semibold text-[var(--primary-dark)]">{item.orderNumber}</td>
                       <td className="px-5 py-4 whitespace-nowrap text-gray-900 font-medium">{item.customerName}</td>
                       <td className="px-5 py-4 whitespace-nowrap font-bold text-gray-900">₹{item.amount.toLocaleString()}</td>
                       <td className="px-5 py-4 whitespace-nowrap text-gray-600">{item.paymentMethod}</td>
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          item.status === 'Paid' ? 'bg-green-100 text-green-700' :
+                          item.status === 'Paid' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' :
                           item.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
                           item.status === 'Failed' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
                         }`}>
@@ -420,7 +420,7 @@ const AdminPaymentReport = () => {
                         </span>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap uppercase tracking-widest text-[10px] font-black">
-                        <span className={`px-2 py-1 rounded ${item.type === 'POS' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
+                        <span className={`px-2 py-1 rounded ${item.type === 'POS' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' : 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]'}`}>
                           {item.type}
                         </span>
                       </td>

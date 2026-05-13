@@ -32,11 +32,11 @@ export default function DeliveryOrders() {
       case 'Ready for pickup':
         return 'bg-yellow-100 text-yellow-700';
       case 'Picked up':
-        return 'bg-indigo-100 text-indigo-700';
+        return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]';
       case 'Out for delivery':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]';
       case 'Delivered':
-        return 'bg-green-100 text-green-700';
+        return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]';
       case 'Cancelled':
         return 'bg-red-100 text-red-700';
       default:

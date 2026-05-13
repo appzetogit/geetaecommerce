@@ -55,7 +55,7 @@ export default function CategoryListView({
                   type="checkbox"
                   checked={allSelected}
                   onChange={onSelectAll}
-                  className="rounded border-neutral-300 text-[#f187b5] focus:ring-[#f187b5]"
+                  className="rounded border-neutral-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"
                   ref={(input) => {
                     if (input) {
                       input.indeterminate = someSelected;
@@ -91,14 +91,14 @@ export default function CategoryListView({
               <tr
                 key={category._id}
                 className={`hover:bg-neutral-50 ${
-                  selectedIds.has(category._id) ? "bg-[#f187b5]/10" : ""
+                  selectedIds.has(category._id) ? "bg-[var(--primary-color)]/10" : ""
                 }`}>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <input
                     type="checkbox"
                     checked={selectedIds.has(category._id)}
                     onChange={() => onSelect(category._id)}
-                    className="rounded border-neutral-300 text-[#f187b5] focus:ring-[#f187b5]"
+                    className="rounded border-neutral-300 text-[var(--primary-color)] focus:ring-[var(--primary-color)]"
                   />
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">
@@ -130,7 +130,7 @@ export default function CategoryListView({
                     onClick={() => onCategoryClick(category)}
                     className={`text-sm font-medium text-neutral-900 transition-colors flex items-center gap-2 ${
                        (category.childrenCount || 0) > 0
-                         ? "cursor-pointer hover:text-[#f187b5]"
+                         ? "cursor-pointer hover:text-[var(--primary-color)]"
                          : ""
                     }`}
                   >
@@ -159,7 +159,7 @@ export default function CategoryListView({
                       typeof category.headerCategory === "string" ? (
                         category.headerCategory
                       ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]">
                           {category.headerCategory.name}
                         </span>
                       )
@@ -180,7 +180,7 @@ export default function CategoryListView({
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       category.status === "Active"
-                        ? "bg-green-100 text-green-800"
+                        ? "bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]"
                         : "bg-red-100 text-red-800"
                     }`}>
                     {category.status}
@@ -193,7 +193,7 @@ export default function CategoryListView({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onEdit(category)}
-                      className="text-[#f187b5] hover:text-[#e076a5]"
+                      className="text-[var(--primary-color)] hover:text-[var(--primary-dark)]"
                       title="Edit">
                       <svg
                         width="16"
@@ -260,7 +260,7 @@ export default function CategoryListView({
                       onClick={() => onPageChange(page)}
                       className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                         currentPage === page
-                          ? "bg-[#f187b5] text-white"
+                          ? "bg-[var(--primary-color)] text-white"
                           : "bg-white text-neutral-700 border border-neutral-300 hover:bg-neutral-50"
                       }`}>
                       {page}

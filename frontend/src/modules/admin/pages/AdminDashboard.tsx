@@ -405,7 +405,7 @@ export default function AdminDashboard() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[#f187b5] mb-4"></div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)] mb-4"></div>
           <p className="text-neutral-600">Loading dashboard data...</p>
         </div>
       </div>
@@ -438,7 +438,7 @@ export default function AdminDashboard() {
           <p className="text-neutral-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-[#f187b5] hover:bg-[#e076a5] text-white px-4 py-2 rounded-lg transition-colors">
+            className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white px-4 py-2 rounded-lg transition-colors">
             Retry
           </button>
         </div>
@@ -483,14 +483,14 @@ export default function AdminDashboard() {
                 value={sharingText}
                 onChange={(e) => setSharingText(e.target.value)}
                 rows={6}
-                className="w-full bg-neutral-50 border border-neutral-100 rounded-3xl p-5 text-sm text-neutral-700 leading-relaxed outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all resize-none shadow-inner"
+                className="w-full bg-neutral-50 border border-neutral-100 rounded-3xl p-5 text-sm text-neutral-700 leading-relaxed outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all resize-none shadow-inner"
               />
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(sharingText);
                   alert('Copied to clipboard!');
                 }}
-                className="absolute right-4 top-4 p-2 bg-white rounded-xl shadow-sm border border-neutral-100 text-neutral-400 hover:text-[#f187b5] transition-colors"
+                className="absolute right-4 top-4 p-2 bg-white rounded-xl shadow-sm border border-neutral-100 text-neutral-400 hover:text-[var(--primary-color)] transition-colors"
                 title="Copy to clipboard"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -514,7 +514,7 @@ export default function AdminDashboard() {
                 }
                 setShowShareModal(false);
               }}
-              className="w-full bg-[#f187b5] hover:bg-[#e076a5] text-white py-4 rounded-3xl font-bold text-lg shadow-lg shadow-[#f187b5]/20 transition-all active:scale-[0.98]"
+              className="w-full bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white py-4 rounded-3xl font-bold text-lg shadow-lg shadow-[var(--primary-color)]/20 transition-all active:scale-[0.98]"
             >
               Share Now
             </button>
@@ -528,7 +528,7 @@ export default function AdminDashboard() {
           icon={userIcon}
           title="Total User"
           value={stats.totalUser}
-          accentColor="#f187b5"
+          accentColor="var(--primary-color)"
         />
         <DashboardCard
           icon={categoryIcon}
@@ -540,7 +540,7 @@ export default function AdminDashboard() {
           icon={subcategoryIcon}
           title="Total Subcategory"
           value={stats.totalSubcategory ?? 0}
-          accentColor="#ec4899"
+          accentColor="var(--primary-color)"
         />
         <DashboardCard
           icon={productIcon}
@@ -552,7 +552,7 @@ export default function AdminDashboard() {
           icon={ordersIcon}
           title="Total Orders"
           value={stats.totalOrders}
-          accentColor="#f187b5"
+          accentColor="var(--primary-color)"
         />
         <DashboardCard
           icon={completedOrdersIcon}
@@ -576,7 +576,7 @@ export default function AdminDashboard() {
           icon={soldOutIcon}
           title="Product Sold Out"
           value={stats.soldOutProducts}
-          accentColor="#ec4899"
+          accentColor="var(--primary-color)"
         />
         <DashboardCard
           icon={lowStockIcon}
@@ -588,7 +588,7 @@ export default function AdminDashboard() {
           icon={abandonedCartIcon}
           title="Abandoned Carts"
           value={JSON.parse(localStorage.getItem('abandoned_carts') || '[]').length || 3}
-          accentColor="#f187b5"
+          accentColor="var(--primary-color)"
         />
       </div>
 
@@ -601,19 +601,19 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center">
-            <div className="flex-1 bg-white border border-neutral-200 rounded-full px-5 py-3 flex items-center justify-between shadow-sm focus-within:ring-2 focus-within:ring-[#f187b5]/20 focus-within:border-[#f187b5] transition-all">
+            <div className="flex-1 bg-white border border-neutral-200 rounded-full px-5 py-3 flex items-center justify-between shadow-sm focus-within:ring-2 focus-within:ring-[var(--primary-color)]/20 focus-within:border-[var(--primary-color)] transition-all">
               <input
                 type="text"
                 value={storeLink}
                 onChange={(e) => setStoreLink(e.target.value)}
-                className="flex-1 text-[#f187b5] font-medium outline-none bg-transparent mr-2 min-w-0"
+                className="flex-1 text-[var(--primary-color)] font-medium outline-none bg-transparent mr-2 min-w-0"
               />
               <button
                 onClick={() => {
                   setSharingText(getSharingText(storeLink));
                   setShowShareModal(true);
                 }}
-                className="p-2 rounded-full border border-[#f187b5] text-[#f187b5] hover:bg-[#f187b5]/5 transition-colors flex-shrink-0"
+                className="p-2 rounded-full border border-[var(--primary-color)] text-[var(--primary-color)] hover:bg-[var(--primary-color)]/5 transition-colors flex-shrink-0"
                 aria-label="Share"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -633,7 +633,7 @@ export default function AdminDashboard() {
                 <span className="font-bold">www.geeta.com</span> URL is available
               </p>
             </div>
-            <button className="px-6 py-2 rounded-full border-2 border-[#f187b5] text-[#f187b5] text-sm font-bold hover:bg-[#f187b5]/5 transition-colors whitespace-nowrap">
+            <button className="px-6 py-2 rounded-full border-2 border-[var(--primary-color)] text-[var(--primary-color)] text-sm font-bold hover:bg-[var(--primary-color)]/5 transition-colors whitespace-nowrap">
               Connect domain
             </button>
           </div>
@@ -652,7 +652,7 @@ export default function AdminDashboard() {
               ₹{salesToday.toFixed(2)}
             </p>
             {salesDifference >= 0 ? (
-              <p className="text-sm text-[#f187b5] mt-1">
+              <p className="text-sm text-[var(--primary-color)] mt-1">
                 ▲ ₹{Math.abs(salesDifference).toFixed(2)} (+{salesPercentChange}%)
                 vs same day last week
               </p>
@@ -737,7 +737,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 gap-4 sm:gap-6">
         {/* View New Orders Table */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-[#f187b5] text-white px-4 sm:px-6 py-3">
+          <div className="bg-[var(--primary-color)] text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">
               View New Orders
             </h2>
@@ -754,7 +754,7 @@ export default function AdminDashboard() {
                   setEntriesPerPage(Math.max(1, Math.min(100, value)));
                   setCurrentPage(1);
                 }}
-                className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[#f187b5] focus:border-[#f187b5]"
+                className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                 min="1"
                 max="100"
               />
@@ -881,7 +881,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <button
-                          className="bg-[#f187b5] hover:bg-[#e076a5] text-white p-2 rounded transition-colors"
+                          className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white p-2 rounded transition-colors"
                           aria-label="View order">
                           <svg
                             width="16"
@@ -980,7 +980,7 @@ export default function AdminDashboard() {
 
         {/* View Top Seller Table */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-[#f187b5] text-white px-4 sm:px-6 py-3">
+          <div className="bg-[var(--primary-color)] text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">
               View Top Seller
             </h2>
@@ -997,7 +997,7 @@ export default function AdminDashboard() {
                   setEntriesPerPage(Math.max(1, Math.min(100, value)));
                   setCurrentPage(1);
                 }}
-                className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[#f187b5] focus:border-[#f187b5]"
+                className="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                 min="1"
                 max="100"
               />
@@ -1084,7 +1084,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <button
-                          className="bg-[#f187b5] hover:bg-[#e076a5] text-white p-2 rounded transition-colors"
+                          className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white p-2 rounded transition-colors"
                           aria-label="View seller">
                           <svg
                             width="16"
@@ -1188,7 +1188,7 @@ export default function AdminDashboard() {
       {/* Footer */}
       <div className="text-center text-sm text-neutral-500 py-4">
         Copyright © 2025. Developed By{" "}
-        <a href="#" className="text-[#f187b5] hover:text-[#e076a5]">
+        <a href="#" className="text-[var(--primary-color)] hover:text-[var(--primary-dark)]">
           Geeta Stores - 10 Minute App
         </a>
       </div>

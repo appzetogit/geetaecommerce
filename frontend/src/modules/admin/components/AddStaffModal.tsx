@@ -61,7 +61,7 @@ const AddStaffModal: React.FC<AddStaffModalProps> = ({ isOpen, onClose, onSave, 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="relative p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-[#f187b5]/5 to-transparent">
+        <div className="relative p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-[var(--primary-color)]/5 to-transparent">
           <div>
             <h2 className="text-xl font-bold text-gray-800">{staff ? 'Edit Staff Member' : 'Add New Staff'}</h2>
             <p className="text-xs text-gray-500 mt-0.5">Fill in the details for the staff account</p>
@@ -86,7 +86,7 @@ const AddStaffModal: React.FC<AddStaffModalProps> = ({ isOpen, onClose, onSave, 
                 placeholder="Ex. Alaxendra"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
               />
             </div>
           </div>
@@ -108,7 +108,7 @@ const AddStaffModal: React.FC<AddStaffModalProps> = ({ isOpen, onClose, onSave, 
                     setFormData({ ...formData, phone: val });
                   }
                 }}
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
               />
             </div>
           </div>
@@ -122,7 +122,7 @@ const AddStaffModal: React.FC<AddStaffModalProps> = ({ isOpen, onClose, onSave, 
               <select
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all appearance-none"
+                className="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all appearance-none"
               >
                 {roles.map(role => (
                   <option key={role} value={role}>{role.replace(/_/g, ' ')}</option>
@@ -146,7 +146,7 @@ const AddStaffModal: React.FC<AddStaffModalProps> = ({ isOpen, onClose, onSave, 
                 placeholder="Ex. 5"
                 value={formData.commission}
                 onChange={(e) => setFormData({ ...formData, commission: e.target.value })}
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
               />
             </div>
           </div>
@@ -161,7 +161,7 @@ const AddStaffModal: React.FC<AddStaffModalProps> = ({ isOpen, onClose, onSave, 
             </button>
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-[#f187b5] text-white font-semibold rounded-2xl hover:bg-[#db76a3] transition-all shadow-lg active:scale-95"
+              className="flex-1 px-6 py-3 bg-[var(--primary-color)] text-white font-semibold rounded-2xl hover:bg-[var(--primary-color)] transition-all shadow-lg active:scale-95"
             >
               {staff ? 'Update Staff' : 'Save Staff'}
             </button>

@@ -31,13 +31,20 @@ export default function FlashDealSection() {
 
             // 1. Try to fetch from specific IDs if configured
             if (data.flashDealProductIds && data.flashDealProductIds.length > 0) {
-                const promises = data.flashDealProductIds.slice(0, 10).map(id => getProductById(id));
+                const promises = data.flashDealProductIds.slice(0, 10).map(async (id) => {
+                    try {
+                        return await getProductById(id);
+                    } catch (error) {
+                        console.warn(`[FlashDeal] Product ID ${id} not found or error occurred:`, error);
+                        return null;
+                    }
+                });
                 const results = await Promise.all(promises);
                 fetchedProducts = results
-                    .filter(res => res.success && res.data)
+                    .filter(res => res && res.success && res.data)
                     .map(res => ({
-                        ...res.data,
-                        id: (res.data as any)._id || (res.data as any).id
+                        ...res!.data,
+                        id: (res!.data as any)._id || (res!.data as any).id
                     }));
             }
 

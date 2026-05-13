@@ -204,7 +204,7 @@ export default function AdminSellerTransaction() {
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-        <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#f187b5' }}>
+        <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: 'var(--primary-color)' }}>
           <h2 className="text-lg font-bold text-white">Seller Transactions</h2>
           <button
             onClick={handleAddFundTransfer}
@@ -297,7 +297,7 @@ export default function AdminSellerTransaction() {
               <button
                 onClick={handleExport}
                 className="px-4 py-2 text-white rounded hover:opacity-90 transition-opacity text-sm font-medium flex items-center gap-2"
-                style={{ background: '#f187b5' }}
+                style={{ background: 'var(--primary-color)' }}
               >
                 <svg
                   width="16"
@@ -385,7 +385,7 @@ export default function AdminSellerTransaction() {
                 <tr>
                    <td colSpan={10} className="px-4 py-10 text-center text-neutral-500">
                       <div className="flex flex-col items-center gap-2">
-                         <div className="w-8 h-8 border-4 border-[#f187b5] border-t-transparent rounded-full animate-spin"></div>
+                         <div className="w-8 h-8 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin"></div>
                          <span>Loading transactions...</span>
                       </div>
                    </td>
@@ -401,7 +401,7 @@ export default function AdminSellerTransaction() {
                   <tr key={transaction.id} className="hover:bg-neutral-50 transition-colors">
                     <td className="px-4 py-3 text-xs font-mono text-neutral-500">#{transaction.id.slice(-6)}</td>
                     <td className="px-4 py-3 text-xs font-semibold text-neutral-900">{transaction.sellerName}</td>
-                    <td className="px-4 py-3 text-xs font-bold text-[#f187b5]">{transaction.orderId}</td>
+                    <td className="px-4 py-3 text-xs font-bold text-[var(--primary-color)]">{transaction.orderId}</td>
                     <td className="px-4 py-3 text-xs text-neutral-800">
                        <div className="truncate max-w-[150px]" title={transaction.productName}>
                           {transaction.productName}
@@ -410,14 +410,14 @@ export default function AdminSellerTransaction() {
                     <td className="px-4 py-3 text-[10px] text-neutral-500">{transaction.variation}</td>
                     <td className="px-4 py-3">
                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          transaction.flag === 'Paid' ? 'bg-green-100 text-green-700' :
+                          transaction.flag === 'Paid' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' :
                           transaction.flag === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                          transaction.flag === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                          transaction.flag === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]'
                        }`}>
                           {transaction.flag}
                        </span>
                     </td>
-                    <td className="px-4 py-3 text-xs font-bold text-green-600">₹{transaction.amount.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-xs font-bold text-[var(--primary-dark)]">₹{transaction.amount.toFixed(2)}</td>
                     <td className="px-4 py-3 text-xs text-neutral-600 italic truncate max-w-[200px]" title={transaction.remark}>
                        {transaction.remark}
                     </td>
@@ -441,7 +441,7 @@ export default function AdminSellerTransaction() {
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1 || loading}
               className={`px-3 py-1 border border-neutral-200 rounded text-xs font-bold transition-all ${
-                currentPage === 1 ? 'text-neutral-300' : 'text-neutral-700 hover:bg-neutral-50 hover:border-[#f187b5]'
+                currentPage === 1 ? 'text-neutral-300' : 'text-neutral-700 hover:bg-neutral-50 hover:border-[var(--primary-color)]'
               }`}
             >
               PREVIOUS
@@ -454,7 +454,7 @@ export default function AdminSellerTransaction() {
                         key={pageNum}
                         onClick={() => setCurrentPage(pageNum)}
                         className={`w-8 h-8 rounded text-xs font-bold transition-all ${
-                           currentPage === pageNum ? 'bg-[#f187b5] text-white shadow-md' : 'text-neutral-600 hover:bg-neutral-50'
+                           currentPage === pageNum ? 'bg-[var(--primary-color)] text-white shadow-md' : 'text-neutral-600 hover:bg-neutral-50'
                         }`}
                      >
                         {pageNum}
@@ -467,7 +467,7 @@ export default function AdminSellerTransaction() {
               onClick={() => setCurrentPage(p => p + 1)}
               disabled={currentPage >= Math.ceil(totalEntries / parseInt(perPage)) || loading}
               className={`px-3 py-1 border border-neutral-200 rounded text-xs font-bold transition-all ${
-                currentPage >= Math.ceil(totalEntries / parseInt(perPage)) ? 'text-neutral-300' : 'text-neutral-700 hover:bg-neutral-50 hover:border-[#f187b5]'
+                currentPage >= Math.ceil(totalEntries / parseInt(perPage)) ? 'text-neutral-300' : 'text-neutral-700 hover:bg-neutral-50 hover:border-[var(--primary-color)]'
               }`}
             >
               NEXT
@@ -480,7 +480,7 @@ export default function AdminSellerTransaction() {
       {showAddFundModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden border border-neutral-200 transition-all scale-100">
-            <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: '#f187b5' }}>
+            <div className="p-4 border-b border-neutral-200 flex items-center justify-between" style={{ background: 'var(--primary-color)' }}>
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -511,7 +511,7 @@ export default function AdminSellerTransaction() {
                   onChange={(e) => setFundTransferData({...fundTransferData, sellerId: e.target.value})}
                   required
                   disabled={submitting}
-                  className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] transition-all"
+                  className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] transition-all"
                 >
                   <option value="">Select Seller</option>
                   {sellers.map(s => (
@@ -533,7 +533,7 @@ export default function AdminSellerTransaction() {
                     disabled={submitting}
                     min="0"
                     step="0.01"
-                    className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] transition-all font-mono"
+                    className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] transition-all font-mono"
                     placeholder="0.00"
                   />
                 </div>
@@ -545,7 +545,7 @@ export default function AdminSellerTransaction() {
                   <select
                     value={fundTransferData.type}
                     onChange={(e) => setFundTransferData({...fundTransferData, type: e.target.value})}
-                    className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] transition-all"
+                    className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] transition-all"
                     disabled={submitting}
                   >
                     <option value="Credit">Credit (+)</option>
@@ -563,7 +563,7 @@ export default function AdminSellerTransaction() {
                   onChange={(e) => setFundTransferData({...fundTransferData, message: e.target.value})}
                   rows={3}
                   disabled={submitting}
-                  className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm resize-none focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] transition-all"
+                  className="w-full px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-lg outline-none text-sm resize-none focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] transition-all"
                   placeholder="Reason for manual adjustment..."
                 />
               </div>
@@ -581,7 +581,7 @@ export default function AdminSellerTransaction() {
                   type="submit"
                   disabled={submitting}
                   className="px-6 py-2 text-white text-sm font-bold rounded-lg transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center gap-2"
-                  style={{ background: '#f187b5' }}
+                  style={{ background: 'var(--primary-color)' }}
                 >
                   {submitting ? (
                      <>

@@ -192,11 +192,18 @@ const AdminPOSReport = () => {
         fetchData(start, end);
     };
 
-    const handleDeleteOrder = async (orderId: string) => {
+    const handleDeleteOrder = async (order: any) => {
+        // Restriction: Cannot delete orders with customer names
+        const isWalkIn = !order.customerName || order.customerName.toLowerCase() === "walk-in customer";
+        if (!isWalkIn) {
+            showToast("Orders with customer names cannot be deleted.", "error");
+            return;
+        }
+
         if (window.confirm("Are you sure you want to delete this POS order? This will restore the stock.")) {
             try {
                 setLoading(true);
-                const response = await deletePOSOrder(orderId);
+                const response = await deletePOSOrder(order._id);
                 if (response.success) {
                     showToast("Order deleted and stock restored", "success");
                     fetchData(dateRange.start || undefined, dateRange.end || undefined);
@@ -231,6 +238,16 @@ const AdminPOSReport = () => {
 
     const handleDeleteSelectedOrders = async () => {
         if (selectedOrderIds.size === 0) return;
+
+        // Check if any selected order is NOT deletable (has a customer name)
+        const selectedOrdersList = reportData?.orders?.filter((o: any) => selectedOrderIds.has(o._id)) || [];
+        const hasNamedOrders = selectedOrdersList.some((o: any) => o.customerName && o.customerName.toLowerCase() !== "walk-in customer");
+
+        if (hasNamedOrders) {
+            showToast("Cannot delete orders that have customer names assigned. Please deselect them first.", "error");
+            return;
+        }
+
         const ok = window.confirm(`Delete ${selectedOrderIds.size} selected item(s)?`);
         if (!ok) return;
 
@@ -671,14 +688,14 @@ const AdminPOSReport = () => {
                     title="Today's Sales"
                     value={`₹${reportData?.summary.totalSales.toLocaleString()}`}
                     icon={<FiTrendingUp className="w-6 h-6" />}
-                    color="bg-blue-500"
+                    color="bg-[var(--primary-color)]"
                     desc="Total POS revenue today"
                 />
                 <ReportCard
                     title="Cash Sales"
                     value={`₹${reportData?.summary.cashSales.toLocaleString()}`}
                     icon={<FiDollarSign className="w-6 h-6" />}
-                    color="bg-green-500"
+                    color="bg-[var(--primary-color)]"
                     desc="Physical cash collected"
                 />
                 <ReportCard
@@ -692,7 +709,7 @@ const AdminPOSReport = () => {
                     title="Orders Count"
                     value={reportData?.summary.totalOrders || 0}
                     icon={<FiShoppingBag className="w-6 h-6" />}
-                    color="bg-purple-500"
+                    color="bg-[var(--primary-color)]"
                     desc="Total tickets generated"
                 />
             </div>
@@ -806,12 +823,12 @@ const AdminPOSReport = () => {
                                                  </td>
                                                 <td className="px-6 py-4 font-bold text-gray-900">₹{order.total.toLocaleString()}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentMethod === 'Cash' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentMethod === 'Cash' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' : 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]'}`}>
                                                         {order.paymentMethod}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-700'}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' : 'bg-red-100 text-red-700'}`}>
                                                         {order.paymentStatus}
                                                     </span>
                                                 </td>
@@ -819,18 +836,22 @@ const AdminPOSReport = () => {
                                                     {new Date(order.orderDate || order.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                                  </td>
                                                  <td className="px-6 py-4">
-                                                     <button
-                                                         onClick={(e) => { e.stopPropagation(); handleDeleteOrder(order._id); }}
-                                                         className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                                                         title="Delete Order"
-                                                     >
-                                                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                                                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                                                        </svg>
-                                                    </button>
+                                                      {(!order.customerName || order.customerName.toLowerCase() === "walk-in customer") ? (
+                                                          <button
+                                                              onClick={(e) => { e.stopPropagation(); handleDeleteOrder(order); }}
+                                                              className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                                              title="Delete Order"
+                                                          >
+                                                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                  <polyline points="3 6 5 6 21 6"></polyline>
+                                                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                              </svg>
+                                                          </button>
+                                                      ) : (
+                                                          <div className="w-[26px] h-[26px]" /> // Spacer to maintain alignment
+                                                      )}
                                                 </td>
                                             </tr>
                                         ))
@@ -874,7 +895,7 @@ const AdminPOSReport = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${entry.type === 'IN' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${entry.type === 'IN' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' : 'bg-red-100 text-red-700'}`}>
                                                         {entry.type}
                                                     </span>
                                                 </td>
@@ -883,7 +904,7 @@ const AdminPOSReport = () => {
                                                     <div className="flex items-center gap-2 text-xs">
                                                         <span className="text-gray-400">{entry.previousStock}</span>
                                                         <span className="text-gray-300">→</span>
-                                                        <span className="font-bold text-teal-600">{entry.newStock}</span>
+                                                        <span className="font-bold text-[var(--primary-dark)]">{entry.newStock}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -900,7 +921,7 @@ const AdminPOSReport = () => {
                                                             e.stopPropagation();
                                                             setEditingLedgerEntry({ ...entry, updateStock: false });
                                                         }}
-                                                        className="text-blue-500 hover:text-blue-700 p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        className="text-[var(--primary-color)] hover:text-[var(--primary-darker)] p-1.5 hover:bg-[var(--primary-alpha-10)] rounded-lg transition-colors"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                                     </button>
@@ -954,7 +975,7 @@ const AdminPOSReport = () => {
                                         className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
                                          onClick={() => handleViewBill(selectedActionOrder)}
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <div className="w-10 h-10 rounded-full bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] flex items-center justify-center group-hover:scale-110 transition-transform">
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                         </div>
                                         <div>
@@ -985,7 +1006,7 @@ const AdminPOSReport = () => {
                                             setSelectedActionOrder(null);
                                         }}
                                     >
-                                    <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <div className="w-10 h-10 rounded-full bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                     </div>
                                     <div>
@@ -999,24 +1020,26 @@ const AdminPOSReport = () => {
 
                                 <div className="border-t border-gray-100 my-1"></div>
 
-                                <button
-                                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
-                                     onClick={() => {
-                                         if (window.confirm("Delete this order?")) {
-                                             handleDeleteOrder(selectedActionOrder._id);
-                                             setSelectedActionOrder(null);
-                                         }
-                                    }}
-                                >
-                                    <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </div>
-                                    <div>
-                                        <div className="font-semibold text-gray-700">Delete Order</div>
-                                        <div className="text-xs text-gray-400">Permanently remove order</div>
-                                    </div>
-                                    <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                                </button>
+                                 {(!selectedActionOrder.customerName || selectedActionOrder.customerName.toLowerCase() === "walk-in customer") && (
+                                     <button
+                                         className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
+                                          onClick={() => {
+                                              if (window.confirm("Delete this order?")) {
+                                                  handleDeleteOrder(selectedActionOrder);
+                                                  setSelectedActionOrder(null);
+                                              }
+                                         }}
+                                     >
+                                         <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/></svg>
+                                         </div>
+                                         <div>
+                                             <div className="font-semibold text-gray-700">Delete Order</div>
+                                             <div className="text-xs text-gray-400">Permanently remove order</div>
+                                         </div>
+                                         <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                     </button>
+                                 )}
                             </div>
                         </div>
                     </div>
@@ -1253,9 +1276,9 @@ const AdminPOSReport = () => {
                                     <div key={idx} className="grid grid-cols-12 gap-1 text-[15px] leading-tight font-bold">
                                         <div className="col-span-5 font-bold">({idx + 1}) {itemName}</div>
                                         <div className="col-span-2 text-center font-bold">{qty}</div>
-                                        <div className="col-span-2 text-right font-bold">{mrp > 0 ? mrp.toFixed(0) : '-'}</div>
-                                        <div className="col-span-1 text-right font-bold">{sp.toFixed(0)}</div>
-                                        <div className="col-span-2 text-right font-black">{total.toFixed(0)}</div>
+                                        <div className="col-span-2 text-right font-bold">{mrp > 0 ? mrp.toFixed(2) : '-'}</div>
+                                        <div className="col-span-1 text-right font-bold">{sp.toFixed(2)}</div>
+                                        <div className="col-span-2 text-right font-black">{total.toFixed(2)}</div>
                                     </div>
                                 )
                             })}
@@ -1283,13 +1306,13 @@ const AdminPOSReport = () => {
                                 <div className="text-base">
                                     <div className="flex justify-between mb-1">
                                         <span className="font-bold">Total Qty.: {tQty}</span>
-                                        <span className="font-black">Total MRP: Rs {tMRP.toFixed(0)}</span>
+                                        <span className="font-black">Total MRP: Rs {tMRP.toFixed(2)}</span>
                                     </div>
                                     
                                     {tSavings > 0 && (
                                          <div className="flex justify-between bg-gray-200 px-1 py-2 my-2 border-2 border-black" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                              <span className="font-black text-[18px] uppercase tracking-tighter">YOU SAVED {sPercent}%</span>
-                                             <span className="font-black text-[18px]">{tSavings.toFixed(0)}</span>
+                                             <span className="font-black text-[18px]">{tSavings.toFixed(2)}</span>
                                          </div>
                                      )}
                                 </div>
@@ -1301,7 +1324,7 @@ const AdminPOSReport = () => {
                         {/* Grand Total */}
                         <div className="flex justify-between font-black text-xl py-1 border-y border-black mt-1">
                             <span>Total bill amount:</span>
-                            <span>{Number(printOrder.total || 0).toFixed(0)}</span>
+                            <span>{Number(printOrder.total || 0).toFixed(2)}</span>
                         </div>
 
                         {/* Footer / Notes */}

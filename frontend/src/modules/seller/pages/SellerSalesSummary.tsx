@@ -143,7 +143,7 @@ const SellerSalesSummary = () => {
   if (loading && !data) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <FiLoader className="w-10 h-10 text-seller-600 animate-spin mb-4" />
+        <FiLoader className="w-10 h-10 text-[var(--primary-dark)] animate-spin mb-4" />
         <p className="text-gray-500 font-medium">Fetching sales analytics...</p>
       </div>
     );
@@ -173,7 +173,7 @@ const SellerSalesSummary = () => {
                 onClick={() => handleFilterChange(opt.id)}
                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
                   filter === opt.id
-                    ? "bg-white text-seller-600 shadow-sm"
+                    ? "bg-white text-[var(--primary-dark)] shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
@@ -184,7 +184,7 @@ const SellerSalesSummary = () => {
 
           <button
             onClick={() => handleFilterChange(filter)}
-            className="p-2 bg-seller-50 text-seller-600 rounded-lg hover:bg-seller-100 transition-colors"
+            className="p-2 bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] rounded-lg hover:bg-[var(--primary-alpha-20)] transition-colors"
           >
             <FiFilter className="w-5 h-5" />
           </button>
@@ -192,8 +192,8 @@ const SellerSalesSummary = () => {
       </div>
 
       {loading && (
-        <div className="fixed top-20 right-10 z-50 bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-seller-100 flex items-center gap-2">
-          <FiLoader className="w-4 h-4 text-seller-600 animate-spin" />
+        <div className="fixed top-20 right-10 z-50 bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-[var(--primary-alpha-20)] flex items-center gap-2">
+          <FiLoader className="w-4 h-4 text-[var(--primary-dark)] animate-spin" />
           <span className="text-xs font-medium text-seller-800">Updating...</span>
         </div>
       )}
@@ -204,21 +204,21 @@ const SellerSalesSummary = () => {
           title="Total Sales"
           value={`₹${(data?.summary.totalSales || 0).toLocaleString()}`}
           icon={<FiDollarSign className="w-6 h-6" />}
-          color="bg-blue-500"
+          color="bg-[var(--primary-color)]"
           trend={data?.summary.totalSalesChange !== undefined ? `${data.summary.totalSalesChange > 0 ? '+' : ''}${data.summary.totalSalesChange}%` : "0%"}
         />
         <SummaryCard
           title="Total Orders"
           value={(data?.summary.totalOrders || 0).toString()}
           icon={<FiShoppingBag className="w-6 h-6" />}
-          color="bg-purple-500"
+          color="bg-[var(--primary-color)]"
           trend={data?.summary.totalOrdersChange !== undefined ? `${data.summary.totalOrdersChange > 0 ? '+' : ''}${data.summary.totalOrdersChange}%` : "0%"}
         />
         <SummaryCard
           title="Paid Amount"
           value={`₹${(data?.summary.paidAmount || 0).toLocaleString()}`}
           icon={<FiCheckCircle className="w-6 h-6" />}
-          color="bg-seller-500"
+          color="bg-[var(--primary-color)]"
           trend={data?.summary.paidAmountChange !== undefined ? `${data.summary.paidAmountChange > 0 ? '+' : ''}${data.summary.paidAmountChange}%` : "0%"}
         />
         <SummaryCard
@@ -236,7 +236,7 @@ const SellerSalesSummary = () => {
           title="Total Profit"
           value={`₹${(data?.summary.totalProfit || 0).toLocaleString()}`}
           icon={<FiTrendingUp className="w-6 h-6" />}
-          color="bg-seller-600"
+          color="bg-[var(--primary-dark)]"
           trend="Est."
         />
         <SummaryCard
@@ -250,7 +250,7 @@ const SellerSalesSummary = () => {
           title="Net Profit"
           value={`₹${(data?.summary.netProfit || 0).toLocaleString()}`}
           icon={<FiDollarSign className="w-6 h-6" />}
-          color="bg-indigo-600"
+          color="bg-[var(--primary-dark)]"
           trend="Final"
         />
       </div>
@@ -294,14 +294,14 @@ const SellerSalesSummary = () => {
                   <tr key={idx} className="hover:bg-gray-50/80 transition-colors group">
                     <td className="px-6 py-4 font-semibold text-gray-700">{day.day}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{new Date(day.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                    <td className="px-6 py-4 font-bold text-gray-900 group-hover:text-seller-600 transition-colors">₹{day.sales.toLocaleString()}</td>
+                    <td className="px-6 py-4 font-bold text-gray-900 group-hover:text-[var(--primary-dark)] transition-colors">₹{day.sales.toLocaleString()}</td>
                     <td className="px-6 py-4">
-                      <span className="bg-seller-50 text-seller-700 px-3 py-1 rounded-full text-xs font-bold">
+                      <span className="bg-[var(--primary-alpha-10)] text-[var(--primary-darker)] px-3 py-1 rounded-full text-xs font-bold">
                         {day.orders} Items
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
-                      ₹{day.orders > 0 ? (day.sales / day.orders).toFixed(0).toLocaleString() : 0}
+                      ₹{day.orders > 0 ? (day.sales / day.orders).toFixed(2).toLocaleString() : 0}
                     </td>
                   </tr>
                 ))
@@ -315,10 +315,10 @@ const SellerSalesSummary = () => {
       {showCustomModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-slideUp">
-            <div className="bg-seller-600 p-6 text-white text-center">
+            <div className="bg-[var(--primary-dark)] p-6 text-white text-center">
               <FiCalendar className="w-12 h-12 mx-auto mb-3 opacity-80" />
               <h3 className="text-xl font-bold">Select Date Range</h3>
-              <p className="text-seller-100 text-sm">Choose start and end dates for custom report</p>
+              <p className="text-[var(--primary-alpha-20)] text-sm">Choose start and end dates for custom report</p>
             </div>
 
             <div className="p-8 space-y-6">
@@ -327,7 +327,7 @@ const SellerSalesSummary = () => {
                   <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Start Date</label>
                   <input
                     type="date"
-                    className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:border-seller-500 focus:outline-none transition-all"
+                    className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:border-[var(--primary-color)] focus:outline-none transition-all"
                     value={customRange.startDate}
                     onChange={(e) => setCustomRange({...customRange, startDate: e.target.value})}
                   />
@@ -336,7 +336,7 @@ const SellerSalesSummary = () => {
                   <label className="block text-xs font-bold text-gray-400 uppercase mb-2">End Date</label>
                   <input
                     type="date"
-                    className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:border-seller-500 focus:outline-none transition-all"
+                    className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 focus:border-[var(--primary-color)] focus:outline-none transition-all"
                     value={customRange.endDate}
                     onChange={(e) => setCustomRange({...customRange, endDate: e.target.value})}
                   />
@@ -352,7 +352,7 @@ const SellerSalesSummary = () => {
                 </button>
                 <button
                   onClick={applyCustomFilter}
-                  className="flex-1 bg-seller-600 text-white py-3 font-bold rounded-xl shadow-lg shadow-seller-100 hover:bg-seller-700 transition-all"
+                  className="flex-1 bg-[var(--primary-dark)] text-white py-3 font-bold rounded-xl shadow-lg shadow-seller-100 hover:bg-[var(--primary-darker)] transition-all"
                 >
                   Apply Filter
                 </button>
@@ -371,7 +371,7 @@ const SummaryCard = ({ title, value, icon, color, trend }: any) => (
       <div className={`p-3 rounded-xl text-white ${color} shadow-lg shadow-gray-200 transition-transform group-hover:scale-110`}>
         {icon}
       </div>
-      <div className={`text-[10px] font-bold px-2 py-1 rounded-full ${trend.startsWith('+') ? 'bg-seller-100 text-seller-700' : 'bg-red-100 text-red-700'}`}>
+      <div className={`text-[10px] font-bold px-2 py-1 rounded-full ${trend.startsWith('+') ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' : 'bg-red-100 text-red-700'}`}>
         {trend}
       </div>
     </div>

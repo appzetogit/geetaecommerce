@@ -30,7 +30,7 @@ export default function DeliverySellersInRange() {
           <p className="text-neutral-500 mb-6">Go online to see sellers in your current service area.</p>
           <button
             onClick={() => navigate('/delivery')}
-            className="w-full bg-teal-600 text-white py-3 rounded-xl font-semibold hover:bg-teal-700 transition-colors"
+            className="w-full bg-[var(--primary-dark)] text-white py-3 rounded-xl font-semibold hover:bg-[var(--primary-darker)] transition-colors"
           >
             Go to Dashboard
           </button>
@@ -62,7 +62,7 @@ export default function DeliverySellersInRange() {
 
         {isLoadingSellers ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <div className="w-10 h-10 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-neutral-500 text-sm">Updating sellers in range...</p>
           </div>
         ) : error ? (
@@ -80,7 +80,7 @@ export default function DeliverySellersInRange() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="text-neutral-900 font-bold text-base">{seller.storeName}</h3>
-                      <span className="px-2 py-0.5 bg-teal-50 text-teal-600 text-[10px] font-bold rounded-full border border-teal-100">
+                      <span className="px-2 py-0.5 bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] text-[10px] font-bold rounded-full border border-teal-100">
                         IN RANGE
                       </span>
                     </div>
@@ -109,7 +109,7 @@ export default function DeliverySellersInRange() {
                   </div>
 
                   <div className="ml-4">
-                    <div className="w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center text-teal-600 group-hover:bg-teal-50 transition-colors">
+                    <div className="w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center text-[var(--primary-dark)] group-hover:bg-[var(--primary-alpha-10)] transition-colors">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                         <polyline points="9 22 9 12 15 12 15 22" />

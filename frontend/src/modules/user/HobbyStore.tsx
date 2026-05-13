@@ -94,7 +94,7 @@ export default function HobbyStore() {
 
         {loading ? (
           <div className="flex justify-center p-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--customer-primary-dark)]"></div>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-2">
@@ -168,7 +168,7 @@ export default function HobbyStore() {
                     </div>
 
                     {hasDiscount && (
-                      <div className="text-[9px] text-blue-600 font-semibold mb-0.5">
+                      <div className="text-[9px] text-[var(--customer-primary-dark)] font-semibold mb-0.5">
                         {discount}% OFF
                       </div>
                     )}
@@ -203,7 +203,7 @@ export default function HobbyStore() {
                               e.stopPropagation();
                               addToCart(product);
                             }}
-                            className="w-full border-2 border-green-600 text-green-600 bg-transparent hover:bg-green-50 rounded-full font-semibold text-[10px] h-7 px-2"
+                            className="w-full border-2 border-[var(--customer-primary-dark)] text-[var(--customer-primary-dark)] bg-transparent hover:bg-[var(--customer-primary-alpha-10)] rounded-full font-semibold text-[10px] h-7 px-2"
                           >
                             ADD
                           </Button>
@@ -215,7 +215,7 @@ export default function HobbyStore() {
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.8 }}
                           transition={{ duration: 0.2 }}
-                          className="flex items-center justify-center gap-1.5 bg-white border-2 border-green-600 rounded-full px-1.5 py-1 w-full"
+                          className="flex items-center justify-center gap-1.5 bg-white border-2 border-[var(--customer-primary-dark)] rounded-full px-1.5 py-1 w-full"
                         >
                           <motion.div whileTap={{ scale: 0.9 }}>
                             <Button
@@ -236,7 +236,7 @@ export default function HobbyStore() {
                             initial={{ scale: 1.2, y: -4 }}
                             animate={{ scale: 1, y: 0 }}
                             transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                            className="text-xs font-bold text-green-600 min-w-[1rem] text-center"
+                            className="text-xs font-bold text-[var(--customer-primary-dark)] min-w-[1rem] text-center"
                           >
                             {inCartQty}
                           </motion.span>
@@ -260,7 +260,7 @@ export default function HobbyStore() {
 
                     <Link
                       to={`/category/hobby`}
-                      className="w-full bg-green-100 text-green-700 text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-green-200 transition-colors mt-1"
+                      className="w-full bg-[var(--customer-primary-alpha-20)] text-[var(--customer-primary-dark)] text-[8px] font-medium py-0.5 rounded-lg flex items-center justify-between px-1 hover:bg-[var(--customer-primary-alpha-30)] transition-colors mt-1"
                     >
                       <span>See more like this</span>
                       <svg width="6" height="6" viewBox="0 0 8 8" fill="none" xmlns="http://www.w3.org/2000/svg">

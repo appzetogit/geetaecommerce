@@ -135,13 +135,13 @@ export default function Account() {
           <div className="max-w-md mx-auto space-y-3">
             <Link
               to="/login"
-              className="block w-full text-center py-3.5 rounded-lg font-semibold text-base bg-teal-600 text-white hover:bg-teal-700 transition-colors shadow-lg shadow-teal-500/20"
+              className="block w-full text-center py-3.5 rounded-lg font-semibold text-base bg-[var(--customer-primary-dark)] text-white hover:bg-[var(--customer-primary-dark)] transition-colors shadow-lg shadow-teal-500/20"
             >
               Login
             </Link>
             <Link
               to="/signup"
-              className="block w-full text-center py-3.5 rounded-lg font-semibold text-base bg-white text-teal-600 border-2 border-teal-600 hover:bg-teal-50 transition-colors"
+              className="block w-full text-center py-3.5 rounded-lg font-semibold text-base bg-white text-[var(--customer-primary-dark)] border-2 border-[var(--customer-primary-dark)] hover:bg-[var(--customer-primary-alpha-10)] transition-colors"
             >
               Sign Up
             </Link>
@@ -155,7 +155,7 @@ export default function Account() {
     return (
       <div className="pb-24 md:pb-8 bg-white min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--customer-primary-dark)] mx-auto mb-4"></div>
           <p className="text-neutral-600">Loading profile...</p>
         </div>
       </div>
@@ -166,8 +166,8 @@ export default function Account() {
     return (
       <div className="pb-24 md:pb-8 bg-white min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button onClick={() => navigate(-1)} className="px-4 py-2 bg-teal-600 text-white rounded">
+          <p className="text-[var(--customer-primary-dark)] mb-4">{error}</p>
+          <button onClick={() => navigate(-1)} className="px-4 py-2 bg-[var(--customer-primary-dark)] text-white rounded">
             Go Back
           </button>
         </div>
@@ -261,8 +261,8 @@ export default function Account() {
           </button>
           <button onClick={handleLogout} className="w-full flex items-center justify-between px-3 py-3 hover:bg-neutral-50 transition-colors">
             <div className="flex items-center gap-3">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-red-500"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><polyline points="16 17 21 12 16 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
-              <span className="text-[13px] font-medium text-red-500">Log Out</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[var(--customer-primary)]"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><polyline points="16 17 21 12 16 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+              <span className="text-[13px] font-medium text-[var(--customer-primary)]">Log Out</span>
             </div>
             <span className="text-neutral-400">›</span>
           </button>
@@ -282,8 +282,8 @@ export default function Account() {
                 <h3 className="text-xl font-bold text-neutral-900 mb-2">Add GST Details</h3>
                 <p className="text-[13px] text-neutral-500 mb-8 px-4">Identify your business to get a GST invoice on your business purchases.</p>
                 <form onSubmit={handleGstSubmit} className="space-y-4">
-                  <input type="text" value={gstNumber} onChange={(e) => setGstNumber(e.target.value)} placeholder="Enter GST Number" className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all" />
-                  <button type="submit" disabled={!gstNumber.trim()} className="w-full rounded-xl bg-teal-600 text-white font-bold py-4 hover:bg-teal-700 disabled:opacity-50 transition-colors shadow-lg shadow-teal-500/20 uppercase tracking-wider text-sm">Save Details</button>
+                  <input type="text" value={gstNumber} onChange={(e) => setGstNumber(e.target.value)} placeholder="Enter GST Number" className="w-full rounded-xl border border-neutral-200 px-4 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--customer-primary)]/20 focus:border-[var(--customer-primary)] transition-all" />
+                  <button type="submit" disabled={!gstNumber.trim()} className="w-full rounded-xl bg-[var(--customer-primary-dark)] text-white font-bold py-4 hover:bg-[var(--customer-primary-dark)] disabled:opacity-50 transition-colors shadow-lg shadow-teal-500/20 uppercase tracking-wider text-sm">Save Details</button>
                 </form>
                 <p className="mt-6 text-[11px] text-neutral-400">By continuing, you agree to our <span className="underline">Terms & Conditions</span></p>
               </div>

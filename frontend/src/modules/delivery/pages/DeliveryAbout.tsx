@@ -52,13 +52,13 @@ export default function DeliveryAbout() {
             <div className="text-center text-neutral-500 text-sm">Loading profile...</div>
           ) : profile ? (
             <div className="flex flex-col items-center">
-              <div className="w-20 h-20 rounded-full bg-teal-100 flex items-center justify-center mb-3 text-teal-600 font-bold text-2xl">
+              <div className="w-20 h-20 rounded-full bg-[var(--primary-alpha-20)] flex items-center justify-center mb-3 text-[var(--primary-dark)] font-bold text-2xl">
                 {profile.name?.charAt(0).toUpperCase()}
               </div>
               <h3 className="text-neutral-900 text-lg font-bold">{profile.name}</h3>
               <p className="text-neutral-500 text-sm mb-1">+91 {profile.mobile}</p>
               <p className="text-neutral-400 text-xs mb-3">{profile.email}</p>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${profile.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${profile.status === 'Active' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' : 'bg-yellow-100 text-yellow-700'
                 }`}>
                 {profile.status}
               </span>

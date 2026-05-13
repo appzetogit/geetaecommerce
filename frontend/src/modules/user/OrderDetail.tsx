@@ -316,7 +316,7 @@ const PromoCarousel = () => {
               <p className="text-xs text-gray-600 mt-1">
                 {promos[currentSlide].subtext}
               </p>
-              <button className="text-green-700 font-medium text-sm mt-2 flex items-center gap-1">
+              <button className="text-[var(--customer-primary-dark)] font-medium text-sm mt-2 flex items-center gap-1">
                 Apply now <ChevronRightIcon className="w-4 h-4" />
               </button>
             </div>
@@ -334,7 +334,7 @@ const PromoCarousel = () => {
             key={index}
             onClick={() => setCurrentSlide(index)}
             className={`w-2 h-2 rounded-full transition-all duration-300 ${
-              index === currentSlide ? "bg-green-600 w-4" : "bg-gray-300"
+              index === currentSlide ? "bg-[var(--customer-primary-dark)] w-4" : "bg-gray-300"
             }`}
           />
         ))}
@@ -369,7 +369,7 @@ const TipSection = () => {
             }}
             className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
               selectedTip === tip
-                ? "border-green-600 bg-green-50 text-green-700"
+                ? "border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)]"
                 : "border-gray-200 text-gray-700 hover:border-gray-300"
             }`}
             whileTap={{ scale: 0.95 }}>
@@ -382,7 +382,7 @@ const TipSection = () => {
           }}
           className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
             selectedTip === "other"
-              ? "border-green-600 bg-green-50 text-green-700"
+              ? "border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)]"
               : "border-gray-200 text-gray-700 hover:border-gray-300"
           }`}
           whileTap={{ scale: 0.95 }}>
@@ -402,7 +402,7 @@ const TipSection = () => {
               placeholder="Enter custom amount"
               value={customTip}
               onChange={(e) => setCustomTip(e.target.value)}
-              className="mt-3 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="mt-3 w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--customer-primary)]"
             />
           </motion.div>
         )}
@@ -772,7 +772,7 @@ export default function OrderDetail() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--customer-primary-dark)]"></div>
           <p className="text-sm text-neutral-500">Loading order details...</p>
         </div>
       </div>
@@ -816,7 +816,7 @@ export default function OrderDetail() {
     Delivered: {
       title: "Order delivered",
       subtitle: "Enjoy your meal!",
-      color: "bg-green-600",
+      color: "bg-[var(--customer-primary-dark)]",
     },
     // Backend status mappings
     Received: {
@@ -837,7 +837,7 @@ export default function OrderDetail() {
     Shipped: {
       title: "Order shipped",
       subtitle: "On the way to you",
-      color: "bg-blue-600",
+      color: "bg-[var(--customer-primary-dark)]",
     },
     "Out for Delivery": {
       title: "Out for delivery",
@@ -847,7 +847,7 @@ export default function OrderDetail() {
     Cancelled: {
       title: "Order cancelled",
       subtitle: "This order has been cancelled",
-      color: "bg-red-600",
+      color: "bg-[var(--customer-primary-dark)]",
     },
     Returned: {
       title: "Order returned",
@@ -893,7 +893,7 @@ export default function OrderDetail() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.5 }}
                 className="mt-8">
-                <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                <div className="w-8 h-8 border-2 border-[var(--customer-primary)] border-t-transparent rounded-full animate-spin mx-auto" />
                 <p className="text-sm text-gray-500 mt-3">
                   Loading order details...
                 </p>
@@ -1008,7 +1008,7 @@ export default function OrderDetail() {
 
       {/* Tracking Error Display */}
       {trackingError && (
-        <div className="mx-4 mt-2 px-4 py-2 bg-red-50 text-red-700 text-xs rounded-lg border border-red-100 flex items-center gap-2">
+        <div className="mx-4 mt-2 px-4 py-2 bg-[var(--customer-primary-alpha-10)] text-red-700 text-xs rounded-lg border border-[var(--customer-primary-alpha-20)] flex items-center gap-2">
           <span>⚠️</span>
           <span>{trackingError}</span>
         </div>
@@ -1047,7 +1047,7 @@ export default function OrderDetail() {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-semibold text-gray-900">
-                Payment of ₹{order.totalAmount?.toFixed(0) || "0"} pending
+                Payment of ₹{order.totalAmount?.toFixed(2) || "0.00"} pending
               </p>
               <p className="text-sm text-gray-500 mt-1">
                 Pay now, or pay to the delivery partner using Cash/UPI
@@ -1070,7 +1070,7 @@ export default function OrderDetail() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-[var(--customer-primary-alpha-20)] flex items-center justify-center">
                 <span className="text-2xl">👨‍🍳</span>
               </div>
               <p className="font-semibold text-gray-900">
@@ -1147,7 +1147,7 @@ export default function OrderDetail() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.75 }}>
           <div className="flex items-center gap-3 p-4 border-b border-dashed border-gray-200">
-            <div className="w-12 h-12 rounded-full bg-orange-100 overflow-hidden flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-[var(--customer-primary-alpha-20)] overflow-hidden flex items-center justify-center">
               <span className="text-2xl">🛒</span>
             </div>
             <div className="flex-1">
@@ -1157,10 +1157,10 @@ export default function OrderDetail() {
               </p>
             </div>
             <motion.button
-              className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center"
+              className="w-10 h-10 rounded-full bg-[var(--customer-primary-alpha-20)] flex items-center justify-center"
               whileTap={{ scale: 0.9 }}
               onClick={handleCallStore}>
-              <PhoneIcon className="w-5 h-5 text-green-700" />
+              <PhoneIcon className="w-5 h-5 text-[var(--customer-primary-dark)]" />
             </motion.button>
           </div>
 
@@ -1182,13 +1182,13 @@ export default function OrderDetail() {
                     <div
                       key={index}
                       className="flex items-center gap-2 text-sm text-gray-600">
-                      <span className="w-4 h-4 rounded border border-green-600 flex items-center justify-center">
-                        <span className="w-2 h-2 rounded-full bg-green-600" />
+                      <span className="w-4 h-4 rounded border border-[var(--customer-primary-dark)] flex items-center justify-center">
+                        <span className="w-2 h-2 rounded-full bg-[var(--customer-primary-dark)]" />
                       </span>
                       <span>
                         {item.quantity} x{" "}
                         {item.product?.name || item.productName || "Product"}
-                        {isFree && <span className="text-green-600 font-bold ml-1 text-xs">(Free Gift)</span>}
+                        {isFree && <span className="text-[var(--customer-primary-dark)] font-bold ml-1 text-xs">(Free Gift)</span>}
                       </span>
                     </div>
                     );
@@ -1217,8 +1217,8 @@ export default function OrderDetail() {
             className="flex items-center gap-3 p-4 border-b border-dashed border-gray-200"
             onClick={() => window.open('/help', '_blank')}
             style={{ cursor: "pointer" }}>
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-              <HelpCircleIcon className="w-5 h-5 text-red-600" />
+            <div className="w-10 h-10 rounded-full bg-[var(--customer-primary-alpha-20)] flex items-center justify-center">
+              <HelpCircleIcon className="w-5 h-5 text-[var(--customer-primary-dark)]" />
             </div>
             <div className="flex-1">
               <p className="font-semibold text-gray-900">
@@ -1289,7 +1289,7 @@ export default function OrderDetail() {
 
         {/* Status Display */}
         {(returnRequestStatus || replaceRequestStatus) && (
-            <div className="bg-blue-50 p-4 rounded-xl mt-4 border border-blue-100">
+            <div className="bg-[var(--customer-primary-alpha-10)] p-4 rounded-xl mt-4 border border-blue-100">
                 {returnRequestStatus && (
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-gray-700 font-medium">Return Request:</span>
@@ -1375,7 +1375,7 @@ export default function OrderDetail() {
                <div className="mb-4">
                  <label className="block text-sm font-medium text-gray-700 mb-1">Comment</label>
                  <textarea
-                   className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+                   className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[var(--customer-primary)]"
                    rows={3}
                    placeholder="Additional details..."
                    value={requestComment}
@@ -1385,7 +1385,7 @@ export default function OrderDetail() {
 
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={() => setShowReturnModal(false)}>Cancel</Button>
-                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={handleReturnSubmit}>Submit Return</Button>
+                <Button className="flex-1 bg-[var(--customer-primary-dark)] hover:bg-[var(--customer-primary-darker)] text-white" onClick={handleReturnSubmit}>Submit Return</Button>
               </div>
             </motion.div>
           </motion.div>
@@ -1469,7 +1469,7 @@ export default function OrderDetail() {
                <div className="mb-4">
                  <label className="block text-sm font-medium text-gray-700 mb-1">Comment</label>
                  <textarea
-                   className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-green-500"
+                   className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[var(--customer-primary)]"
                    rows={3}
                    placeholder="Describe the issue..."
                    value={requestComment}
@@ -1479,7 +1479,7 @@ export default function OrderDetail() {
 
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" onClick={() => setShowReplaceModal(false)}>Cancel</Button>
-                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={handleReplaceSubmit}>Submit Replacement</Button>
+                <Button className="flex-1 bg-[var(--customer-primary-dark)] hover:bg-[var(--customer-primary-darker)] text-white" onClick={handleReplaceSubmit}>Submit Replacement</Button>
               </div>
             </motion.div>
           </motion.div>
@@ -1509,7 +1509,7 @@ export default function OrderDetail() {
                 reason:
               </p>
               <textarea
-                className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--customer-primary)]"
                 rows={3}
                 placeholder="Enter cancellation reason..."
                 value={cancellationReason}
@@ -1523,7 +1523,7 @@ export default function OrderDetail() {
                   Keep Order
                 </Button>
                 <Button
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  className="flex-1 bg-[var(--customer-primary-dark)] hover:bg-[var(--customer-primary-darker)] text-white"
                   onClick={handleCancelOrder}>
                   Cancel Order
                 </Button>
@@ -1555,7 +1555,7 @@ export default function OrderDetail() {
                 Share details to help the delivery partner find you
               </p>
               <textarea
-                className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--customer-primary)]"
                 rows={4}
                 maxLength={200}
                 placeholder="e.g., Ring the bell, Leave at door, etc."
@@ -1573,7 +1573,7 @@ export default function OrderDetail() {
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 bg-[var(--customer-primary-dark)] hover:bg-[var(--customer-primary-darker)] text-white"
                   onClick={handleSaveInstructions}>
                   Save
                 </Button>
@@ -1624,7 +1624,7 @@ export default function OrderDetail() {
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">
                         {item.product?.name || item.productName}
-                        {isFree && <span className="text-green-600 font-bold ml-2 text-xs bg-green-50 px-2 py-0.5 rounded">Free Gift</span>}
+                        {isFree && <span className="text-[var(--customer-primary-dark)] font-bold ml-2 text-xs bg-[var(--customer-primary-alpha-10)] px-2 py-0.5 rounded">Free Gift</span>}
                       </p>
                       <p className="text-sm text-gray-500">
                         Qty: {item.quantity}
@@ -1634,9 +1634,9 @@ export default function OrderDetail() {
                       )}
                       <p className="text-sm font-semibold text-gray-900 mt-1">
                         {isFree ? (
-                            <span className="text-green-600">Free</span>
+                            <span className="text-[var(--customer-primary-dark)]">Free</span>
                         ) : (
-                            <>₹{item.total?.toFixed(0) || (item.unitPrice * item.quantity).toFixed(0)}</>
+                            <>{item.total?.toFixed(2) || (item.unitPrice * item.quantity).toFixed(2)}</>
                         )}
                       </p>
                     </div>
@@ -1645,7 +1645,7 @@ export default function OrderDetail() {
                 })}
               </div>
               <Button
-                className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white"
+                className="w-full mt-4 bg-[var(--customer-primary-dark)] hover:bg-[var(--customer-primary-darker)] text-white"
                 onClick={() => setShowItemsModal(false)}>
                 Close
               </Button>
@@ -1676,7 +1676,7 @@ export default function OrderDetail() {
                 Let the store know if you have any special preferences
               </p>
               <textarea
-                className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full border border-gray-300 rounded-lg p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--customer-primary)]"
                 rows={4}
                 maxLength={200}
                 placeholder="e.g., No onions, Extra napkins, etc."
@@ -1694,7 +1694,7 @@ export default function OrderDetail() {
                   Cancel
                 </Button>
                 <Button
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  className="flex-1 bg-[var(--customer-primary-dark)] hover:bg-[var(--customer-primary-darker)] text-white"
                   onClick={handleSaveSpecialRequests}>
                   Save
                 </Button>

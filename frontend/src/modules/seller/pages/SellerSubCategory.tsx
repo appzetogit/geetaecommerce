@@ -294,7 +294,7 @@ export default function SellerSubCategory() {
     };
 
     const SortIcon = ({ column }: { column: string }) => (
-        <span className={`ml-1 transition-colors ${sortColumn === column ? 'text-seller-600' : 'text-neutral-300 group-hover:text-neutral-400'}`}>
+        <span className={`ml-1 transition-colors ${sortColumn === column ? 'text-[var(--primary-dark)]' : 'text-neutral-300 group-hover:text-neutral-400'}`}>
             {sortColumn === column ? (sortDirection === 'asc' ? '↑' : '↓') : '⇅'}
         </span>
     );
@@ -330,7 +330,7 @@ export default function SellerSubCategory() {
                     <p className="text-sm text-neutral-500 mt-1">View and manage product subcategories</p>
                 </div>
                 <div className="flex items-center gap-2 text-sm bg-neutral-50 px-3 py-1.5 rounded-lg border border-neutral-200 mt-3 sm:mt-0">
-                    <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium cursor-pointer hover:underline">Home</Link>
+                    <Link to="/seller" className="text-[var(--primary-dark)] hover:text-[var(--primary-darker)] font-medium cursor-pointer hover:underline">Home</Link>
                     <span className="text-neutral-400">/</span>
                     <span className="text-neutral-600">SubCategory</span>
                 </div>
@@ -347,7 +347,7 @@ export default function SellerSubCategory() {
                         {canCreateSubcategories && ownCategories.length > 0 && (
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
-                                className="w-full sm:w-auto bg-[#f187b5] hover:bg-[#e076a5] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
+                                className="w-full sm:w-auto bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
                             >
                                 + Add Subcategory
                             </button>
@@ -374,7 +374,7 @@ export default function SellerSubCategory() {
                 {/* Loading and Error States */}
                 {loading && (
                     <div className="flex flex-col items-center justify-center p-12">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-seller-600 mb-4"></div>
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--primary-dark)] mb-4"></div>
                         <div className="text-neutral-500 font-medium">Loading subcategories...</div>
                     </div>
                 )}
@@ -440,7 +440,7 @@ export default function SellerSubCategory() {
                                 {displayedSubcategories.map((subcategory, index) => (
                                     <motion.tr
                                         key={subcategory._id || subcategory.id}
-                                        className="hover:bg-seller-50/30 transition-colors group text-sm text-neutral-700"
+                                        className="hover:bg-[var(--primary-alpha-10)]/30 transition-colors group text-sm text-neutral-700"
                                         variants={itemVariants}
                                         custom={index}
                                     >
@@ -460,7 +460,7 @@ export default function SellerSubCategory() {
                                             </div>
                                         </td>
                                         <td className="p-4 px-6 align-middle text-center">
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-seller-100 text-seller-800">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--primary-alpha-20)] text-seller-800">
                                                 {subcategory.totalProduct || 0}
                                             </span>
                                         </td>
@@ -497,7 +497,7 @@ export default function SellerSubCategory() {
                                 className={`p-2 rounded-lg border transition-all ${
                                     currentPage === 1
                                         ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-white'
-                                        : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm hover:shadow'
+                                        : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-[var(--primary-color)] hover:text-[var(--primary-dark)] shadow-sm hover:shadow'
                                 }`}
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -510,7 +510,7 @@ export default function SellerSubCategory() {
                                         onClick={() => setCurrentPage(page)}
                                         className={`min-w-[32px] h-8 flex items-center justify-center rounded-md text-sm font-medium transition-all ${
                                             currentPage === page
-                                                ? 'bg-seller-600 text-white shadow-md'
+                                                ? 'bg-[var(--primary-dark)] text-white shadow-md'
                                                 : 'text-neutral-600 hover:bg-neutral-200'
                                         }`}
                                     >
@@ -525,7 +525,7 @@ export default function SellerSubCategory() {
                                 className={`p-2 rounded-lg border transition-all ${
                                     currentPage === displayTotalPages
                                         ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-white'
-                                        : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm hover:shadow'
+                                        : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-[var(--primary-color)] hover:text-[var(--primary-dark)] shadow-sm hover:shadow'
                                 }`}
                             >
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -539,7 +539,7 @@ export default function SellerSubCategory() {
             <footer className="text-center py-4">
                 <p className="text-sm text-neutral-500">
                 Copyright © 2025. Developed By{' '}
-                <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium hover:underline">
+                <Link to="/seller" className="text-[var(--primary-dark)] hover:text-[var(--primary-darker)] font-medium hover:underline">
                     Geeta Stores
                 </Link>
                 </p>
@@ -574,7 +574,7 @@ export default function SellerSubCategory() {
                                 <select
                                     value={formData.parentId}
                                     onChange={(e) => setFormData(prev => ({ ...prev, parentId: e.target.value }))}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${formErrors.parentId ? "border-red-300" : "border-neutral-300"}`}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] ${formErrors.parentId ? "border-red-300" : "border-neutral-300"}`}
                                 >
                                     <option value="">Select parent category</option>
                                     {ownCategories.map((cat) => (
@@ -596,7 +596,7 @@ export default function SellerSubCategory() {
                                     type="text"
                                     value={formData.name}
                                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5] ${formErrors.name ? "border-red-300" : "border-neutral-300"}`}
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] ${formErrors.name ? "border-red-300" : "border-neutral-300"}`}
                                     placeholder="Enter subcategory name"
                                 />
                                 {formErrors.name && (
@@ -610,7 +610,7 @@ export default function SellerSubCategory() {
                                 </label>
                                 <label
                                     className={`block border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                                        isDragging ? "border-[#f187b5] bg-[#f187b5]/10" : "border-neutral-300 hover:border-[#f187b5]"
+                                        isDragging ? "border-[var(--primary-color)] bg-[var(--primary-color)]/10" : "border-neutral-300 hover:border-[var(--primary-color)]"
                                     }`}
                                     onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
                                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
@@ -670,7 +670,7 @@ export default function SellerSubCategory() {
                                 onClick={handleSaveSubcategory}
                                 disabled={submitting || uploading}
                                 className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
-                                    submitting || uploading ? "bg-neutral-400 cursor-not-allowed" : "bg-[#f187b5] hover:bg-[#e076a5]"
+                                    submitting || uploading ? "bg-neutral-400 cursor-not-allowed" : "bg-[var(--primary-color)] hover:bg-[var(--primary-dark)]"
                                 }`}
                             >
                                 {submitting ? "Saving..." : uploading ? "Uploading..." : "Create Subcategory"}

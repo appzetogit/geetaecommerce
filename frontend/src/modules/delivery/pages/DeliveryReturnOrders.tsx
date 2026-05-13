@@ -83,7 +83,7 @@ export default function DeliveryReturnOrders() {
                 Return Pickups
             </button>
             <button
-                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'Replacement' ? 'bg-blue-100 text-blue-700 shadow-sm' : 'text-neutral-500'}`}
+                className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'Replacement' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)] shadow-sm' : 'text-neutral-500'}`}
                 onClick={() => setActiveTab('Replacement')}
             >
                 Replacements
@@ -102,7 +102,7 @@ export default function DeliveryReturnOrders() {
                         <div className="flex justify-between items-start mb-2">
                             <div>
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                                    task.requestType === 'Return' ? 'bg-orange-50 text-orange-600' : 'bg-blue-50 text-blue-600'
+                                    task.requestType === 'Return' ? 'bg-orange-50 text-orange-600' : 'bg-[var(--primary-alpha-10)] text-[var(--primary-dark)]'
                                 }`}>
                                     {task.requestType}
                                 </span>
@@ -142,7 +142,7 @@ export default function DeliveryReturnOrders() {
                             {task.status === 'Picked Up' && task.requestType === 'Replacement' && (
                                 <button
                                     onClick={() => handleUpdateStatus(task.id, 'Delivered', task.requestType)}
-                                    className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium"
+                                    className="w-full py-2 bg-[var(--primary-dark)] text-white rounded-lg text-sm font-medium"
                                 >
                                     Deliver New Item (Replacement)
                                 </button>
@@ -151,7 +151,7 @@ export default function DeliveryReturnOrders() {
                             {task.status === 'Picked Up' && task.requestType === 'Return' && (
                                 <button
                                     onClick={() => handleUpdateStatus(task.id, 'Delivered', task.requestType)}
-                                    className="w-full py-2 bg-green-600 text-white rounded-lg text-sm font-medium"
+                                    className="w-full py-2 bg-[var(--primary-dark)] text-white rounded-lg text-sm font-medium"
                                 >
                                     Confirm Delivery to Store
                                 </button>

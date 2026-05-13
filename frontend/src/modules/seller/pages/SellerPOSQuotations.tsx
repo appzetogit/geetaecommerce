@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
 import { PurchaseEntryRecord, PurchaseItem } from './SellerPOSOrders';
@@ -254,8 +254,8 @@ const SellerPOSQuotations: React.FC = () => {
 
   const handleShareWhatsApp = () => {
     if (!selectedQuote) return;
-    const itemsList = selectedQuote.items.map((i: PurchaseItem) => `${i.productName} (x${i.qty}) - ₹${i.retailPrice}`).join('\n');
-    const message = `Hello,\nHere is your quotation details:\n\n${itemsList}\n\nTotal Amount: ₹${selectedQuote.totals.netAmount}\n\nThank you for shopping with us!`;
+    const itemsList = selectedQuote.items.map((i: PurchaseItem) => `${i.productName} (x${i.qty}) - ?${i.retailPrice}`).join('\n');
+    const message = `Hello,\nHere is your quotation details:\n\n${itemsList}\n\nTotal Amount: ?${selectedQuote.totals.netAmount}\n\nThank you for shopping with us!`;
     const phone = selectedQuote.supplier?.phone || '';
     window.open(`https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
     closeActionSheet();
@@ -293,7 +293,7 @@ const SellerPOSQuotations: React.FC = () => {
         <div className="flex gap-2">
             <button
               onClick={() => navigate('/seller/pos/orders?mode=new_quotation')}
-              className="px-4 py-2 bg-[#f187b5] text-white rounded-xl font-bold hover:bg-[#e076a5] transition-all shadow-sm flex items-center gap-2"
+              className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-xl font-bold hover:bg-[var(--primary-dark)] transition-all shadow-sm flex items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" /></svg>
               New Quote
@@ -310,20 +310,20 @@ const SellerPOSQuotations: React.FC = () => {
               placeholder="Search by quote ID or customer..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#fdf2f7] outline-none transition-all"
+              className="w-full bg-gray-50 border-none rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[var(--primary-alpha-10)] outline-none transition-all"
             />
             <svg className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <div className="flex justify-between items-center bg-[#fff1f7] p-2 pl-4 rounded-xl border border-[#fce7f3]">
+          <div className="flex justify-between items-center bg-[#fff1f7] p-2 pl-4 rounded-xl border border-[var(--primary-color)]">
             <div className="flex items-center gap-3">
                <div>
-                 <p className="text-[10px] font-bold text-[#f187b5] uppercase tracking-wider">Date Range</p>
+                 <p className="text-[10px] font-bold text-[var(--primary-color)] uppercase tracking-wider">Date Range</p>
                  <p className="text-pink-700 text-xs font-medium">Last 30 Days</p>
                </div>
             </div>
-            <button className="p-2 text-[#f187b5] hover:text-[#e076a5]">
+            <button className="p-2 text-[var(--primary-color)] hover:text-[var(--primary-dark)]">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3M4 11h16M5 21h14a1 1 0 001-1V8a1 1 0 00-1-1H5a1 1 0 00-1 1v12a1 1 0 001 1z" />
               </svg>
@@ -350,7 +350,7 @@ const SellerPOSQuotations: React.FC = () => {
               className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:border-pink-200 active:scale-[0.99] transition-all cursor-pointer group"
             >
               <div className="flex gap-5">
-                <div className="w-14 h-14 bg-[#fff1f7] rounded-2xl flex items-center justify-center text-[#f187b5] shrink-0 group-hover:scale-110 transition-transform">
+                <div className="w-14 h-14 bg-[#fff1f7] rounded-2xl flex items-center justify-center text-[var(--primary-color)] shrink-0 group-hover:scale-110 transition-transform">
                   <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
@@ -371,7 +371,7 @@ const SellerPOSQuotations: React.FC = () => {
                   <div className="mt-4 flex justify-between items-end">
                     <div>
                       <p className="text-[10px] text-gray-400 font-medium tracking-tight">Amount</p>
-                      <p className="text-2xl font-black text-gray-900 leading-none">₹{(quote.totals?.netAmount ?? 0).toFixed(2)}</p>
+                      <p className="text-2xl font-black text-gray-900 leading-none">?{(quote.totals?.netAmount ?? 0).toFixed(2)}</p>
                     </div>
                     <p className="text-[10px] text-gray-400 font-medium pb-0.5">{new Date(quote.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                   </div>
@@ -421,11 +421,11 @@ const SellerPOSQuotations: React.FC = () => {
                 iconBg="bg-emerald-50"
               />
               <ActionItem
-                icon={<svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>}
+                icon={<svg className="w-5 h-5 text-[var(--primary-color)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>}
                 title="Edit Order"
                 subtitle="Modify order details"
                 onClick={handleEditOrder}
-                iconBg="bg-purple-50"
+                iconBg="bg-[var(--primary-alpha-10)]"
               />
               <ActionItem
                 icon={<svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>}

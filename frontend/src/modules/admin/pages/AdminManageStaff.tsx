@@ -222,11 +222,11 @@ const AdminManageStaff: React.FC = () => {
 
   const getRoleBadgeColor = (role: string) => {
     const r = role.toUpperCase();
-    if (r.includes('MANAGER')) return 'bg-green-100 text-green-700';
-    if (r.includes('STAFF')) return 'bg-blue-100 text-blue-700';
-    if (r.includes('AGENT')) return 'bg-purple-100 text-purple-700';
+    if (r.includes('MANAGER')) return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]';
+    if (r.includes('STAFF')) return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]';
+    if (r.includes('AGENT')) return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]';
     if (r.includes('HANDLER')) return 'bg-orange-100 text-orange-700';
-    return 'bg-pink-100 text-[#f187b5]'; // Default theme color for new roles
+    return 'bg-pink-100 text-[var(--primary-color)]'; // Default theme color for new roles
   };
 
   return (
@@ -236,7 +236,7 @@ const AdminManageStaff: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-              <Users className="text-[#f187b5]" />
+              <Users className="text-[var(--primary-color)]" />
               Manage Staff
             </h1>
             <p className="text-gray-500 mt-1">Add, edit and manage your store staff and permissions</p>
@@ -259,14 +259,14 @@ const AdminManageStaff: React.FC = () => {
             </button>
             <button
               onClick={() => setIsAddRoleModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-[#f187b5] text-[#f187b5] rounded-lg hover:bg-[#f187b5]/5 transition-colors shadow-sm font-semibold"
+              className="flex items-center gap-2 px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-lg hover:bg-[var(--primary-color)]/5 transition-colors shadow-sm font-semibold"
             >
               <Shield size={18} />
               Add Role
             </button>
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#f187b5] text-white rounded-lg hover:bg-[#db76a3] transition-colors shadow-md font-semibold"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--primary-color)] transition-colors shadow-md font-semibold"
             >
               <Plus size={18} />
               Add Staff
@@ -283,7 +283,7 @@ const AdminManageStaff: React.FC = () => {
               placeholder="Search by name or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
             />
           </div>
         </div>
@@ -298,7 +298,7 @@ const AdminManageStaff: React.FC = () => {
                     setEditingStaff(staff);
                     setIsAddModalOpen(true);
                   }}
-                  className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors"
+                  className="p-2 bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] rounded-full hover:bg-[var(--primary-alpha-20)] transition-colors"
                 >
                   <Edit2 size={16} />
                 </button>
@@ -311,7 +311,7 @@ const AdminManageStaff: React.FC = () => {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-full bg-[#f187b5]/10 flex items-center justify-center text-[#f187b5] font-bold text-xl border-2 border-[#f187b5]/20">
+                <div className="w-16 h-16 rounded-full bg-[var(--primary-color)]/10 flex items-center justify-center text-[var(--primary-color)] font-bold text-xl border-2 border-[var(--primary-color)]/20">
                   {staff.avatar ? (
                     <img src={staff.avatar} alt={staff.name} className="w-full h-full rounded-full object-cover" />
                   ) : (
@@ -339,7 +339,7 @@ const AdminManageStaff: React.FC = () => {
               <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
                 <button
                   onClick={() => openStaffPermissions(staff)}
-                  className="flex items-center gap-2 text-sm font-semibold text-[#f187b5] hover:text-[#db76a3] transition-colors"
+                  className="flex items-center gap-2 text-sm font-semibold text-[var(--primary-color)] hover:text-[var(--primary-color)] transition-colors"
                 >
                   <Shield size={16} />
                   Manage Permissions
@@ -347,7 +347,7 @@ const AdminManageStaff: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Edit2
                     size={16}
-                    className="text-gray-400 cursor-pointer hover:text-[#f187b5]"
+                    className="text-gray-400 cursor-pointer hover:text-[var(--primary-color)]"
                     onClick={() => {
                       setEditingStaff(staff);
                       setIsAddModalOpen(true);
@@ -361,9 +361,9 @@ const AdminManageStaff: React.FC = () => {
           {/* Add New Staff Card */}
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-[#f187b5] hover:text-[#f187b5] hover:bg-[#f187b5]/5 transition-all group"
+            className="border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-[var(--primary-color)] hover:text-[var(--primary-color)] hover:bg-[var(--primary-color)]/5 transition-all group"
           >
-            <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center group-hover:border-[#f187b5]">
+            <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center group-hover:border-[var(--primary-color)]">
               <Plus size={24} />
             </div>
             <span className="font-semibold">Add New Staff</span>
@@ -453,7 +453,7 @@ const AdminManageStaff: React.FC = () => {
       {isAddRoleModalOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-[#f187b5]/5 to-transparent">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-[var(--primary-color)]/5 to-transparent">
               <h2 className="text-xl font-bold text-gray-800">Add New Role</h2>
               <button
                 onClick={() => setIsAddRoleModalOpen(false)}
@@ -472,7 +472,7 @@ const AdminManageStaff: React.FC = () => {
                   placeholder="Ex. MANAGER, SUPERVISOR"
                   value={newRoleName}
                   onChange={(e) => setNewRoleName(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all uppercase"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all uppercase"
                 />
               </div>
               <div className="flex gap-3 pt-2">
@@ -485,7 +485,7 @@ const AdminManageStaff: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-3 bg-[#f187b5] text-white font-semibold rounded-2xl hover:bg-[#db76a3] transition-all shadow-lg active:scale-95"
+                  className="flex-1 px-4 py-3 bg-[var(--primary-color)] text-white font-semibold rounded-2xl hover:bg-[var(--primary-color)] transition-all shadow-lg active:scale-95"
                 >
                   Save Role
                 </button>

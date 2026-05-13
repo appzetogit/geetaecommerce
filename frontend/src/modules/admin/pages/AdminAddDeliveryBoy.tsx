@@ -169,7 +169,7 @@ export default function AdminAddDeliveryBoy() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Delivery Boy Info</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -198,7 +198,7 @@ export default function AdminAddDeliveryBoy() {
 
         {/* Location Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Address & Location</h2>
           </div>
           <div className="p-6">
@@ -248,7 +248,7 @@ export default function AdminAddDeliveryBoy() {
 
         {/* Banking Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-           <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+           <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Banking Details</h2>
           </div>
            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -273,7 +273,7 @@ export default function AdminAddDeliveryBoy() {
 
         {/* Financials */}
          <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-           <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+           <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Financials</h2>
           </div>
            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -297,7 +297,7 @@ export default function AdminAddDeliveryBoy() {
 
         {/* Documents */}
          <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-           <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+           <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Documents</h2>
           </div>
            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -322,9 +322,9 @@ export default function AdminAddDeliveryBoy() {
             type="submit"
             disabled={loading}
             className={`px-8 py-3 text-white font-bold rounded transition-colors ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            style={{ background: '#f187b5' }}
-            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = '#e076a5')}
-            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = '#f187b5')}
+            style={{ background: 'var(--primary-color)' }}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = 'var(--primary-dark)')}
+            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = 'var(--primary-color)')}
           >
             {loading ? 'Adding...' : 'Add Delivery Boy'}
           </button>

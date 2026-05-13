@@ -99,8 +99,8 @@ export default function AdminAbandonedCarts() {
                     </div>
                 </div>
                 <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-pink-50 rounded-lg">
-                    <Clock className="h-4 w-4 text-[#f187b5]" />
-                    <span className="text-sm font-medium text-[#f187b5]">{filteredCarts.length} Leads found</span>
+                    <Clock className="h-4 w-4 text-[var(--primary-color)]" />
+                    <span className="text-sm font-medium text-[var(--primary-color)]">{filteredCarts.length} Leads found</span>
                 </div>
             </div>
 
@@ -115,7 +115,7 @@ export default function AdminAbandonedCarts() {
                             placeholder="Search Name or Phone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                         />
                     </div>
                     {/* Date Filter */}
@@ -125,7 +125,7 @@ export default function AdminAbandonedCarts() {
                             type="date"
                             value={dateFilter}
                             onChange={(e) => setDateFilter(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                         />
                     </div>
                     {/* Cart Value Filter */}
@@ -134,7 +134,7 @@ export default function AdminAbandonedCarts() {
                         <select
                             value={minCartValue}
                             onChange={(e) => setMinCartValue(e.target.value)}
-                            className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all appearance-none"
+                            className="w-full pl-10 pr-4 py-3 bg-white border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all appearance-none"
                         >
                             <option value="">All Cart Values</option>
                             <option value="100">Above ₹100</option>
@@ -164,7 +164,7 @@ export default function AdminAbandonedCarts() {
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center">
                                         <div className="flex flex-col items-center gap-2">
-                                            <Loader2 className="h-10 w-10 text-[#f187b5] animate-spin" />
+                                            <Loader2 className="h-10 w-10 text-[var(--primary-color)] animate-spin" />
                                             <p className="text-neutral-500">Loading abandoned carts...</p>
                                         </div>
                                     </td>
@@ -173,7 +173,7 @@ export default function AdminAbandonedCarts() {
                                 <tr key={cart._id} className="hover:bg-neutral-50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 flex-shrink-0 rounded-full bg-pink-100 flex items-center justify-center text-[#f187b5]">
+                                            <div className="h-10 w-10 flex-shrink-0 rounded-full bg-pink-100 flex items-center justify-center text-[var(--primary-color)]">
                                                 <User className="h-5 w-5" />
                                             </div>
                                             <div className="font-semibold text-neutral-900">{cart.customer?.name || "Guest User"}</div>
@@ -194,7 +194,7 @@ export default function AdminAbandonedCarts() {
                                     <td className="px-6 py-4 text-right">
                                         <button
                                             onClick={() => setSelectedCart(cart)}
-                                            className="px-4 py-2 bg-white border border-neutral-200 text-neutral-700 rounded-lg hover:bg-[#f187b5] hover:text-white hover:border-[#f187b5] transition-all font-medium text-sm inline-flex items-center gap-2"
+                                            className="px-4 py-2 bg-white border border-neutral-200 text-neutral-700 rounded-lg hover:bg-[var(--primary-color)] hover:text-white hover:border-[var(--primary-color)] transition-all font-medium text-sm inline-flex items-center gap-2"
                                         >
                                             View Details
                                             <ChevronRight className="h-4 w-4" />
@@ -220,14 +220,14 @@ export default function AdminAbandonedCarts() {
             <div className="md:hidden px-4 space-y-4">
                 {loading ? (
                     <div className="py-12 text-center bg-white rounded-2xl border border-neutral-200">
-                        <Loader2 className="mx-auto h-12 w-12 text-[#f187b5] animate-spin mb-3" />
+                        <Loader2 className="mx-auto h-12 w-12 text-[var(--primary-color)] animate-spin mb-3" />
                         <p className="text-neutral-500 font-medium">Loading abandoned carts...</p>
                     </div>
                 ) : filteredCarts.length > 0 ? filteredCarts.map((cart) => (
                     <div key={cart._id} className="bg-white rounded-2xl border border-neutral-200 p-4 shadow-sm">
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-3">
-                                <div className="h-12 w-12 rounded-full bg-pink-100 flex items-center justify-center text-[#f187b5]">
+                                <div className="h-12 w-12 rounded-full bg-pink-100 flex items-center justify-center text-[var(--primary-color)]">
                                     <User className="h-6 w-6" />
                                 </div>
                                 <div>
@@ -235,7 +235,7 @@ export default function AdminAbandonedCarts() {
                                     <p className="text-sm text-neutral-500">{formatDate(cart.updatedAt)}</p>
                                 </div>
                             </div>
-                            <div className="bg-pink-50 text-[#f187b5] font-bold px-3 py-1 rounded-lg">
+                            <div className="bg-pink-50 text-[var(--primary-color)] font-bold px-3 py-1 rounded-lg">
                                 ₹{cart.total}
                             </div>
                         </div>
@@ -254,7 +254,7 @@ export default function AdminAbandonedCarts() {
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setSelectedCart(cart)}
-                                className="w-full py-2.5 bg-[#f187b5] text-white rounded-xl font-semibold text-sm transition-all hover:bg-[#e076a5] active:scale-[0.98]"
+                                className="w-full py-2.5 bg-[var(--primary-color)] text-white rounded-xl font-semibold text-sm transition-all hover:bg-[var(--primary-dark)] active:scale-[0.98]"
                             >
                                 Details
                             </button>
@@ -342,7 +342,7 @@ export default function AdminAbandonedCarts() {
                                      <div className="pt-4 mt-4 border-t border-dashed border-neutral-200">
                                          <div className="flex justify-between items-center text-lg">
                                              <span className="font-bold text-neutral-900">Total Cart Value</span>
-                                             <span className="font-black text-[#f187b5]">₹{selectedCart.total}</span>
+                                             <span className="font-black text-[var(--primary-color)]">₹{selectedCart.total}</span>
                                          </div>
                                      </div>
                                  </div>

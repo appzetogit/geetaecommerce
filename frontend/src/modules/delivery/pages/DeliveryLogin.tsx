@@ -98,7 +98,7 @@ export default function DeliveryLogin() {
             />
           </div>
           <h1 className="text-2xl font-bold text-white mb-1">Delivery Login</h1>
-          <p className="text-green-50 text-sm">Access your delivery dashboard</p>
+          <p className="text-[var(--primary-dark)] text-sm">Access your delivery dashboard</p>
         </div>
 
         {/* Login Form */}
@@ -110,7 +110,7 @@ export default function DeliveryLogin() {
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
                   Mobile Number
                 </label>
-                <div className="flex items-center bg-white border border-neutral-300 rounded-lg overflow-hidden focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-200 transition-all">
+                <div className="flex items-center bg-white border border-neutral-300 rounded-lg overflow-hidden focus-within:border-[var(--primary-color)] focus-within:ring-2 focus-within:ring-teal-200 transition-all">
                   <div className="px-3 py-2.5 text-sm font-medium text-neutral-600 border-r border-neutral-300 bg-neutral-50">
                     +91
                   </div>
@@ -144,7 +144,7 @@ export default function DeliveryLogin() {
                 onClick={handleMobileLogin}
                 disabled={mobileNumber.length !== 10 || loading}
                 className={`w-full py-2.5 rounded-lg font-semibold text-sm transition-colors ${mobileNumber.length === 10 && !loading
-                  ? 'bg-teal-600 text-white hover:bg-teal-700 shadow-md'
+                  ? 'bg-[var(--primary-dark)] text-white hover:bg-[var(--primary-darker)] shadow-md'
                   : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                   }`}
               >
@@ -183,7 +183,7 @@ export default function DeliveryLogin() {
                 <button
                   onClick={handleMobileLogin}
                   disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+                  className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-[var(--primary-dark)] text-white hover:bg-[var(--primary-darker)] transition-colors"
                 >
                   {loading ? 'Verifying...' : 'Resend OTP'}
                 </button>
@@ -199,7 +199,7 @@ export default function DeliveryLogin() {
               Don't have a delivery partner account?{' '}
               <button
                 onClick={() => navigate('/delivery/signup')}
-                className="text-teal-600 hover:text-teal-700 font-semibold"
+                className="text-[var(--primary-dark)] hover:text-[var(--primary-darker)] font-semibold"
               >
                 Sign Up
               </button>

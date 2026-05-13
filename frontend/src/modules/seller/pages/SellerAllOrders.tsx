@@ -166,15 +166,15 @@ export default function SellerAllOrders() {
       case 'Pending':
         return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
       case 'Accepted':
-        return 'bg-blue-100 text-blue-800 border border-blue-200';
+        return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)] border border-blue-200';
       case 'On the way':
-        return 'bg-purple-100 text-purple-800 border border-purple-200';
+        return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)] border border-purple-200';
       case 'Delivered':
-        return 'bg-seller-100 text-seller-800 border border-seller-200';
+        return 'bg-[var(--primary-alpha-20)] text-seller-800 border border-[var(--primary-alpha-30)]';
       case 'Cancelled':
         return 'bg-red-100 text-red-800 border border-red-200';
       case 'Received':
-          return 'bg-seller-100 text-seller-800 border border-seller-200';
+          return 'bg-[var(--primary-alpha-20)] text-seller-800 border border-[var(--primary-alpha-30)]';
       default:
         return 'bg-neutral-100 text-neutral-800 border border-neutral-200';
     }
@@ -213,7 +213,7 @@ export default function SellerAllOrders() {
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm bg-neutral-50 px-3 py-1.5 rounded-lg border border-neutral-200">
-          <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium">
+          <Link to="/seller" className="text-[var(--primary-dark)] hover:text-[var(--primary-darker)] font-medium">
             Home
           </Link>
           <span className="text-neutral-400">/</span>
@@ -224,7 +224,7 @@ export default function SellerAllOrders() {
       {/* Main Content Card */}
       <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
         {/* Banner */}
-        <div className="bg-seller-600 text-white px-4 sm:px-6 py-2 sm:py-3">
+        <div className="bg-[var(--primary-dark)] text-white px-4 sm:px-6 py-2 sm:py-3">
           <h2 className="text-base sm:text-lg font-semibold">
             View Order List
           </h2>
@@ -240,7 +240,7 @@ export default function SellerAllOrders() {
                 <label className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-1.5 block">
                   Date Range
                 </label>
-                <div className="flex items-center gap-2 bg-white border border-neutral-300 rounded-lg px-3 py-2 w-full md:w-64 focus-within:ring-2 focus-within:ring-seller-500/20 focus-within:border-seller-500 transition-all">
+                <div className="flex items-center gap-2 bg-white border border-neutral-300 rounded-lg px-3 py-2 w-full md:w-64 focus-within:ring-2 focus-within:ring-[var(--primary-color)]/20 focus-within:border-[var(--primary-color)] transition-all">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-neutral-400">
                     <path d="M8 7V3M16 7V3M7 11H17M5 21H19C20.1046 21 21 20.1046 21 19V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V19C3 20.1046 3.89543 21 5 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -307,7 +307,7 @@ export default function SellerAllOrders() {
                       setSearchQuery(e.target.value);
                       setCurrentPage(1);
                     }}
-                    className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all placeholder:text-neutral-400"
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all placeholder:text-neutral-400"
                     placeholder="Search orders..."
                   />
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
@@ -321,7 +321,7 @@ export default function SellerAllOrders() {
               <div className="w-full md:w-auto self-end">
                 <button
                   onClick={handleExport}
-                  className="w-full md:w-auto flex items-center justify-center gap-2 bg-seller-600 hover:bg-seller-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow active:scale-95"
+                  className="w-full md:w-auto flex items-center justify-center gap-2 bg-[var(--primary-dark)] hover:bg-[var(--primary-darker)] text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm hover:shadow active:scale-95"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round"/>
@@ -352,7 +352,7 @@ export default function SellerAllOrders() {
         {/* Loading and Error States */}
         {loading && (
           <div className="flex flex-col items-center justify-center p-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-seller-600 mb-4"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--primary-dark)] mb-4"></div>
             <div className="text-neutral-500 font-medium">Loading orders data...</div>
           </div>
         )}
@@ -363,7 +363,7 @@ export default function SellerAllOrders() {
             </div>
             <h3 className="text-lg font-medium text-neutral-900">Error Loading Orders</h3>
             <p className="text-neutral-500 mt-1">{error}</p>
-            <button onClick={() => window.location.reload()} className="mt-4 text-seller-600 hover:text-seller-700 font-medium">Try Again</button>
+            <button onClick={() => window.location.reload()} className="mt-4 text-[var(--primary-dark)] hover:text-[var(--primary-darker)] font-medium">Try Again</button>
           </div>
         )}
 
@@ -391,10 +391,10 @@ export default function SellerAllOrders() {
                     <th key={header.id} className="px-6 py-4 text-left text-xs font-bold text-neutral-500 uppercase tracking-wider">
                       <button
                         onClick={() => handleSort(header.id as SortField)}
-                        className="flex items-center gap-2 hover:text-seller-700 transition-colors group"
+                        className="flex items-center gap-2 hover:text-[var(--primary-darker)] transition-colors group"
                       >
                         {header.label}
-                        <span className={`transition-colors ${sortField === header.id ? 'text-seller-600' : 'text-neutral-300 group-hover:text-neutral-400'}`}>
+                        <span className={`transition-colors ${sortField === header.id ? 'text-[var(--primary-dark)]' : 'text-neutral-300 group-hover:text-neutral-400'}`}>
                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d={sortField === header.id && sortDirection === 'desc' ? "M6 9l6 6 6-6" : "M18 15l-6-6-6 6"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
@@ -422,7 +422,7 @@ export default function SellerAllOrders() {
                   paginatedOrders.map((order, index) => (
                     <motion.tr
                       key={order.id}
-                      className="hover:bg-seller-50/30 transition-colors group"
+                      className="hover:bg-[var(--primary-alpha-10)]/30 transition-colors group"
                       variants={itemVariants}
                       custom={index}
                     >
@@ -435,19 +435,19 @@ export default function SellerAllOrders() {
                         />
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-neutral-900">
-                        <span className="font-mono text-seller-700 bg-seller-50 px-2 py-0.5 rounded border border-seller-100">#{order.orderId}</span>
+                        <span className="font-mono text-[var(--primary-darker)] bg-[var(--primary-alpha-10)] px-2 py-0.5 rounded border border-[var(--primary-alpha-20)]">#{order.orderId}</span>
                       </td>
                       <td className="px-6 py-4 text-sm text-neutral-600">{order.deliveryDate}</td>
                       <td className="px-6 py-4 text-sm text-neutral-600">{order.orderDate}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                           <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                             order.status === 'Delivered' ? 'bg-seller-500' :
+                             order.status === 'Delivered' ? 'bg-[var(--primary-color)]' :
                              order.status === 'Cancelled' ? 'bg-red-500' :
                              order.status === 'Pending' ? 'bg-yellow-500' :
-                             order.status === 'On the way' ? 'bg-purple-500' :
-                             order.status === 'Received' ? 'bg-seller-500' :
-                             'bg-blue-500'
+                             order.status === 'On the way' ? 'bg-[var(--primary-color)]' :
+                             order.status === 'Received' ? 'bg-[var(--primary-color)]' :
+                             'bg-[var(--primary-color)]'
                           }`}></span>
                           {order.status}
                         </span>
@@ -456,7 +456,7 @@ export default function SellerAllOrders() {
                       <td className="px-6 py-4">
                         <button
                           onClick={() => navigate(`/seller/orders/${order.id}`)}
-                          className="text-seller-600 hover:text-seller-700 hover:bg-seller-50 p-2 rounded-lg transition-all transform hover:scale-105 active:scale-95"
+                          className="text-[var(--primary-dark)] hover:text-[var(--primary-darker)] hover:bg-[var(--primary-alpha-10)] p-2 rounded-lg transition-all transform hover:scale-105 active:scale-95"
                           title="View Details"
                         >
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
@@ -481,7 +481,7 @@ export default function SellerAllOrders() {
               disabled={currentPage === 1}
               className={`p-2 rounded-lg border transition-all ${currentPage === 1
                 ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-white'
-                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm hover:shadow'
+                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-[var(--primary-color)] hover:text-[var(--primary-dark)] shadow-sm hover:shadow'
                 }`}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -502,7 +502,7 @@ export default function SellerAllOrders() {
                     onClick={() => setCurrentPage(p)}
                     className={`min-w-[32px] h-8 flex items-center justify-center rounded-md text-sm font-medium transition-all ${
                       currentPage === p
-                      ? 'bg-seller-600 text-white shadow-md'
+                      ? 'bg-[var(--primary-dark)] text-white shadow-md'
                       : 'text-neutral-600 hover:bg-neutral-200'
                     }`}
                   >
@@ -517,7 +517,7 @@ export default function SellerAllOrders() {
               disabled={currentPage >= totalPages}
               className={`p-2 rounded-lg border transition-all ${currentPage >= totalPages
                 ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-white'
-                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-seller-500 hover:text-seller-600 shadow-sm hover:shadow'
+                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-[var(--primary-color)] hover:text-[var(--primary-dark)] shadow-sm hover:shadow'
                 }`}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -530,7 +530,7 @@ export default function SellerAllOrders() {
       <footer className="text-center py-6">
         <p className="text-sm text-neutral-500">
           Copyright © 2025. Developed By{' '}
-          <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium hover:underline">
+          <Link to="/seller" className="text-[var(--primary-dark)] hover:text-[var(--primary-darker)] font-medium hover:underline">
             Geeta Stores
           </Link>
         </p>

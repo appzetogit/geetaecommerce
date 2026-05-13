@@ -244,7 +244,7 @@ export default function GoogleMapsAutocomplete({
         onChange={handleInputChange}
         onFocus={() => useFallback && inputValue.length > 2 && setShowSuggestions(true)}
         placeholder={placeholder}
-        className={`w-full px-3 py-2 border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-orange-500 bg-white ${className}`}
+        className={`w-full px-3 py-2 border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-[var(--customer-primary)] bg-white ${className}`}
         disabled={disabled || (!isLoaded && !useFallback)}
         required={required}
         autoComplete="off"
@@ -267,7 +267,7 @@ export default function GoogleMapsAutocomplete({
       )}
 
       {error && !useFallback && (
-        <p className="mt-1 text-xs text-red-600">{error}</p>
+        <p className="mt-1 text-xs text-[var(--customer-primary-dark)]">{error}</p>
       )}
       {!isLoaded && !useFallback && !error && (
         <p className="mt-1 text-xs text-neutral-500">Loading location services...</p>

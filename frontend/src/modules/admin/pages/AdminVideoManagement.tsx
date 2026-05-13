@@ -238,7 +238,7 @@ export default function AdminVideoManagement() {
                   value={formData.title}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#f187b5] outline-none"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none"
                   placeholder="Product Title"
                 />
               </div>
@@ -254,7 +254,7 @@ export default function AdminVideoManagement() {
                       setShowDropdown(true);
                   }}
                   onFocus={() => setShowDropdown(true)}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#f187b5] outline-none"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none"
                   placeholder="Search product to link..."
                 />
                 {showDropdown && (productSearch.trim().length > 0) && (
@@ -265,7 +265,7 @@ export default function AdminVideoManagement() {
                             productResults.map(product => (
                                 <div
                                     key={product._id}
-                                    className="p-3 hover:bg-[#f187b5]/10 cursor-pointer text-sm"
+                                    className="p-3 hover:bg-[var(--primary-color)]/10 cursor-pointer text-sm"
                                     onClick={() => handleProductSelect(product)}
                                 >
                                     <div className="font-medium">{product.productName}</div>
@@ -284,7 +284,7 @@ export default function AdminVideoManagement() {
                     </div>
                 )}
                 {selectedProduct && (
-                    <div className="mt-1 text-xs text-green-600 font-medium">
+                    <div className="mt-1 text-xs text-[var(--primary-dark)] font-medium">
                         Linked: {selectedProduct.productName}
                     </div>
                 )}
@@ -300,7 +300,7 @@ export default function AdminVideoManagement() {
                     onChange={handleChange}
                     required
                     readOnly
-                    className="w-full px-4 py-2 border rounded-lg bg-gray-50 text-gray-500 focus:ring-2 focus:ring-[#f187b5] outline-none cursor-not-allowed"
+                    className="w-full px-4 py-2 border rounded-lg bg-gray-50 text-gray-500 focus:ring-2 focus:ring-[var(--primary-color)] outline-none cursor-not-allowed"
                     placeholder="0"
                   />
                 </div>
@@ -313,7 +313,7 @@ export default function AdminVideoManagement() {
                     onChange={handleChange}
                     required
                     readOnly
-                    className="w-full px-4 py-2 border rounded-lg bg-gray-50 text-gray-500 focus:ring-2 focus:ring-[#f187b5] outline-none cursor-not-allowed"
+                    className="w-full px-4 py-2 border rounded-lg bg-gray-50 text-gray-500 focus:ring-2 focus:ring-[var(--primary-color)] outline-none cursor-not-allowed"
                     placeholder="0"
                   />
                 </div>
@@ -330,17 +330,17 @@ export default function AdminVideoManagement() {
                     />
                     {uploading ? (
                          <div className="flex flex-col items-center">
-                            <div className="w-6 h-6 border-2 border-[#f187b5] border-t-transparent rounded-full animate-spin mb-2"></div>
+                            <div className="w-6 h-6 border-2 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mb-2"></div>
                             <span className="text-sm text-gray-500">Uploading Video...</span>
                         </div>
                     ) : formData.videoUrl ? (
                          <div className="flex flex-col items-center">
-                            <div className="text-green-500 mb-1">
+                            <div className="text-[var(--primary-color)] mb-1">
                                 <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </div>
                             <span className="text-sm font-medium text-gray-900 truncate max-w-full px-2">Video Uploaded!</span>
                             <span className="text-xs text-gray-500 mt-1 truncate max-w-full px-2">{formData.videoUrl.split('/').pop()}</span>
-                            <span className="text-xs text-[#f187b5] mt-2 font-medium">Click to replace</span>
+                            <span className="text-xs text-[var(--primary-color)] mt-2 font-medium">Click to replace</span>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center">
@@ -360,7 +360,7 @@ export default function AdminVideoManagement() {
                   name="views"
                   value={formData.views}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#f187b5] outline-none"
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none"
                   placeholder="e.g. 1.5K"
                 />
               </div>
@@ -369,7 +369,7 @@ export default function AdminVideoManagement() {
                 <button
                   type="submit"
                   disabled={loading || uploading}
-                  className="flex-1 bg-[#f187b5] text-white py-2 rounded-lg hover:bg-[#e076a5] transition disabled:bg-[#f187b5]/50"
+                  className="flex-1 bg-[var(--primary-color)] text-white py-2 rounded-lg hover:bg-[var(--primary-dark)] transition disabled:bg-[var(--primary-color)]/50"
                 >
                   {isEditing ? 'Update Video' : 'Add Video'}
                 </button>
@@ -416,7 +416,7 @@ export default function AdminVideoManagement() {
                         </div>
                         <div className="text-[10px] sm:text-xs text-gray-500 mt-1">Views: {video.views}</div>
                         {video.linkedProduct && (
-                            <div className="text-[10px] sm:text-xs text-[#f187b5] mt-1 truncate max-w-[180px] sm:max-w-full">
+                            <div className="text-[10px] sm:text-xs text-[var(--primary-color)] mt-1 truncate max-w-[180px] sm:max-w-full">
                                 🔗 {video.linkedProduct.productName}
                             </div>
                         )}
@@ -425,7 +425,7 @@ export default function AdminVideoManagement() {
                       <div className="flex flex-col gap-1 sm:gap-2 justify-center shrink-0">
                         <button
                           onClick={() => handleEdit(video)}
-                          className="p-1.5 sm:p-2 text-[#f187b5] hover:bg-[#f187b5]/10 rounded-lg transition"
+                          className="p-1.5 sm:p-2 text-[var(--primary-color)] hover:bg-[var(--primary-color)]/10 rounded-lg transition"
                           title="Edit"
                         >
                           <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>

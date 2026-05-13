@@ -197,8 +197,8 @@ export default function AdminLowestPrices() {
                     <h1 className="text-2xl font-semibold text-neutral-800">
                         Lowest Prices Ever Products
                     </h1>
-                    <div className="text-sm text-[#f187b5]">
-                        <span className="text-[#f187b5] hover:underline cursor-pointer">
+                    <div className="text-sm text-[var(--primary-color)]">
+                        <span className="text-[var(--primary-color)] hover:underline cursor-pointer">
                             Home
                         </span>{" "}
                         <span className="text-neutral-400">/</span> Lowest Prices Products
@@ -210,7 +210,7 @@ export default function AdminLowestPrices() {
             {(success || error) && (
                 <div className="px-6">
                     {success && (
-                        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+                        <div className="bg-[var(--primary-alpha-10)] border border-green-200 text-[var(--primary-darker)] px-4 py-3 rounded mb-4">
                             {success}
                         </div>
                     )}
@@ -244,7 +244,7 @@ export default function AdminLowestPrices() {
                                             placeholder="Search products..."
                                             value={productSearchTerm}
                                             onChange={(e) => setProductSearchTerm(e.target.value)}
-                                            className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none mb-2"
+                                            className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none mb-2"
                                         />
                                         <div className="border border-neutral-300 rounded max-h-48 overflow-y-auto bg-white">
                                             {filteredProducts.length === 0 ? (
@@ -264,7 +264,7 @@ export default function AdminLowestPrices() {
                                                         }}
                                                         className={`w-full text-left px-3 py-2 hover:bg-neutral-50 transition-colors border-b border-neutral-100 last:border-b-0 ${
                                                             selectedProduct === product._id
-                                                                ? "bg-[#f187b5]/10 border-[#f187b5]/20"
+                                                                ? "bg-[var(--primary-color)]/10 border-[var(--primary-color)]/20"
                                                                 : ""
                                                         }`}
                                                     >
@@ -281,7 +281,7 @@ export default function AdminLowestPrices() {
                                             )}
                                         </div>
                                         {selectedProduct && (
-                                            <p className="text-xs text-[#f187b5] mt-1">
+                                            <p className="text-xs text-[var(--primary-color)] mt-1">
                                                 Selected:{" "}
                                                 {
                                                     availableProducts.find(
@@ -312,7 +312,7 @@ export default function AdminLowestPrices() {
                                     }
                                     placeholder="Auto-assign"
                                     min="0"
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded bg-white focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none"
                                 />
                                 <p className="text-xs text-neutral-500 mt-1">
                                     Leave empty to auto-assign at the end
@@ -326,7 +326,7 @@ export default function AdminLowestPrices() {
                                         type="checkbox"
                                         checked={isActive}
                                         onChange={(e) => setIsActive(e.target.checked)}
-                                        className="h-4 w-4 text-[#f187b5] focus:ring-[#f187b5] border-gray-300 rounded"
+                                        className="h-4 w-4 text-[var(--primary-color)] focus:ring-[var(--primary-color)] border-gray-300 rounded"
                                     />
                                     <span className="ml-2 text-sm font-medium text-neutral-700">
                                         Active (Show on home page)
@@ -343,7 +343,7 @@ export default function AdminLowestPrices() {
                                 className={`w-full px-4 py-2 rounded font-medium transition-colors ${
                                     loading
                                         ? "bg-gray-400 cursor-not-allowed text-white"
-                                        : "bg-[#f187b5] hover:bg-[#e076a5] text-white"
+                                        : "bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white"
                                 }`}
                             >
                                 {loading
@@ -365,7 +365,7 @@ export default function AdminLowestPrices() {
 
                     {/* Right Section: View Products Table */}
                     <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-neutral-200 flex flex-col">
-                        <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-lg">
+                        <div className="bg-[var(--primary-color)] text-white px-6 py-4 rounded-t-lg">
                             <h2 className="text-lg font-semibold">View Products</h2>
                         </div>
 
@@ -380,7 +380,7 @@ export default function AdminLowestPrices() {
                                         setRowsPerPage(Number(e.target.value));
                                         setCurrentPage(1);
                                     }}
-                                    className="w-16 px-2 py-1.5 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none"
+                                    className="w-16 px-2 py-1.5 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none"
                                 />
                                 <span className="text-sm text-neutral-600">entries</span>
                             </div>
@@ -465,7 +465,7 @@ export default function AdminLowestPrices() {
                                                         <span
                                                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                                 item.isActive
-                                                                    ? "bg-[#f187b5]/10 text-[#f187b5]"
+                                                                    ? "bg-[var(--primary-color)]/10 text-[var(--primary-color)]"
                                                                     : "bg-gray-100 text-gray-800"
                                                             }`}
                                                         >
@@ -476,7 +476,7 @@ export default function AdminLowestPrices() {
                                                         <div className="flex items-center gap-2">
                                                             <button
                                                                 onClick={() => handleEdit(item)}
-                                                                className="p-1.5 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded transition-colors"
+                                                                className="p-1.5 bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white rounded transition-colors"
                                                                 title="Edit"
                                                             >
                                                                 <svg

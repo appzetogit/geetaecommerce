@@ -294,8 +294,8 @@ export default function AdminHeaderCategory() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <h1 className="text-2xl font-semibold text-neutral-800">Header Category</h1>
-        <div className="text-sm text-[#f187b5]">
-          <span className="text-[#f187b5] hover:underline cursor-pointer">Home</span>{' '}
+        <div className="text-sm text-[var(--primary-color)]">
+          <span className="text-[var(--primary-color)] hover:underline cursor-pointer">Home</span>{' '}
           <span className="text-neutral-400">/</span> Dashboard
         </div>
       </div>
@@ -303,7 +303,7 @@ export default function AdminHeaderCategory() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Left Panel - Add Header Category */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
-          <div className="bg-[#f187b5] text-white px-4 sm:px-6 py-3">
+          <div className="bg-[var(--primary-color)] text-white px-4 sm:px-6 py-3">
             <h2 className="text-base sm:text-lg font-semibold">
               {editingId ? 'Edit Header Category' : 'Add Header Category'}
             </h2>
@@ -319,7 +319,7 @@ export default function AdminHeaderCategory() {
                 value={headerCategoryName}
                 onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="Enter Category Name (e.g. Dairy, Books, All)"
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#f187b5] focus:border-[#f187b5]"
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
               />
             </div>
 
@@ -334,7 +334,7 @@ export default function AdminHeaderCategory() {
                   value={customSlug}
                   onChange={(e) => setCustomSlug(e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
                   placeholder="e.g. all, grocery, unique-id"
-                  className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[#f187b5]"
+                  className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)]"
                 />
                 <button
                   onClick={() => setCustomSlug(headerCategoryName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))}
@@ -344,7 +344,7 @@ export default function AdminHeaderCategory() {
                 </button>
               </div>
               <p className="mt-1 text-[10px] text-neutral-500">
-                Use <span className="font-bold text-[#f187b5]">"all"</span> to customize the "All" tab theme and icon.
+                Use <span className="font-bold text-[var(--primary-color)]">"all"</span> to customize the "All" tab theme and icon.
               </p>
             </div>
 
@@ -357,7 +357,7 @@ export default function AdminHeaderCategory() {
                          value="Icon"
                          checked={selectedIconType === 'Icon'}
                          onChange={() => setSelectedIconType('Icon')}
-                         className="text-[#f187b5] focus:ring-[#f187b5]"
+                         className="text-[var(--primary-color)] focus:ring-[var(--primary-color)]"
                      />
                      <span className="text-sm font-medium text-neutral-700">Select Icon</span>
                  </label>
@@ -368,7 +368,7 @@ export default function AdminHeaderCategory() {
                          value="Image"
                          checked={selectedIconType === 'Image'}
                          onChange={() => setSelectedIconType('Image')}
-                         className="text-[#f187b5] focus:ring-[#f187b5]"
+                         className="text-[var(--primary-color)] focus:ring-[var(--primary-color)]"
                      />
                      <span className="text-sm font-medium text-neutral-700">Upload Image</span>
                  </label>
@@ -386,7 +386,7 @@ export default function AdminHeaderCategory() {
                   placeholder="Auto-match or type..."
                   value={iconSearchTerm}
                   onChange={(e) => setIconSearchTerm(e.target.value)}
-                  className="px-2 py-1 text-xs border rounded border-neutral-300 w-32 focus:ring-1 focus:ring-[#f187b5] outline-none"
+                  className="px-2 py-1 text-xs border rounded border-neutral-300 w-32 focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                 />
               </div>
 
@@ -403,11 +403,11 @@ export default function AdminHeaderCategory() {
                       className={`
                         cursor-pointer flex flex-col items-center justify-center gap-2 p-3 rounded-lg border transition-all
                         ${isSelected
-                          ? 'bg-[#f187b5]/10 border-[#f187b5] ring-1 ring-[#f187b5] text-[#f187b5]'
-                          : 'bg-white border-neutral-200 hover:border-[#f187b5]/50 hover:shadow-sm text-neutral-600'}
+                          ? 'bg-[var(--primary-color)]/10 border-[var(--primary-color)] ring-1 ring-[var(--primary-color)] text-[var(--primary-color)]'
+                          : 'bg-white border-neutral-200 hover:border-[var(--primary-color)]/50 hover:shadow-sm text-neutral-600'}
                       `}
                     >
-                      <div className={`${isSelected ? 'text-[#f187b5]' : 'text-neutral-500'}`}>
+                      <div className={`${isSelected ? 'text-[var(--primary-color)]' : 'text-neutral-500'}`}>
                         {option.svg}
                       </div>
                       <span className="text-[10px] font-medium text-center leading-tight truncate w-full">
@@ -446,7 +446,7 @@ export default function AdminHeaderCategory() {
                                         <line x1="6" y1="6" x2="18" y2="18"></line>
                                     </svg>
                                 </button>
-                                <p className="text-xs text-green-600 font-medium">Image Uploaded</p>
+                                <p className="text-xs text-[var(--primary-dark)] font-medium">Image Uploaded</p>
                             </div>
                         ) : (
                             <>
@@ -460,7 +460,7 @@ export default function AdminHeaderCategory() {
                                 ) : (
                                     <>
                                        <label className="cursor-pointer">
-                                           <span className="text-[#f187b5] font-medium hover:text-[#e076a5]">Click to upload</span>
+                                           <span className="text-[var(--primary-color)] font-medium hover:text-[var(--primary-dark)]">Click to upload</span>
                                            <input
                                                type="file"
                                                accept="image/*"
@@ -531,7 +531,7 @@ export default function AdminHeaderCategory() {
                       title={displayColor}
                       className={`
                                 cursor-pointer flex flex-col items-center gap-1 p-2 rounded transition-all
-                                ${isSelected ? 'ring-2 ring-[#f187b5] bg-white shadow-sm' : 'hover:bg-neutral-200'}
+                                ${isSelected ? 'ring-2 ring-[var(--primary-color)] bg-white shadow-sm' : 'hover:bg-neutral-200'}
                             `}
                     >
                       <div
@@ -553,7 +553,7 @@ export default function AdminHeaderCategory() {
                   title="Custom Color"
                   className={`
                      cursor-pointer flex flex-col items-center gap-1 p-2 rounded transition-all
-                     ${(selectedTheme === 'custom' || selectedTheme?.startsWith('#')) ? 'ring-2 ring-[#f187b5] bg-white shadow-sm' : 'hover:bg-neutral-200'}
+                     ${(selectedTheme === 'custom' || selectedTheme?.startsWith('#')) ? 'ring-2 ring-[var(--primary-color)] bg-white shadow-sm' : 'hover:bg-neutral-200'}
                    `}
                 >
                   <div className="w-8 h-8 rounded-full shadow-sm border border-black/10 bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500" />
@@ -587,7 +587,7 @@ export default function AdminHeaderCategory() {
                       }}
                       placeholder="#15b24a"
                       maxLength={7}
-                      className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[#f187b5]"
+                      className="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm font-mono focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)]"
                     />
                   </div>
                   <p className="mt-1 text-xs text-neutral-500">
@@ -609,7 +609,7 @@ export default function AdminHeaderCategory() {
                         <label className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">ADD Button Color</label>
                         <button 
                           onClick={() => setAddButtonColor('')}
-                          className="text-[9px] text-[#f187b5] font-bold hover:underline"
+                          className="text-[9px] text-[var(--primary-color)] font-bold hover:underline"
                         >Reset to Default</button>
                       </div>
                       
@@ -621,7 +621,7 @@ export default function AdminHeaderCategory() {
                               <div
                                 key={themeKey}
                                 onClick={() => setAddButtonColor(color)}
-                                className={`w-8 h-8 rounded-full cursor-pointer transition-all border-2 ${isSelected ? 'border-[#f187b5] scale-110 shadow-md' : 'border-transparent hover:scale-110'}`}
+                                className={`w-8 h-8 rounded-full cursor-pointer transition-all border-2 ${isSelected ? 'border-[var(--primary-color)] scale-110 shadow-md' : 'border-transparent hover:scale-110'}`}
                                 style={{ backgroundColor: color }}
                                 title={themeKey}
                               />
@@ -630,7 +630,7 @@ export default function AdminHeaderCategory() {
                          {/* Custom Circle */}
                          <div className="relative w-8 h-8 group">
                             <div 
-                              className={`w-8 h-8 rounded-full border-2 bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500 transition-all ${addButtonColor.startsWith('#') && !themeOptions.some(k => themes[k].primary[0] === addButtonColor) ? 'border-[#f187b5] scale-110 shadow-md' : 'border-transparent group-hover:scale-110'}`}
+                              className={`w-8 h-8 rounded-full border-2 bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500 transition-all ${addButtonColor.startsWith('#') && !themeOptions.some(k => themes[k].primary[0] === addButtonColor) ? 'border-[var(--primary-color)] scale-110 shadow-md' : 'border-transparent group-hover:scale-110'}`}
                               title="Custom Color"
                             />
                             <input 
@@ -655,7 +655,7 @@ export default function AdminHeaderCategory() {
                         <label className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider">Offer Tag Color</label>
                         <button 
                           onClick={() => setOfferTagColor('')}
-                          className="text-[9px] text-[#f187b5] font-bold hover:underline"
+                          className="text-[9px] text-[var(--primary-color)] font-bold hover:underline"
                         >Reset to Default</button>
                       </div>
 
@@ -667,7 +667,7 @@ export default function AdminHeaderCategory() {
                               <div
                                 key={themeKey}
                                 onClick={() => setOfferTagColor(color)}
-                                className={`w-8 h-8 rounded-full cursor-pointer transition-all border-2 ${isSelected ? 'border-[#f187b5] scale-110 shadow-md' : 'border-transparent hover:scale-110'}`}
+                                className={`w-8 h-8 rounded-full cursor-pointer transition-all border-2 ${isSelected ? 'border-[var(--primary-color)] scale-110 shadow-md' : 'border-transparent hover:scale-110'}`}
                                 style={{ backgroundColor: color }}
                                 title={themeKey}
                               />
@@ -676,7 +676,7 @@ export default function AdminHeaderCategory() {
                          {/* Custom Circle */}
                          <div className="relative w-8 h-8 group">
                             <div 
-                              className={`w-8 h-8 rounded-full border-2 bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500 transition-all ${offerTagColor.startsWith('#') && !themeOptions.some(k => themes[k].primary[0] === offerTagColor) ? 'border-[#f187b5] scale-110 shadow-md' : 'border-transparent group-hover:scale-110'}`}
+                              className={`w-8 h-8 rounded-full border-2 bg-gradient-to-br from-red-500 via-yellow-500 to-blue-500 transition-all ${offerTagColor.startsWith('#') && !themeOptions.some(k => themes[k].primary[0] === offerTagColor) ? 'border-[var(--primary-color)] scale-110 shadow-md' : 'border-transparent group-hover:scale-110'}`}
                               title="Custom Color"
                             />
                             <input 
@@ -705,7 +705,7 @@ export default function AdminHeaderCategory() {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#f187b5]"
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)]"
               >
                 <option value="">Select Category</option>
                 <option value="fashion">Fashion</option>
@@ -725,7 +725,7 @@ export default function AdminHeaderCategory() {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value as any)}
-                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[#f187b5]"
+                className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)]"
               >
                 <option value="Published">Published</option>
                 <option value="Unpublished">Unpublished</option>
@@ -736,7 +736,7 @@ export default function AdminHeaderCategory() {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={handleAddOrUpdate}
-                className="flex-1 bg-[#f187b5] text-white py-2 rounded text-sm font-medium hover:bg-[#e076a5] transition"
+                className="flex-1 bg-[var(--primary-color)] text-white py-2 rounded text-sm font-medium hover:bg-[var(--primary-dark)] transition"
               >
                 {editingId ? 'Update Category' : 'Add Category'}
               </button>
@@ -763,7 +763,7 @@ export default function AdminHeaderCategory() {
                 placeholder="Search category..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8 pr-3 py-1.5 text-sm border border-neutral-300 rounded-full w-48 focus:outline-none focus:ring-1 focus:ring-[#f187b5]"
+                className="pl-8 pr-3 py-1.5 text-sm border border-neutral-300 rounded-full w-48 focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)]"
               />
               <svg
                 className="w-4 h-4 text-neutral-400 absolute left-2.5 top-2"
@@ -799,7 +799,7 @@ export default function AdminHeaderCategory() {
                         <div className="flex items-center gap-2">
                           {category.name}
                           {category.isVirtual && (
-                            <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded border border-blue-100 font-normal">
+                            <span className="text-[10px] bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] px-1.5 py-0.5 rounded border border-blue-100 font-normal">
                               System Default
                             </span>
                           )}
@@ -812,7 +812,7 @@ export default function AdminHeaderCategory() {
                                   <img src={category.image} alt={category.name} className="w-full h-full object-contain" />
                                </div>
                            ) : (
-                              <div className="text-[#f187b5] w-5 h-5 flex items-center justify-center">
+                              <div className="text-[var(--primary-color)] w-5 h-5 flex items-center justify-center">
                                 {getIconByName(category.iconName)}
                               </div>
                            )}
@@ -840,7 +840,7 @@ export default function AdminHeaderCategory() {
                           className={`
                             px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
                             ${category.status === 'Published'
-                              ? 'bg-green-100 text-green-800 border border-green-200'
+                              ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)] border border-green-200'
                               : 'bg-red-100 text-red-800 border border-red-200'}
                           `}
                         >
@@ -850,7 +850,7 @@ export default function AdminHeaderCategory() {
                       <td className="px-4 py-3 text-sm flex gap-2">
                         <button
                           onClick={() => handleEdit(category)}
-                          className="text-[#f187b5] hover:text-[#e076a5] bg-[#f187b5]/10 hover:bg-[#f187b5]/20 p-1.5 rounded transition-colors"
+                          className="text-[var(--primary-color)] hover:text-[var(--primary-dark)] bg-[var(--primary-color)]/10 hover:bg-[var(--primary-color)]/20 p-1.5 rounded transition-colors"
                           title="Edit"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

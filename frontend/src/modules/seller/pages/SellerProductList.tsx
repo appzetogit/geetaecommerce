@@ -902,19 +902,19 @@ export default function SellerProductList() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-seller-50 to-seller-50">
+    <div className="flex flex-col h-full bg-gradient-to-br from-[var(--primary-alpha-10)] to-[var(--primary-alpha-10)]">
       {/* Page Content */}
       <div className="flex-1 p-6">
         {/* Main Panel */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
           {/* Header */}
-          <div className="bg-[#f187b5] text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
+          <div className="bg-[var(--primary-color)] text-white px-6 py-4 rounded-t-lg flex justify-between items-center">
             <h2 className="text-lg font-semibold">Product List</h2>
              {hasUnsavedChanges && (
                 <button
                     onClick={handleSaveChanges}
                     disabled={savingChanges}
-                    className="bg-white text-[#f187b5] px-4 py-1.5 rounded font-bold text-sm hover:bg-neutral-100 transition-colors shadow-sm flex items-center gap-2"
+                    className="bg-white text-[var(--primary-color)] px-4 py-1.5 rounded font-bold text-sm hover:bg-neutral-100 transition-colors shadow-sm flex items-center gap-2"
                 >
                     {savingChanges ? "Saving..." : "Save Changes"}
                 </button>
@@ -941,7 +941,7 @@ export default function SellerProductList() {
                     setFilterCategory(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                   <option value="All Category">All Category</option>
                   {categories.map((cat) => (
                     <option key={cat._id} value={cat._id}>
@@ -961,7 +961,7 @@ export default function SellerProductList() {
                     setFilterStatus(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>
                       {status}
@@ -979,7 +979,7 @@ export default function SellerProductList() {
                     setFilterStock(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                  className="w-full px-3 py-2 border border-neutral-300 rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                   {STOCK_OPTIONS.map((stock) => (
                     <option key={stock} value={stock}>
                       {stock}
@@ -1002,7 +1002,7 @@ export default function SellerProductList() {
                         setRowsPerPage(Number(e.target.value));
                         setCurrentPage(1);
                       }}
-                      className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-[#f187b5] focus:outline-none cursor-pointer">
+                      className="bg-white border border-neutral-300 rounded py-1.5 px-3 text-sm focus:ring-1 focus:ring-[var(--primary-color)] focus:outline-none cursor-pointer">
                       <option value={10}>10</option>
                       <option value={20}>20</option>
                       <option value={50}>50</option>
@@ -1018,7 +1018,7 @@ export default function SellerProductList() {
                       </span>
                       <input
                         type="text"
-                        className="pl-14 pr-10 py-2 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-[#f187b5] w-full sm:w-48"
+                        className="pl-14 pr-10 py-2 bg-neutral-100 border-none rounded text-sm focus:ring-1 focus:ring-[var(--primary-color)] w-full sm:w-48"
                         value={searchTerm}
                         onChange={(e) => {
                           setSearchTerm(e.target.value);
@@ -1030,7 +1030,7 @@ export default function SellerProductList() {
                         onClick={() => {
                           setShowScanner(true);
                         }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-[#f187b5] transition-colors"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-[var(--primary-color)] transition-colors"
                         title="Scan Barcode"
                       >
                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1047,7 +1047,7 @@ export default function SellerProductList() {
                 <button
                   onClick={() => navigate("/seller/product/add")}
                   disabled={!isEnabled}
-                  className={`px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors ${isEnabled ? "bg-[#f187b5] hover:bg-[#e076a5] text-white" : "bg-neutral-200 text-neutral-500 cursor-not-allowed"}`}>
+                  className={`px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors ${isEnabled ? "bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white" : "bg-neutral-200 text-neutral-500 cursor-not-allowed"}`}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -1057,7 +1057,7 @@ export default function SellerProductList() {
                 <button
                   onClick={() => setShowBulkEdit(true)}
                   disabled={!isEnabled}
-                  className={`px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors ${isEnabled ? "bg-[#f187b5] hover:bg-[#e076a5] text-white" : "bg-neutral-200 text-neutral-500 cursor-not-allowed"}`}>
+                  className={`px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors ${isEnabled ? "bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white" : "bg-neutral-200 text-neutral-500 cursor-not-allowed"}`}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
@@ -1067,14 +1067,14 @@ export default function SellerProductList() {
                 <button
                   onClick={() => setShowBulkImport(true)}
                   disabled={!isEnabled}
-                  className={`px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors ${isEnabled ? "bg-[#f187b5] hover:bg-[#e076a5] text-white" : "bg-neutral-200 text-neutral-500 cursor-not-allowed"}`}
+                  className={`px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors ${isEnabled ? "bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white" : "bg-neutral-200 text-neutral-500 cursor-not-allowed"}`}
                 >
                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                   Import
                 </button>
                 <button
                   onClick={handleExport}
-                  className="bg-[#f187b5] hover:bg-[#e076a5] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
+                  className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white px-3 py-2 rounded text-xs font-medium flex items-center justify-center gap-1 transition-colors">
                   Export
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
@@ -1176,13 +1176,13 @@ export default function SellerProductList() {
                         <div className="flex flex-wrap gap-1">
                           {Array.isArray(product.barcode) ? (
                             product.barcode.map((b: string) => (
-                              <span key={b} className="bg-pink-50 text-[#AD1457] px-2 py-0.5 rounded border border-pink-100/50 text-[10px] font-medium">
+                              <span key={b} className="bg-pink-50 text-[var(--primary-dark)] px-2 py-0.5 rounded border border-pink-100/50 text-[10px] font-medium">
                                 {b}
                               </span>
                             ))
                           ) : product.barcode && product.barcode !== "-" ? (
                             product.barcode.split(', ').map((b: string) => (
-                              <span key={b} className="bg-pink-50 text-[#AD1457] px-2 py-0.5 rounded border border-pink-100/50 text-[10px] font-medium">
+                              <span key={b} className="bg-pink-50 text-[var(--primary-dark)] px-2 py-0.5 rounded border border-pink-100/50 text-[10px] font-medium">
                                 {b}
                               </span>
                             ))
@@ -1209,7 +1209,7 @@ export default function SellerProductList() {
                       <td className="p-4 align-middle text-sm font-medium text-neutral-800 text-right">{product.price}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.deliveryTime}</td>
                       <td className="p-4 align-middle text-sm font-bold text-neutral-800 text-right">{product.stock}</td>
-                      <td className="p-4 align-middle text-sm text-[#f187b5] text-right">{product.offerPrice > 0 ? product.offerPrice : "-"}</td>
+                      <td className="p-4 align-middle text-sm text-[var(--primary-color)] text-right">{product.offerPrice > 0 ? product.offerPrice : "-"}</td>
                       <td className="p-4 align-middle text-sm text-neutral-800 text-right">{product.wholesalePrice > 0 ? product.wholesalePrice : "-"}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600 text-center">{product.lowStockQuantity}</td>
                       <td className="p-4 align-middle text-sm text-neutral-600">{product.brand}</td>
@@ -1221,7 +1221,7 @@ export default function SellerProductList() {
                             onClick={() => handleToggleStatus(product.productId, product.publish)}
                             disabled={!isEnabled}
                             title="Click to toggle status"
-                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95 ${product.publish ? 'bg-[#f187b5]/10 text-[#f187b5] hover:bg-[#f187b5]/20' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} ${!isEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95 ${product.publish ? 'bg-[var(--primary-color)]/10 text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'} ${!isEnabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                              {product.publish ? 'Active' : 'Inactive'}
                           </button>
@@ -1231,7 +1231,7 @@ export default function SellerProductList() {
                           <button
                             onClick={() => handleEdit(product.productId)}
                             disabled={!isEnabled}
-                            className={`p-1 rounded ${isEnabled ? 'text-[#f187b5] hover:bg-[#f187b5]/20' : 'text-neutral-400'}`}
+                            className={`p-1 rounded ${isEnabled ? 'text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20' : 'text-neutral-400'}`}
                             title="Edit Details">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1252,7 +1252,7 @@ export default function SellerProductList() {
                           </button>
                           <button
                             onClick={() => handlePrintBarcode(product.barcode, product.name, product.price, product.compareAtPrice)}
-                            className="p-1 text-[#f187b5] hover:bg-[#f187b5]/20 rounded"
+                            className="p-1 text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20 rounded"
                             title="Print Barcode">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
@@ -1284,9 +1284,9 @@ export default function SellerProductList() {
               <button
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className={`p-2 border border-[#f187b5] rounded ${currentPage === 1
+                className={`p-2 border border-[var(--primary-color)] rounded ${currentPage === 1
                   ? "text-neutral-400 cursor-not-allowed bg-neutral-50 border-neutral-300"
-                  : "text-[#f187b5] hover:bg-[#f187b5]/20"
+                  : "text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20"
                   }`}
                 aria-label="Previous page">
                 <svg
@@ -1304,7 +1304,7 @@ export default function SellerProductList() {
                   />
                 </svg>
               </button>
-              <button className="px-3 py-1.5 border border-[#f187b5] bg-[#f187b5] text-white rounded font-medium text-sm">
+              <button className="px-3 py-1.5 border border-[var(--primary-color)] bg-[var(--primary-color)] text-white rounded font-medium text-sm">
                 {currentPage}
               </button>
               <button
@@ -1312,9 +1312,9 @@ export default function SellerProductList() {
                   setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                 }
                 disabled={currentPage === totalPages}
-                className={`p-2 border border-[#f187b5] rounded ${currentPage === totalPages
+                className={`p-2 border border-[var(--primary-color)] rounded ${currentPage === totalPages
                   ? "text-neutral-400 cursor-not-allowed bg-neutral-50 border-neutral-300"
-                  : "text-[#f187b5] hover:bg-[#f187b5]/20"
+                  : "text-[var(--primary-color)] hover:bg-[var(--primary-color)]/20"
                   }`}
                 aria-label="Next page">
                 <svg
@@ -1381,7 +1381,7 @@ export default function SellerProductList() {
       {showBarcodeSelectModal && barcodeSelectData && (
           <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 backdrop-blur-[2px]">
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm animate-in fade-in zoom-in duration-200 overflow-hidden">
-                  <div className="bg-[#f187b5] px-4 py-3 text-white flex justify-between items-center">
+                  <div className="bg-[var(--primary-color)] px-4 py-3 text-white flex justify-between items-center">
                       <h3 className="font-bold text-lg">Select Barcode to Print</h3>
                       <button onClick={() => setShowBarcodeSelectModal(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -1397,11 +1397,11 @@ export default function SellerProductList() {
                                       setShowBarcodeSelectModal(false);
                                       executePrintBarcode(b, barcodeSelectData.name, barcodeSelectData.sp, barcodeSelectData.mrp);
                                   }}
-                                  className="w-full text-left bg-gray-50 hover:bg-[#f187b5]/10 border border-gray-200 hover:border-[#f187b5] p-3 rounded-lg group transition-all"
+                                  className="w-full text-left bg-gray-50 hover:bg-[var(--primary-color)]/10 border border-gray-200 hover:border-[var(--primary-color)] p-3 rounded-lg group transition-all"
                               >
                                   <div className="flex justify-between items-center">
-                                      <span className="font-mono text-base font-bold text-gray-800 group-hover:text-[#f187b5]">{b}</span>
-                                      <svg className="w-5 h-5 text-gray-400 group-hover:text-[#f187b5] opacity-0 group-hover:opacity-100 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <span className="font-mono text-base font-bold text-gray-800 group-hover:text-[var(--primary-color)]">{b}</span>
+                                      <svg className="w-5 h-5 text-gray-400 group-hover:text-[var(--primary-color)] opacity-0 group-hover:opacity-100 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9l-5 5-5-5"></path>
                                       </svg>
                                   </div>

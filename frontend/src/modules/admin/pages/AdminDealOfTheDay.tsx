@@ -105,7 +105,7 @@ export default function AdminDealOfTheDay() {
                  <input
                     type="text"
                     placeholder="Search products to add..."
-                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 outline-none focus:ring-1 focus:ring-[#f187b5]"
+                    className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 outline-none focus:ring-1 focus:ring-[var(--primary-color)]"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                 />
@@ -120,7 +120,7 @@ export default function AdminDealOfTheDay() {
                             <div
                                 key={p._id || p.id}
                                 onClick={() => !isSelected && handleAddProduct(p)}
-                                className={`p-3 border-b flex items-center gap-3 cursor-pointer transition-colors ${isSelected ? 'bg-[#f187b5]/10 opacity-70 cursor-not-allowed' : 'hover:bg-[#f187b5]/5'}`}
+                                className={`p-3 border-b flex items-center gap-3 cursor-pointer transition-colors ${isSelected ? 'bg-[var(--primary-color)]/10 opacity-70 cursor-not-allowed' : 'hover:bg-[var(--primary-color)]/5'}`}
                             >
                                 <img src={p.mainImage || p.imageUrl || 'https://via.placeholder.com/40'} className="w-12 h-12 object-cover rounded bg-white border" alt="" />
                                 <div className="flex-1">
@@ -130,9 +130,9 @@ export default function AdminDealOfTheDay() {
                                     </div>
                                 </div>
                                 {isSelected ? (
-                                    <span className="text-xs text-[#f187b5] font-medium border border-[#f187b5]/20 px-2 py-0.5 rounded-full">Added</span>
+                                    <span className="text-xs text-[var(--primary-color)] font-medium border border-[var(--primary-color)]/20 px-2 py-0.5 rounded-full">Added</span>
                                 ) : (
-                                    <button className="text-xs bg-[#f187b5] text-white px-3 py-1.5 rounded-full hover:bg-[#e076a5]">Add</button>
+                                    <button className="text-xs bg-[var(--primary-color)] text-white px-3 py-1.5 rounded-full hover:bg-[var(--primary-dark)]">Add</button>
                                 )}
                             </div>
                         );
@@ -166,8 +166,8 @@ export default function AdminDealOfTheDay() {
                                   </div>
 
                                   <h3 className="font-bold text-gray-800 text-center line-clamp-2 px-2 text-sm h-10">{p.productName || p.name}</h3>
-                                  <p className="text-[#f187b5] font-bold text-xl mt-2">₹{(p as any).salePrice || p.price}</p>
-                                  <span className="mt-2 inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold uppercase tracking-wider">Active Deal</span>
+                                  <p className="text-[var(--primary-color)] font-bold text-xl mt-2">₹{(p as any).salePrice || p.price}</p>
+                                  <span className="mt-2 inline-block px-3 py-1 bg-[var(--primary-alpha-20)] text-[var(--primary-darker)] rounded-full text-[10px] font-bold uppercase tracking-wider">Active Deal</span>
                              </div>
                          ))}
                      </div>
@@ -183,12 +183,12 @@ export default function AdminDealOfTheDay() {
                 <button
                     onClick={handleSave}
                     disabled={loading}
-                    className="w-full bg-[#f187b5] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#e076a5] disabled:opacity-70 shadow-sm transition-transform active:scale-[0.99]"
+                    className="w-full bg-[var(--primary-color)] text-white px-6 py-3 rounded-lg font-medium hover:bg-[var(--primary-dark)] disabled:opacity-70 shadow-sm transition-transform active:scale-[0.99]"
                 >
                     {loading ? 'Saving Changes...' : 'Save Deal of the Day'}
                 </button>
                 {message && (
-                    <div className="mt-4 p-3 bg-green-50 text-green-700 rounded-lg text-sm text-center border border-green-100 animate-in fade-in">
+                    <div className="mt-4 p-3 bg-[var(--primary-alpha-10)] text-[var(--primary-darker)] rounded-lg text-sm text-center border border-green-100 animate-in fade-in">
                         {message}
                     </div>
                 )}

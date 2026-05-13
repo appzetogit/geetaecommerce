@@ -304,7 +304,7 @@ export default function AdminAddSeller() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Seller Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Seller Info</h2>
           </div>
           <div className="p-6">
@@ -376,7 +376,7 @@ export default function AdminAddSeller() {
 
         {/* Store Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Store Info</h2>
           </div>
           <div className="p-6">
@@ -477,7 +477,7 @@ export default function AdminAddSeller() {
 
         {/* Store Location Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Store Location Info</h2>
           </div>
           <div className="p-6">
@@ -585,7 +585,7 @@ export default function AdminAddSeller() {
 
         {/* Payment Details */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Payment Details</h2>
           </div>
           <div className="p-6">
@@ -665,7 +665,7 @@ export default function AdminAddSeller() {
 
         {/* Document Section */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Document Section</h2>
           </div>
           <div className="p-6">
@@ -712,7 +712,7 @@ export default function AdminAddSeller() {
 
         {/* Other Info */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          <div className="p-4 border-b border-neutral-200" style={{ background: '#f187b5' }}>
+          <div className="p-4 border-b border-neutral-200" style={{ background: 'var(--primary-color)' }}>
             <h2 className="text-lg font-bold text-white">Other Info</h2>
           </div>
           <div className="p-6">
@@ -769,7 +769,7 @@ export default function AdminAddSeller() {
                       type="checkbox"
                       checked={useCommissionSlabs}
                       onChange={(e) => setUseCommissionSlabs(e.target.checked)}
-                      className="h-4 w-4 accent-[#f187b5]"
+                      className="h-4 w-4 accent-[var(--primary-color)]"
                     />
                     Use price-wise commission slabs
                   </label>
@@ -780,7 +780,7 @@ export default function AdminAddSeller() {
 
                 {useCommissionSlabs && (
                   <div className="mt-3 border border-neutral-200 rounded-lg overflow-hidden">
-                    <div className="bg-[#f187b5]/10 px-4 py-2 flex items-center justify-between">
+                    <div className="bg-[var(--primary-color)]/10 px-4 py-2 flex items-center justify-between">
                       <p className="text-sm font-semibold text-neutral-800">
                         Commission Slabs (by product price)
                       </p>
@@ -792,7 +792,7 @@ export default function AdminAddSeller() {
                             { minPrice: "", maxPrice: "", commission: "" },
                           ])
                         }
-                        className="px-3 py-1.5 bg-[#f187b5] hover:bg-[#e076a5] text-white rounded text-xs font-bold transition-colors"
+                        className="px-3 py-1.5 bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white rounded text-xs font-bold transition-colors"
                       >
                         + Add Slab
                       </button>
@@ -900,9 +900,9 @@ export default function AdminAddSeller() {
             type="submit"
             disabled={loading}
             className={`px-8 py-3 text-white font-bold rounded transition-colors ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            style={{ background: '#f187b5' }}
-            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = '#e076a5')}
-            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = '#f187b5')}
+            style={{ background: 'var(--primary-color)' }}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.background = 'var(--primary-dark)')}
+            onMouseLeave={(e) => !loading && (e.currentTarget.style.background = 'var(--primary-color)')}
           >
             {loading ? 'Adding Seller...' : 'Add Seller'}
           </button>

@@ -383,8 +383,8 @@ export default function ProductDetail() {
   if (error && !product) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center bg-white">
-        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
-          <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="w-20 h-20 bg-[var(--customer-primary-alpha-10)] rounded-full flex items-center justify-center mb-4">
+          <svg className="w-10 h-10 text-[var(--customer-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
@@ -392,7 +392,7 @@ export default function ProductDetail() {
         <p className="text-gray-600 mb-6 max-w-xs">{error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 transition-colors"
+          className="px-6 py-2 bg-[var(--customer-primary-dark)] text-white rounded-full font-medium hover:bg-[var(--customer-primary-darker)] transition-colors"
         >
           Try Refreshing
         </button>
@@ -533,7 +533,7 @@ export default function ProductDetail() {
       <div className="pt-16">
         {/* Location Availability Banner */}
         {!isAvailableAtLocation && (
-          <div className="bg-amber-50 border-l-4 border-amber-500 px-4 py-3 mx-4 mt-4 rounded-r-lg">
+          <div className="bg-[var(--customer-primary-alpha-10)] border-l-4 border-[var(--customer-primary)] px-4 py-3 mx-4 mt-4 rounded-r-lg">
             <div className="flex items-start gap-2">
               <svg
                 width="20"
@@ -551,10 +551,10 @@ export default function ProductDetail() {
                 />
               </svg>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-amber-900">
+                <p className="text-sm font-semibold text-[var(--customer-primary-dark)]">
                   Not available at your location
                 </p>
-                <p className="text-xs text-amber-800 mt-1">
+                <p className="text-xs text-[var(--customer-primary-dark)] mt-1">
                   This product cannot be delivered to your current location. You
                   can browse but cannot add to cart.
                 </p>
@@ -727,7 +727,7 @@ export default function ProductDetail() {
                     }}
                     className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
                       index === selectedImageIndex
-                        ? "border-green-600 ring-2 ring-green-200"
+                        ? "border-[var(--customer-primary-dark)] ring-2 ring-green-200"
                         : "border-neutral-200 hover:border-neutral-300"
                     }`}>
                     <img
@@ -810,7 +810,7 @@ export default function ProductDetail() {
                     >
                       <div className={`
                         relative rounded-xl border-2 overflow-hidden bg-neutral-50 flex flex-col items-center justify-center transition-all
-                        ${isSelected ? "border-blue-600 bg-white ring-4 ring-blue-50 shadow-sm" : "border-neutral-100"}
+                        ${isSelected ? "border-[var(--customer-primary-dark)] bg-white ring-4 ring-blue-50 shadow-sm" : "border-neutral-100"}
                         ${isOutOfStock ? "grayscale opacity-50" : "hover:border-neutral-200"}
                         ${variantOption.image ? "aspect-[1/1]" : "py-2 px-3 h-11"}
                       `}>
@@ -824,7 +824,7 @@ export default function ProductDetail() {
                             />
                             <div className={`
                               absolute bottom-0 left-0 right-0 py-1 px-1 text-center backdrop-blur-[2px]
-                              ${isSelected ? "bg-blue-600 text-white" : "bg-white/90 text-neutral-800"}
+                              ${isSelected ? "bg-[var(--customer-primary-dark)] text-white" : "bg-white/90 text-neutral-800"}
                             `}>
                               <span className="text-[10px] font-bold truncate block tracking-tight">{vTitle}</span>
                             </div>
@@ -836,7 +836,7 @@ export default function ProductDetail() {
                         )}
                       </div>
                       {isOutOfStock && (
-                        <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full uppercase font-bold shadow-sm z-10">
+                        <div className="absolute -top-1 -right-1 bg-[var(--customer-primary)] text-white text-[8px] px-1.5 py-0.5 rounded-full uppercase font-bold shadow-sm z-10">
                           Sold
                         </div>
                       )}
@@ -863,7 +863,7 @@ export default function ProductDetail() {
                   ₹{variantMrp.toLocaleString('en-IN')}
                 </span>
                 {discount > 0 && (
-                  <Badge className="!bg-blue-500 !text-white !border-blue-500 text-xs px-1.5 py-0.5 rounded-full font-semibold">
+                  <Badge className="!bg-[var(--customer-primary)] !text-white !border-[var(--customer-primary)] text-xs px-1.5 py-0.5 rounded-full font-semibold">
                     {discount}% OFF
                   </Badge>
                 )}
@@ -886,7 +886,7 @@ export default function ProductDetail() {
             onClick={() =>
               setIsProductDetailsExpanded(!isProductDetailsExpanded)
             }
-            className="flex items-center gap-0.5 text-sm text-green-600 font-medium">
+            className="flex items-center gap-0.5 text-sm text-[var(--customer-primary-dark)] font-medium">
             View product details
             <svg
               width="11"
@@ -1233,7 +1233,7 @@ export default function ProductDetail() {
 
           {reviewsLoading ? (
             <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--customer-primary-dark)]"></div>
             </div>
           ) : reviews.length > 0 ? (
             <div className="space-y-4">
@@ -1245,8 +1245,8 @@ export default function ProductDetail() {
                     <span className="text-base font-semibold text-neutral-900">
                       {review.customer?.name || "Customer"}
                     </span>
-                    <div className="flex items-center gap-1 bg-green-100 px-1.5 py-0.5 rounded">
-                      <span className="text-xs font-bold text-green-700">
+                    <div className="flex items-center gap-1 bg-[var(--customer-primary-alpha-20)] px-1.5 py-0.5 rounded">
+                      <span className="text-xs font-bold text-[var(--customer-primary-dark)]">
                         {review.rating}
                       </span>
                       <svg
@@ -1254,7 +1254,7 @@ export default function ProductDetail() {
                         height="10"
                         viewBox="0 0 24 24"
                         fill="currentColor"
-                        className="text-green-700">
+                        className="text-[var(--customer-primary-dark)]">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                       </svg>
                     </div>
@@ -1293,7 +1293,7 @@ export default function ProductDetail() {
                   animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
                   transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
                   style={{
-                    backgroundImage: "linear-gradient(90deg, #ef4444, #ff8a8a, #ef4444)",
+                    backgroundImage: "linear-gradient(90deg, var(--customer-primary), #ff8a8a, var(--customer-primary))",
                     backgroundSize: "200% auto",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent"
@@ -1302,10 +1302,10 @@ export default function ProductDetail() {
                 >
                   Explore more products from {typeof product.brand === 'object' ? product.brand.name : 'this brand'} brand
                 </motion.span>
-                <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-[#ef4444] transition-all duration-300 group-hover:w-full"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-[var(--customer-primary)] transition-all duration-300 group-hover:w-full"></span>
               </div>
               
-              <div className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-red-50 text-[#ef4444] group-hover:bg-[#ef4444] group-hover:text-white transition-all duration-300 shadow-sm">
+              <div className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary)] group-hover:bg-[var(--customer-primary)] group-hover:text-white transition-all duration-300 shadow-sm">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
@@ -1351,11 +1351,11 @@ export default function ProductDetail() {
                   <button
                     onClick={handleLoadMoreSimilar}
                     disabled={isSimilarLoading}
-                    className="text-sm font-semibold text-green-600 hover:text-green-700 transition-colors border border-green-600 px-6 py-2 rounded-full hover:bg-green-50 shadow-sm disabled:opacity-50 min-w-[120px]"
+                    className="text-sm font-semibold text-[var(--customer-primary-dark)] hover:text-[var(--customer-primary-dark)] transition-colors border border-[var(--customer-primary-dark)] px-6 py-2 rounded-full hover:bg-[var(--customer-primary-alpha-10)] shadow-sm disabled:opacity-50 min-w-[120px]"
                   >
                     {isSimilarLoading ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-3 h-3 border-2 border-[var(--customer-primary-dark)] border-t-transparent rounded-full animate-spin"></div>
                         <span>loading...</span>
                       </div>
                     ) : 'view more'}
@@ -1389,7 +1389,7 @@ export default function ProductDetail() {
                     MRP ₹{variantMrp.toLocaleString('en-IN')}
                   </span>
                   {discount > 0 && (
-                    <Badge className="!bg-blue-500 !text-white !border-blue-500 text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
+                    <Badge className="!bg-[var(--customer-primary)] !text-white !border-[var(--customer-primary)] text-[10px] px-1.5 py-0.5 rounded-full font-semibold">
                       {discount}% OFF
                     </Badge>
                   )}
@@ -1445,7 +1445,7 @@ export default function ProductDetail() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.2 }}
-                  className="flex items-center gap-2 bg-white border-2 border-green-600 rounded-full px-2 py-1 h-[36px]">
+                  className="flex items-center gap-2 bg-white border-2 border-[var(--customer-primary-dark)] rounded-full px-2 py-1 h-[36px]">
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
@@ -1453,7 +1453,7 @@ export default function ProductDetail() {
                       const variantId = selectedVariant?._id;
                       updateQuantity(productId, inCartQty - 1, variantId, variantTitle);
                     }}
-                    className="w-6 h-6 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors border border-green-600 p-0 leading-none text-base"
+                    className="w-6 h-6 flex items-center justify-center text-[var(--customer-primary-dark)] font-bold hover:bg-[var(--customer-primary-alpha-10)] rounded-full transition-colors border border-[var(--customer-primary-dark)] p-0 leading-none text-base"
                     style={{ lineHeight: 1 }}>
                     <span className="relative top-[-1px]">−</span>
                   </motion.button>
@@ -1462,7 +1462,7 @@ export default function ProductDetail() {
                     initial={{ scale: 1.2, y: -2 }}
                     animate={{ scale: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 500, damping: 15 }}
-                    className="text-sm font-bold text-green-600 min-w-[1.5rem] text-center">
+                    className="text-sm font-bold text-[var(--customer-primary-dark)] min-w-[1.5rem] text-center">
                     {inCartQty}
                   </motion.span>
                   <motion.button
@@ -1472,7 +1472,7 @@ export default function ProductDetail() {
                       const variantId = selectedVariant?._id;
                       updateQuantity(productId, inCartQty + 1, variantId, variantTitle);
                     }}
-                    className="w-6 h-6 flex items-center justify-center text-green-600 font-bold hover:bg-green-50 rounded-full transition-colors border border-green-600 p-0 leading-none text-base"
+                    className="w-6 h-6 flex items-center justify-center text-[var(--customer-primary-dark)] font-bold hover:bg-[var(--customer-primary-alpha-10)] rounded-full transition-colors border border-[var(--customer-primary-dark)] p-0 leading-none text-base"
                     style={{ lineHeight: 1 }}>
                     <span className="relative top-[-1px]">+</span>
                   </motion.button>

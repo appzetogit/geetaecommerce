@@ -149,7 +149,7 @@ const SellerAccountSettings = () => {
   if (loading && !sellerData.sellerName) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-neutral-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-seller-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-dark)]"></div>
       </div>
     );
   }
@@ -209,7 +209,7 @@ const SellerAccountSettings = () => {
               onClick={() => setIsEditing(!isEditing)}
               className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 shadow-sm flex items-center gap-2 ${isEditing
                 ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-                : 'bg-seller-600 text-white hover:bg-seller-700 hover:shadow-md'
+                : 'bg-[var(--primary-dark)] text-white hover:bg-[var(--primary-darker)] hover:shadow-md'
                 }`}
             >
               {isEditing ? (
@@ -238,11 +238,11 @@ const SellerAccountSettings = () => {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${activeTab === tab.id
-                    ? 'bg-seller-50 text-seller-700 shadow-sm ring-1 ring-seller-200'
+                    ? 'bg-[var(--primary-alpha-10)] text-[var(--primary-darker)] shadow-sm ring-1 ring-[var(--primary-alpha-30)]'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                 >
-                  <span className={`${activeTab === tab.id ? 'text-seller-600' : 'text-gray-400'}`}>
+                  <span className={`${activeTab === tab.id ? 'text-[var(--primary-dark)]' : 'text-gray-400'}`}>
                     {tab.icon}
                   </span>
                   {tab.label}
@@ -263,7 +263,7 @@ const SellerAccountSettings = () => {
                 </div>
                 <div>
                   <p className="font-medium">{sellerData.sellerName}</p>
-                  <p className="text-xs text-indigo-100 uppercase">{sellerData.status || 'Active'}</p>
+                  <p className="text-xs text-[var(--primary-dark)] uppercase">{sellerData.status || 'Active'}</p>
                 </div>
               </div>
             </div>
@@ -300,7 +300,7 @@ const SellerAccountSettings = () => {
                       <div className="space-y-8">
                         <div className="flex flex-col sm:flex-row items-center gap-6 pb-8 border-b border-gray-100">
                           <div className="relative group">
-                            <div className="absolute inset-0 bg-gradient-to-tr from-seller-500 to-seller-500 rounded-full blur opacity-25 group-hover:opacity-40 transition-opacity"></div>
+                            <div className="absolute inset-0 bg-gradient-to-tr from-[var(--primary-color)] to-[var(--primary-color)] rounded-full blur opacity-25 group-hover:opacity-40 transition-opacity"></div>
                             <img
                               src={sellerData.profile || 'https://placehold.co/150'}
                               alt="Profile"
@@ -335,7 +335,7 @@ const SellerAccountSettings = () => {
                                 autoComplete="new-password"
                                 placeholder="••••••••"
                                 disabled={!isEditing}
-                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all placeholder:text-gray-300"
+                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all placeholder:text-gray-300"
                               />
                             </div>
                             {isEditing && <p className="text-xs text-gray-400 ml-1">Leave blank to keep current password</p>}
@@ -364,7 +364,7 @@ const SellerAccountSettings = () => {
                           <div>
                             <h3 className="text-xl font-bold text-gray-900">{sellerData.storeName || 'Store Name'}</h3>
                             <div className="flex items-center gap-2 mt-1">
-                              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-seller-100 text-seller-700 uppercase tracking-wide">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--primary-alpha-20)] text-[var(--primary-darker)] uppercase tracking-wide">
                                 {sellerData.category || 'Category'}
                               </span>
                             </div>
@@ -382,7 +382,7 @@ const SellerAccountSettings = () => {
                                 value={sellerData.category}
                                 onChange={handleInputChange}
                                 disabled={!isEditing}
-                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all appearance-none bg-white"
+                                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all appearance-none bg-white"
                               >
                                 <option value="">Select Category</option>
                                 {categories.map(cat => (
@@ -443,7 +443,7 @@ const SellerAccountSettings = () => {
                               value={sellerData.serviceRadiusKm}
                               onChange={handleInputChange}
                               disabled={!isEditing}
-                              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all appearance-none bg-white"
+                              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all appearance-none bg-white"
                             >
                               <option value="1">1 km</option>
                               <option value="2">2 km</option>
@@ -467,7 +467,7 @@ const SellerAccountSettings = () => {
                       <div className="space-y-8">
                         <div className="space-y-3">
                           <label className="text-sm font-semibold text-gray-700 ml-1">Store Banner</label>
-                          <div className="relative group rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300 aspect-[21/9] transition-all hover:border-seller-300">
+                          <div className="relative group rounded-xl overflow-hidden bg-gray-100 border-2 border-dashed border-gray-300 aspect-[21/9] transition-all hover:border-[var(--primary-alpha-40)]">
                             <img
                               src={sellerData.storeBanner || 'https://placehold.co/1200x400?text=Store+Banner'}
                               alt="Store Banner"
@@ -496,7 +496,7 @@ const SellerAccountSettings = () => {
                             disabled={!isEditing}
                             rows={6}
                             placeholder="Tell customers about your store, specialty, and heritage..."
-                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all resize-none leading-relaxed"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none disabled:bg-gray-50/50 disabled:text-gray-500 transition-all resize-none leading-relaxed"
                           />
                         </div>
                       </div>
@@ -506,7 +506,7 @@ const SellerAccountSettings = () => {
                       <div className="space-y-10">
                         <section>
                           <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <div className="p-2 bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] rounded-lg">
                               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                             </div>
                             <h4 className="text-lg font-bold text-gray-900">Bank Details</h4>
@@ -521,7 +521,7 @@ const SellerAccountSettings = () => {
 
                         <section>
                           <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                            <div className="p-2 bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] rounded-lg">
                               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                             </div>
                             <h4 className="text-lg font-bold text-gray-900">Tax Information</h4>
@@ -551,7 +551,7 @@ const SellerAccountSettings = () => {
                       <button
                         type="submit"
                         disabled={saveLoading}
-                        className={`px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-seller-600 to-seller-500 hover:from-seller-700 hover:to-seller-600 shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 ${saveLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                        className={`px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-gradient-to-r from-[var(--primary-dark)] to-[var(--primary-color)] hover:from-[var(--primary-darker)] hover:to-[var(--primary-dark)] shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 ${saveLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                       >
                         {saveLoading ? (
                           <span className="flex items-center gap-2">
@@ -584,7 +584,7 @@ const InputGroup = ({ label, name, value, onChange, disabled, type = "text", pla
       disabled={disabled}
       placeholder={placeholder}
       autoComplete={autoComplete}
-      className={`w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 outline-none transition-all ${disabled ? 'bg-gray-50/50 text-gray-500 cursor-default' : 'bg-white'
+      className={`w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none transition-all ${disabled ? 'bg-gray-50/50 text-gray-500 cursor-default' : 'bg-white'
 
         }`}
     />

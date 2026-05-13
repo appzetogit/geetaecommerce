@@ -235,7 +235,7 @@ export default function SellerCategory() {
                     <p className="text-sm text-neutral-500 mt-1">View and manage product categories</p>
                 </div>
                 <div className="flex items-center gap-2 text-sm bg-neutral-50 px-3 py-1.5 rounded-lg border border-neutral-200 mt-3 sm:mt-0">
-                    <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium cursor-pointer hover:underline">Home</Link>
+                    <Link to="/seller" className="text-[var(--primary-dark)] hover:text-[var(--primary-darker)] font-medium cursor-pointer hover:underline">Home</Link>
                     <span className="text-neutral-400">/</span>
                     <span className="text-neutral-600">Category</span>
                 </div>
@@ -334,7 +334,7 @@ export default function SellerCategory() {
                                      setSubcategoryParent(null);
                                     setIsAddModalOpen(true);
                                 }}
-                                 className="w-full sm:w-auto bg-[#f187b5] hover:bg-[#e076a5] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
+                                 className="w-full sm:w-auto bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow active:scale-95"
                              >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                                 Add Category
@@ -344,7 +344,7 @@ export default function SellerCategory() {
                         <div className="relative w-full sm:w-64">
                             <input
                                 type="text"
-                                className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-seller-500/20 focus:border-seller-500 transition-all placeholder:text-neutral-400"
+                                className="w-full pl-10 pr-4 py-2 bg-white border border-neutral-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all placeholder:text-neutral-400"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 placeholder="Search categories..."
@@ -360,7 +360,7 @@ export default function SellerCategory() {
                 {/* Loading and Error States */}
                 {loading && (
                     <div className="flex flex-col items-center justify-center p-12">
-                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-seller-600 mb-4"></div>
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--primary-dark)] mb-4"></div>
                         <div className="text-neutral-500 font-medium">Loading categories...</div>
                     </div>
                 )}
@@ -400,7 +400,7 @@ export default function SellerCategory() {
                                         onClick={() => {
                                             if (canOpenSubcategories) handleEnterCategory(category);
                                         }}
-                                        className={`hover:bg-seller-50/30 transition-colors group text-sm text-neutral-700 ${
+                                        className={`hover:bg-[var(--primary-alpha-10)]/30 transition-colors group text-sm text-neutral-700 ${
                                             canOpenSubcategories ? 'cursor-pointer' : ''
                                         }`}
                                         variants={itemVariants}
@@ -410,7 +410,7 @@ export default function SellerCategory() {
                                             {category._id.length > 8 ? '#' + category._id.slice(-6) : '#' + category._id}
                                         </td>
                                         <td className="p-4 px-6 align-middle font-medium text-neutral-900">
-                                            <span className={(category as any).type === 'seller' && childCount > 0 ? 'hover:underline decoration-[#f187b5] underline-offset-4' : ''}>
+                                            <span className={(category as any).type === 'seller' && childCount > 0 ? 'hover:underline decoration-[var(--primary-color)] underline-offset-4' : ''}>
                                                 {category.name}
                                             </span>
                                             {(category as any).type === 'seller' && childCount > 0 && !isInSubcategoryView && (
@@ -433,11 +433,11 @@ export default function SellerCategory() {
                                         </td>
                                         <td className="p-4 px-6 align-middle text-center">
                                             {(category as any).type === 'admin' ? (
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]">
                                                     Admin
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]">
                                                     My Category
                                                 </span>
                                             )}
@@ -451,7 +451,7 @@ export default function SellerCategory() {
                                                                 e.stopPropagation();
                                                                 handleAddSubcategory(category);
                                                             }}
-                                                            className="p-1.5 text-[#f187b5] hover:bg-[#f187b5]/10 rounded transition-colors"
+                                                            className="p-1.5 text-[var(--primary-color)] hover:bg-[var(--primary-color)]/10 rounded transition-colors"
                                                             title="Add Subcategory"
                                                         >
                                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -465,7 +465,7 @@ export default function SellerCategory() {
                                                             e.stopPropagation();
                                                             handleEdit(category);
                                                         }}
-                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                        className="p-1.5 text-[var(--primary-dark)] hover:bg-[var(--primary-alpha-10)] rounded transition-colors"
                                                         title="Edit"
                                                     >
                                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
@@ -512,7 +512,7 @@ export default function SellerCategory() {
             <footer className="text-center py-4">
                 <p className="text-sm text-neutral-500">
                 Copyright © 2025. Developed By{' '}
-                <Link to="/seller" className="text-seller-600 hover:text-seller-700 font-medium hover:underline">
+                <Link to="/seller" className="text-[var(--primary-dark)] hover:text-[var(--primary-darker)] font-medium hover:underline">
                     Geeta Stores
                 </Link>
                 </p>

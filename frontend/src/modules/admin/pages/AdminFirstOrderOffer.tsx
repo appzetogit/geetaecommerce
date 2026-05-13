@@ -124,8 +124,8 @@ export default function AdminFirstOrderOffer() {
       <div className="p-6 pb-0">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-neutral-800">First Order Offer</h1>
-          <div className="text-sm text-[#f187b5]">
-            <span className="text-[#f187b5] hover:underline cursor-pointer">Home</span>{" "}
+          <div className="text-sm text-[var(--primary-color)]">
+            <span className="text-[var(--primary-color)] hover:underline cursor-pointer">Home</span>{" "}
             <span className="text-neutral-400">/</span> Offers &amp; Deals{" "}
             <span className="text-neutral-400">/</span> First Order Offer
           </div>
@@ -135,7 +135,7 @@ export default function AdminFirstOrderOffer() {
       {(success || error) && (
         <div className="px-6">
           {success && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4">
+            <div className="bg-[var(--primary-alpha-10)] border border-green-200 text-[var(--primary-darker)] px-4 py-3 rounded mb-4">
               {success}
             </div>
           )}
@@ -171,7 +171,7 @@ export default function AdminFirstOrderOffer() {
                   type="checkbox"
                   checked={config.enabled}
                   onChange={(e) => setConfig((prev) => ({ ...prev, enabled: e.target.checked }))}
-                  className="h-5 w-5 accent-[#f187b5] rounded"
+                  className="h-5 w-5 accent-[var(--primary-color)] rounded"
                 />
                 <span className="text-sm font-semibold text-neutral-700">Enable First Order Offer</span>
               </label>
@@ -187,7 +187,7 @@ export default function AdminFirstOrderOffer() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, discountAmount: Number(e.target.value) }))
                     }
-                    className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none transition-all"
+                    className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none transition-all"
                     min={0}
                     step="1"
                     required
@@ -204,7 +204,7 @@ export default function AdminFirstOrderOffer() {
                     onChange={(e) =>
                       setConfig((prev) => ({ ...prev, minOrderAmount: Number(e.target.value) }))
                     }
-                    className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none transition-all"
+                    className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none transition-all"
                     min={0}
                     step="1"
                   />
@@ -216,7 +216,7 @@ export default function AdminFirstOrderOffer() {
                 <input
                   value={config.title}
                   onChange={(e) => setConfig((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none transition-all"
+                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none transition-all"
                   placeholder="e.g., On your first order"
                 />
               </div>
@@ -226,7 +226,7 @@ export default function AdminFirstOrderOffer() {
                 <input
                   value={config.subtitle}
                   onChange={(e) => setConfig((prev) => ({ ...prev, subtitle: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none transition-all"
+                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none transition-all"
                   placeholder="e.g., OFF"
                 />
               </div>
@@ -236,7 +236,7 @@ export default function AdminFirstOrderOffer() {
                 <input
                   value={config.ctaText}
                   onChange={(e) => setConfig((prev) => ({ ...prev, ctaText: e.target.value }))}
-                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] outline-none transition-all"
+                  className="w-full px-3 py-2.5 border border-neutral-300 rounded-lg bg-white focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none transition-all"
                   placeholder="e.g., Claim"
                 />
               </div>
@@ -244,7 +244,7 @@ export default function AdminFirstOrderOffer() {
               <div className="pt-4 mt-6 border-t border-gray-100">
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-lg text-white font-bold bg-[#f187b5] hover:bg-[#e076a5] shadow-lg shadow-pink-100 transition-all active:scale-[0.98]"
+                  className="w-full py-3 rounded-lg text-white font-bold bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] shadow-lg shadow-pink-100 transition-all active:scale-[0.98]"
                 >
                   Save All Changes
                 </button>

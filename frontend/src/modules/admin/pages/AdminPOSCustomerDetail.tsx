@@ -455,7 +455,7 @@ const AdminPOSCustomerDetail = () => {
                                  {customerData.gst && (
                                      <>
                                          <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                                         <p className="text-xs text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded uppercase tracking-wider">GST: {customerData.gst}</p>
+                                         <p className="text-xs text-[var(--primary-dark)] font-bold bg-[var(--primary-alpha-10)] px-2 py-0.5 rounded uppercase tracking-wider">GST: {customerData.gst}</p>
                                      </>
                                  )}
                              </div>
@@ -488,7 +488,7 @@ const AdminPOSCustomerDetail = () => {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Main Balance Card */}
-                        <div className="md:col-span-3 bg-gradient-to-br from-[#f187b5] to-[#e076a5] p-8 rounded-3xl shadow-xl shadow-pink-200/50 text-white relative overflow-hidden group">
+                        <div className="md:col-span-3 bg-gradient-to-br from-[var(--primary-color)] to-[var(--primary-dark)] p-8 rounded-3xl shadow-xl shadow-pink-200/50 text-white relative overflow-hidden group">
                             <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all duration-500"></div>
                             <div className="relative z-10 text-center space-y-2">
                                 <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-80">Total Balance Due</p>
@@ -502,7 +502,7 @@ const AdminPOSCustomerDetail = () => {
 
                         {/* Credit Stat */}
                         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center gap-4 group hover:shadow-md transition-all">
-                            <div className="w-12 h-12 rounded-2xl bg-pink-50 flex items-center justify-center text-[#f187b5] group-hover:scale-110 transition-transform">
+                            <div className="w-12 h-12 rounded-2xl bg-pink-50 flex items-center justify-center text-[var(--primary-color)] group-hover:scale-110 transition-transform">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
                             </div>
                             <div className="text-center">
@@ -513,7 +513,7 @@ const AdminPOSCustomerDetail = () => {
 
                         {/* Paid Stat */}
                         <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center gap-4 group hover:shadow-md transition-all">
-                            <div className="w-12 h-12 rounded-2xl bg-pink-50 flex items-center justify-center text-[#f187b5] group-hover:scale-110 transition-transform">
+                            <div className="w-12 h-12 rounded-2xl bg-pink-50 flex items-center justify-center text-[var(--primary-color)] group-hover:scale-110 transition-transform">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg>
                             </div>
                             <div className="text-center">
@@ -527,12 +527,12 @@ const AdminPOSCustomerDetail = () => {
                     <div>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                                <div className="w-1.5 h-6 bg-[#f187b5] rounded-full"></div>
+                                <div className="w-1.5 h-6 bg-[var(--primary-color)] rounded-full"></div>
                                 Recent Orders
                             </h3>
                             <button
                                 onClick={() => navigate(`/admin/pos/customers/${id}/orders`)}
-                                className="text-[#f187b5] text-xs font-bold hover:bg-[#f187b5]/10 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                                className="text-[var(--primary-color)] text-xs font-bold hover:bg-[var(--primary-color)]/10 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
                             >
                                 View All Past Orders
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
@@ -551,14 +551,14 @@ const AdminPOSCustomerDetail = () => {
                                             <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <span className="font-mono text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-medium tracking-wide">#{order.orderNumber}</span>
+                                            <span className="font-mono text-[10px] text-[var(--primary-dark)] bg-[var(--primary-alpha-10)] px-1.5 py-0.5 rounded font-medium tracking-wide">#{order.orderNumber}</span>
                                             <p className="text-xs text-gray-400 font-medium">{new Date(order.orderDate).toLocaleDateString()}</p>
                                             <div className="inline-flex items-center gap-1.5 mt-2 bg-gray-50 px-2.5 py-1 rounded-lg">
                                                 <span className="text-[10px] font-bold text-gray-500">{order.items?.length || 0} items</span>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className={`text-[10px] font-black uppercase mb-1 ${order.paymentMethod === 'Credit' ? 'text-[#f187b5]' : 'text-green-500'}`}>
+                                            <p className={`text-[10px] font-black uppercase mb-1 ${order.paymentMethod === 'Credit' ? 'text-[var(--primary-color)]' : 'text-[var(--primary-color)]'}`}>
                                                 {order.paymentMethod}
                                             </p>
                                             <p className="text-xl font-black text-gray-900">₹{order.total}</p>
@@ -573,7 +573,7 @@ const AdminPOSCustomerDetail = () => {
                     <div>
                         <div className="flex items-center justify-between mb-4 mt-8">
                             <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                                <div className="w-1.5 h-6 bg-[#f187b5] rounded-full"></div>
+                                <div className="w-1.5 h-6 bg-[var(--primary-color)] rounded-full"></div>
                                 Transaction History
                             </h3>
                         </div>
@@ -587,7 +587,7 @@ const AdminPOSCustomerDetail = () => {
                                 customerData.transactions.map((t, idx) => (
                                     <div key={t._id || idx} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${t.type === 'Payment' ? 'bg-green-50 text-green-500' : 'bg-pink-50 text-pink-500'}`}>
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${t.type === 'Payment' ? 'bg-[var(--primary-alpha-10)] text-[var(--primary-color)]' : 'bg-pink-50 text-pink-500'}`}>
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     {t.type === 'Payment'
                                                         ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -601,7 +601,7 @@ const AdminPOSCustomerDetail = () => {
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className={`text-sm font-black ${t.type === 'Payment' ? 'text-green-500' : 'text-pink-500'}`}>
+                                            <p className={`text-sm font-black ${t.type === 'Payment' ? 'text-[var(--primary-color)]' : 'text-pink-500'}`}>
                                                 {t.type === 'Payment' ? '-' : '+'}₹{Math.abs(t.amount).toLocaleString()}
                                             </p>
                                             <p className="text-[10px] text-gray-400 italic truncate max-w-[100px]">{t.description}</p>
@@ -620,14 +620,14 @@ const AdminPOSCustomerDetail = () => {
                     <div className="flex gap-3 w-full max-w-md">
                         <button
                             onClick={() => { resetForms(); setShowCreditModal(true); }}
-                            className="flex-1 bg-[#f187b5]/10 border border-[#f187b5]/20 text-[#f187b5] font-bold py-3.5 rounded-xl hover:bg-[#f187b5]/20 active:bg-[#f187b5]/30 transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/20 text-[var(--primary-color)] font-bold py-3.5 rounded-xl hover:bg-[var(--primary-color)]/20 active:bg-[var(--primary-color)]/30 transition-colors flex items-center justify-center gap-2"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                             Add Credit
                         </button>
                         <button
                             onClick={() => { resetForms(); setShowPaymentModal(true); }}
-                            className="flex-1 bg-gradient-to-r from-[#f187b5] to-[#e076a5] text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                            className="flex-1 bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-dark)] text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
                             Accept Payment
@@ -685,7 +685,7 @@ const AdminPOSCustomerDetail = () => {
             {showCreditModal && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden slide-in-from-bottom-5">
-                         <div className="bg-gradient-to-r from-[#f187b5] to-[#e076a5] p-6 text-white text-center">
+                         <div className="bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-dark)] p-6 text-white text-center">
                             <h3 className="text-xl font-bold">Add Credit</h3>
                             <p className="text-white/80 text-sm mt-1">Increase customer balance manualy</p>
                         </div>
@@ -696,7 +696,7 @@ const AdminPOSCustomerDetail = () => {
                                     <span className="absolute left-0 top-1/2 -translate-y-1/2 text-2xl font-bold text-gray-400">₹</span>
                                     <input
                                         type="number" required min="1"
-                                        className="w-full pl-8 text-4xl font-bold border-b border-gray-200 focus:border-[#f187b5] outline-none perm-marker-font text-gray-800 placeholder-gray-200 py-2 bg-transparent"
+                                        className="w-full pl-8 text-4xl font-bold border-b border-gray-200 focus:border-[var(--primary-color)] outline-none perm-marker-font text-gray-800 placeholder-gray-200 py-2 bg-transparent"
                                         placeholder="0"
                                         value={amount} onChange={e => setAmount(e.target.value)}
                                         autoFocus
@@ -707,7 +707,7 @@ const AdminPOSCustomerDetail = () => {
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Reason / Note</label>
                                 <textarea
-                                    className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-[#f187b5]/10 resize-none"
+                                    className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-[var(--primary-color)]/10 resize-none"
                                     rows={2} required
                                     value={note} onChange={e => setNote(e.target.value)}
                                     placeholder="Why are you adding this credit?"
@@ -716,7 +716,7 @@ const AdminPOSCustomerDetail = () => {
 
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Date</label>
-                                <input type="date" required className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-2 focus:ring-[#f187b5]/10" value={date} onChange={e => setDate(e.target.value)} />
+                                <input type="date" required className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm font-medium text-gray-800 outline-none focus:ring-2 focus:ring-[var(--primary-color)]/10" value={date} onChange={e => setDate(e.target.value)} />
                             </div>
 
                             <div className="flex gap-3 pt-2">
@@ -734,7 +734,7 @@ const AdminPOSCustomerDetail = () => {
             {showEditModal && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="bg-[#f187b5] px-6 py-4 text-white flex justify-between items-center">
+                        <div className="bg-[var(--primary-color)] px-6 py-4 text-white flex justify-between items-center">
                              <h3 className="text-lg font-bold">Edit Customer Details</h3>
                              <button onClick={() => setShowEditModal(false)} className="text-white/80 hover:text-white transition-colors">
                                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -743,27 +743,27 @@ const AdminPOSCustomerDetail = () => {
                         <form onSubmit={handleUpdateCustomer} className="p-6 space-y-4">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Full Name *</label>
-                                <input type="text" required className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+                                <input type="text" required className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Phone Number *</label>
-                                    <input type="tel" required maxLength={10} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all font-mono" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} />
+                                    <input type="tel" required maxLength={10} className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all font-mono" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Email (Optional)</label>
-                                    <input type="email" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} />
+                                    <input type="email" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">Address</label>
-                                <textarea rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all resize-none h-20" value={editData.address} onChange={e => setEditData({...editData, address: e.target.value})} />
+                                <textarea rows={2} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all resize-none h-20" value={editData.address} onChange={e => setEditData({...editData, address: e.target.value})} />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 ml-1">GST Number (Optional)</label>
-                                <input type="text" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 focus:border-[#f187b5] transition-all uppercase" value={editData.gst} onChange={e => setEditData({...editData, gst: e.target.value.toUpperCase()})} />
+                                <input type="text" className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all uppercase" value={editData.gst} onChange={e => setEditData({...editData, gst: e.target.value.toUpperCase()})} />
                             </div>
-                            <button type="submit" disabled={isActionLoading} className="w-full py-4 bg-[#f187b5] text-white rounded-2xl font-bold flex items-center justify-center gap-2 mt-4 shadow-lg shadow-pink-100 hover:scale-[1.02] active:scale-[0.98] transition-all">
+                            <button type="submit" disabled={isActionLoading} className="w-full py-4 bg-[var(--primary-color)] text-white rounded-2xl font-bold flex items-center justify-center gap-2 mt-4 shadow-lg shadow-pink-100 hover:scale-[1.02] active:scale-[0.98] transition-all">
                                 {isActionLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : (
                                     <>
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>

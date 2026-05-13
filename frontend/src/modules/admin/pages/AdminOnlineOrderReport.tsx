@@ -183,6 +183,16 @@ const AdminOnlineOrderReport = () => {
 
   const handleDeleteSelected = async () => {
     if (selectedRows.size === 0) return;
+
+    // Check if any selected order is NOT deletable (has a customer name)
+    const selectedOrdersList = orders.filter(o => selectedRows.has(o._id));
+    const hasNamedOrders = selectedOrdersList.some(o => o.customerName && o.customerName.toLowerCase() !== "walk-in customer");
+
+    if (hasNamedOrders) {
+        toast.error("Cannot delete orders that have customer names assigned. Please deselect them first.");
+        return;
+    }
+
     const ok = window.confirm(`Delete ${selectedRows.size} selected order(s)?`);
     if (!ok) return;
 
@@ -214,11 +224,11 @@ const AdminOnlineOrderReport = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Delivered": return "bg-green-100 text-green-700";
+      case "Delivered": return "bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]";
       case "Cancelled":
       case "Rejected": return "bg-red-100 text-red-700";
       case "Shipped":
-      case "Out for Delivery": return "bg-blue-100 text-blue-700";
+      case "Out for Delivery": return "bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]";
       default: return "bg-yellow-100 text-yellow-700";
     }
   };
@@ -237,7 +247,7 @@ const AdminOnlineOrderReport = () => {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setEditMode(!editMode)}
-                className={`inline-flex items-center px-5 py-2 text-white text-xs font-black rounded-lg active:scale-95 transition-all shadow-sm ${editMode ? 'bg-indigo-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+                className={`inline-flex items-center px-5 py-2 text-white text-xs font-black rounded-lg active:scale-95 transition-all shadow-sm ${editMode ? 'bg-[var(--primary-darker)]' : 'bg-[var(--primary-dark)] hover:bg-[var(--primary-darker)]'}`}>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
@@ -279,7 +289,7 @@ const AdminOnlineOrderReport = () => {
                 onClick={() => handleDateFilterChange(type as DateFilterType)}
                 className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
                   dateFilterType === type
-                    ? 'bg-white text-indigo-600 shadow-sm border border-gray-100'
+                    ? 'bg-white text-[var(--primary-dark)] shadow-sm border border-gray-100'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
                 }`}>
                 {type === 'alltime' ? 'All Time' : type.charAt(0).toUpperCase() + type.slice(1).replace('last', 'Last ')}
@@ -290,7 +300,7 @@ const AdminOnlineOrderReport = () => {
 
             <button
               onClick={fetchOrders}
-              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+              className="p-1.5 text-[var(--primary-dark)] hover:bg-[var(--primary-alpha-10)] rounded-lg transition-all"
               title="Refresh Data">
               <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -299,14 +309,14 @@ const AdminOnlineOrderReport = () => {
           </div>
 
           {showCustomDatePicker && (
-            <div className="mt-4 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 flex flex-wrap gap-4 animate-slide-left">
+            <div className="mt-4 p-4 bg-[var(--primary-alpha-10)]/50 rounded-2xl border border-indigo-100 flex flex-wrap gap-4 animate-slide-left">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-black text-indigo-400 px-1 uppercase tracking-widest">START DATE</label>
                 <input
                   type="date"
                   value={customDateRange.start}
                   onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                  className="px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -315,7 +325,7 @@ const AdminOnlineOrderReport = () => {
                   type="date"
                   value={customDateRange.end}
                   onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                  className="px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
                 />
               </div>
             </div>
@@ -331,7 +341,7 @@ const AdminOnlineOrderReport = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by Order ID, Customer, Phone or Payment..."
-                className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm font-semibold focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all outline-none"
+                className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm font-semibold focus:border-[var(--primary-color)] focus:ring-4 focus:ring-indigo-50 transition-all outline-none"
               />
             </div>
 
@@ -340,7 +350,7 @@ const AdminOnlineOrderReport = () => {
               <select
                 value={pagination.limit}
                 onChange={(e) => setPagination(prev => ({ ...prev, limit: parseInt(e.target.value), page: 1 }))}
-                className="px-3 py-2.5 bg-white border border-gray-100 rounded-xl text-sm font-black text-gray-700 outline-none focus:border-indigo-500 transition-all min-w-[80px]">
+                className="px-3 py-2.5 bg-white border border-gray-100 rounded-xl text-sm font-black text-gray-700 outline-none focus:border-[var(--primary-color)] transition-all min-w-[80px]">
                 {[10, 20, 50, 100, 500].map(l => (
                   <option key={l} value={l}>{l}</option>
                 ))}
@@ -350,7 +360,7 @@ const AdminOnlineOrderReport = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm font-black text-gray-700 outline-none focus:border-indigo-500 transition-all min-w-[160px]">
+              className="px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-sm font-black text-gray-700 outline-none focus:border-[var(--primary-color)] transition-all min-w-[160px]">
               <option>All Status</option>
               {["Received", "Pending", "Processed", "Shipped", "Out for Delivery", "Delivered", "Cancelled"].map(s => (
                 <option key={s} value={s}>{s}</option>
@@ -372,7 +382,7 @@ const AdminOnlineOrderReport = () => {
                       type="checkbox"
                       checked={selectedRows.size === orders.length && orders.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 transition-all cursor-pointer"
+                      className="w-4 h-4 text-[var(--primary-dark)] rounded border-gray-300 focus:ring-[var(--primary-color)] transition-all cursor-pointer"
                     />
                   </th>
                   <th className="px-4 py-4 text-left text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Order No</th>
@@ -389,7 +399,7 @@ const AdminOnlineOrderReport = () => {
                    <tr>
                      <td colSpan={8} className="px-6 py-24 text-center">
                        <div className="flex flex-col items-center gap-3">
-                         <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                         <div className="w-10 h-10 border-4 border-[var(--primary-dark)] border-t-transparent rounded-full animate-spin"></div>
                          <p className="text-gray-400 font-black tracking-widest text-[10px] uppercase">Syncing Cloud Data...</p>
                        </div>
                      </td>
@@ -398,17 +408,17 @@ const AdminOnlineOrderReport = () => {
                   <tr><td colSpan={8} className="px-6 py-24 text-center text-gray-400 font-black italic tracking-widest text-xs uppercase">No matching reports found</td></tr>
                 ) : (
                   orders.map((item: any) => (
-                    <tr key={item._id} className="hover:bg-indigo-50/20 transition-colors group">
+                    <tr key={item._id} className="hover:bg-[var(--primary-alpha-10)]/20 transition-colors group">
                       <td className="px-6 py-4">
                         <input
                           type="checkbox"
                           checked={selectedRows.has(item._id)}
                           onChange={() => handleSelectRow(item._id)}
-                          className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 transition-all cursor-pointer"
+                          className="w-4 h-4 text-[var(--primary-dark)] rounded border-gray-300 focus:ring-[var(--primary-color)] transition-all cursor-pointer"
                         />
                       </td>
                       <td className="px-4 py-4">
-                        <Link to={`/admin/orders/${item._id}`} className="text-indigo-600 font-black hover:underline underline-offset-4 decoration-2">
+                        <Link to={`/admin/orders/${item._id}`} className="text-[var(--primary-dark)] font-black hover:underline underline-offset-4 decoration-2">
                           #{item.orderNumber}
                         </Link>
                       </td>
@@ -420,13 +430,13 @@ const AdminOnlineOrderReport = () => {
                               type="text"
                               value={item.customerName}
                               onChange={(e) => handleCellEdit(item._id, 'customerName', e.target.value)}
-                              className="px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-bold"
+                              className="px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-bold"
                             />
                             <input
                               type="text"
                               value={item.customerPhone}
                               onChange={(e) => handleCellEdit(item._id, 'customerPhone', e.target.value)}
-                              className="px-2 py-1 text-[10px] border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-mono"
+                              className="px-2 py-1 text-[10px] border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-mono"
                             />
                           </div>
                         ) : (
@@ -444,7 +454,7 @@ const AdminOnlineOrderReport = () => {
                               type="number"
                               value={item.total}
                               onChange={(e) => handleCellEdit(item._id, 'total', parseFloat(e.target.value))}
-                              className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-indigo-500 outline-none font-black"
+                              className="w-full px-2 py-1 text-xs border border-gray-200 rounded-md focus:border-[var(--primary-color)] outline-none font-black"
                             />
                            </div>
                         ) : (
@@ -462,7 +472,7 @@ const AdminOnlineOrderReport = () => {
                            <select
                             value={item.status}
                             onChange={(e) => handleCellEdit(item._id, 'status', e.target.value)}
-                            className={`w-full px-2 py-1 text-[10px] font-black rounded-md border border-gray-200 outline-none focus:border-indigo-500 uppercase tracking-widest ${getStatusColor(item.status)}`}>
+                            className={`w-full px-2 py-1 text-[10px] font-black rounded-md border border-gray-200 outline-none focus:border-[var(--primary-color)] uppercase tracking-widest ${getStatusColor(item.status)}`}>
                              {["Received", "Pending", "Processed", "Shipped", "Out for Delivery", "Delivered", "Cancelled"].map(s => (
                                <option key={s} value={s}>{s}</option>
                              ))}
@@ -474,7 +484,7 @@ const AdminOnlineOrderReport = () => {
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                         <Link to={`/admin/orders/${item._id}`} className="p-2.5 bg-white border border-gray-100 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 hover:shadow-sm rounded-xl inline-block transition-all active:scale-90">
+                         <Link to={`/admin/orders/${item._id}`} className="p-2.5 bg-white border border-gray-100 text-gray-400 hover:text-[var(--primary-dark)] hover:border-indigo-200 hover:shadow-sm rounded-xl inline-block transition-all active:scale-90">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                          </Link>
                       </td>
@@ -490,7 +500,7 @@ const AdminOnlineOrderReport = () => {
         {pagination.pages > 1 && (
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
             <div className="text-xs font-black text-gray-400 uppercase tracking-widest">
-              Showing <span className="text-indigo-600">{orders.length}</span> of <span className="text-indigo-600">{pagination.total}</span> Orders
+              Showing <span className="text-[var(--primary-dark)]">{orders.length}</span> of <span className="text-[var(--primary-dark)]">{pagination.total}</span> Orders
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -514,7 +524,7 @@ const AdminOnlineOrderReport = () => {
                     <button
                       key={p}
                       onClick={() => setPagination(prev => ({ ...prev, page: p }))}
-                      className={`w-9 h-9 flex items-center justify-center rounded-xl text-xs font-black transition-all ${pagination.page === p ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'hover:bg-indigo-50 text-gray-500'}`}>
+                      className={`w-9 h-9 flex items-center justify-center rounded-xl text-xs font-black transition-all ${pagination.page === p ? 'bg-[var(--primary-dark)] text-white shadow-lg shadow-indigo-200' : 'hover:bg-[var(--primary-alpha-10)] text-gray-500'}`}>
                       {p}
                     </button>
                   );

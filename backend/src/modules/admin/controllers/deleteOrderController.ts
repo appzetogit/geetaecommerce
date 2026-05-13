@@ -19,6 +19,14 @@ export const deleteOrder = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
+  // Restriction: Cannot delete orders with customer names
+  if (order.customerName && order.customerName.trim() !== "" && order.customerName.toLowerCase() !== "walk-in customer") {
+    return res.status(403).json({
+      success: false,
+      message: "Orders with registered customer names cannot be deleted to maintain data integrity."
+    });
+  }
+
   const orderItems = await OrderItem.find({ order: order._id }).populate("product");
 
   for (const item of orderItems) {

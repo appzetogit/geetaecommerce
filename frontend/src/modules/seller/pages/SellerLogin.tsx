@@ -89,7 +89,7 @@ export default function SellerLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-seller-50 to-seller-50 flex flex-col items-center justify-center px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--primary-alpha-10)] to-[var(--primary-alpha-10)] flex flex-col items-center justify-center px-4 py-8">
       {/* Back Button */}
       <button
         onClick={() => navigate(-1)}
@@ -104,7 +104,7 @@ export default function SellerLogin() {
       {/* Login Card */}
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
         {/* Header Section */}
-        <div className="px-6 py-4 text-center border-b border-[#f187b5]/20 bg-[#f187b5]">
+        <div className="px-6 py-4 text-center border-b border-[var(--primary-color)]/20 bg-[var(--primary-color)]">
           <div className="mb-4">
             <img
               src="/assets/geetastoreslogo.png"
@@ -125,7 +125,7 @@ export default function SellerLogin() {
                 <label className="block text-sm font-medium text-neutral-700 mb-2">
                   Mobile Number
                 </label>
-                <div className="flex items-center bg-white border border-neutral-300 rounded-lg overflow-hidden focus-within:border-seller-500 focus-within:ring-2 focus-within:ring-seller-200 transition-all">
+                <div className="flex items-center bg-white border border-neutral-300 rounded-lg overflow-hidden focus-within:border-[var(--primary-color)] focus-within:ring-2 focus-within:ring-[var(--primary-alpha-30)] transition-all">
                   <div className="px-3 py-2.5 text-sm font-medium text-neutral-600 border-r border-neutral-300 bg-neutral-50">
                     +91
                   </div>
@@ -151,7 +151,7 @@ export default function SellerLogin() {
                 onClick={handleMobileLogin}
                 disabled={mobileNumber.length !== 10 || loading}
                 className={`w-full py-3 rounded-xl font-bold text-sm transition-all shadow-lg active:scale-[0.98] ${mobileNumber.length === 10 && !loading
-                  ? 'bg-gradient-to-r from-[#f187b5] to-[#e076a5] text-white hover:shadow-xl'
+                  ? 'bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-dark)] text-white hover:shadow-xl'
                   : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
                   }`}
               >
@@ -213,7 +213,7 @@ export default function SellerLogin() {
                     }
                   }}
                   disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg font-bold text-sm bg-gradient-to-r from-[#f187b5] to-[#e076a5] text-white hover:shadow-md transition-all active:scale-[0.98]"
+                  className="flex-1 py-2.5 rounded-lg font-bold text-sm bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-dark)] text-white hover:shadow-md transition-all active:scale-[0.98]"
                 >
                   {loading ? 'Sending...' : 'Resend OTP'}
                 </button>
@@ -227,7 +227,7 @@ export default function SellerLogin() {
 
           <button
             onClick={handleStaffLogin}
-            className="w-full py-2.5 rounded-lg font-semibold text-sm bg-white border border-[#f187b5]/40 text-[#f187b5] hover:bg-[#f187b5]/5 transition-colors"
+            className="w-full py-2.5 rounded-lg font-semibold text-sm bg-white border border-[var(--primary-color)]/40 text-[var(--primary-color)] hover:bg-[var(--primary-color)]/5 transition-colors"
           >
             Staff Login
           </button>
@@ -238,7 +238,7 @@ export default function SellerLogin() {
               Don't have a seller account?{' '}
               <button
                 onClick={() => navigate('/seller/signup')}
-                className="text-[#f187b5] hover:text-[#e076a5] font-bold"
+                className="text-[var(--primary-color)] hover:text-[var(--primary-dark)] font-bold"
               >
                 Sign Up
               </button>

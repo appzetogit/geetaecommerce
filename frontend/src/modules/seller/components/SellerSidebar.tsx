@@ -565,13 +565,13 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-[#f187b5] h-screen flex flex-col">
+    <aside className="w-64 bg-[var(--primary-color)] h-screen flex flex-col">
       {/* Close button - only show on mobile */}
-      <div className="flex justify-end p-4 border-b border-[#e076a5] lg:hidden">
+      <div className="flex justify-end p-4 border-b border-[var(--primary-dark)] lg:hidden">
         <button
           type="button"
           onClick={onClose}
-          className="p-2 text-pink-50 hover:text-white transition-colors"
+          className="p-2 text-white hover:text-white transition-colors"
           aria-label="Close menu">
           <svg
             width="24"
@@ -608,8 +608,8 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                     }
                   }}
                   className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-left transition-colors ${active
-                    ? "bg-[#e076a5] text-white"
-                    : "text-pink-100 hover:bg-[#e076a5]/50 hover:text-white"
+                    ? "bg-[var(--primary-dark)] text-white"
+                    : "text-white/80 hover:bg-[var(--primary-dark)]/50 hover:text-white"
                     }`}>
                   <div className="flex items-center gap-2">
                     {item.icon && (
@@ -627,7 +627,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                       className={`transition-transform ${expanded ? "rotate-180" : ""
-                        } ${active ? "text-white" : "text-pink-200"}`}>
+                        } ${active ? "text-white" : "text-white/60"}`}>
                       <path
                         d="M6 9L12 15L18 9"
                         stroke="currentColor"
@@ -654,8 +654,8 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                               onClick={() => toggleMenu(subItem.path)}
                               className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-left transition-colors ${
                                 active
-                                  ? "bg-[#e076a5] text-white"
-                                  : "text-pink-100 hover:bg-[#e076a5]/50 hover:text-white"
+                                  ? "bg-[var(--primary-dark)] text-white"
+                                  : "text-white/80 hover:bg-[var(--primary-dark)]/50 hover:text-white"
                               }`}>
                               <div className="flex items-center gap-2">
                                 <span className="flex-shrink-0">
@@ -673,7 +673,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                                 xmlns="http://www.w3.org/2000/svg"
                                 className={`transition-transform ${
                                   expanded ? "rotate-180" : ""
-                                } ${active ? "text-white" : "text-pink-200"}`}>
+                                } ${active ? "text-white" : "text-white/60"}`}>
                                 <path
                                   d="M6 9L12 15L18 9"
                                   stroke="currentColor"
@@ -684,7 +684,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                               </svg>
                             </button>
                             {expanded && (
-                              <ul className="mt-1 space-y-1 ml-4 border-l border-pink-300 pl-2">
+                              <ul className="mt-1 space-y-1 ml-4 border-l border-white/20 pl-2">
                                 {subItem.submenuItems.map((nestedItem) => {
                                   const nestedActive =
                                     location.pathname === nestedItem.path ||
@@ -700,8 +700,8 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                                         }
                                         className={`w-full flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-lg text-left transition-colors ${
                                           nestedActive
-                                            ? "bg-[#cf6594] text-white"
-                                            : "text-pink-100 hover:bg-[#e076a5]/50 hover:text-white"
+                                            ? "bg-[var(--primary-color)] text-white"
+                                            : "text-white/80 hover:bg-[var(--primary-dark)]/50 hover:text-white"
                                         }`}>
                                         <span className="flex-shrink-0 scale-75">
                                           {nestedItem.icon}
@@ -729,8 +729,8 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                             onClick={() => handleNavigation(subItem.path)}
                             className={`w-full flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-left transition-colors ${
                               subActive
-                                ? "bg-[#cf6594] text-white"
-                                : "text-pink-100 hover:bg-[#e076a5]/50 hover:text-white"
+                                ? "bg-[var(--primary-color)] text-white"
+                                : "text-white/80 hover:bg-[var(--primary-dark)]/50 hover:text-white"
                             }`}>
                             <span className="flex-shrink-0">
                               {subItem.icon}

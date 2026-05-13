@@ -236,15 +236,15 @@ export default function AdminShippedOrders() {
       case "Payment Pending":
         return "bg-yellow-100 text-yellow-800";
       case "Received":
-        return "bg-[#f187b5]/10 text-[#f187b5]"; // Was Blue
+        return "bg-[var(--primary-color)]/10 text-[var(--primary-color)]"; // Was Blue
       case "Processed":
-        return "bg-purple-100 text-purple-800";
+        return "bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]";
       case "Shipped":
-        return "bg-[#f187b5]/10 text-[#f187b5]"; // Was Indigo
+        return "bg-[var(--primary-color)]/10 text-[var(--primary-color)]"; // Was Indigo
       case "Out For Delivery":
         return "bg-orange-100 text-orange-800";
       case "Delivered":
-        return "bg-[#f187b5]/10 text-[#f187b5]"; // Was Green
+        return "bg-[var(--primary-color)]/10 text-[var(--primary-color)]"; // Was Green
       case "Cancelled":
         return "bg-red-100 text-red-800";
       default:
@@ -255,7 +255,7 @@ export default function AdminShippedOrders() {
   const getDeliveryBoyStatusColor = (status: string) => {
     switch (status) {
       case "Assigned":
-        return "bg-[#f187b5]/10 text-[#f187b5]"; // Was Green
+        return "bg-[var(--primary-color)]/10 text-[var(--primary-color)]"; // Was Green
       case "Not Assigned":
         return "bg-red-100 text-red-800";
       default:
@@ -275,7 +275,7 @@ export default function AdminShippedOrders() {
 
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-xs sm:text-sm">
-            <Link to="/admin" className="text-[#f187b5] hover:text-[#e076a5]">
+            <Link to="/admin" className="text-[var(--primary-color)] hover:text-[var(--primary-dark)]">
               Dashboard
             </Link>
             <span className="text-neutral-500">/</span>
@@ -289,7 +289,7 @@ export default function AdminShippedOrders() {
         {/* White Card Container */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
           {/* Green Banner */}
-          <div className="bg-[#f187b5] text-white px-4 sm:px-6 py-2 sm:py-3">
+          <div className="bg-[var(--primary-color)] text-white px-4 sm:px-6 py-2 sm:py-3">
             <h2 className="text-base sm:text-lg font-semibold">
               View Order List
             </h2>
@@ -350,7 +350,7 @@ export default function AdminShippedOrders() {
                     setSeller(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[#f187b5] focus:border-[#f187b5]">
+                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]">
                   <option>All Sellers</option>
                   <option>Seller 1</option>
                   <option>Seller 2</option>
@@ -369,7 +369,7 @@ export default function AdminShippedOrders() {
                     setStatus(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[#f187b5] focus:border-[#f187b5]">
+                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]">
                   <option>Shipped</option>
                   <option>All Status</option>
                   <option>Payment Pending</option>
@@ -389,7 +389,7 @@ export default function AdminShippedOrders() {
                     setEntriesPerPage(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[#f187b5] focus:border-[#f187b5]">
+                  className="w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]">
                   <option>10</option>
                   <option>25</option>
                   <option>50</option>
@@ -402,7 +402,7 @@ export default function AdminShippedOrders() {
                 <div className="relative">
                   <button
                     onClick={handleExport}
-                    className="flex items-center justify-center gap-2 bg-[#f187b5] hover:bg-[#e076a5] text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto">
+                    className="flex items-center justify-center gap-2 bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white px-3 sm:px-4 py-2 rounded text-xs sm:text-sm font-medium transition-colors w-full sm:w-auto">
                     <svg
                       width="16"
                       height="16"
@@ -449,7 +449,7 @@ export default function AdminShippedOrders() {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="flex-1 w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[#f187b5] focus:border-[#f187b5]"
+                  className="flex-1 w-full sm:w-auto px-3 py-2 border border-neutral-300 rounded text-xs sm:text-sm text-neutral-900 bg-white focus:outline-none focus:ring-1 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
                   placeholder="Search by Order ID, Customer, or Amount"
                 />
               </div>
@@ -803,7 +803,7 @@ export default function AdminShippedOrders() {
                       </td>
                       <td className="px-4 sm:px-6 py-3">
                         <Link to={`/admin/orders/${order._id}`}>
-                          <button className="bg-[#f187b5] hover:bg-[#e076a5] text-white p-2 rounded transition-colors" aria-label="View order">
+                          <button className="bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white p-2 rounded transition-colors" aria-label="View order">
                             <svg
                               width="16"
                               height="16"
@@ -894,7 +894,7 @@ export default function AdminShippedOrders() {
       {/* Footer */}
       <div className="text-center py-4 text-xs sm:text-sm text-neutral-600">
         Copyright © 2025. Developed By{" "}
-        <Link to="/" className="text-[#f187b5] hover:text-[#e076a5]">
+        <Link to="/" className="text-[var(--primary-color)] hover:text-[var(--primary-dark)]">
           Geeta Stores - 10 Minute App
         </Link>
       </div>

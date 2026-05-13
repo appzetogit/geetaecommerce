@@ -29,8 +29,8 @@ export default function SalesLineChart({ thisMonthData, lastMonthData, height = 
         >
           <defs>
             <linearGradient id="colorThisMonth" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f187b5" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#f187b5" stopOpacity={0.05} />
+              <stop offset="5%" stopColor="var(--primary-color)" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="var(--primary-color)" stopOpacity={0.05} />
             </linearGradient>
             <linearGradient id="colorLastMonth" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
@@ -77,7 +77,7 @@ export default function SalesLineChart({ thisMonthData, lastMonthData, height = 
             name="This Month"
             type="monotone"
             dataKey="thisMonth"
-            stroke="#f187b5"
+            stroke="var(--primary-color)"
             fillOpacity={1}
             fill="url(#colorThisMonth)"
             strokeWidth={2}

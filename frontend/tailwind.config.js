@@ -26,21 +26,21 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#FFC94A',
-          dark: '#FFB020',
+          DEFAULT: 'var(--primary-color)',
+          dark: 'var(--primary-dark)',
         },
         cream: '#FFF7E0',
         seller: {
-          50: '#fdf2f8',
-          100: '#fce7f3',
-          200: '#fbcfe8',
-          300: '#f9a8d4',
-          400: '#f472b6',
-          500: '#f187b5', // Primary requested pink
-          600: '#e076a5', // Secondary/Hover pink
-          700: '#be185d',
-          800: '#9d174d',
-          900: '#831843',
+          50: 'var(--primary-alpha-10)',
+          100: 'var(--primary-alpha-20)',
+          200: 'var(--primary-alpha-30)',
+          300: 'var(--primary-alpha-40)',
+          400: 'var(--primary-alpha-50)',
+          500: 'var(--primary-color)', // Primary dynamic color
+          600: 'var(--primary-dark)', // Secondary/Hover dynamic color
+          700: 'var(--primary-darker)',
+          800: 'var(--primary-darker)',
+          900: 'var(--primary-darker)',
         },
       },
     },

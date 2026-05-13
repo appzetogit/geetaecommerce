@@ -79,11 +79,11 @@ export default function AdminSubcategoryOrder() {
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        e.currentTarget.classList.add('border-teal-500', 'border-2');
+        e.currentTarget.classList.add('border-[var(--primary-color)]', 'border-2');
     };
 
     const handleDragLeave = (e: React.DragEvent) => {
-        e.currentTarget.classList.remove('border-teal-500', 'border-2');
+        e.currentTarget.classList.remove('border-[var(--primary-color)]', 'border-2');
     };
 
     const handleDrop = (e: React.DragEvent, dropIndex: number) => {
@@ -147,7 +147,7 @@ export default function AdminSubcategoryOrder() {
                     {/* Main Panel */}
                     <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
                         {/* Header */}
-                        <div className="bg-teal-600 text-white px-6 py-4 rounded-t-lg">
+                        <div className="bg-[var(--primary-dark)] text-white px-6 py-4 rounded-t-lg">
                             <h2 className="text-lg font-semibold">Update Subcategory Order</h2>
                         </div>
 
@@ -161,7 +161,7 @@ export default function AdminSubcategoryOrder() {
                                 <select
                                     value={selectedCategory}
                                     onChange={(e) => handleCategoryChange(e.target.value)}
-                                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                                    className="w-full px-3 py-2 border border-neutral-300 rounded focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] outline-none"
                                 >
                                     {CATEGORIES.map((category) => (
                                         <option key={category} value={category}>
@@ -226,10 +226,10 @@ export default function AdminSubcategoryOrder() {
                             )}
 
                             {/* Action Buttons */}
-                            <div className="bg-teal-50 px-4 py-3 rounded-lg flex gap-3">
+                            <div className="bg-[var(--primary-alpha-10)] px-4 py-3 rounded-lg flex gap-3">
                                 <button
                                     onClick={handleUpdateOrder}
-                                    className="flex-1 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded font-medium transition-colors"
+                                    className="flex-1 bg-[var(--primary-dark)] hover:bg-[var(--primary-darker)] text-white px-4 py-2 rounded font-medium transition-colors"
                                 >
                                     Update Subcategory Order
                                 </button>
@@ -248,7 +248,7 @@ export default function AdminSubcategoryOrder() {
             {/* Footer */}
             <footer className="text-center py-4 text-sm text-neutral-600 border-t border-neutral-200 bg-white">
                 Copyright © 2025. Developed By{' '}
-                <a href="#" className="text-blue-600 hover:underline">Geeta Stores - 10 Minute App</a>
+                <a href="#" className="text-[var(--primary-dark)] hover:underline">Geeta Stores - 10 Minute App</a>
             </footer>
         </div>
     );

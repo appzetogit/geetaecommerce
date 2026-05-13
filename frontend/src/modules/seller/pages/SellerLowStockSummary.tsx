@@ -215,7 +215,7 @@ const SellerLowStockSummary = () => {
             <div className="flex flex-wrap gap-2 text-white">
               <button
                 onClick={() => setEditMode(!editMode)}
-                className={`inline-flex items-center px-4 py-2 text-white text-sm font-semibold rounded-lg active:scale-95 transition-all shadow-sm ${editMode ? 'bg-[#d06b99]' : 'bg-[#f187b5] hover:bg-[#e076a5]'}`}>
+                className={`inline-flex items-center px-4 py-2 text-white text-sm font-semibold rounded-lg active:scale-95 transition-all shadow-sm ${editMode ? 'bg-[var(--primary-dark)]' : 'bg-[var(--primary-color)] hover:bg-[var(--primary-dark)]'}`}>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
@@ -232,7 +232,7 @@ const SellerLowStockSummary = () => {
 
               <button
                 onClick={downloadExcel}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 active:scale-95 transition-all shadow-sm">
+                className="inline-flex items-center px-4 py-2 bg-[var(--primary-dark)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--primary-darker)] active:scale-95 transition-all shadow-sm">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -256,7 +256,7 @@ const SellerLowStockSummary = () => {
               onClick={() => handleDateFilterChange('today')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'today'
-                  ? 'bg-white text-seller-600 shadow-sm'
+                  ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}>
               Today
@@ -265,7 +265,7 @@ const SellerLowStockSummary = () => {
               onClick={() => handleDateFilterChange('tomorrow')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'tomorrow'
-                  ? 'bg-white text-seller-600 shadow-sm'
+                  ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}>
               Tomorrow
@@ -274,7 +274,7 @@ const SellerLowStockSummary = () => {
               onClick={() => handleDateFilterChange('last7days')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'last7days'
-                  ? 'bg-white text-seller-600 shadow-sm'
+                  ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}>
               Last 7 Days
@@ -283,7 +283,7 @@ const SellerLowStockSummary = () => {
               onClick={() => handleDateFilterChange('last30days')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'last30days'
-                  ? 'bg-white text-seller-600 shadow-sm'
+                  ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}>
               Last 30 Days
@@ -292,7 +292,7 @@ const SellerLowStockSummary = () => {
               onClick={() => handleDateFilterChange('alltime')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'alltime'
-                  ? 'bg-white text-seller-600 shadow-sm'
+                  ? 'bg-white text-[var(--primary-dark)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
               }`}>
               All Time
@@ -301,12 +301,12 @@ const SellerLowStockSummary = () => {
               onClick={() => handleDateFilterChange('custom')}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 dateFilterType === 'custom'
-                  ? 'bg-seller-600 text-white shadow-sm'
-                  : 'text-seller-600 hover:bg-seller-50'
+                  ? 'bg-[var(--primary-dark)] text-white shadow-sm'
+                  : 'text-[var(--primary-dark)] hover:bg-[var(--primary-alpha-10)]'
               }`}>
               Custom
             </button>
-            <button className="p-2 text-seller-600 hover:bg-seller-50 rounded-lg transition-all">
+            <button className="p-2 text-[var(--primary-dark)] hover:bg-[var(--primary-alpha-10)] rounded-lg transition-all">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
@@ -315,7 +315,7 @@ const SellerLowStockSummary = () => {
 
           {/* Custom Date Range Picker */}
           {showCustomDatePicker && (
-            <div className="mt-4 p-4 bg-seller-50 rounded-lg border border-seller-200">
+            <div className="mt-4 p-4 bg-[var(--primary-alpha-10)] rounded-lg border border-[var(--primary-alpha-30)]">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1.5">Start Date</label>
@@ -323,7 +323,7 @@ const SellerLowStockSummary = () => {
                     type="date"
                     value={customDateRange.start}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, start: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -332,7 +332,7 @@ const SellerLowStockSummary = () => {
                     type="date"
                     value={customDateRange.end}
                     onChange={(e) => setCustomDateRange({ ...customDateRange, end: e.target.value })}
-                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all"
+                    className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all"
                   />
                 </div>
               </div>
@@ -348,7 +348,7 @@ const SellerLowStockSummary = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by product name, variant, category, or supplier..."
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all"
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all"
               />
             </div>
             <div>
@@ -356,7 +356,7 @@ const SellerLowStockSummary = () => {
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all">
+                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all">
                   <option value="">All Categories</option>
                   {categories.map(cat => (
                     <option key={cat._id} value={cat._id}>{cat.name}</option>
@@ -368,7 +368,7 @@ const SellerLowStockSummary = () => {
               <select
                 value={pagination.limit}
                 onChange={(e) => setPagination(prev => ({ ...prev, limit: Number(e.target.value), page: 1 }))}
-                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-seller-500 focus:ring-2 focus:ring-seller-200 outline-none transition-all"
+                className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-alpha-30)] outline-none transition-all"
               >
                 {[10, 20, 50, 100, 500].map(val => (
                   <option key={val} value={val}>{val}</option>
@@ -404,7 +404,7 @@ const SellerLowStockSummary = () => {
                       type="checkbox"
                       checked={selectedRows.size === data.length && data.length > 0}
                       onChange={(e) => handleSelectAll(e.target.checked)}
-                      className="w-4 h-4 text-seller-600 rounded border-gray-300 focus:ring-seller-500"
+                      className="w-4 h-4 text-[var(--primary-dark)] rounded border-gray-300 focus:ring-[var(--primary-color)]"
                     />
                   </th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider sticky left-10 bg-orange-50 z-10">Name</th>
@@ -423,7 +423,7 @@ const SellerLowStockSummary = () => {
                 {loading ? (
                   <tr>
                     <td colSpan={11} className="px-6 py-24 text-center">
-                      <div className="w-10 h-10 border-4 border-seller-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                      <div className="w-10 h-10 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
                       <p className="text-gray-400 font-black text-[10px] uppercase tracking-[0.2em]">Syncing Inventory...</p>
                     </td>
                   </tr>
@@ -441,7 +441,7 @@ const SellerLowStockSummary = () => {
                           type="checkbox"
                           checked={selectedRows.has(item._id)}
                           onChange={() => handleSelectRow(item._id)}
-                          className="w-4 h-4 text-seller-600 rounded border-gray-300 focus:ring-seller-500"
+                          className="w-4 h-4 text-[var(--primary-dark)] rounded border-gray-300 focus:ring-[var(--primary-color)]"
                         />
                       </td>
                       <td className="px-3 py-3 sticky left-10 bg-white">
@@ -450,7 +450,7 @@ const SellerLowStockSummary = () => {
                             type="text"
                             value={item.name}
                             onChange={(e) => handleCellEdit(item._id, 'name', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-semibold"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-semibold"
                           />
                         ) : (
                           <span className="text-sm font-semibold text-gray-900">{item.name}</span>
@@ -462,7 +462,7 @@ const SellerLowStockSummary = () => {
                             type="text"
                             value={item.variantName}
                             onChange={(e) => handleCellEdit(item._id, 'variantName', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">{item.variantName}</span>
@@ -474,7 +474,7 @@ const SellerLowStockSummary = () => {
                             type="text"
                             value={item.uom}
                             onChange={(e) => handleCellEdit(item._id, 'uom', e.target.value)}
-                            className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-16 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">{item.uom}</span>
@@ -486,7 +486,7 @@ const SellerLowStockSummary = () => {
                             type="number"
                             value={item.purchaseValue}
                             onChange={(e) => handleCellEdit(item._id, 'purchaseValue', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">₹{item.purchaseValue}</span>
@@ -498,7 +498,7 @@ const SellerLowStockSummary = () => {
                             type="number"
                             value={item.mrp}
                             onChange={(e) => handleCellEdit(item._id, 'mrp', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-semibold"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-semibold"
                           />
                         ) : (
                           <span className="text-sm font-semibold text-gray-900">₹{item.mrp}</span>
@@ -510,10 +510,10 @@ const SellerLowStockSummary = () => {
                             type="number"
                             value={item.sellingPrice}
                             onChange={(e) => handleCellEdit(item._id, 'sellingPrice', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-semibold text-green-600"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-semibold text-[var(--primary-dark)]"
                           />
                         ) : (
-                          <span className="text-sm font-semibold text-green-600">₹{item.sellingPrice}</span>
+                          <span className="text-sm font-semibold text-[var(--primary-dark)]">₹{item.sellingPrice}</span>
                         )}
                       </td>
                       <td className="px-3 py-3 bg-red-50">
@@ -522,7 +522,7 @@ const SellerLowStockSummary = () => {
                             type="number"
                             value={item.quantity}
                             onChange={(e) => handleCellEdit(item._id, 'quantity', parseInt(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-bold text-red-700"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-bold text-red-700"
                           />
                         ) : (
                           <span className="text-sm font-bold text-red-700">{item.quantity}</span>
@@ -534,7 +534,7 @@ const SellerLowStockSummary = () => {
                             type="number"
                             value={item.lowStockQty}
                             onChange={(e) => handleCellEdit(item._id, 'lowStockQty', parseInt(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none font-semibold text-orange-700"
+                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none font-semibold text-orange-700"
                           />
                         ) : (
                           <span className="text-sm font-semibold text-orange-700">{item.lowStockQty}</span>
@@ -546,7 +546,7 @@ const SellerLowStockSummary = () => {
                             type="text"
                             value={item.supplier}
                             onChange={(e) => handleCellEdit(item._id, 'supplier', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
                           <span className="text-sm text-gray-700">{item.supplier}</span>
@@ -558,10 +558,10 @@ const SellerLowStockSummary = () => {
                             type="text"
                             value={item.category}
                             onChange={(e) => handleCellEdit(item._id, 'category', e.target.value)}
-                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-seller-500 focus:ring-1 focus:ring-seller-500 outline-none"
+                            className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none"
                           />
                         ) : (
-                          <span className="text-xs px-2 py-1 bg-seller-100 text-seller-700 rounded-full font-medium">{item.category}</span>
+                          <span className="text-xs px-2 py-1 bg-[var(--primary-alpha-20)] text-[var(--primary-darker)] rounded-full font-medium">{item.category}</span>
                         )}
                       </td>
                     </tr>
@@ -634,7 +634,7 @@ const SellerLowStockSummary = () => {
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Value at Risk</p>
-            <p className="text-3xl font-black text-purple-600 mt-2">
+            <p className="text-3xl font-black text-[var(--primary-dark)] mt-2">
               ₹{data.reduce((sum, item) => sum + (item.sellingPrice * Math.max(item.lowStockQty - item.quantity, 0)), 0).toLocaleString()}
             </p>
           </div>

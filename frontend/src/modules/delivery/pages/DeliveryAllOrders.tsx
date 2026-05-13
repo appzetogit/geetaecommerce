@@ -33,9 +33,9 @@ export default function DeliveryAllOrders() {
       case 'In Transit':
       case 'Picked Up':
       case 'Assigned':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]';
       case 'Delivered':
-        return 'bg-green-100 text-green-700';
+        return 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]';
       case 'Cancelled':
       case 'Returned':
         return 'bg-red-100 text-red-700';

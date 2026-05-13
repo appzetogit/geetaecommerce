@@ -454,7 +454,7 @@ export default function GoogleMapsTracking({
 
     if (loadError) {
         return (
-            <div className={containerClasses + " bg-red-50 border border-red-200 p-4 text-center"}>
+            <div className={containerClasses + " bg-[var(--customer-primary-alpha-10)] border border-[var(--customer-primary-alpha-30)] p-4 text-center"}>
                 <p className="text-red-800 text-sm">❌ Failed to load Google Maps</p>
             </div>
         )
@@ -483,7 +483,7 @@ export default function GoogleMapsTracking({
             <div className={`absolute ${isFullScreen ? 'left-6 top-6' : 'left-3 top-3'} flex flex-col gap-2 z-10`}>
                 {isTracking && (
                     <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
+                        <div className="h-3 w-3 rounded-full bg-[var(--customer-primary)] animate-pulse"></div>
                         <span className="text-white bg-black/70 px-2 py-1 rounded text-sm font-medium">Live</span>
                     </div>
                 )}
@@ -492,7 +492,7 @@ export default function GoogleMapsTracking({
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="bg-red-600 text-white px-3 py-1.5 rounded-md text-xs font-semibold shadow-lg flex items-center gap-2"
+                        className="bg-[var(--customer-primary-dark)] text-white px-3 py-1.5 rounded-md text-xs font-semibold shadow-lg flex items-center gap-2"
                     >
                         <span className="animate-pulse">⚠️</span>
                         GPS Signal Weak
@@ -511,7 +511,7 @@ export default function GoogleMapsTracking({
                             <span className="text-sm text-gray-500 mb-0.5">({routeInfo.distance})</span>
                         </div>
                         {destinationName && (
-                            <div className="text-xs text-blue-600 mt-1 font-medium truncate">
+                            <div className="text-xs text-[var(--customer-primary-dark)] mt-1 font-medium truncate">
                                 to {destinationName}
                             </div>
                         )}
@@ -594,7 +594,7 @@ export default function GoogleMapsTracking({
                         icon={showRoute && routeDestination?.lat === seller.lat ? {
                             path: window.google?.maps?.SymbolPath?.CIRCLE || 0,
                             scale: 10,
-                            fillColor: '#ef4444',
+                            fillColor: 'var(--customer-primary)',
                             fillOpacity: 1,
                             strokeWeight: 3,
                             strokeColor: '#ffffff',
@@ -622,7 +622,7 @@ export default function GoogleMapsTracking({
                     <Polyline
                         path={path}
                         options={{
-                            strokeColor: routeError ? '#ef4444' : '#16a34a',
+                            strokeColor: routeError ? 'var(--customer-primary)' : '#16a34a',
                             strokeOpacity: 0.7,
                             strokeWeight: 4,
                             geodesic: true,

@@ -118,7 +118,7 @@ const SellerPOSSuppliers = () => {
                             }}
                             className={`px-2 py-2 sm:px-3 rounded-lg transition-all border flex items-center gap-2 text-sm font-semibold ${
                                 showAdvanceOnly 
-                                ? "bg-green-50 border-green-200 text-green-600 shadow-sm" 
+                                ? "bg-[var(--primary-alpha-10)] border-green-200 text-[var(--primary-dark)] shadow-sm" 
                                 : "bg-gray-100 border-transparent text-gray-600 hover:bg-gray-200"
                             }`}
                             title={showAdvanceOnly ? "Showing Advance Only" : "Show All Suppliers"}
@@ -130,7 +130,7 @@ const SellerPOSSuppliers = () => {
                         </button>
                         <button
                             onClick={() => setShowAddModal(true)}
-                            className="p-2 bg-[#f187b5] text-white rounded-full shadow-lg hover:bg-[#e076a5] active:scale-95 transition-all"
+                            className="p-2 bg-[var(--primary-color)] text-white rounded-full shadow-lg hover:bg-[var(--primary-dark)] active:scale-95 transition-all"
                         >
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -144,7 +144,7 @@ const SellerPOSSuppliers = () => {
                         <input
                             type="text"
                             placeholder="Search by name, phone or GST"
-                            className="w-full bg-gray-100 border-none rounded-xl px-4 py-3 pl-10 text-base focus:ring-2 focus:ring-[#f187b5]/20 outline-none transition-all"
+                            className="w-full bg-gray-100 border-none rounded-xl px-4 py-3 pl-10 text-base focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -159,7 +159,7 @@ const SellerPOSSuppliers = () => {
             <div className="flex-1 p-0 md:p-4 md:max-w-4xl md:mx-auto w-full">
                 {loading && suppliers.length === 0 ? (
                     <div className="text-center py-20 flex flex-col items-center">
-                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f187b5] mb-2"></div>
+                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary-color)] mb-2"></div>
                          <p className="text-gray-500 text-sm">Loading suppliers...</p>
                     </div>
                 ) : suppliers.length === 0 ? (
@@ -170,7 +170,7 @@ const SellerPOSSuppliers = () => {
                         <p>No suppliers found</p>
                         <button
                             onClick={() => setShowAddModal(true)}
-                            className="mt-4 text-[#f187b5] font-semibold hover:underline"
+                            className="mt-4 text-[var(--primary-color)] font-semibold hover:underline"
                         >
                             Add Your First Supplier
                         </button>
@@ -184,13 +184,13 @@ const SellerPOSSuppliers = () => {
                                 className="p-4 hover:bg-gray-50 active:bg-gray-100 cursor-pointer flex justify-between items-center transition-colors group"
                             >
                                 <div className="flex-1">
-                                    <h3 className="font-bold text-gray-900 group-hover:text-[#f187b5] transition-colors">{supplier.name}</h3>
+                                    <h3 className="font-bold text-gray-900 group-hover:text-[var(--primary-color)] transition-colors">{supplier.name}</h3>
                                     <div className="flex items-center gap-2 mt-0.5">
                                         <p className="text-xs text-gray-500 font-medium">{supplier.phone}</p>
                                         {supplier.gstNumber && (
                                             <>
                                                 <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                                                <p className="text-[10px] text-indigo-600 font-bold uppercase">GST: {supplier.gstNumber}</p>
+                                                <p className="text-[10px] text-[var(--primary-dark)] font-bold uppercase">GST: {supplier.gstNumber}</p>
                                             </>
                                         )}
                                     </div>
@@ -200,7 +200,7 @@ const SellerPOSSuppliers = () => {
                                     {supplier.currentBalance > 0 ? (
                                         <div className="text-red-500 font-black text-lg">₹{supplier.currentBalance.toLocaleString()}</div>
                                     ) : supplier.currentBalance < 0 ? (
-                                        <div className="text-green-500 font-black text-lg">₹{Math.abs(supplier.currentBalance).toLocaleString()} (Adv)</div>
+                                        <div className="text-[var(--primary-color)] font-black text-lg">₹{Math.abs(supplier.currentBalance).toLocaleString()} (Adv)</div>
                                     ) : (
                                         <div className="text-gray-300 font-black text-lg">₹0</div>
                                     )}
@@ -215,7 +215,7 @@ const SellerPOSSuppliers = () => {
             {showAddModal && (
                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden slide-in-from-bottom-5">
-                        <div className="bg-[#f187b5] px-6 py-5 text-white flex justify-between items-center">
+                        <div className="bg-[var(--primary-color)] px-6 py-5 text-white flex justify-between items-center">
                             <div>
                                 <h3 className="text-xl font-bold">New Supplier</h3>
                                 <p className="text-white/70 text-xs">Add a supplier to track credit/debit</p>
@@ -236,7 +236,7 @@ const SellerPOSSuppliers = () => {
                                             type="text" required
                                             value={newSupplier.name}
                                             onChange={(e) => setNewSupplier({...newSupplier, name: e.target.value})}
-                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#f187b5]/20 outline-none transition-all"
+                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none transition-all"
                                             placeholder="John Doe Enterprises"
                                         />
                                     </div>
@@ -254,7 +254,7 @@ const SellerPOSSuppliers = () => {
                                                     setNewSupplier({...newSupplier, phone: val});
                                                 }
                                             }}
-                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#f187b5]/20 outline-none transition-all font-mono"
+                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none transition-all font-mono"
                                             placeholder="10 digit mobile"
                                         />
                                     </div>
@@ -265,7 +265,7 @@ const SellerPOSSuppliers = () => {
                                             type="text"
                                             value={newSupplier.gstNumber}
                                             onChange={(e) => setNewSupplier({...newSupplier, gstNumber: e.target.value.toUpperCase()})}
-                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#f187b5]/20 outline-none transition-all"
+                                            className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none transition-all"
                                             placeholder="08AAAAA0000A1Z5"
                                         />
                                     </div>
@@ -280,12 +280,12 @@ const SellerPOSSuppliers = () => {
                                                 type="number"
                                                 value={newSupplier.openingBalance}
                                                 onChange={(e) => setNewSupplier({...newSupplier, openingBalance: parseFloat(e.target.value) || 0})}
-                                                className="w-full bg-gray-50 border-none rounded-xl px-8 py-3 text-sm focus:ring-2 focus:ring-[#f187b5]/20 outline-none transition-all font-bold"
+                                                className="w-full bg-gray-50 border-none rounded-xl px-8 py-3 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none transition-all font-bold"
                                                 placeholder="0.00"
                                             />
                                         </div>
                                         <select
-                                            className="bg-gray-50 border-none rounded-xl px-3 py-3 text-xs font-bold text-gray-600 focus:ring-2 focus:ring-[#f187b5]/20 outline-none transition-all"
+                                            className="bg-gray-50 border-none rounded-xl px-3 py-3 text-xs font-bold text-gray-600 focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none transition-all"
                                             value={newSupplier.openingBalanceType}
                                             onChange={(e) => setNewSupplier({...newSupplier, openingBalanceType: e.target.value as any})}
                                         >
@@ -303,7 +303,7 @@ const SellerPOSSuppliers = () => {
                                     <textarea
                                         value={newSupplier.address}
                                         onChange={(e) => setNewSupplier({...newSupplier, address: e.target.value})}
-                                        className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#f187b5]/20 outline-none transition-all h-20 resize-none"
+                                        className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none transition-all h-20 resize-none"
                                         placeholder="Full address of supplier"
                                     />
                                 </div>
@@ -313,7 +313,7 @@ const SellerPOSSuppliers = () => {
                                     <textarea
                                         value={newSupplier.notes}
                                         onChange={(e) => setNewSupplier({...newSupplier, notes: e.target.value})}
-                                        className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#f187b5]/20 outline-none transition-all h-16 resize-none"
+                                        className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none transition-all h-16 resize-none"
                                         placeholder="Note down terms, or any details..."
                                     />
                                 </div>
@@ -330,7 +330,7 @@ const SellerPOSSuppliers = () => {
                                 <button
                                     type="submit"
                                     disabled={newSupplierLoading}
-                                    className="flex-[2] py-3.5 bg-[#f187b5] text-white rounded-2xl font-bold hover:bg-[#e076a5] transition-all shadow-lg shadow-pink-100 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2"
+                                    className="flex-[2] py-3.5 bg-[var(--primary-color)] text-white rounded-2xl font-bold hover:bg-[var(--primary-dark)] transition-all shadow-lg shadow-pink-100 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2"
                                 >
                                     {newSupplierLoading ? (
                                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

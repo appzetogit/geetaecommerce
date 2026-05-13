@@ -138,10 +138,10 @@ export default function GoogleLocationPickerMap({
                 center={center}
                 radius={radiusKm * 1000}
                 options={{
-                    strokeColor: "#E91E63",
+                    strokeColor: "var(--primary-color)",
                     strokeOpacity: 0.8,
                     strokeWeight: 2,
-                    fillColor: "#E91E63",
+                    fillColor: "var(--primary-color)",
                     fillOpacity: 0.2,
                 }}
             />

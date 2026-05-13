@@ -315,7 +315,7 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
                             <span key={color.name} className="px-3 py-1 bg-neutral-100 text-neutral-800 border border-neutral-200 rounded-full text-xs font-medium flex items-center gap-2 shadow-sm">
                                 <span className="w-3 h-3 rounded-full border border-gray-300 shadow-sm" style={{ backgroundColor: color.code }}></span>
                                 {color.name}
-                                <button type="button" onClick={() => setSelectedColors((prev: any) => prev.filter((c: any) => c.name !== color.name))} className="text-neutral-400 hover:text-red-500 font-bold focus:outline-none tracking-tighter">&times;</button>
+                                <button type="button" onClick={() => setSelectedColors((prev: any) => prev.filter((c: any) => c.name !== color.name))} className="text-neutral-400 hover:text-[var(--customer-primary)] font-bold focus:outline-none tracking-tighter">&times;</button>
                             </span>
                         ))}
                     </div>
@@ -324,12 +324,12 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
         </div>
 
         {/* Info */}
-        <div className="bg-blue-50 px-6 py-2 text-xs text-blue-700 border-b border-blue-100 flex items-center gap-2">
+        <div className="bg-[var(--customer-primary-alpha-10)] px-6 py-2 text-xs text-blue-700 border-b border-blue-100 flex items-center gap-2">
             <span className="font-bold">Attributes:</span>
             {selectedAttributes.length > 0 ? (
                 <div className="flex gap-1">
                     {selectedAttributes.map(attr => (
-                        <span key={attr} className="bg-blue-100 px-2 py-0.5 rounded border border-blue-200">{attr}</span>
+                        <span key={attr} className="bg-[var(--customer-primary-alpha-20)] px-2 py-0.5 rounded border border-blue-200">{attr}</span>
                     ))}
                 </div>
             ) : (
@@ -424,7 +424,7 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
                                         <button onClick={() => {
                                             const newBarcodes = (v.barcode || []).filter(item => item !== b);
                                             handleChange(index, 'barcode', newBarcodes);
-                                        }} className="text-pink-400 hover:text-red-500 transition-colors">&times;</button>
+                                        }} className="text-pink-400 hover:text-[var(--customer-primary)] transition-colors">&times;</button>
                                     </span>
                                 ))}
                             </div>
@@ -465,7 +465,7 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
                         </div>
                     </td>
                     <td className="p-2 text-center">
-                        <button onClick={() => removeRow(index)} className="text-gray-400 hover:text-red-600 transition-colors p-1" title="Remove Variation">
+                        <button onClick={() => removeRow(index)} className="text-gray-400 hover:text-[var(--customer-primary-dark)] transition-colors p-1" title="Remove Variation">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                     </td>

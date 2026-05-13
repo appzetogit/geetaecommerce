@@ -30,7 +30,7 @@ const BASE_PERMISSION_GROUPS: PermissionGroup[] = [
     id: 'access',
     title: 'POS Access',
     badge: 'ACCESS CONTROL',
-    badgeColor: 'text-teal-600 bg-teal-50',
+    badgeColor: 'text-[var(--primary-dark)] bg-[var(--primary-alpha-10)]',
     permissions: [
       { id: 'pos_access', label: 'Allow POS Module', enabled: true },
     ]
@@ -140,7 +140,7 @@ const ADMIN_SIDEBAR_SECTIONS: Array<{
   {
     title: 'POS Section',
     badge: 'POS MENU',
-    badgeColor: 'text-teal-600 bg-teal-50',
+    badgeColor: 'text-[var(--primary-dark)] bg-[var(--primary-alpha-10)]',
     items: [
       { label: 'POS Orders', path: '/admin/pos/orders' },
       { label: 'POS Report', path: '/admin/pos/report' },
@@ -153,7 +153,7 @@ const ADMIN_SIDEBAR_SECTIONS: Array<{
   {
     title: 'Reports',
     badge: 'REPORTS',
-    badgeColor: 'text-blue-600 bg-blue-50',
+    badgeColor: 'text-[var(--primary-dark)] bg-[var(--primary-alpha-10)]',
     items: [
       { label: 'Reports', path: '/admin/reports' },
       { label: 'Order Report', path: '/admin/reports/order' },
@@ -389,7 +389,7 @@ const SELLER_SIDEBAR_SECTIONS: Array<{
   {
     title: 'POS System',
     badge: 'POS',
-    badgeColor: 'text-teal-600 bg-teal-50',
+    badgeColor: 'text-[var(--primary-dark)] bg-[var(--primary-alpha-10)]',
     items: [
       { label: 'POS System', path: '/seller/pos' },
       { label: 'POS Orders', path: '/seller/pos/orders' },
@@ -425,7 +425,7 @@ const SELLER_SIDEBAR_SECTIONS: Array<{
   {
     title: 'Reports',
     badge: 'REPORTS',
-    badgeColor: 'text-blue-600 bg-blue-50',
+    badgeColor: 'text-[var(--primary-dark)] bg-[var(--primary-alpha-10)]',
     items: [
       { label: 'Reports', path: '/seller/reports' },
       { label: 'Order Report', path: '/seller/reports/order' },
@@ -729,7 +729,7 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#f187b5]/10 flex items-center justify-center text-[#f187b5]">
+            <div className="w-10 h-10 rounded-full bg-[var(--primary-color)]/10 flex items-center justify-center text-[var(--primary-color)]">
               <Shield size={22} />
             </div>
             <div>
@@ -762,7 +762,7 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
                   <select
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3 bg-white border border-gray-200 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#f187b5]/20 appearance-none cursor-pointer"
+                    className="w-full pl-4 pr-10 py-3 bg-white border border-gray-200 rounded-xl font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 appearance-none cursor-pointer"
                   >
                     {roles.map(role => (
                       <option key={role} value={role}>{role.replace(/_/g, ' ')}</option>
@@ -785,7 +785,7 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
                   className="w-full p-6 flex items-center justify-between hover:bg-gray-50/50 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--primary-color)]/10 text-[var(--primary-dark)] flex items-center justify-center">
                       {group.id === 'access' && <Shield size={20} />}
                       {group.id === 'inventory' && <Shield size={20} />}
                       {group.id === 'orders' && <ShoppingCart size={20} />}
@@ -815,7 +815,7 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
                         key={permission.id}
                         className={`group flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all ${
                           permission.enabled
-                            ? 'bg-[#f187b5]/5'
+                            ? 'bg-[var(--primary-color)]/5'
                             : 'hover:bg-gray-50'
                         }`}
                         onClick={() => togglePermission(group.id, permission.id)}
@@ -825,7 +825,7 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
                         </span>
 
                         <div className={`w-11 h-6 rounded-full relative transition-colors duration-200 ${
-                          permission.enabled ? 'bg-green-500' : 'bg-gray-200'
+                          permission.enabled ? 'bg-[var(--primary-color)]' : 'bg-gray-200'
                         }`}>
                           <div className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-sm transition-transform duration-200 ${
                             permission.enabled ? 'translate-x-5' : 'translate-x-0'
@@ -850,7 +850,7 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
           </button>
           <button
             onClick={handleSave}
-            className="flex-[2] px-8 py-4 bg-[#f187b5] text-white font-bold rounded-2xl hover:bg-[#db76a3] shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
+            className="flex-[2] px-8 py-4 bg-[var(--primary-color)] text-white font-bold rounded-2xl hover:bg-[var(--primary-color)] shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
           >
             <Save size={20} />
             Save Transitions

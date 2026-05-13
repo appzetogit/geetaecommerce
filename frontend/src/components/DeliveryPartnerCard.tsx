@@ -133,11 +133,11 @@ export default function DeliveryPartnerCard({
                         {isTracking && (
                             <div className="flex items-center gap-1 mt-1">
                                 <motion.div
-                                    className="w-2 h-2 rounded-full bg-green-500"
+                                    className="w-2 h-2 rounded-full bg-[var(--customer-primary)]"
                                     animate={{ opacity: [1, 0.3, 1] }}
                                     transition={{ duration: 2, repeat: Infinity }}
                                 />
-                                <span className="text-xs text-green-600 font-medium">
+                                <span className="text-xs text-[var(--customer-primary-dark)] font-medium">
                                     On the way
                                 </span>
                             </div>
@@ -147,7 +147,7 @@ export default function DeliveryPartnerCard({
                     {/* Call Button */}
                     {partner?.phone && onCall && (
                         <motion.button
-                            className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center hover:bg-green-200"
+                            className="w-10 h-10 rounded-full bg-[var(--customer-primary-alpha-20)] flex items-center justify-center hover:bg-[var(--customer-primary-alpha-30)]"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={onCall}
@@ -215,7 +215,7 @@ export default function DeliveryPartnerCard({
                         </div>
                         <div className="flex items-center gap-2">
                             <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-bold ${
-                                timeLeft < 60 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                                timeLeft < 60 ? 'bg-[var(--customer-primary-alpha-20)] text-[var(--customer-primary-dark)]' : 'bg-[var(--customer-primary-alpha-20)] text-[var(--customer-primary-dark)]'
                             }`}>
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
                                     <circle cx="12" cy="12" r="10"></circle>
@@ -228,7 +228,7 @@ export default function DeliveryPartnerCard({
 
                     <div className="flex items-center gap-3">
                         <div className="flex-1 bg-white px-4 py-2.5 rounded-lg border border-neutral-100 shadow-sm flex items-center justify-between group">
-                            <span className="text-2xl font-black tracking-[0.25em] text-green-700">{deliveryOtp}</span>
+                            <span className="text-2xl font-black tracking-[0.25em] text-[var(--customer-primary-dark)]">{deliveryOtp}</span>
                             <motion.button
                                 onClick={handleCopyOtp}
                                 className="p-1.5 hover:bg-neutral-50 rounded-md transition-colors relative"

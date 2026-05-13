@@ -295,8 +295,8 @@ const ReelItem = ({
               >
                  <svg
                    width="24" height="24" viewBox="0 0 24 24"
-                   fill={isLiked ? "#ef4444" : "none"}
-                   stroke={isLiked ? "#ef4444" : "white"}
+                   fill={isLiked ? "var(--customer-primary)" : "none"}
+                   stroke={isLiked ? "var(--customer-primary)" : "white"}
                    strokeWidth="2"
                  >
                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -350,7 +350,7 @@ const ReelItem = ({
                     <button
                       onClick={handleAddToCart}
                       disabled={product.linkedProduct.stock !== undefined && product.linkedProduct.stock < 1}
-                      className="w-full py-3 bg-[#E31E24] text-white font-bold text-sm uppercase tracking-wide hover:bg-red-700 active:bg-red-800 transition-colors disabled:bg-gray-400"
+                      className="w-full py-3 bg-[#E31E24] text-white font-bold text-sm uppercase tracking-wide hover:bg-[var(--customer-primary-darker)] active:bg-red-800 transition-colors disabled:bg-gray-400"
                     >
                        {product.linkedProduct.stock !== undefined && product.linkedProduct.stock < 1 ? 'Out of Stock' : 'Add To Cart'}
                     </button>

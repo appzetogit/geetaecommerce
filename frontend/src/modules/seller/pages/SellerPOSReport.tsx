@@ -189,11 +189,18 @@ const SellerPOSReport = () => {
         fetchData(start, end);
     };
 
-    const handleDeleteOrder = async (orderId: string) => {
+    const handleDeleteOrder = async (order: any) => {
+        // Restriction: Cannot delete orders with customer names
+        const isWalkIn = !order.customerName || order.customerName.toLowerCase() === "walk-in customer";
+        if (!isWalkIn) {
+            showToast("Orders with customer names cannot be deleted.", "error");
+            return;
+        }
+
         if (window.confirm("Are you sure you want to delete this POS order? This will restore the stock.")) {
             try {
                 setLoading(true);
-                const response = await deleteSellerPOSOrder(orderId);
+                const response = await deleteSellerPOSOrder(order._id);
                 if (response.success) {
                     showToast("Order deleted and stock restored", "success");
                     fetchData(dateRange.start || undefined, dateRange.end || undefined);
@@ -228,6 +235,16 @@ const SellerPOSReport = () => {
 
     const handleDeleteSelectedOrders = async () => {
         if (selectedOrderIds.size === 0) return;
+
+        // Check if any selected order is NOT deletable (has a customer name)
+        const selectedOrdersList = reportData?.orders?.filter((o: any) => selectedOrderIds.has(o._id)) || [];
+        const hasNamedOrders = selectedOrdersList.some((o: any) => o.customerName && o.customerName.toLowerCase() !== "walk-in customer");
+
+        if (hasNamedOrders) {
+            showToast("Cannot delete orders that have customer names assigned. Please deselect them first.", "error");
+            return;
+        }
+
         const ok = window.confirm(`Delete ${selectedOrderIds.size} selected item(s)?`);
         if (!ok) return;
 
@@ -374,7 +391,7 @@ const SellerPOSReport = () => {
     if (loading && !reportData) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <FiLoader className="w-10 h-10 text-[#f187b5] animate-spin mb-4" />
+                <FiLoader className="w-10 h-10 text-[var(--primary-color)] animate-spin mb-4" />
                 <p className="text-gray-500 font-medium">Loading POS analytics...</p>
             </div>
         );
@@ -407,7 +424,7 @@ const SellerPOSReport = () => {
                     )}
                     <button
                       onClick={() => fetchData(dateRange.start || undefined, dateRange.end || undefined)}
-                      className="px-4 py-2 bg-[#f187b5]/10 text-[#f187b5] rounded-xl font-semibold hover:bg-[#f187b5]/20 transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-[var(--primary-color)]/10 text-[var(--primary-color)] rounded-xl font-semibold hover:bg-[var(--primary-color)]/20 transition-colors flex items-center gap-2"
                     >
                         <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -434,7 +451,7 @@ const SellerPOSReport = () => {
                                     <button
                                         key={period}
                                         onClick={() => applyDateFilter(period)}
-                                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === period ? 'border-[#f187b5] bg-[#f187b5]/10 text-[#f187b5]' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
+                                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === period ? 'border-[var(--primary-color)] bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedPeriod === period ? 'bg-white' : 'bg-gray-100'}`}>
@@ -448,7 +465,7 @@ const SellerPOSReport = () => {
 
                                 <button
                                     onClick={() => applyDateFilter("Custom Range")}
-                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === "Custom Range" ? 'border-[#f187b5] bg-[#f187b5]/10 text-[#f187b5]' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
+                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors ${selectedPeriod === "Custom Range" ? 'border-[var(--primary-color)] bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedPeriod === "Custom Range" ? 'bg-white' : 'bg-gray-100'}`}>
@@ -456,13 +473,13 @@ const SellerPOSReport = () => {
                                         </div>
                                         <span className="font-medium">Custom Range</span>
                                     </div>
-                                    {selectedPeriod === "Custom Range" && <div className="w-2 h-2 rounded-full bg-[#f187b5]"></div>}
+                                    {selectedPeriod === "Custom Range" && <div className="w-2 h-2 rounded-full bg-[var(--primary-color)]"></div>}
                                 </button>
                             </div>
 
                             {selectedPeriod === "Custom Range" && (
                                 <div className="mt-4 pt-4 border-t border-gray-100 animate-in slide-in-from-top-2">
-                                     <h4 className="text-sm font-bold text-[#f187b5] mb-3 bg-[#f187b5]/10 px-3 py-1 rounded-md inline-block">Select Date Range</h4>
+                                     <h4 className="text-sm font-bold text-[var(--primary-color)] mb-3 bg-[var(--primary-color)]/10 px-3 py-1 rounded-md inline-block">Select Date Range</h4>
                                      <div className="flex gap-3 mb-4">
                                          <div className="flex-1">
                                              <label className="text-xs font-semibold text-gray-500 mb-1 block">Start Date</label>
@@ -470,7 +487,7 @@ const SellerPOSReport = () => {
                                                 type="date"
                                                 value={customStart}
                                                 onChange={(e) => setCustomStart(e.target.value)}
-                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] outline-none bg-gray-50 focus:bg-white"
+                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none bg-gray-50 focus:bg-white"
                                              />
                                          </div>
                                          <div className="flex-1">
@@ -479,7 +496,7 @@ const SellerPOSReport = () => {
                                                 type="date"
                                                 value={customEnd}
                                                 onChange={(e) => setCustomEnd(e.target.value)}
-                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] outline-none bg-gray-50 focus:bg-white"
+                                                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] outline-none bg-gray-50 focus:bg-white"
                                              />
                                          </div>
                                      </div>
@@ -492,7 +509,7 @@ const SellerPOSReport = () => {
                                          </button>
                                          <button
                                             onClick={handleApplyCustomFilter}
-                                            className="flex-1 py-2.5 bg-[#f187b5] text-white font-semibold rounded-xl hover:bg-[#e076a5] transition-colors shadow-sm"
+                                            className="flex-1 py-2.5 bg-[var(--primary-color)] text-white font-semibold rounded-xl hover:bg-[var(--primary-dark)] transition-colors shadow-sm"
                                          >
                                             Apply Filter
                                          </button>
@@ -510,14 +527,14 @@ const SellerPOSReport = () => {
                     title="Today's Sales"
                     value={`₹${(reportData?.summary?.totalSales || 0).toLocaleString()}`}
                     icon={<FiTrendingUp className="w-6 h-6" />}
-                    color="bg-blue-500"
+                    color="bg-[var(--primary-color)]"
                     desc="Total POS revenue today"
                 />
                 <ReportCard
                     title="Cash Sales"
                     value={`₹${(reportData?.summary?.cashSales || 0).toLocaleString()}`}
                     icon={<FiDollarSign className="w-6 h-6" />}
-                    color="bg-[#f187b5]"
+                    color="bg-[var(--primary-color)]"
                     desc="Physical cash collected"
                 />
                 <ReportCard
@@ -531,7 +548,7 @@ const SellerPOSReport = () => {
                     title="Orders Count"
                     value={reportData?.summary.totalOrders || 0}
                     icon={<FiShoppingBag className="w-6 h-6" />}
-                    color="bg-purple-500"
+                    color="bg-[var(--primary-color)]"
                     desc="Total tickets generated"
                 />
             </div>
@@ -542,17 +559,17 @@ const SellerPOSReport = () => {
                 <div className="flex border-b border-gray-100 bg-gray-50/30">
                     <button
                         onClick={() => setActiveTab("orders")}
-                        className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === "orders" ? "text-[#f187b5]" : "text-gray-500 hover:text-gray-700"}`}
+                        className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === "orders" ? "text-[var(--primary-color)]" : "text-gray-500 hover:text-gray-700"}`}
                     >
                         POS Orders
-                        {activeTab === "orders" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#f187b5]"></div>}
+                        {activeTab === "orders" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--primary-color)]"></div>}
                     </button>
                     <button
                         onClick={() => setActiveTab("ledger")}
-                        className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === "ledger" ? "text-[#f187b5]" : "text-gray-500 hover:text-gray-700"}`}
+                        className={`px-8 py-4 text-sm font-bold transition-all relative ${activeTab === "ledger" ? "text-[var(--primary-color)]" : "text-gray-500 hover:text-gray-700"}`}
                     >
                         Stock Ledger
-                        {activeTab === "ledger" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#f187b5]"></div>}
+                        {activeTab === "ledger" && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--primary-color)]"></div>}
                     </button>
                 </div>
 
@@ -563,7 +580,7 @@ const SellerPOSReport = () => {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder={activeTab === "orders" ? "Search orders by number, customer, phone..." : "Search stock ledger by product, SKU, source..."}
-                            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#f187b5]/30 focus:border-[#f187b5]"
+                            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/30 focus:border-[var(--primary-color)]"
                         />
                         <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35m1.85-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -592,7 +609,7 @@ const SellerPOSReport = () => {
                                <button
                                  key={opt.id}
                                  onClick={() => setFilter(opt.id)}
-                                 className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter === opt.id ? 'bg-[#f187b5] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                 className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${filter === opt.id ? 'bg-[var(--primary-color)] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                                >
                                    {opt.label}
                                </button>
@@ -608,7 +625,7 @@ const SellerPOSReport = () => {
                                                 type="checkbox"
                                                 checked={filteredOrders.length > 0 && filteredOrders.every((o: any) => selectedOrderIds.has(o._id))}
                                                 onChange={(e) => handleSelectAllOrders(e.target.checked, filteredOrders)}
-                                                className="w-4 h-4 text-[#f187b5] rounded border-gray-300 focus:ring-[#f187b5]"
+                                                className="w-4 h-4 text-[var(--primary-color)] rounded border-gray-300 focus:ring-[var(--primary-color)]"
                                             />
                                         </th>
                                         <th className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Order No</th>
@@ -635,7 +652,7 @@ const SellerPOSReport = () => {
                                                         type="checkbox"
                                                         checked={selectedOrderIds.has(order._id)}
                                                         onChange={() => handleSelectOrder(order._id)}
-                                                        className="w-4 h-4 text-[#f187b5] rounded border-gray-300 focus:ring-[#f187b5]"
+                                                        className="w-4 h-4 text-[var(--primary-color)] rounded border-gray-300 focus:ring-[var(--primary-color)]"
                                                     />
                                                 </td>
                                                 <td className="px-6 py-4 font-bold text-gray-800">#{order.orderNumber}</td>
@@ -645,12 +662,12 @@ const SellerPOSReport = () => {
                                                 </td>
                                                 <td className="px-6 py-4 font-bold text-gray-900">₹{(order.total || 0).toLocaleString()}</td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentMethod === 'Cash' ? 'bg-[#f187b5]/10 text-[#f187b5]' : 'bg-blue-100 text-blue-700'}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentMethod === 'Cash' ? 'bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]'}`}>
                                                         {order.paymentMethod}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-[#f187b5]/10 text-[#f187b5]' : 'bg-red-100 text-red-700'}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${order.paymentStatus === 'Paid' ? 'bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'bg-red-100 text-red-700'}`}>
                                                         {order.paymentStatus}
                                                     </span>
                                                 </td>
@@ -658,18 +675,22 @@ const SellerPOSReport = () => {
                                                     {new Date(order.orderDate || order.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleDeleteOrder(order._id); }}
-                                                        className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                                                        title="Delete Order"
-                                                    >
-                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                                                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                                                        </svg>
-                                                    </button>
+                                                     {(!order.customerName || order.customerName.toLowerCase() === "walk-in customer") ? (
+                                                         <button
+                                                             onClick={(e) => { e.stopPropagation(); handleDeleteOrder(order._id); }}
+                                                             className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                                                             title="Delete Order"
+                                                         >
+                                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                 <polyline points="3 6 5 6 21 6"></polyline>
+                                                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                                 <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                                 <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                             </svg>
+                                                         </button>
+                                                     ) : (
+                                                         <div className="w-[26px] h-[26px]" />
+                                                     )}
                                                 </td>
                                             </tr>
                                         ))
@@ -713,7 +734,7 @@ const SellerPOSReport = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${entry.type === 'IN' ? 'bg-[#f187b5]/10 text-[#f187b5]' : 'bg-red-100 text-red-700'}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${entry.type === 'IN' ? 'bg-[var(--primary-color)]/10 text-[var(--primary-color)]' : 'bg-red-100 text-red-700'}`}>
                                                         {entry.type}
                                                     </span>
                                                 </td>
@@ -722,7 +743,7 @@ const SellerPOSReport = () => {
                                                     <div className="flex items-center gap-2 text-xs">
                                                         <span className="text-gray-400">{entry.previousStock}</span>
                                                         <span className="text-gray-300">→</span>
-                                                        <span className="font-bold text-[#f187b5]">{entry.newStock}</span>
+                                                        <span className="font-bold text-[var(--primary-color)]">{entry.newStock}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -739,7 +760,7 @@ const SellerPOSReport = () => {
                                                             e.stopPropagation();
                                                             setEditingLedgerEntry({ ...entry, updateStock: false });
                                                         }}
-                                                        className="text-blue-500 hover:text-blue-700 p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        className="text-[var(--primary-color)] hover:text-[var(--primary-darker)] p-1.5 hover:bg-[var(--primary-alpha-10)] rounded-lg transition-colors"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                                     </button>
@@ -778,7 +799,7 @@ const SellerPOSReport = () => {
                                         setSelectedActionOrder(null);
                                     }}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-[#f187b5]/10 text-[#f187b5] flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <div className="w-10 h-10 rounded-full bg-[var(--primary-color)]/10 text-[var(--primary-color)] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
                                     </div>
                                     <div>
@@ -795,7 +816,7 @@ const SellerPOSReport = () => {
                                          setSelectedActionOrder(null);
                                      }}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-[#f187b5]/10 text-[#f187b5] flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <div className="w-10 h-10 rounded-full bg-[var(--primary-color)]/10 text-[var(--primary-color)] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                     </div>
                                     <div>
@@ -826,7 +847,7 @@ const SellerPOSReport = () => {
                                         setSelectedActionOrder(null);
                                     }}
                                 >
-                                    <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <div className="w-10 h-10 rounded-full bg-[var(--primary-alpha-10)] text-[var(--primary-dark)] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                     </div>
                                     <div>
@@ -840,24 +861,26 @@ const SellerPOSReport = () => {
 
                                 <div className="border-t border-gray-100 my-1"></div>
 
-                                <button
-                                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
-                                     onClick={() => {
-                                         if (window.confirm("Delete this order?")) {
-                                             handleDeleteOrder(selectedActionOrder._id);
-                                             setSelectedActionOrder(null);
-                                         }
-                                    }}
-                                >
-                                    <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </div>
-                                    <div>
-                                        <div className="font-semibold text-gray-700">Delete Order</div>
-                                        <div className="text-xs text-gray-400">Permanently remove order</div>
-                                    </div>
-                                    <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
-                                </button>
+                                 {(!selectedActionOrder.customerName || selectedActionOrder.customerName.toLowerCase() === "walk-in customer") && (
+                                     <button
+                                         className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
+                                          onClick={() => {
+                                              if (window.confirm("Delete this order?")) {
+                                                  handleDeleteOrder(selectedActionOrder);
+                                                  setSelectedActionOrder(null);
+                                              }
+                                         }}
+                                     >
+                                         <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"/></svg>
+                                         </div>
+                                         <div>
+                                             <div className="font-semibold text-gray-700">Delete Order</div>
+                                             <div className="text-xs text-gray-400">Permanently remove order</div>
+                                         </div>
+                                         <svg className="w-4 h-4 text-gray-300 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                                     </button>
+                                 )}
                             </div>
                         </div>
                     </div>
@@ -888,7 +911,7 @@ const SellerPOSReport = () => {
                                         <select
                                             value={editingLedgerEntry.type}
                                             onChange={(e) => setEditingLedgerEntry({...editingLedgerEntry, type: e.target.value})}
-                                            className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] font-medium text-sm"
+                                            className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] font-medium text-sm"
                                         >
                                             <option value="IN">IN (Add Stock)</option>
                                             <option value="OUT">OUT (Remove Stock)</option>
@@ -900,7 +923,7 @@ const SellerPOSReport = () => {
                                             type="number"
                                             value={editingLedgerEntry.quantity}
                                             onChange={(e) => setEditingLedgerEntry({...editingLedgerEntry, quantity: e.target.value})}
-                                            className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] font-medium text-sm"
+                                            className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] font-medium text-sm"
                                         />
                                     </div>
                                 </div>
@@ -910,18 +933,18 @@ const SellerPOSReport = () => {
                                         type="text"
                                         value={editingLedgerEntry.source}
                                         onChange={(e) => setEditingLedgerEntry({...editingLedgerEntry, source: e.target.value})}
-                                        className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-[#f187b5] focus:ring-1 focus:ring-[#f187b5] font-medium text-sm"
+                                        className="w-full p-2 rounded-xl border border-gray-200 outline-none focus:border-[var(--primary-color)] focus:ring-1 focus:ring-[var(--primary-color)] font-medium text-sm"
                                         placeholder="Reason for change..."
                                     />
                                 </div>
 
-                                <div className="flex items-start gap-2 bg-[#f187b5]/10 p-3 rounded-xl border border-[#f187b5]/20">
+                                <div className="flex items-start gap-2 bg-[var(--primary-color)]/10 p-3 rounded-xl border border-[var(--primary-color)]/20">
                                     <input
                                         type="checkbox"
                                         id="updateStockCheck"
                                         checked={editingLedgerEntry.updateStock}
                                         onChange={(e) => setEditingLedgerEntry({...editingLedgerEntry, updateStock: e.target.checked})}
-                                        className="mt-1 w-4 h-4 text-[#f187b5] rounded border-gray-300 focus:ring-[#f187b5]"
+                                        className="mt-1 w-4 h-4 text-[var(--primary-color)] rounded border-gray-300 focus:ring-[var(--primary-color)]"
                                     />
                                     <label htmlFor="updateStockCheck" className="text-xs text-orange-800">
                                         <span className="font-bold block mb-0.5">Update Actual Product Stock?</span>
@@ -939,7 +962,7 @@ const SellerPOSReport = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-2.5 bg-[#f187b5] text-white font-semibold rounded-xl hover:bg-[#e076a5] transition-colors shadow-sm"
+                                    className="flex-1 py-2.5 bg-[var(--primary-color)] text-white font-semibold rounded-xl hover:bg-[var(--primary-dark)] transition-colors shadow-sm"
                                 >
                                     Update Entry
                                 </button>
@@ -1061,9 +1084,9 @@ const SellerPOSReport = () => {
                                     <div key={idx} className="grid grid-cols-12 gap-1 text-[15px] leading-tight font-bold">
                                         <div className="col-span-5 font-bold">({idx + 1}) {itemName}</div>
                                         <div className="col-span-2 text-center font-bold">{qty}</div>
-                                        <div className="col-span-2 text-right font-bold">{mrp > 0 ? mrp.toFixed(0) : '-'}</div>
-                                        <div className="col-span-1 text-right font-bold">{sp.toFixed(0)}</div>
-                                        <div className="col-span-2 text-right font-black">{total.toFixed(0)}</div>
+                                        <div className="col-span-2 text-right font-bold">{mrp > 0 ? mrp.toFixed(2) : '-'}</div>
+                                        <div className="col-span-1 text-right font-bold">{sp.toFixed(2)}</div>
+                                        <div className="col-span-2 text-right font-black">{total.toFixed(2)}</div>
                                     </div>
                                 )
                             })}
@@ -1091,13 +1114,13 @@ const SellerPOSReport = () => {
                                 <div className="text-base">
                                     <div className="flex justify-between mb-1">
                                         <span className="font-bold">Total Qty.: {tQty}</span>
-                                        <span className="font-black">Total MRP: Rs {tMRP.toFixed(0)}</span>
+                                        <span className="font-black">Total MRP: Rs {tMRP.toFixed(2)}</span>
                                     </div>
                                     
                                     {tSavings > 0 && (
                                          <div className="flex justify-between bg-gray-200 px-1 py-2 my-2 border-2 border-black" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                              <span className="font-black text-[18px] uppercase tracking-tighter">YOU SAVED {sPercent}%</span>
-                                             <span className="font-black text-[18px]">{tSavings.toFixed(0)}</span>
+                                             <span className="font-black text-[18px]">{tSavings.toFixed(2)}</span>
                                          </div>
                                      )}
                                 </div>
@@ -1109,7 +1132,7 @@ const SellerPOSReport = () => {
                         {/* Grand Total */}
                         <div className="flex justify-between font-black text-xl py-1 border-y border-black mt-1">
                             <span>Total bill amount:</span>
-                            <span>{Number(printOrder.total || 0).toFixed(0)}</span>
+                            <span>{Number(printOrder.total || 0).toFixed(2)}</span>
                         </div>
 
                         {/* Footer / Notes */}

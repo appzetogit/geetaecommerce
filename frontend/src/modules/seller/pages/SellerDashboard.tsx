@@ -42,9 +42,9 @@ export default function SellerDashboard() {
   const getStatusBadgeClass = (status: NewOrder['status']) => {
     switch (status) {
       case 'Out For Delivery':
-        return 'text-blue-800 bg-blue-100 border border-blue-400';
+        return 'text-[var(--primary-darker)] bg-[var(--primary-alpha-20)] border border-blue-400';
       case 'Received':
-        return 'text-blue-600 bg-blue-50';
+        return 'text-[var(--primary-dark)] bg-[var(--primary-alpha-10)]';
       case 'Payment Pending':
         return 'text-orange-600 bg-orange-50';
       case 'Cancelled':
@@ -228,7 +228,7 @@ export default function SellerDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f187b5]"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--primary-color)]"></div>
       </div>
     );
   }
@@ -271,7 +271,7 @@ export default function SellerDashboard() {
       {/* Main Stats Summary */}
       <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           <motion.div whileHover={{ scale: 1.02 }} className="md:col-span-1">
-             <div className="bg-gradient-to-br from-[#f187b5] to-[#e076a5] rounded-2xl shadow-xl p-6 text-white h-full flex flex-col justify-between overflow-hidden relative group">
+             <div className="bg-gradient-to-br from-[var(--primary-color)] to-[var(--primary-dark)] rounded-2xl shadow-xl p-6 text-white h-full flex flex-col justify-between overflow-hidden relative group">
                 <div className="absolute -right-8 -bottom-8 opacity-10 transform group-hover:scale-110 transition-transform duration-500">
                    <svg width="180" height="180" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
                 </div>
@@ -305,7 +305,7 @@ export default function SellerDashboard() {
           <DashboardCard icon={categoryIcon} title="Active Categories" value={stats.totalCategory} accentColor="#eab308" />
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }} className="h-full">
-          <DashboardCard icon={subcategoryIcon} title="Subcategories" value={stats.totalSubcategory} accentColor="#ec4899" />
+          <DashboardCard icon={subcategoryIcon} title="Subcategories" value={stats.totalSubcategory} accentColor="var(--primary-color)" />
         </motion.div>
         <motion.div whileHover={{ scale: 1.02 }} transition={{ type: 'spring', stiffness: 300 }} className="h-full">
           <DashboardCard icon={cancelledOrdersIcon} title="Cancelled Orders" value={stats.cancelledOrders} accentColor="#ef4444" />
@@ -333,7 +333,7 @@ export default function SellerDashboard() {
       >
         {/* Alert Cards - Side by Side */}
         <motion.div whileHover={{ scale: 1.01 }} className="h-full">
-          <AlertCard icon={soldOutIcon} title="Product Sold Out" value={stats.soldOutProducts} accentColor="#ec4899" />
+          <AlertCard icon={soldOutIcon} title="Product Sold Out" value={stats.soldOutProducts} accentColor="var(--primary-color)" />
         </motion.div>
         <motion.div whileHover={{ scale: 1.01 }} className="h-full">
           <AlertCard icon={lowStockIcon} title="Product low on Stock" value={stats.lowStockProducts} accentColor="#eab308" />
@@ -346,7 +346,7 @@ export default function SellerDashboard() {
         variants={itemVariants}
       >
         {/* seller Header Bar */}
-        <div className="bg-gradient-to-r from-[#f187b5] to-[#e076a5] text-white px-6 py-4 flex justify-between items-center">
+        <div className="bg-gradient-to-r from-[var(--primary-color)] to-[var(--primary-dark)] text-white px-6 py-4 flex justify-between items-center">
           <h2 className="text-lg font-bold tracking-tight">View New Orders</h2>
           <div className="bg-white/20 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm flex items-center gap-2">
             <span className="relative flex h-2 w-2">
@@ -370,7 +370,7 @@ export default function SellerDashboard() {
                     setEntriesPerPage(Math.max(1, Math.min(100, value)));
                     setCurrentPage(1);
                   }}
-                  className="appearance-none w-20 px-3 py-1.5 border border-neutral-300 rounded-lg text-sm text-neutral-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#f187b5] focus:border-[#f187b5] shadow-sm transition-all"
+                  className="appearance-none w-20 px-3 py-1.5 border border-neutral-300 rounded-lg text-sm text-neutral-700 bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)] shadow-sm transition-all"
                 >
                   <option value="5">5</option>
                   <option value="10">10</option>
@@ -405,7 +405,7 @@ export default function SellerDashboard() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="hover:bg-[#f187b5]/10 transition-colors duration-150 group"
+                  className="hover:bg-[var(--primary-color)]/10 transition-colors duration-150 group"
                 >
                   <td className="px-6 py-4 text-sm font-medium text-neutral-900">
                     <span className="font-mono bg-neutral-100 px-2 py-1 rounded text-neutral-600 group-hover:bg-white group-hover:shadow-sm transition-all">#{order.id}</span>
@@ -420,7 +420,7 @@ export default function SellerDashboard() {
                   <td className="px-6 py-4">
                     <button
                       onClick={() => navigate(`/seller/orders/${order.id}`)}
-                      className="bg-white border border-[#f187b5]/30 text-[#f187b5] hover:bg-[#f187b5] hover:text-white p-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105 active:scale-95"
+                      className="bg-white border border-[var(--primary-color)]/30 text-[var(--primary-color)] hover:bg-[var(--primary-color)] hover:text-white p-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 transform hover:scale-105 active:scale-95"
                       aria-label="View order details"
                       title="View Details"
                     >
@@ -447,7 +447,7 @@ export default function SellerDashboard() {
               disabled={currentPage === 1}
               className={`flex items-center justify-center p-2 rounded-lg border transition-all ${currentPage === 1
                 ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-neutral-50'
-                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-[#f187b5] hover:text-[#f187b5] shadow-sm hover:shadow'
+                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-[var(--primary-color)] hover:text-[var(--primary-color)] shadow-sm hover:shadow'
                 }`}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -468,7 +468,7 @@ export default function SellerDashboard() {
                     onClick={() => setCurrentPage(p)}
                     className={`min-w-[32px] h-8 flex items-center justify-center rounded-md text-sm font-medium transition-all ${
                       currentPage === p
-                      ? 'bg-[#f187b5] text-white shadow-md'
+                      ? 'bg-[var(--primary-color)] text-white shadow-md'
                       : 'text-neutral-600 hover:bg-neutral-100'
                     }`}
                   >
@@ -482,7 +482,7 @@ export default function SellerDashboard() {
               disabled={currentPage === totalPages}
               className={`flex items-center justify-center p-2 rounded-lg border transition-all ${currentPage === totalPages
                 ? 'border-neutral-200 text-neutral-300 cursor-not-allowed bg-neutral-50'
-                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-[#f187b5] hover:text-[#f187b5] shadow-sm hover:shadow'
+                : 'border-neutral-300 text-neutral-600 hover:bg-white hover:border-[var(--primary-color)] hover:text-[var(--primary-color)] shadow-sm hover:shadow'
                 }`}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
