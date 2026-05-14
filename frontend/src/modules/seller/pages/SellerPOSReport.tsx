@@ -6,6 +6,8 @@ import autoTable from 'jspdf-autotable';
 import { useToast } from '../../../context/ToastContext';
 import { readSellerPosBillSettings, SELLER_BILL_SETTINGS_KEY, SELLER_BILL_SETTINGS_UPDATED_EVENT } from "../../../utils/sellerPosBillSettings";
 import { useAppContext } from '../../../context/AppContext';
+import { formatAmount } from '../../../utils/priceUtils';
+
 
 const FiTrendingUp = ({ className }: { className?: string }) => (
   <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1084,10 +1086,11 @@ const SellerPOSReport = () => {
                                     <div key={idx} className="grid grid-cols-12 gap-1 text-[15px] leading-tight font-bold">
                                         <div className="col-span-5 font-bold">({idx + 1}) {itemName}</div>
                                         <div className="col-span-2 text-center font-bold">{qty}</div>
-                                        <div className="col-span-2 text-right font-bold">{mrp > 0 ? mrp.toFixed(2) : '-'}</div>
-                                        <div className="col-span-1 text-right font-bold">{sp.toFixed(2)}</div>
-                                        <div className="col-span-2 text-right font-black">{total.toFixed(2)}</div>
+                                        <div className="col-span-2 text-right font-bold">{mrp > 0 ? formatAmount(mrp) : '-'}</div>
+                                        <div className="col-span-1 text-right font-bold">{formatAmount(sp)}</div>
+                                        <div className="col-span-2 text-right font-black">{formatAmount(total)}</div>
                                     </div>
+
                                 )
                             })}
                         </div>
@@ -1114,14 +1117,16 @@ const SellerPOSReport = () => {
                                 <div className="text-base">
                                     <div className="flex justify-between mb-1">
                                         <span className="font-bold">Total Qty.: {tQty}</span>
-                                        <span className="font-black">Total MRP: Rs {tMRP.toFixed(2)}</span>
+                                        <span className="font-black">Total MRP: Rs {formatAmount(tMRP)}</span>
                                     </div>
+
                                     
                                     {tSavings > 0 && (
                                          <div className="flex justify-between bg-gray-200 px-1 py-2 my-2 border-2 border-black" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                              <span className="font-black text-[18px] uppercase tracking-tighter">YOU SAVED {sPercent}%</span>
-                                             <span className="font-black text-[18px]">{tSavings.toFixed(2)}</span>
+                                             <span className="font-black text-[18px]">{formatAmount(tSavings)}</span>
                                          </div>
+
                                      )}
                                 </div>
                             );
@@ -1132,8 +1137,9 @@ const SellerPOSReport = () => {
                         {/* Grand Total */}
                         <div className="flex justify-between font-black text-xl py-1 border-y border-black mt-1">
                             <span>Total bill amount:</span>
-                            <span>{Number(printOrder.total || 0).toFixed(2)}</span>
+                            <span>{formatAmount(printOrder.total || 0)}</span>
                         </div>
+
 
                         {/* Footer / Notes */}
                         <div className="text-center mt-6 space-y-2">

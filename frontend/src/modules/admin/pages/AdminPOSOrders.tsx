@@ -16,7 +16,9 @@ import { Html5QrcodeSupportedFormats } from "html5-qrcode";
 import QRScannerModal from '../../../components/QRScannerModal';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { useAppContext } from '../../../context/AppContext';
+import { formatAmount } from '../../../utils/priceUtils';
 import { appendPOSStaffBill, getStaffSession } from '../../../utils/staffSession';
+
 import {
   ADMIN_POS_BILL_SETTINGS_KEY,
   ADMIN_POS_BILL_SETTINGS_UPDATED_EVENT,
@@ -5911,9 +5913,10 @@ const AdminPOSOrders = () => {
                        <div key={idx} className="grid grid-cols-12 gap-1 text-[15px] leading-tight font-bold">
                            <div className="col-span-5 font-bold">({idx + 1}) {item.productName}</div>
                            <div className="col-span-2 text-center">{item.qty}</div>
-                           <div className="col-span-2 text-right">{mrp > 0 ? mrp.toFixed(2) : '-'}</div>
-                           <div className="col-span-1 text-right">{sp.toFixed(2)}</div>
-                           <div className="col-span-2 text-right font-black">{total.toFixed(2)}</div>
+                           <div className="col-span-2 text-right">{mrp > 0 ? formatAmount(mrp) : '-'}</div>
+                           <div className="col-span-1 text-right">{formatAmount(sp)}</div>
+                           <div className="col-span-2 text-right font-black">{formatAmount(total)}</div>
+
                            
                            {/* Warranty / Extra info if exists */}
                            {(item as any).warrantyType && (item as any).warrantyType !== 'None' && (
@@ -5946,14 +5949,16 @@ const AdminPOSOrders = () => {
                       <div className="text-base">
                           <div className="flex justify-between mb-1">
                               <span className="font-bold">Total Qty.: {tQty}</span>
-                              <span className="font-black">Total MRP: Rs {tMRP.toFixed(2)}</span>
+                              <span className="font-black">Total MRP: Rs {formatAmount(tMRP)}</span>
                           </div>
+
                           
                           {tSavings > 0 && (
                                <div className="flex justify-between bg-gray-200 px-1 py-2 my-2 border-2 border-black" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                    <span className="font-black text-[18px] uppercase tracking-tighter">YOU SAVED {sPercent}%</span>
-                                   <span className="font-black text-[18px]">{tSavings.toFixed(2)}</span>
+                                   <span className="font-black text-[18px]">{formatAmount(tSavings)}</span>
                                </div>
+
                            )}
                       </div>
                   );
@@ -5964,8 +5969,9 @@ const AdminPOSOrders = () => {
               {/* Grand Total */}
               <div className="flex justify-between font-black text-xl py-1 border-y border-black mt-1">
                   <span>Total bill amount:</span>
-                  <span>{lastBillDetails?.total.toFixed(2)}</span>
+                  <span>{formatAmount(lastBillDetails?.total || 0)}</span>
               </div>
+
 
               {/* Footer / Notes */}
               <div className="text-center mt-6 space-y-2">

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "../../../context/ToastContext";
 import { readAdminPosBillSettings, ADMIN_POS_BILL_SETTINGS_KEY, ADMIN_POS_BILL_SETTINGS_UPDATED_EVENT } from "../../../utils/adminPosBillSettings";
 import { useAppContext } from "../../../context/AppContext";
+import { formatAmount } from "../../../utils/priceUtils";
 
 const FiTrendingUp = ({ className }: { className?: string }) => (
   <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -588,7 +589,7 @@ const AdminPOSReport = () => {
                       className="px-4 py-2 bg-orange-50 text-orange-600 rounded-xl font-semibold hover:bg-orange-100 transition-colors flex items-center gap-2"
                     >
                         <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357-2H15"></path>
                         </svg>
                         Refresh
                     </button>
@@ -852,13 +853,13 @@ const AdminPOSReport = () => {
                                                       ) : (
                                                           <div className="w-[26px] h-[26px]" /> // Spacer to maintain alignment
                                                       )}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                                                 </td>
+                                             </tr>
+                                         ))
+                                     )}
+                                 </tbody>
+                             </table>
+                         </div>
                     </div>
                 )}
 
@@ -990,7 +991,7 @@ const AdminPOSReport = () => {
                                         onClick={() => handlePrintBill(selectedActionOrder)}
                                     >
                                         <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 0 0-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10z" /></svg>
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10z" /></svg>
                                         </div>
                                         <div>
                                             <div className="font-semibold text-gray-700">Print</div>
@@ -1276,10 +1277,11 @@ const AdminPOSReport = () => {
                                     <div key={idx} className="grid grid-cols-12 gap-1 text-[15px] leading-tight font-bold">
                                         <div className="col-span-5 font-bold">({idx + 1}) {itemName}</div>
                                         <div className="col-span-2 text-center font-bold">{qty}</div>
-                                        <div className="col-span-2 text-right font-bold">{mrp > 0 ? mrp.toFixed(2) : '-'}</div>
-                                        <div className="col-span-1 text-right font-bold">{sp.toFixed(2)}</div>
-                                        <div className="col-span-2 text-right font-black">{total.toFixed(2)}</div>
+                                        <div className="col-span-2 text-right font-bold">{mrp > 0 ? formatAmount(mrp) : '-'}</div>
+                                        <div className="col-span-1 text-right font-bold">{formatAmount(sp)}</div>
+                                        <div className="col-span-2 text-right font-black">{formatAmount(total)}</div>
                                     </div>
+
                                 )
                             })}
                         </div>
@@ -1306,14 +1308,16 @@ const AdminPOSReport = () => {
                                 <div className="text-base">
                                     <div className="flex justify-between mb-1">
                                         <span className="font-bold">Total Qty.: {tQty}</span>
-                                        <span className="font-black">Total MRP: Rs {tMRP.toFixed(2)}</span>
+                                        <span className="font-black">Total MRP: Rs {formatAmount(tMRP)}</span>
                                     </div>
+
                                     
                                     {tSavings > 0 && (
                                          <div className="flex justify-between bg-gray-200 px-1 py-2 my-2 border-2 border-black" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                                              <span className="font-black text-[18px] uppercase tracking-tighter">YOU SAVED {sPercent}%</span>
-                                             <span className="font-black text-[18px]">{tSavings.toFixed(2)}</span>
+                                             <span className="font-black text-[18px]">{formatAmount(tSavings)}</span>
                                          </div>
+
                                      )}
                                 </div>
                             );
@@ -1324,8 +1328,9 @@ const AdminPOSReport = () => {
                         {/* Grand Total */}
                         <div className="flex justify-between font-black text-xl py-1 border-y border-black mt-1">
                             <span>Total bill amount:</span>
-                            <span>{Number(printOrder.total || 0).toFixed(2)}</span>
+                            <span>{formatAmount(printOrder.total || 0)}</span>
                         </div>
+
 
                         {/* Footer / Notes */}
                         <div className="text-center mt-6 space-y-2">

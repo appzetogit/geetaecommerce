@@ -1103,7 +1103,7 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
     // 3. Find duplicate SKUs per seller
     if (redundant === "true" || redundant === "sku") {
       const duplicateSKUs = await Product.aggregate([
-        { $match: { sku: { $ne: null, $ne: "" } } },
+        { $match: { sku: { $nin: [null, ""] } } },
         { $group: { _id: { seller: "$seller", sku: "$sku" }, count: { $sum: 1 }, ids: { $push: "$_id" } } },
         { $match: { count: { $gt: 1 } } },
       ]);
@@ -1630,68 +1630,4 @@ export const getPOSProducts = asyncHandler(
   }
 );
 
-/**
- * Sync product visibility when a category status changes
- */
-const syncProductsWithCategoryStatus = async (categoryId: string, status: "Active" | "Inactive") => {
-  try {
-    const category = await Category.findById(categoryId);
-    if (!category) return;
 
-    const descendants = await category.getAllDescendants();
-    const allCategoryIds = [category._id, ...descendants.map(d => d._id)];
-
-    /* 
-    Status sync disabled: we now keep products Active even if category is Inactive 
-    to allow POS billing. Customer app will handle filtering instead.
-    */
-    /*
-    if (status === "Inactive") {
-      // Mark products as Inactive if they were Active
-      // We check both category and subcategory fields
-      await Product.updateMany(
-        {
-          $or: [
-            { category: { $in: allCategoryIds } },
-            { subcategory: { $in: allCategoryIds } }
-          ],
-          status: "Active"
-        },
-        {
-          status: "Inactive",
-          inactiveReason: "CategoryDeactivated"
-        }
-      );
-    } else {
-      // Status is Active
-      // Only reactivate products if the category they belong to is now Active
-      // (Handles cases where a subcategory might still be Inactive even if parent is Active)
-      
-      // Get IDs of all active categories in this branch
-      const activeIds = [category._id];
-      for (const desc of descendants) {
-        if (desc.status === "Active") {
-          activeIds.push(desc._id);
-        }
-      }
-
-      await Product.updateMany(
-        {
-          $or: [
-            { category: { $in: activeIds } },
-            { subcategory: { $in: activeIds } }
-          ],
-          status: "Inactive",
-          inactiveReason: "CategoryDeactivated"
-        },
-        {
-          status: "Active",
-          $unset: { inactiveReason: "" }
-        }
-      );
-    }
-    */
-  } catch (error) {
-    console.error("Error syncing products with category status:", error);
-  }
-};

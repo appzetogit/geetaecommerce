@@ -1288,24 +1288,31 @@ export default function ProductDetail() {
               }}
               className="group cursor-pointer flex items-center gap-2 max-w-full"
             >
-              <div className="relative">
-                <motion.span
-                  animate={{ backgroundPosition: ["0% 50%", "200% 50%"] }}
-                  transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
-                  style={{
-                    backgroundImage: "linear-gradient(90deg, var(--customer-primary), #ff8a8a, var(--customer-primary))",
-                    backgroundSize: "200% auto",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent"
-                  }}
-                  className="text-[11px] sm:text-[13px] md:text-sm font-black uppercase tracking-widest whitespace-nowrap inline-block"
-                >
-                  Explore more products from {typeof product.brand === 'object' ? product.brand.name : 'this brand'} brand
-                </motion.span>
-                <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-[var(--customer-primary)] transition-all duration-300 group-hover:w-full"></span>
-              </div>
+                <div className="flex items-center gap-1.5 sm:gap-2.5">
+                  <span className="text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-[0.12em] text-neutral-400 whitespace-nowrap">
+                    Explore more products from
+                  </span>
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -1 }}
+                    className="relative px-3 py-1 rounded-lg overflow-hidden flex items-center justify-center shadow-[0_4px_12px_rgba(239,68,68,0.25)] border border-white/10"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-[var(--customer-primary)] via-red-600 to-rose-700"></div>
+                    <motion.div 
+                      animate={{ x: ['-120%', '250%'] }}
+                      transition={{ repeat: Infinity, duration: 3, ease: "linear", repeatDelay: 1 }}
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-[-25deg]"
+                    />
+                    <span className="relative text-[11px] sm:text-[12px] md:text-sm font-black uppercase tracking-wider text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+                      {typeof product.brand === 'object' ? product.brand.name : 'this brand'}
+                    </span>
+                  </motion.div>
+                  <span className="text-[10px] sm:text-[11px] md:text-xs font-bold uppercase tracking-[0.12em] text-neutral-400 whitespace-nowrap">
+                    Brand
+                  </span>
+                </div>
               
-              <div className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary)] group-hover:bg-[var(--customer-primary)] group-hover:text-white transition-all duration-300 shadow-sm">
+              <div className="flex-shrink-0 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary)] group-hover:bg-[var(--customer-primary)] group-hover:text-white transition-all duration-300 shadow-sm ml-1">
+
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>

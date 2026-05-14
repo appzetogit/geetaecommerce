@@ -164,3 +164,13 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
 
   return finalPrice;
 };
+
+/**
+ * Formats a number to remove trailing zeros after the decimal point.
+ * Example: 4.00 -> 4, 4.50 -> 4.5
+ */
+export const formatAmount = (amount: number | string): string => {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  if (isNaN(num)) return '0';
+  return Number(num.toFixed(2)).toString();
+};

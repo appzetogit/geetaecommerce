@@ -100,11 +100,12 @@ export default function Brands() {
                  {/* Decorative cloud-like shape (CSS simulation) could be complex, sticking to simple clean design */}
 
                  {/* Brand Name (Top) */}
-                 <div className="absolute top-2 left-0 right-0 text-center px-2">
-                     <span className="text-xs sm:text-sm font-bold text-neutral-700 uppercase tracking-wide bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">
-                        {brand.name}
-                     </span>
-                 </div>
+                  <div className="absolute top-2 left-0 right-0 text-center px-2">
+                      <span className="text-[10px] sm:text-[11px] font-black text-white uppercase tracking-wider bg-gradient-to-r from-[var(--customer-primary)] to-red-600 px-2.5 py-1 rounded-md shadow-[0_2px_8px_rgba(239,68,68,0.2)] border border-white/20">
+                         {brand.name}
+                      </span>
+                  </div>
+
 
                  {/* Main Image (Logo/Product) */}
                  <div className="w-full h-full flex items-center justify-center p-2 mt-4">

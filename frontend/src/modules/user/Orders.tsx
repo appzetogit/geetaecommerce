@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useOrders } from '../../hooks/useOrders';
+import { formatAmount } from '../../utils/priceUtils';
+
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -84,8 +86,9 @@ export default function Orders() {
                   {order.totalItems} {order.totalItems === 1 ? 'item' : 'items'}
                 </div>
                 <div className="text-lg font-bold text-neutral-900">
-                  ₹{order.totalAmount.toFixed(2)}
+                  ₹{formatAmount(order.totalAmount)}
                 </div>
+
               </div>
             </Link>
           );
