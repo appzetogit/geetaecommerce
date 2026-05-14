@@ -22,6 +22,10 @@ export interface IOrderItem extends Document {
   // Status
   status: "Pending" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
 
+  // Warranty (snapshot at time of order)
+  warrantyType?: "None" | "Warranty" | "Guarantee";
+  warrantyDuration?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -92,6 +96,16 @@ const OrderItemSchema = new Schema<IOrderItem>(
       type: String,
       enum: ["Pending", "Shipped", "Delivered", "Cancelled", "Returned"],
       default: "Pending",
+    },
+    // Warranty
+    warrantyType: {
+      type: String,
+      enum: ["None", "Warranty", "Guarantee"],
+      default: "None",
+    },
+    warrantyDuration: {
+      type: String,
+      trim: true,
     },
   },
   {

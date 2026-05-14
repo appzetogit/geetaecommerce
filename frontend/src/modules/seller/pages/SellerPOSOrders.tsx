@@ -1276,7 +1276,7 @@ const SellerPOSOrders = () => {
               ...newCustomer,
               name: newCustomer.name.trim(),
               phone: newCustomer.phone.trim(),
-              email: newCustomer.email.trim() || `${newCustomer.phone.trim()}@placeholder.com`
+              email: newCustomer.email.trim()
           };
 
           const res = await createCustomer(trimmedData);
@@ -2950,7 +2950,9 @@ const SellerPOSOrders = () => {
                 name: item.productName,
                 quantity: item.qty,
                 price: getEffectivePrice(item),
-                variationId: item.variationId
+                variationId: item.variationId,
+                warrantyType: (item as any).warrantyType || 'None',
+                warrantyDuration: (item as any).warrantyDuration || ''
             })),
             gateway: method,
             createdBy: activeStaffSession?.id,
@@ -3073,7 +3075,9 @@ const SellerPOSOrders = () => {
                 name: item.productName,
                 quantity: item.qty,
                 price: getEffectivePrice(item),
-                variationId: item.variationId
+                variationId: item.variationId,
+                warrantyType: (item as any).warrantyType || 'None',
+                warrantyDuration: (item as any).warrantyDuration || ''
             })),
             paymentMethod: 'Cash',
             paymentStatus: "Paid" as const,
@@ -3131,7 +3135,9 @@ const SellerPOSOrders = () => {
                     name: item.productName,
                     quantity: item.qty,
                     price: getEffectivePrice(item),
-                    variationId: item.variationId
+                    variationId: item.variationId,
+                    warrantyType: (item as any).warrantyType || 'None',
+                    warrantyDuration: (item as any).warrantyDuration || ''
                 })),
                 paymentMethod: 'Credit',
                 paymentStatus: "Pending" as const,
@@ -3186,10 +3192,19 @@ const SellerPOSOrders = () => {
               unitPrice: getEffectivePrice(item),
               sku: item.sku,
               productName: item.productName,
-              productImage: item.mainImage || (item as any).image || ''
+              productImage: item.mainImage || (item as any).image || '',
+              warrantyType: (item as any).warrantyType || 'None',
+              warrantyDuration: (item as any).warrantyDuration || ''
           }));
 
-          const res = await updateOrderItems(editOrderId, items);
+          const res = await updateOrderItems(editOrderId, {
+              items,
+              customerId: activeBill.selectedCustomer ? activeBill.selectedCustomer._id : (activeBill.selectedCustomer === null ? "walk-in-customer" : undefined),
+              customerName: activeBill.selectedCustomer ? activeBill.selectedCustomer.name : activeBill.customerSearch,
+              customerPhone: activeBill.selectedCustomer ? activeBill.selectedCustomer.phone : undefined,
+              customerEmail: activeBill.selectedCustomer ? activeBill.selectedCustomer.email : undefined,
+              paymentMethod: activeBill.paymentMethod
+          });
           if (res.success) {
               showToast("Order updated successfully", "success");
 
@@ -4265,16 +4280,8 @@ const SellerPOSOrders = () => {
                 {purchaseMode === 'Purchase' ? 'PURCHASE MODE' : 'QUOTATION MODE'}
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setShowSupplierModal(true)}
-                className="flex items-center gap-2 justify-center rounded-xl border border-[var(--primary-color)]/30 text-[var(--primary-color)] bg-[var(--primary-color)]/10 py-2.5 text-sm font-semibold md:py-2 md:text-[13px]"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3M4 11h16M5 21h14a1 1 0 001-1V8a1 1 0 00-1-1H5a1 1 0 00-1 1v12a1 1 0 001 1z" />
-                </svg>
-                {purchaseSupplier ? purchaseSupplier.name : 'Add Supplier'}
-              </button>
+
+            <div className="mt-2">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -4284,7 +4291,7 @@ const SellerPOSOrders = () => {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className={`rounded-xl py-2.5 text-sm font-semibold transition-colors md:py-2 md:text-[13px] border ${
+                className={`w-full rounded-xl py-2.5 text-sm font-semibold transition-colors md:py-2 md:text-[13px] border ${
                   billAttachment
                     ? 'bg-[var(--primary-color)] text-white border-[var(--primary-color)]'
                     : 'bg-[var(--primary-color)] text-white border-[var(--primary-color)] hover:bg-[var(--primary-dark)]'

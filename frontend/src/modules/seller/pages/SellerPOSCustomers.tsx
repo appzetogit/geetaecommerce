@@ -62,8 +62,7 @@ const SellerPOSCustomers = () => {
         setNewCustomerLoading(true);
         try {
             const res = await createCustomer({
-                ...newCustomer,
-                email: newCustomer.email || `${newCustomer.phone}@placeholder.com`
+                ...newCustomer
             });
 
             if (res.success && res.data) {

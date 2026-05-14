@@ -359,6 +359,11 @@ export default function AdminOrderDetail() {
                           <div>
                             <div className="font-medium">{item.productName || product?.productName || 'N/A'}</div>
                             {item.variation && <div className="text-xs text-[var(--primary-color)] font-medium">{item.variation}</div>}
+                            {item.warrantyType && item.warrantyType !== 'None' && (
+                              <div className="text-xs text-blue-600 font-medium">
+                                {item.warrantyType}: {item.warrantyDuration}
+                              </div>
+                            )}
                             {seller && (
                               <div className="text-sm text-neutral-500">
                                 Seller: {seller.storeName || seller.sellerName}

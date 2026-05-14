@@ -565,9 +565,14 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-[var(--primary-color)] h-screen flex flex-col">
+    <aside className="w-64 h-screen flex flex-col shadow-xl relative overflow-hidden" style={{ backgroundColor: 'var(--sidebar-color, var(--primary-color))' }}>
+      {/* Decorative background element for premium feel (matching AdminSidebar) */}
+      <div className="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-black/10 rounded-full blur-3xl pointer-events-none"></div>
+
       {/* Close button - only show on mobile */}
-      <div className="flex justify-end p-4 border-b border-[var(--primary-dark)] lg:hidden">
+      <div className="relative flex flex-col h-full z-10">
+      <div className="flex justify-end p-4 border-b border-white/10 lg:hidden">
         <button
           type="button"
           onClick={onClose}
@@ -608,8 +613,8 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                     }
                   }}
                   className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-left transition-colors ${active
-                    ? "bg-[var(--primary-dark)] text-white"
-                    : "text-white/80 hover:bg-[var(--primary-dark)]/50 hover:text-white"
+                    ? "bg-black/20 text-[var(--sidebar-text-color,white)]"
+                    : "text-[var(--sidebar-text-color,white)] opacity-80 hover:bg-black/10 hover:opacity-100 hover:text-[var(--sidebar-text-color,white)]"
                     }`}>
                   <div className="flex items-center gap-2">
                     {item.icon && (
@@ -626,8 +631,9 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                       viewBox="0 0 24 24"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
-                      className={`transition-transform ${expanded ? "rotate-180" : ""
-                        } ${active ? "text-white" : "text-white/60"}`}>
+                      className={`transition-transform ${expanded ? "rotate-90" : ""} ${
+                        active ? "text-[var(--sidebar-text-color,white)]" : "text-[var(--sidebar-text-color,white)] opacity-60"
+                      }`}>
                       <path
                         d="M6 9L12 15L18 9"
                         stroke="currentColor"
@@ -654,8 +660,8 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                               onClick={() => toggleMenu(subItem.path)}
                               className={`w-full flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-left transition-colors ${
                                 active
-                                  ? "bg-[var(--primary-dark)] text-white"
-                                  : "text-white/80 hover:bg-[var(--primary-dark)]/50 hover:text-white"
+                                  ? "bg-black/20 text-[var(--sidebar-text-color,white)]"
+                                  : "text-[var(--sidebar-text-color,white)] opacity-80 hover:bg-black/10 hover:opacity-100 hover:text-[var(--sidebar-text-color,white)]"
                               }`}>
                               <div className="flex items-center gap-2">
                                 <span className="flex-shrink-0">
@@ -671,9 +677,9 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 xmlns="http://www.w3.org/2000/svg"
-                                className={`transition-transform ${
-                                  expanded ? "rotate-180" : ""
-                                } ${active ? "text-white" : "text-white/60"}`}>
+                                className={`transition-transform ${subExpanded ? "rotate-90" : ""} ${
+                                  active ? "text-[var(--sidebar-text-color,white)]" : "text-[var(--sidebar-text-color,white)] opacity-60"
+                                }`}>
                                 <path
                                   d="M6 9L12 15L18 9"
                                   stroke="currentColor"
@@ -700,8 +706,8 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                                         }
                                         className={`w-full flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-lg text-left transition-colors ${
                                           nestedActive
-                                            ? "bg-[var(--primary-color)] text-white"
-                                            : "text-white/80 hover:bg-[var(--primary-dark)]/50 hover:text-white"
+                                            ? "bg-white/20 text-[var(--sidebar-text-color,white)]"
+                                            : "text-[var(--sidebar-text-color,white)] opacity-80 hover:bg-black/10 hover:opacity-100"
                                         }`}>
                                         <span className="flex-shrink-0 scale-75">
                                           {nestedItem.icon}
@@ -729,8 +735,8 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                             onClick={() => handleNavigation(subItem.path)}
                             className={`w-full flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-left transition-colors ${
                               subActive
-                                ? "bg-[var(--primary-color)] text-white"
-                                : "text-white/80 hover:bg-[var(--primary-dark)]/50 hover:text-white"
+                                ? "bg-white/20 text-[var(--sidebar-text-color,white)]"
+                                : "text-[var(--sidebar-text-color,white)] opacity-80 hover:bg-black/10 hover:opacity-100"
                             }`}>
                             <span className="flex-shrink-0">
                               {subItem.icon}
@@ -749,6 +755,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
           })}
         </ul>
       </nav>
+      </div>
     </aside>
   );
 }

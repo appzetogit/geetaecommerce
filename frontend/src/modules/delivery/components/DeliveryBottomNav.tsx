@@ -12,15 +12,15 @@ export default function DeliveryBottomNav() {
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Grid of 9 squares */}
-          <rect x="3" y="3" width="6" height="6" fill={isActive('/delivery') ? '#f97316' : '#9ca3af'} />
-          <rect x="11" y="3" width="6" height="6" fill={isActive('/delivery') ? '#f97316' : '#9ca3af'} />
-          <rect x="19" y="3" width="2" height="6" fill={isActive('/delivery') ? '#f97316' : '#9ca3af'} />
-          <rect x="3" y="11" width="6" height="6" fill={isActive('/delivery') ? '#f97316' : '#9ca3af'} />
-          <rect x="11" y="11" width="6" height="6" fill={isActive('/delivery') ? '#f97316' : '#9ca3af'} />
-          <rect x="19" y="11" width="2" height="6" fill={isActive('/delivery') ? '#f97316' : '#9ca3af'} />
-          <rect x="3" y="19" width="6" height="2" fill={isActive('/delivery') ? '#f97316' : '#9ca3af'} />
-          <rect x="11" y="19" width="6" height="2" fill={isActive('/delivery') ? '#f97316' : '#9ca3af'} />
-          <rect x="19" y="19" width="2" height="2" fill={isActive('/delivery') ? '#f97316' : '#9ca3af'} />
+            <rect x="3" y="3" width="6" height="6" fill={isActive('/delivery') ? 'var(--primary-color)' : '#9ca3af'} />
+          <rect x="11" y="3" width="6" height="6" fill={isActive('/delivery') ? 'var(--primary-color)' : '#9ca3af'} />
+          <rect x="19" y="3" width="2" height="6" fill={isActive('/delivery') ? 'var(--primary-color)' : '#9ca3af'} />
+          <rect x="3" y="11" width="6" height="6" fill={isActive('/delivery') ? 'var(--primary-color)' : '#9ca3af'} />
+          <rect x="11" y="11" width="6" height="6" fill={isActive('/delivery') ? 'var(--primary-color)' : '#9ca3af'} />
+          <rect x="19" y="11" width="2" height="6" fill={isActive('/delivery') ? 'var(--primary-color)' : '#9ca3af'} />
+          <rect x="3" y="19" width="6" height="2" fill={isActive('/delivery') ? 'var(--primary-color)' : '#9ca3af'} />
+          <rect x="11" y="19" width="6" height="2" fill={isActive('/delivery') ? 'var(--primary-color)' : '#9ca3af'} />
+          <rect x="19" y="19" width="2" height="2" fill={isActive('/delivery') ? 'var(--primary-color)' : '#9ca3af'} />
         </svg>
       ),
     },
@@ -32,14 +32,14 @@ export default function DeliveryBottomNav() {
           {/* Delivery truck with speed lines */}
           <path
             d="M2 17H4L5 12H19L20 17H22M2 17C2 18.1046 2.89543 19 4 19C5.10457 19 6 18.1046 6 17M2 17C2 15.8954 2.89543 15 4 15C5.10457 15 6 15.8954 6 17M22 17C22 18.1046 21.1046 19 20 19C18.8954 19 18 18.1046 18 17M22 17C22 15.8954 21.1046 15 20 15C18.8954 15 18 15.8954 18 17M6 17H18M5 12L4 7H2M20 12L21 7H22"
-            stroke={isActive('/delivery/orders') ? '#f97316' : '#9ca3af'}
+            stroke={isActive('/delivery/orders') ? 'var(--primary-color)' : '#9ca3af'}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
             fill="none"
           />
           {/* Speed lines */}
-          <path d="M8 10H10M12 10H14" stroke={isActive('/delivery/orders') ? '#f97316' : '#9ca3af'} strokeWidth="2" strokeLinecap="round" fill="none" />
+          <path d="M8 10H10M12 10H14" stroke={isActive('/delivery/orders') ? 'var(--primary-color)' : '#9ca3af'} strokeWidth="2" strokeLinecap="round" fill="none" />
         </svg>
       ),
     },
@@ -50,7 +50,7 @@ export default function DeliveryBottomNav() {
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M18 8A6 6 0 0 0 6 8C6 11.3137 4 14 4 14H20C20 14 18 11.3137 18 8Z"
-            stroke={isActive('/delivery/notifications') ? '#f97316' : '#9ca3af'}
+            stroke={isActive('/delivery/notifications') ? 'var(--primary-color)' : '#9ca3af'}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -58,7 +58,7 @@ export default function DeliveryBottomNav() {
           />
           <path
             d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21"
-            stroke={isActive('/delivery/notifications') ? '#f97316' : '#9ca3af'}
+            stroke={isActive('/delivery/notifications') ? 'var(--primary-color)' : '#9ca3af'}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -74,7 +74,7 @@ export default function DeliveryBottomNav() {
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path
             d="M3 12H21M3 6H21M3 18H21"
-            stroke={isActive('/delivery/menu') ? '#f97316' : '#9ca3af'}
+            stroke={isActive('/delivery/menu') ? 'var(--primary-color)' : '#9ca3af'}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"

@@ -115,38 +115,48 @@ export const getOrders = asyncHandler(
 /**
  * Get order by ID with populated order items, customer, and delivery info
  */
-export const getOrderById = asyncHandler(
-  async (req: Request, res: Response) => {
-    const sellerId = (req as any).user.userId;
-    const { id } = req.params;
-
-    // First check if this seller has items in this order
-    // First check if this seller has items in this order
-    const sellerItems = await OrderItem.find({ order: id, seller: sellerId })
-      .populate("seller", "storeName")
-      .populate("product");
-
-    if (!sellerItems || sellerItems.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    // Get order with populated data
-    const order = await Order.findById(id)
-      .populate("customer", "name email phone")
-      .populate("deliveryBoy", "name mobile email");
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
-    }
-
-    // Get only this seller's order items
-    const orderItems = sellerItems;
+ export const getOrderById = asyncHandler(
+   async (req: Request, res: Response) => {
+     const sellerId = (req as any).user.userId;
+     const { id } = req.params;
+ 
+     // 1. Get order with populated data
+     const order = await Order.findById(id)
+       .populate("customer", "name email phone")
+       .populate("deliveryBoy", "name mobile email");
+ 
+     if (!order) {
+       return res.status(404).json({
+         success: false,
+         message: "Order not found",
+       });
+     }
+ 
+     // 2. Access check: Either seller has items in it, OR it's their POS order
+     const isTheirPOSOrder = order.adminNotes?.includes(`POS Order - Seller: ${sellerId}`);
+     
+     // Get this seller's specific items (important for online orders)
+     const sellerItems = await OrderItem.find({ order: id, seller: sellerId })
+       .populate("seller", "storeName")
+       .populate("product");
+ 
+     if (!isTheirPOSOrder && (!sellerItems || sellerItems.length === 0)) {
+       return res.status(403).json({
+         success: false,
+         message: "Access denied or order not found",
+       });
+     }
+ 
+     // 3. For POS orders created by this seller, return ALL items. 
+     // For online orders, return only items belonging to this seller.
+     let orderItems;
+     if (isTheirPOSOrder) {
+         orderItems = await OrderItem.find({ order: id })
+            .populate("seller", "storeName")
+            .populate("product");
+     } else {
+         orderItems = sellerItems;
+     }
 
     // Format order items for frontend
     // Format order items for frontend

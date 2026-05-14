@@ -220,7 +220,9 @@ export const createPOSOrder = asyncHandler(
              unitPrice: unitPrice,
              quantity: soldQty,
              total: totalItemPrice,
-             status: "Delivered"
+             status: "Delivered",
+             warrantyType: item.warrantyType || product?.warrantyType || "None",
+             warrantyDuration: item.warrantyDuration || product?.warrantyDuration || ""
            });
 
            if (varId && product) {

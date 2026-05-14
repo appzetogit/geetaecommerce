@@ -286,7 +286,7 @@ export default function SellerDashboard() {
              </div>
           </motion.div>
           <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
-             <DashboardCard icon={productIcon} title="Products" value={stats.totalProduct} accentColor="#f97316" />
+             <DashboardCard icon={productIcon} title="Products" value={stats.totalProduct} accentColor="var(--primary-color)" />
              <DashboardCard icon={ordersIcon} title="Orders" value={stats.totalOrders} accentColor="#3b82f6" />
              <DashboardCard icon={completedOrdersIcon} title="Completed" value={stats.completedOrders} accentColor="#16a34a" />
              <DashboardCard icon={pendingOrdersIcon} title="Pending" value={stats.pendingOrders} accentColor="#a855f7" />

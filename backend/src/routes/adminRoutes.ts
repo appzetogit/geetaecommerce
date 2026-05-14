@@ -96,6 +96,9 @@ router.post("/staff", requireUserType("Admin", "Seller"), staffController.create
 router.put("/staff/:id", requireUserType("Admin", "Seller"), staffController.updateStaff);
 router.delete("/staff/:id", requireUserType("Admin", "Seller"), staffController.deleteStaff);
 
+// Order Edit (POS) - Accessible to both Admin and Seller
+router.patch("/orders/:id/items", requireUserType("Admin", "Seller"), orderController.updateOrderItems);
+
 router.use(requireUserType("Admin"));
 
 // ==================== Profile Routes ====================
@@ -204,7 +207,7 @@ router.get("/orders/status/:status", orderController.getOrdersByStatus);
 router.get("/orders/:id", orderController.getOrderById);
 router.delete("/orders/:id", deleteOrderController.deleteOrder);
 router.patch("/orders/:id/status", orderController.updateOrderStatus);
-router.patch("/orders/:id/items", orderController.updateOrderItems);
+// router.patch("/orders/:id/items", orderController.updateOrderItems); // Moved up to allow Sellers
 router.patch("/orders/:id/assign-delivery", orderController.assignDeliveryBoy);
 router.get("/orders/export/csv", orderController.exportOrders);
 

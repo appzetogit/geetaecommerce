@@ -476,7 +476,14 @@ export default function SellerOrderDetail() {
                 {orderDetail.items.map((item) => (
                   <tr key={item.srNo}>
                     <td className="px-4 py-3 text-sm text-neutral-900">{item.srNo}</td>
-                    <td className="px-4 py-3 text-sm text-neutral-900">{item.product}</td>
+                    <td className="px-4 py-3 text-sm text-neutral-900">
+                      <div>{item.product}</div>
+                      {item.warrantyType && item.warrantyType !== 'None' && (
+                        <div className="text-xs text-blue-600 font-medium mt-1">
+                          {item.warrantyType}: {item.warrantyDuration}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-sm text-neutral-900">{formatUnit(item.unit, item.qty)}</td>
                     <td className="px-4 py-3 text-sm text-neutral-900">₹{item.price.toFixed(2)}</td>
                     <td className="px-4 py-3 text-sm text-neutral-600">

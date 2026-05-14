@@ -50,11 +50,11 @@ const CustomerSchema = new Schema<ICustomer>(
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
       lowercase: true,
       trim: true,
       validate: {
         validator: function (v: string) {
+          if (!v) return true; // Optional
           return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
         },
         message: 'Please enter a valid email address',
@@ -171,7 +171,13 @@ const CustomerSchema = new Schema<ICustomer>(
 
 // Compound unique indexes to separate customers by seller
 CustomerSchema.index({ phone: 1, sellerId: 1 }, { unique: true });
-CustomerSchema.index({ email: 1, sellerId: 1 }, { unique: true });
+CustomerSchema.index(
+  { email: 1, sellerId: 1 },
+  { 
+    unique: true, 
+    partialFilterExpression: { email: { $type: "string" } } 
+  }
+);
 CustomerSchema.index({ refCode: 1, sellerId: 1 }, { unique: true });
 
 // Virtual for walletAmount to match frontend expectations

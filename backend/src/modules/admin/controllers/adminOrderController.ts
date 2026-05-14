@@ -369,7 +369,24 @@ export const updateOrderItems = asyncHandler(
     session.startTransaction();
 
     try {
-      const adminId = req.user?.userId;
+      const userId = req.user?.userId;
+      const userType = req.user?.userType;
+
+      // Permission Check for Sellers
+      if (userType === 'Seller') {
+        const isTheirPOSOrder = order.adminNotes?.includes(`POS Order - Seller: ${userId}`);
+        // Check if seller owns any items in the order (for online orders if we ever allow editing them)
+        const sellerItems = await OrderItem.find({ order: order._id, seller: userId });
+        
+        if (!isTheirPOSOrder && (!sellerItems || sellerItems.length === 0)) {
+           return res.status(403).json({
+               success: false,
+               message: "Access denied. You can only edit your own POS orders."
+           });
+        }
+      }
+
+      const stockModifierField = userType === 'Admin' ? 'admin' : 'seller';
 
       // 1. Restore stock for existing items
       const existingItems = await OrderItem.find({ order: order._id }).session(session);
@@ -405,7 +422,7 @@ export const updateOrderItems = asyncHandler(
                        referenceId: order._id,
                        previousStock: prevVarStock,
                        newStock: newVarStock,
-                       admin: adminId
+                       [stockModifierField]: userId
                    }], { session });
                    restored = true;
                 }
@@ -427,7 +444,7 @@ export const updateOrderItems = asyncHandler(
                     referenceId: order._id,
                     previousStock: prevStock,
                     newStock: newStockVal,
-                    admin: adminId
+                    [stockModifierField]: userId
                 }], { session });
              }
           }
@@ -499,7 +516,9 @@ export const updateOrderItems = asyncHandler(
             quantity,
             total: customTotal,
             variation: customVariationLabel,
-            status: "Pending"
+            status: "Pending",
+            warrantyType: itemData.warrantyType || "None",
+            warrantyDuration: itemData.warrantyDuration || ""
           });
 
           await detachedOrderItem.save({ session });
@@ -578,7 +597,9 @@ export const updateOrderItems = asyncHandler(
           quantity: quantity,
           total: total,
           variation: variationName,
-          status: "Pending"
+          status: "Pending",
+          warrantyType: itemData.warrantyType || product.warrantyType || "None",
+          warrantyDuration: itemData.warrantyDuration || product.warrantyDuration || ""
         });
 
         await newOrderItem.save({ session });
@@ -595,7 +616,7 @@ export const updateOrderItems = asyncHandler(
             referenceId: order._id,
             previousStock: foundVariation ? (foundVariation.stock + quantity) : (product.stock + quantity),
             newStock: foundVariation ? foundVariation.stock : product.stock,
-            admin: adminId
+            [stockModifierField]: userId
         }], { session });
       }
 
@@ -660,7 +681,7 @@ export const updateOrderItems = asyncHandler(
             description: `POS Order #${order.orderNumber} (Updated)`,
             referenceId: order._id.toString(),
             date: new Date(),
-            createdBy: adminId
+            createdBy: userId
           }], { session });
         }
       }

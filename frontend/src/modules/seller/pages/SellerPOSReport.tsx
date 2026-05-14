@@ -1084,7 +1084,14 @@ const SellerPOSReport = () => {
                                 
                                 return (
                                     <div key={idx} className="grid grid-cols-12 gap-1 text-[15px] leading-tight font-bold">
-                                        <div className="col-span-5 font-bold">({idx + 1}) {itemName}</div>
+                                        <div className="col-span-5 font-bold">
+                                            <div>({idx + 1}) {itemName}</div>
+                                            {item.warrantyType && item.warrantyType !== 'None' && (
+                                                <div className="text-[12px] text-gray-700 italic">
+                                                    {item.warrantyType}: {item.warrantyDuration}
+                                                </div>
+                                            )}
+                                        </div>
                                         <div className="col-span-2 text-center font-bold">{qty}</div>
                                         <div className="col-span-2 text-right font-bold">{mrp > 0 ? formatAmount(mrp) : '-'}</div>
                                         <div className="col-span-1 text-right font-bold">{formatAmount(sp)}</div>

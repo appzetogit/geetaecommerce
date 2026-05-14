@@ -11,6 +11,7 @@ export interface IStockLedger extends Document {
   previousStock: number;
   newStock: number;
   admin?: mongoose.Types.ObjectId;
+  seller?: mongoose.Types.ObjectId;
   createdAt: Date;
 }
 
@@ -57,6 +58,10 @@ const StockLedgerSchema = new Schema<IStockLedger>(
     admin: {
       type: Schema.Types.ObjectId,
       ref: "Admin",
+    },
+    seller: {
+      type: Schema.Types.ObjectId,
+      ref: "Seller",
     },
   },
   {

@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import GeetaStoresLogo from '@assets/geetastoreslogo.png';
 import { useAuth } from '../../../context/AuthContext';
 import { logout as sellerApiLogout } from '../../../services/api/auth/sellerAuthService';
+import { useAppContext } from '../../../context/AppContext';
 
 interface SellerHeaderProps {
   onMenuClick: () => void;
@@ -14,8 +15,9 @@ export default function SellerHeader({ onMenuClick, isSidebarOpen }: SellerHeade
   const location = useLocation();
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
-  const { user, logout } = useAuth();
-  const settingsRef = useRef<HTMLDivElement>(null);
+   const { user, logout } = useAuth();
+   const { config } = useAppContext();
+   const settingsRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location.pathname.includes(path);
@@ -105,8 +107,8 @@ export default function SellerHeader({ onMenuClick, isSidebarOpen }: SellerHeade
             className="hover:opacity-80 transition-opacity"
           >
             <img
-              src="/assets/geetastoreslogo.png"
-              alt="Geeta Stores"
+              src={config?.appLogo || "/assets/geetastoreslogo.png"}
+              alt={config?.appName || "Geeta Stores"}
               className="h-10 sm:h-12 w-auto object-contain cursor-pointer"
               style={{ maxWidth: '200px' }}
             />

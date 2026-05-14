@@ -185,40 +185,53 @@ export const createCustomer = asyncHandler(
       ? String(rawGst).toUpperCase().replace(/[^0-9A-Z]/g, "").slice(0, 15)
       : "";
 
-    // Check if customer already exists within this context
-    const existingCustomer = await Customer.findOne({
-      $or: [{ email }, { phone }],
+    // Check if customer already exists within this context (Same Seller/Admin)
+    const contextQuery: any = {
+      $or: [{ phone }],
       sellerId: req.user && req.user.userType === 'Seller' ? req.user.userId : null,
-    });
+    };
+    if (email) contextQuery.$or.push({ email });
 
-    if (existingCustomer) {
+    const existingInContext = await Customer.findOne(contextQuery);
+
+    if (existingInContext) {
       return res.status(400).json({
         success: false,
-        message: existingCustomer.email === email
-          ? "Customer with this email already exists"
-          : "Customer with this phone number already exists",
+        message: existingInContext.phone === phone
+          ? "Customer with this phone number is already registered in your list"
+          : "Customer with this email is already registered in your list",
       });
     }
 
-    const customer = await Customer.create({
-      name,
-      email,
-      phone,
-      address,
-      city,
-      state,
-      pincode,
-      gst,
-      registrationDate: new Date(),
-      status: 'Active',
-      sellerId: req.user && req.user.userType === 'Seller' ? req.user.userId : null,
-    });
-
-    return res.status(201).json({
-      success: true,
-      message: "Customer created successfully",
-      data: customer,
-    });
+    try {
+      const customer = await Customer.create({
+        name,
+        email: email || undefined, // Store undefined instead of empty string
+        phone,
+        address,
+        city,
+        state,
+        pincode,
+        gst,
+        registrationDate: new Date(),
+        status: 'Active',
+        sellerId: req.user && req.user.userType === 'Seller' ? req.user.userId : null,
+      });
+  
+      return res.status(201).json({
+        success: true,
+        message: "Customer created successfully",
+        data: customer,
+      });
+    } catch (error: any) {
+      if (error.code === 11000) {
+        return res.status(400).json({
+          success: false,
+          message: "This phone number or email is already registered in the system. To maintain separate lists, please use a unique identifier or contact admin to resolve index conflicts.",
+        });
+      }
+      throw error; // Rethrow other errors to be handled by global error handler
+    }
   }
 );
 

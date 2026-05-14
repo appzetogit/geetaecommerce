@@ -49,6 +49,8 @@ export interface OrderItem {
   taxPercent: number;
   qty: number;
   subtotal: number;
+  warrantyType?: string;
+  warrantyDuration?: string;
 }
 
 export interface DeliveryAddress {
