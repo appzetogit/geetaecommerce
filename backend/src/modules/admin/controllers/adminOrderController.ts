@@ -167,9 +167,16 @@ export const getPOSOrders = asyncHandler(
     } = req.query;
 
     const query: any = {
-      $or: [
-        { adminNotes: { $regex: "pos", $options: "i" } },
-        { "deliveryAddress.address": "POS Order" }
+      $and: [
+        {
+          $or: [
+            { adminNotes: { $regex: "pos", $options: "i" } },
+            { "deliveryAddress.address": "POS Order" }
+          ]
+        },
+        {
+          adminNotes: { $not: { $regex: "POS Order - Seller:", $options: "i" } }
+        }
       ]
     };
 
@@ -184,17 +191,15 @@ export const getPOSOrders = asyncHandler(
 
     if (search) {
       const searchRegex = { $regex: search as string, $options: "i" };
-      query.$and = [
-        {
-          $or: [
-            { orderNumber: searchRegex },
-            { customerName: searchRegex },
-            { customerEmail: searchRegex },
-            { customerPhone: searchRegex },
-            { paymentMethod: searchRegex }
-          ]
-        }
-      ];
+      query.$and.push({
+        $or: [
+          { orderNumber: searchRegex },
+          { customerName: searchRegex },
+          { customerEmail: searchRegex },
+          { customerPhone: searchRegex },
+          { paymentMethod: searchRegex }
+        ]
+      });
     }
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
@@ -1697,9 +1702,16 @@ export const getPOSReport = asyncHandler(
 
     // Common POS Check
     const posFilter = {
-      $or: [
-        { adminNotes: { $regex: "POS", $options: "i" } },
-        { "deliveryAddress.address": "POS Order" }
+      $and: [
+        {
+          $or: [
+            { adminNotes: { $regex: "POS", $options: "i" } },
+            { "deliveryAddress.address": "POS Order" }
+          ]
+        },
+        {
+          adminNotes: { $not: { $regex: "POS Order - Seller:", $options: "i" } }
+        }
       ]
     };
 

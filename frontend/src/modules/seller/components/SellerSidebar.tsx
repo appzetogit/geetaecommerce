@@ -677,7 +677,7 @@ export default function SellerSidebar({ onClose }: SellerSidebarProps) {
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 xmlns="http://www.w3.org/2000/svg"
-                                className={`transition-transform ${subExpanded ? "rotate-90" : ""} ${
+                                className={`transition-transform ${expanded ? "rotate-90" : ""} ${
                                   active ? "text-[var(--sidebar-text-color,white)]" : "text-[var(--sidebar-text-color,white)] opacity-60"
                                 }`}>
                                 <path

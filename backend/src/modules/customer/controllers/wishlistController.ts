@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import Wishlist from '../../../models/Wishlist';
 import Product from '../../../models/Product';
+import Seller from '../../../models/Seller';
 import { findSellersWithinRange } from '../../../utils/locationHelper';
 
 export const getWishlist = async (req: Request, res: Response) => {
@@ -22,7 +23,20 @@ export const getWishlist = async (req: Request, res: Response) => {
             });
         }
 
-        const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+        const nearbySellerIdsRaw = await findSellersWithinRange(userLat, userLng);
+        
+        // Filter nearby sellers by visibility (Enabled and (Admin or canCreateCategories is false))
+        const visibleSellers = await Seller.find({
+            _id: { $in: nearbySellerIdsRaw },
+            isEnabled: true,
+            $or: [
+                { email: /admin/i },
+                { category: "Admin" },
+                { storeName: { $regex: /Admin/i } },
+                { canCreateCategories: { $ne: true } }
+            ]
+        }).select("_id");
+        const nearbySellerIds = visibleSellers.map(s => s._id);
 
         let wishlist = await Wishlist.findOne({ customer: userId }).populate({
             path: 'products',
@@ -82,7 +96,21 @@ export const addToWishlist = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'Product not found or unavailable' });
         }
 
-        const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+        const nearbySellerIdsRaw = await findSellersWithinRange(userLat, userLng);
+        
+        // Filter nearby sellers by visibility
+        const visibleSellers = await Seller.find({
+            _id: { $in: nearbySellerIdsRaw },
+            isEnabled: true,
+            $or: [
+                { email: /admin/i },
+                { category: "Admin" },
+                { storeName: { $regex: /Admin/i } },
+                { canCreateCategories: { $ne: true } }
+            ]
+        }).select("_id");
+        const nearbySellerIds = visibleSellers.map(s => s._id);
+
         const isAvailable = nearbySellerIds.some(id => id.toString() === product.seller.toString());
 
         if (!isAvailable) {

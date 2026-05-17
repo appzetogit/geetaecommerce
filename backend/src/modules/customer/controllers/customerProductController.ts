@@ -62,31 +62,32 @@ export const getProducts = async (req: Request, res: Response) => {
     const userLat = latitude ? parseFloat(latitude as string) : null;
     const userLng = longitude ? parseFloat(longitude as string) : null;
 
-    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
-      let allowedSellerIds = await findSellersWithinRange(userLat, userLng);
-      try {
-        const adminSellers = await Seller.find({
-          $or: [
-            { email: /admin/i },
-            { category: "Admin" },
-            { storeName: { $regex: /Admin/i } }
-          ]
-        }).select("_id");
-        const adminSellerIds = adminSellers.map(s => s._id);
-        allowedSellerIds = [...allowedSellerIds, ...adminSellerIds];
-      } catch (err) {
-        console.error("Error fetching admin seller:", err);
-      }
+    // Helper to get visible sellers (Enabled and (Admin or canCreateCategories is false))
+    const getVisibleSellersQuery = () => ({
+      isEnabled: true,
+      $or: [
+        { email: /admin/i },
+        { category: "Admin" },
+        { storeName: { $regex: /Admin/i } },
+        { canCreateCategories: { $ne: true } } // Default to false if not set, or explicitly false (Enabled in UI)
+      ]
+    });
 
-      const enabledSellers = await Seller.find({
-        _id: { $in: allowedSellerIds },
-        isEnabled: true
+    let visibleSellerIds: mongoose.Types.ObjectId[] = [];
+
+    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
+      const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+      const visibleSellers = await Seller.find({
+        _id: { $in: nearbySellerIds },
+        ...getVisibleSellersQuery()
       }).select("_id");
-      query.seller = { $in: enabledSellers.map(s => s._id) };
+      visibleSellerIds = visibleSellers.map(s => s._id);
     } else {
-       const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
-       query.seller = { $in: enabledSellers.map(s => s._id) };
+      const visibleSellers = await Seller.find(getVisibleSellersQuery()).select("_id");
+      visibleSellerIds = visibleSellers.map(s => s._id);
     }
+
+    query.seller = { $in: visibleSellerIds };
 
     // Helper to resolve ID
     const resolveId = async (model: any, value: string, modelName: string = "") => {
@@ -269,22 +270,26 @@ export const getSearchSuggestions = async (req: Request, res: Response) => {
       ]
     };
 
-    // Location-based filtering for suggestions too
-    const userLat = latitude ? parseFloat(latitude as string) : null;
-    const userLng = longitude ? parseFloat(longitude as string) : null;
+    const visibleSellersQuery = {
+      isEnabled: true,
+      $or: [
+        { email: /admin/i },
+        { category: "Admin" },
+        { storeName: { $regex: /Admin/i } },
+        { canCreateCategories: { $ne: true } }
+      ]
+    };
 
     if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
-      let allowedSellerIds = await findSellersWithinRange(userLat, userLng);
-      // Add Admin Sellers
-      const adminSellers = await Seller.find({
-        $or: [
-          { category: "Admin" },
-          { storeName: { $regex: /Admin/i } }
-        ]
+      const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+      const visibleSellers = await Seller.find({
+        _id: { $in: nearbySellerIds },
+        ...visibleSellersQuery
       }).select("_id");
-      allowedSellerIds = [...allowedSellerIds, ...adminSellers.map(s => s._id)];
-      query.seller = { $in: allowedSellerIds };
-      console.log(`DEBUG: Suggestions filtering for ${allowedSellerIds.length} sellers`);
+      query.seller = { $in: visibleSellers.map(s => s._id) };
+    } else {
+      const visibleSellers = await Seller.find(visibleSellersQuery).select("_id");
+      query.seller = { $in: visibleSellers.map(s => s._id) };
     }
 
     const products = await Product.find(query)
@@ -357,7 +362,7 @@ export const getProductById = async (req: Request, res: Response) => {
       .populate("brand", "name")
       .populate(
         "seller",
-        "storeName city fssaiLicNo address location serviceRadiusKm email isEnabled"
+        "storeName city fssaiLicNo address location serviceRadiusKm email isEnabled canCreateCategories category"
       );
 
     if (!product || !product.category) { // If category is null due to match filter, hide product
@@ -379,13 +384,26 @@ export const getProductById = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if seller is enabled
+    // Check if seller is enabled and has customer visibility (canCreateCategories is false/null)
     const sellerInfo = product.seller as any;
-    if (sellerInfo && sellerInfo.isEnabled === false) {
-      return res.status(404).json({
-        success: false,
-        message: "This product is currently unavailable",
-      });
+    if (sellerInfo) {
+      if (sellerInfo.isEnabled === false) {
+        return res.status(404).json({
+          success: false,
+          message: "This product is currently unavailable",
+        });
+      }
+      
+      const isAdmin = sellerInfo.email?.match(/admin/i) || 
+                      sellerInfo.category === "Admin" || 
+                      sellerInfo.storeName?.match(/Admin/i);
+
+      if (sellerInfo.canCreateCategories === true && !isAdmin) {
+        return res.status(404).json({
+          success: false,
+          message: "This product is for internal use only",
+        });
+      }
     }
 
     // Parse location

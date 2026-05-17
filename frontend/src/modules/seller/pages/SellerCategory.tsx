@@ -127,7 +127,7 @@ export default function SellerCategory() {
     const allCategories = isInSubcategoryView
         ? sellerActiveChildren.map((c) => ({ ...c, type: 'seller' }))
         : [
-            ...categories.map((c) => ({ ...c, type: 'admin' })),
+            ...(canCreateCategories ? [] : categories.map((c) => ({ ...c, type: 'admin' }))),
             ...sellerRootCategories.map((c) => ({ ...c, type: 'seller' })),
         ];
 

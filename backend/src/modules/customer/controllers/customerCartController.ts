@@ -14,19 +14,21 @@ const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.O
         select: 'price seller status publish storeName category'
     });
 
-    // Fetch Admin Sellers to whitelist
-    let adminSellerIds: string[] = [];
+    // Fetch Visible Sellers (Admin or canCreateCategories is false)
+    let visibleSellerIds: string[] = [];
     try {
         const Seller = (await import("../../../models/Seller")).default;
-        const adminSellers = await Seller.find({
+        const visibleSellers = await Seller.find({
+             isEnabled: true,
              $or: [
                 { email: "admin-store@geetastores.com" },
                 { category: "Admin" },
-                { storeName: { $regex: /Admin/i } }
+                { storeName: { $regex: /Admin/i } },
+                { canCreateCategories: { $ne: true } }
             ]
         }).select("_id");
-        adminSellerIds = adminSellers.map(s => s._id.toString());
-    } catch (e) { console.error("Error fetching admin sellers", e); }
+        visibleSellerIds = visibleSellers.map(s => s._id.toString());
+    } catch (e) { console.error("Error fetching visible sellers", e); }
 
     const settings = await AppSettings.findOne().lean();
     const inventorySection = settings?.productDisplaySettings?.find(s => s.id === 'inventory');
@@ -43,7 +45,7 @@ const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.O
 
             // Check if seller is in range OR is Admin
             const sellerId = product.seller.toString();
-            const isAvailable = nearbySellerIds.some(id => id.toString() === sellerId) || adminSellerIds.includes(sellerId);
+            const isAvailable = nearbySellerIds.some(id => id.toString() === sellerId) || visibleSellerIds.includes(sellerId);
 
             if (isAvailable) {
                 total += product.price * item.quantity;
@@ -74,18 +76,20 @@ export const getCart = async (req: Request, res: Response) => {
              locationProvided = true;
         }
 
-        // Fetch Admin Sellers to whitelist (always needed if we are filtering)
-        let adminSellerIds: string[] = [];
+        // Fetch Visible Sellers to whitelist
+        let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
-            const adminSellers = await Seller.find({
+            const visibleSellers = await Seller.find({
+                isEnabled: true,
                 $or: [
                     { email: "admin-store@geetastores.com" },
                     { category: "Admin" },
-                    { storeName: { $regex: /Admin/i } }
+                    { storeName: { $regex: /Admin/i } },
+                    { canCreateCategories: { $ne: true } }
                 ]
             }).select("_id");
-            adminSellerIds = adminSellers.map(s => s._id.toString());
+            visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
 
 
@@ -122,12 +126,11 @@ export const getCart = async (req: Request, res: Response) => {
                 let isAvailable = true; // Default to true if no location
 
                 if (locationProvided) {
-                    const sellerId = product.seller ? product.seller.toString() : "";
-                    // Check if Admin or Nearby
-                    const isAdmin = adminSellerIds.includes(sellerId);
+                    // Check if Visible (Admin or enabled with permissions) or Nearby
+                    const isVisible = visibleSellerIds.includes(sellerId);
                     const isNearby = nearbySellerIds.some(id => id.toString() === sellerId);
 
-                    isAvailable = isAdmin || isNearby;
+                    isAvailable = isVisible || isNearby;
                 }
 
                 if (isAvailable) {
@@ -200,21 +203,22 @@ export const addToCart = async (req: Request, res: Response) => {
         if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
              const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
 
-             // Check if Admin Seller
-            let isAdminSeller = false;
+             // Check if Visible Seller
+            let isVisibleSeller = false;
             try {
                  const Seller = (await import("../../../models/Seller")).default;
                  const seller = await Seller.findById(product.seller);
-                 if (seller && (
+                 if (seller && seller.isEnabled && (
                      seller.email === "admin-store@geetastores.com" ||
                      seller.category === "Admin" ||
-                     /Admin/i.test(seller.storeName || "")
+                     /Admin/i.test(seller.storeName || "") ||
+                     seller.canCreateCategories !== true
                  )) {
-                     isAdminSeller = true;
+                     isVisibleSeller = true;
                  }
             } catch(e) {}
 
-            const isAvailable = nearbySellerIds.some(id => id.toString() === product.seller.toString()) || isAdminSeller;
+            const isAvailable = nearbySellerIds.some(id => id.toString() === product.seller.toString()) || isVisibleSeller;
 
             if (!isAvailable) {
                 console.warn(`WARNING: Product ${productId} not available at given location, but adding anyway per user request.`);
@@ -270,19 +274,21 @@ export const addToCart = async (req: Request, res: Response) => {
             }
         });
 
-        // Fetch Admin Sellers again for filtering response
+        // Fetch Visible Sellers again for filtering response
         // Optimization: could pass this down, but strict separation is safer
-         let adminSellerIds: string[] = [];
+         let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
-            const adminSellers = await Seller.find({
+            const visibleSellers = await Seller.find({
+                isEnabled: true,
                 $or: [
                     { email: "admin-store@geetastores.com" },
                     { category: "Admin" },
-                    { storeName: { $regex: /Admin/i } }
+                    { storeName: { $regex: /Admin/i } },
+                    { canCreateCategories: { $ne: true } }
                 ]
             }).select("_id");
-             adminSellerIds = adminSellers.map(s => s._id.toString());
+             visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
 
         const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
@@ -292,7 +298,7 @@ export const addToCart = async (req: Request, res: Response) => {
             if (nearbySellerIds.length === 0 && !locationProvided) {
                 return true;
             }
-            return prod && (nearbySellerIds.some(id => id.toString() === sellerId) || adminSellerIds.includes(sellerId));
+            return prod && (nearbySellerIds.some(id => id.toString() === sellerId) || visibleSellerIds.includes(sellerId));
         });
 
         return res.status(200).json({
@@ -356,23 +362,24 @@ export const updateCartItem = async (req: Request, res: Response) => {
         // Verify item is still available at location (only if location provided)
         const product = cartItem.product as any;
 
-        let isAdminSeller = false;
+        let isVisibleSeller = false;
         try {
              const Seller = (await import("../../../models/Seller")).default;
              const seller = await Seller.findById(product.seller);
-             if (seller && (
+             if (seller && seller.isEnabled && (
                  seller.email === "admin-store@geetastores.com" ||
                  seller.category === "Admin" ||
-                 /Admin/i.test(seller.storeName || "")
+                 /Admin/i.test(seller.storeName || "") ||
+                 seller.canCreateCategories !== true
              )) {
-                 isAdminSeller = true;
+                 isVisibleSeller = true;
              }
         } catch(e) {}
 
         const isAvailable = product && (
             !locationProvided || // Allow if no location
             nearbySellerIds.some(id => id.toString() === product.seller.toString()) ||
-            isAdminSeller
+            isVisibleSeller
         );
 
         if (!isAvailable) {
@@ -401,18 +408,20 @@ export const updateCartItem = async (req: Request, res: Response) => {
             }
         });
 
-         // Fetch Admin Sellers to whitelist again for filtering
-        let adminSellerIds: string[] = [];
+         // Fetch Visible Sellers to whitelist again for filtering
+        let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
-            const adminSellers = await Seller.find({
+            const visibleSellers = await Seller.find({
+                isEnabled: true,
                 $or: [
                     { email: "admin-store@geetastores.com" },
                     { category: "Admin" },
-                    { storeName: { $regex: /Admin/i } }
+                    { storeName: { $regex: /Admin/i } },
+                    { canCreateCategories: { $ne: true } }
                 ]
             }).select("_id");
-             adminSellerIds = adminSellers.map(s => s._id.toString());
+             visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
 
         const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
@@ -421,7 +430,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
 
              if (!locationProvided) return true; // Show all if no location
 
-            return prod && (nearbySellerIds.some(id => id.toString() === sellerId) || adminSellerIds.includes(sellerId));
+            return prod && (nearbySellerIds.some(id => id.toString() === sellerId) || visibleSellerIds.includes(sellerId));
         });
 
         return res.status(200).json({
