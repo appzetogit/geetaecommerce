@@ -170,7 +170,7 @@ export default function SellerSubCategory() {
 
     const mergedSubcategories = useMemo(() => {
         const all = [
-            ...subcategories,
+            ...(canCreateSubcategories ? [] : subcategories),
             ...ownSubcategories,
             ...sellerSubcategoriesFromOwnCategories,
         ];
@@ -181,7 +181,7 @@ export default function SellerSubCategory() {
             if (!map.has(id)) map.set(id, row);
         }
         return Array.from(map.values());
-    }, [subcategories, ownSubcategories, sellerSubcategoriesFromOwnCategories]);
+    }, [canCreateSubcategories, subcategories, ownSubcategories, sellerSubcategoriesFromOwnCategories]);
 
     // Client-side sorting (if API doesn't handle it)
     const sortedSubcategories = [...mergedSubcategories];

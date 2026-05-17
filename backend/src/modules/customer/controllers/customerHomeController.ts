@@ -65,17 +65,25 @@ async function fetchSectionData(
       const activeCategoryIds = activeCategories.map(c => c._id);
       query.category = { $in: activeCategoryIds };
 
-      // Filter by enabled sellers
-      const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
-      const enabledSellerIds = enabledSellers.map(s => s._id);
-      query.seller = { $in: enabledSellerIds };
+      // Filter by visible sellers (Enabled and (Admin or canCreateCategories is false))
+      const visibleSellers = await Seller.find({
+        isEnabled: true,
+        $or: [
+          { email: /admin/i },
+          { category: "Admin" },
+          { storeName: { $regex: /Admin/i } },
+          { canCreateCategories: { $ne: true } }
+        ]
+      }).select("_id");
+      const visibleSellerIds = visibleSellers.map(s => s._id);
 
       if (nearbySellerIds && nearbySellerIds.length > 0) {
-        // If we have nearby sellers, we match against both: must be within range AND enabled
-        const finalIds = enabledSellerIds.filter(id =>
+        const finalIds = visibleSellerIds.filter(id =>
           nearbySellerIds.some(nearbyId => nearbyId.toString() === id.toString())
         );
         query.seller = { $in: finalIds };
+      } else {
+        query.seller = { $in: visibleSellerIds };
       }
 
       if (categories && categories.length > 0) {
@@ -268,9 +276,17 @@ export const getHomeContent = async (req: Request, res: Response) => {
       isActive: true,
     };
 
-    // Always filter by enabled sellers
-    const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
-    const enabledSellerIds = enabledSellers.map(s => s._id);
+    // Always filter by visible sellers
+    const visibleSellers = await Seller.find({
+      isEnabled: true,
+      $or: [
+        { email: /admin/i },
+        { category: "Admin" },
+        { storeName: { $regex: /Admin/i } },
+        { canCreateCategories: { $ne: true } }
+      ]
+    }).select("_id");
+    const visibleSellerIds = visibleSellers.map(s => s._id);
 
     const lowestPricesProducts = await LowestPricesProduct.find(
       lowestPricesProductsQuery
@@ -282,7 +298,7 @@ export const getHomeContent = async (req: Request, res: Response) => {
         match: {
           status: "Active",
           publish: true,
-          seller: { $in: enabledSellerIds }
+          seller: { $in: visibleSellerIds }
           // Removed location filter to show preview images irrespective of radius
         },
         populate: {
@@ -731,27 +747,30 @@ export const getStoreProducts = async (req: Request, res: Response) => {
       }
     }
 
-    // Location-based filtering: Only show products from sellers within user's range
-    const userLat = latitude ? parseFloat(latitude as string) : null;
-    const userLng = longitude ? parseFloat(longitude as string) : null;
-
-    console.log(`[getStoreProducts] User location: lat=${userLat}, lng=${userLng}`);
+    // Visibility filter
+    const visibleSellersQuery = {
+      isEnabled: true,
+      $or: [
+        { email: /admin/i },
+        { category: "Admin" },
+        { storeName: { $regex: /Admin/i } },
+        { canCreateCategories: { $ne: true } }
+      ]
+    };
 
     if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
       const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
       console.log(`[getStoreProducts] Found ${nearbySellerIds.length} sellers within range`);
 
-      // Always filter by enabled sellers ONLY
-      const enabledSellers = await Seller.find({
+      const visibleSellers = await Seller.find({
         _id: { $in: nearbySellerIds },
-        isEnabled: true
+        ...visibleSellersQuery
       }).select("_id");
 
-      const enabledSellerIds = enabledSellers.map(s => s._id);
+      const visibleSellerIds = visibleSellers.map(s => s._id);
 
-      if (enabledSellerIds.length === 0) {
-        // No enabled sellers within range, return shop data but empty products
-        console.log(`[getStoreProducts] No enabled sellers in range, returning empty products`);
+      if (visibleSellerIds.length === 0) {
+        // No visible sellers within range
         return res.status(200).json({
           success: true,
           data: [],
@@ -762,19 +781,15 @@ export const getStoreProducts = async (req: Request, res: Response) => {
             total: 0,
             pages: 0,
           },
-          message: "No sellers available in your area. Please update your location.",
+          message: "No sellers available in your area.",
         });
       }
 
-      // Filter products by enabled sellers within range
-      query.seller = { $in: enabledSellerIds };
-      console.log(`[getStoreProducts] Added enabled seller filter to query`);
+      query.seller = { $in: visibleSellerIds };
     } else {
-      // If no location provided, still filter by enabled sellers
-      const enabledSellers = await Seller.find({ isEnabled: true }).select("_id");
-      const enabledSellerIds = enabledSellers.map(s => s._id);
-      query.seller = { $in: enabledSellerIds };
-      console.log(`[getStoreProducts] No location provided, filtering by all enabled sellers`);
+      const visibleSellers = await Seller.find(visibleSellersQuery).select("_id");
+      const visibleSellerIds = visibleSellers.map(s => s._id);
+      query.seller = { $in: visibleSellerIds };
     }
 
     console.log(`[getStoreProducts] Final query:`, JSON.stringify(query, null, 2));

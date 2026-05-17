@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Product from "../../../models/Product";
 import Shop from "../../../models/Shop";
 import Category from "../../../models/Category";
+import Seller from "../../../models/Seller";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
 /** Excel / bulk import often sends category or brand *names*; only valid 24-char hex IDs may be cast to ObjectId. */
@@ -45,6 +46,29 @@ export const createProduct = asyncHandler(
         success: false,
         message: "You can only create products for your own account",
       });
+    }
+
+    // Category Permission Guard: if seller's category permission is OFF (canCreateCategories === true),
+    // they cannot assign admin-managed categories or header categories to products.
+    const sellerDoc = await Seller.findById(sellerId).select("canCreateCategories").lean();
+    const isCategoryPermissionOff = sellerDoc ? sellerDoc.canCreateCategories === true : false;
+    if (isCategoryPermissionOff) {
+      if (productData.headerCategoryId) {
+        return res.status(403).json({
+          success: false,
+          message: "Your account does not have permission to add products under admin-managed categories. Please contact the admin.",
+        });
+      }
+      const categoryId = productData.categoryId || productData.category;
+      if (categoryId && typeof categoryId === "string" && isValidObjectIdString(categoryId)) {
+        const isAdminCategory = await Category.exists({ _id: categoryId });
+        if (isAdminCategory) {
+          return res.status(403).json({
+            success: false,
+            message: "Your account does not have permission to add products under admin-managed categories. Please contact the admin.",
+          });
+        }
+      }
     }
 
     // 2. Map fields to match Product model
@@ -279,7 +303,7 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
     // 3. Find duplicate SKUs
     if (redundant === "true" || redundant === "sku") {
       const duplicateSKUs = await Product.aggregate([
-        { $match: { seller: sellerObjectId, sku: { $ne: null, $ne: "" } } },
+        { $match: { seller: sellerObjectId, sku: { $nin: [null, ""] } } },
         { $group: { _id: "$sku", count: { $sum: 1 }, ids: { $push: "$_id" } } },
         { $match: { count: { $gt: 1 } } },
       ]);
@@ -428,6 +452,29 @@ export const updateProduct = asyncHandler(
 
     // Remove sellerId from update data if present (cannot change owner)
     delete updateData.sellerId;
+
+    // Category Permission Guard: if seller's category permission is OFF (canCreateCategories === true),
+    // they cannot assign admin-managed categories or header categories.
+    const sellerDocForUpdate = await Seller.findById(sellerId).select("canCreateCategories").lean();
+    const isCategoryPermissionOffForUpdate = sellerDocForUpdate ? sellerDocForUpdate.canCreateCategories === true : false;
+    if (isCategoryPermissionOffForUpdate) {
+      if (updateData.headerCategoryId) {
+        return res.status(403).json({
+          success: false,
+          message: "Your account does not have permission to assign admin-managed categories. Please contact the admin.",
+        });
+      }
+      const categoryId = updateData.categoryId || updateData.category;
+      if (categoryId && typeof categoryId === "string" && isValidObjectIdString(categoryId)) {
+        const isAdminCategory = await Category.exists({ _id: categoryId });
+        if (isAdminCategory) {
+          return res.status(403).json({
+            success: false,
+            message: "Your account does not have permission to assign admin-managed categories. Please contact the admin.",
+          });
+        }
+      }
+    }
 
     // Map frontend field names to model field names (same as createProduct)
     if (updateData.headerCategoryId !== undefined) {

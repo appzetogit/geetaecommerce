@@ -168,7 +168,7 @@ const AdminPOSOrders = () => {
   // Multi-Bill State
   const [bills, setBills] = useState<Bill[]>(() => {
     try {
-      const savedBills = localStorage.getItem('pos_bills');
+      const savedBills = localStorage.getItem('admin_pos_bills');
       if (savedBills) {
         const parsed = JSON.parse(savedBills);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -195,7 +195,7 @@ const AdminPOSOrders = () => {
   });
 
   const [activeBillId, setActiveBillId] = useState<string>(() => {
-    return localStorage.getItem('pos_active_bill') || '1';
+    return localStorage.getItem('admin_pos_active_bill') || '1';
   });
 
   // Ensure we find the correct bill, or default safely (though createNewBill sets ID correctly)
@@ -214,7 +214,7 @@ const AdminPOSOrders = () => {
   const updateActiveBill = (updates: Partial<Bill>) => {
     setBills(prev => {
       const newBills = prev.map(b => b.id === activeBillId ? { ...b, ...updates } : b);
-      localStorage.setItem('pos_bills', JSON.stringify(newBills));
+      localStorage.setItem('admin_pos_bills', JSON.stringify(newBills));
       return newBills;
     });
   };
@@ -261,13 +261,13 @@ const AdminPOSOrders = () => {
           updated = [...prev, newBill];
       }
 
-      localStorage.setItem('pos_bills', JSON.stringify(updated));
+      localStorage.setItem('admin_pos_bills', JSON.stringify(updated));
       return updated;
     });
 
     // Slight delay to ensure state propagation? No, React batches updates.
     setActiveBillId(newId);
-    localStorage.setItem('pos_active_bill', newId);
+    localStorage.setItem('admin_pos_active_bill', newId);
   };
 
   const closeBill = (billId: string, e: React.MouseEvent) => {
@@ -290,13 +290,13 @@ const AdminPOSOrders = () => {
       if (updated.length === 1) {
         updated = [{ ...updated[0], name: 'Bill 1' }];
       }
-      localStorage.setItem('pos_bills', JSON.stringify(updated));
+      localStorage.setItem('admin_pos_bills', JSON.stringify(updated));
 
       // If closing active bill, switch to the last available one
       if (billId === activeBillId) {
         const nextBill = updated[updated.length - 1];
         setActiveBillId(nextBill.id);
-        localStorage.setItem('pos_active_bill', nextBill.id);
+        localStorage.setItem('admin_pos_active_bill', nextBill.id);
       }
       return updated;
     });
@@ -324,7 +324,7 @@ const AdminPOSOrders = () => {
 
         const updated = [...prev];
         updated[index] = { ...updated[index], cart: newCart };
-        localStorage.setItem('pos_bills', JSON.stringify(updated));
+        localStorage.setItem('admin_pos_bills', JSON.stringify(updated));
         return updated;
     });
   };
@@ -350,7 +350,7 @@ const AdminPOSOrders = () => {
   const orderType = activeBill.orderType || 'Retail';
 
   useEffect(() => {
-    localStorage.setItem('pos_active_bill', activeBillId);
+    localStorage.setItem('admin_pos_active_bill', activeBillId);
   }, [activeBillId]);
 
   // Sync activeBillId if it refers to a non-existent bill (e.g. stale state)
@@ -483,7 +483,7 @@ const AdminPOSOrders = () => {
              // Prevent duplicate tabs for same order
              if (prev.some(b => b.id === billId)) return prev;
              const updated = [...prev, newBill];
-             localStorage.setItem('pos_bills', JSON.stringify(updated));
+             localStorage.setItem('admin_pos_bills', JSON.stringify(updated));
              return updated;
           });
           setActiveBillId(billId);

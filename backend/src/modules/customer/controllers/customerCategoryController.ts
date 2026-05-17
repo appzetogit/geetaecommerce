@@ -4,6 +4,7 @@ import SubCategory from "../../../models/SubCategory";
 import Product from "../../../models/Product";
 import mongoose from "mongoose";
 import { cache } from "../../../utils/cache";
+import Seller from "../../../models/Seller";
 
 // Get all categories (public) - with caching
 export const getCategories = async (_req: Request, res: Response) => {
@@ -58,7 +59,23 @@ export const getCategoriesWithSubs = async (_req: Request, res: Response) => {
       .lean();
 
     // Build product count maps to filter categories/subcategories that actually have products
-    const activeProductMatch = { status: "Active", publish: true };
+    // Only count products from visible sellers
+    const visibleSellers = await Seller.find({
+      isEnabled: true,
+      $or: [
+        { email: /admin/i },
+        { category: "Admin" },
+        { storeName: { $regex: /Admin/i } },
+        { canCreateCategories: { $ne: true } }
+      ]
+    }).select("_id");
+    const visibleSellerIds = visibleSellers.map(s => s._id);
+
+    const activeProductMatch: any = { 
+      status: "Active", 
+      publish: true,
+      seller: { $in: visibleSellerIds }
+    };
 
     const [categoryCounts, subcategoryCounts] = await Promise.all([
       Product.aggregate([

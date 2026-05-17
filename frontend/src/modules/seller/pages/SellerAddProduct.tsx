@@ -30,12 +30,15 @@ import {
 } from "../../../services/api/headerCategoryService";
 import { getAttributes, getSellerAttributes } from "../../../services/api/admin/attributeService";
 import { getVariationTypes } from "../../../services/api/seller/sellerVariationTypeService";
+import { getSellerProfile } from "../../../services/api/auth/sellerAuthService";
+import { getSellerOwnCategories, getSellerOwnSubcategories } from "../../../services/api/seller/sellerPurchaseService";
 import { getAppSettings } from "../../../services/api/admin/adminSettingsService";
 
 import ThemedDropdown from "../components/ThemedDropdown";
 import QRScannerModal from "../../../components/QRScannerModal";
 
 import { useAuth } from "../../../context/AuthContext";
+import { useToast } from "../../../context/ToastContext";
 
 import UnitSelectionModal from "../../../components/UnitSelectionModal";
 
@@ -43,6 +46,7 @@ export default function SellerAddProduct() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const isEnabled = user?.isEnabled !== false; // Default to true if undefined
   const [showSEO, setShowSEO] = useState(false);
   const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
@@ -97,6 +101,7 @@ export default function SellerAddProduct() {
   });
 
   const [variations, setVariations] = useState<ProductVariation[]>([]);
+  const [editingVariationIndex, setEditingVariationIndex] = useState<number | null>(null);
   const [variationForm, setVariationForm] = useState({
     title: "",
     price: "",
@@ -805,17 +810,31 @@ export default function SellerAddProduct() {
   );
   const [shops, setShops] = useState<Shop[]>([]);
 
+  const [canCreateCategories, setCanCreateCategories] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
+        let isCatPermOff = false;
+        try {
+          const profileRes = await getSellerProfile();
+          if (profileRes?.success && profileRes?.data) {
+            isCatPermOff = profileRes.data.canCreateCategories === true;
+            setCanCreateCategories(isCatPermOff);
+          }
+        } catch (e) {
+          console.error("Error fetching seller profile:", e);
+        }
+
         // Use Promise.allSettled to ensure one failing API doesn't break all others
         const results = await Promise.allSettled([
-          getCategories(),
+          isCatPermOff ? getSellerOwnCategories() : getCategories(),
           getActiveTaxes(),
           getBrands(),
-          getHeaderCategoriesPublic(),
+          isCatPermOff ? Promise.resolve({ success: true, data: [] }) as any : getHeaderCategoriesPublic(),
           getShops(),
           getAppSettings(),
+          isCatPermOff ? getSellerOwnSubcategories() : Promise.resolve({ success: true, data: [] }) as any,
         ]);
 
         // Handle categories
@@ -843,6 +862,11 @@ export default function SellerAddProduct() {
             );
             setHeaderCategories(published);
           }
+        }
+
+        // Handle custom subcategories if category permission is OFF
+        if (isCatPermOff && results[6].status === "fulfilled" && results[6].value.success) {
+          setSubcategories(results[6].value.data);
         }
 
         // Handle shops (optional - for Shop By Store feature)
@@ -990,6 +1014,7 @@ export default function SellerAddProduct() {
 
   useEffect(() => {
     const fetchSubs = async () => {
+      if (canCreateCategories) return;
       if (formData.category) {
         try {
           const res = await getSubcategories(formData.category);
@@ -1003,12 +1028,20 @@ export default function SellerAddProduct() {
         setFormData((prev) => ({ ...prev, subcategory: "" }));
       }
     };
-    // Only fetch if category changed and user is interacting (or initial load)
-    // For edit mode, we want to load subcategories for the selected category
-    if (formData.category) {
-      fetchSubs();
+    
+    if (canCreateCategories) {
+      if (!formData.category) {
+        setFormData((prev) => ({ ...prev, subcategory: "" }));
+      }
+    } else {
+      if (formData.category) {
+        fetchSubs();
+      } else {
+        setSubcategories([]);
+        setFormData((prev) => ({ ...prev, subcategory: "" }));
+      }
     }
-  }, [formData.category]);
+  }, [formData.category, canCreateCategories]);
 
   useEffect(() => {
     const fetchSubSubs = async () => {
@@ -1032,6 +1065,8 @@ export default function SellerAddProduct() {
 
   // Clear category and subcategory when header category changes
   useEffect(() => {
+    if (canCreateCategories) return; // Bypass if seller manages own categories
+
     if (formData.headerCategory) {
       // Header category selected - check if current category belongs to it
       const currentCategory = categories.find(
@@ -1062,7 +1097,7 @@ export default function SellerAddProduct() {
       }));
       setSubcategories([]);
     }
-  }, [formData.headerCategory, categories]);
+  }, [formData.headerCategory, categories, canCreateCategories]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -1138,7 +1173,9 @@ export default function SellerAddProduct() {
 
   const addVariation = () => {
     if (!variationForm.title || !variationForm.price) {
-      setUploadError("Please fill in variation title and price");
+      const errorMsg = "Please fill in variation title and price";
+      setUploadError(errorMsg);
+      showToast(errorMsg, "error");
       return;
     }
 
@@ -1151,7 +1188,9 @@ export default function SellerAddProduct() {
 
     // Validate: Selling Price (price) should not be greater than MRP (compareAtPrice) if MRP is set
     if (compareAtPrice > 0 && price > compareAtPrice) {
-      setUploadError("Selling price cannot be greater than Maximum Retail Price (MRP)");
+      const errorMsg = "Selling price cannot be greater than Maximum Retail Price (MRP)";
+      setUploadError(errorMsg);
+      showToast(errorMsg, "error");
       return;
     }
 
@@ -1174,7 +1213,16 @@ export default function SellerAddProduct() {
       image: variationForm.image
     };
 
-    setVariations([...variations, newVariation]);
+    if (editingVariationIndex !== null) {
+        const next = [...variations];
+        next[editingVariationIndex] = newVariation;
+        setVariations(next);
+        setEditingVariationIndex(null);
+        showToast("Variation updated successfully!", "success");
+    } else {
+        setVariations([...variations, newVariation]);
+        showToast("Variation added successfully!", "success");
+    }
     setVariationForm({
       title: "",
       price: "",
@@ -1191,8 +1239,46 @@ export default function SellerAddProduct() {
     setUploadError("");
   };
 
+  const handleEditVariation = (index: number) => {
+    const v = variations[index];
+    setVariationForm({
+      title: v.title || v.name || "",
+      price: String(v.price || ""),
+      compareAtPrice: String(v.compareAtPrice || ""),
+      discPrice: String(v.discPrice || "0"),
+      stock: String(v.stock || "0"),
+      status: v.status === "Sold out" ? "Sold out" : "Available",
+      barcode: v.barcode || [],
+      offerPrice: String(v.offerPrice || ""),
+      wholesalePrice: String(v.wholesalePrice || ""),
+      tieredPrices: (v.tieredPrices || []).map((t: any) => ({ minQty: String(t.minQty), price: String(t.price) })),
+      image: v.image || "",
+    });
+    setEditingVariationIndex(index);
+    const el = document.getElementById('variation-form-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const cancelVariationEdit = () => {
+    setEditingVariationIndex(null);
+    setVariationForm({
+        title: "",
+        price: "",
+        compareAtPrice: "",
+        discPrice: "0",
+        stock: "0",
+        status: "Available",
+        barcode: [],
+        offerPrice: "",
+        wholesalePrice: "",
+        tieredPrices: [],
+        image: "",
+    });
+  };
+
   const removeVariation = (index: number) => {
     setVariations((prev) => prev.filter((_, i) => i !== index));
+    showToast("Variation removed", "info");
   };
 
 
@@ -1203,20 +1289,26 @@ export default function SellerAddProduct() {
 
     // Basic validation
     if (!formData.productName.trim()) {
-      setUploadError("Please enter a product name.");
+      const errorMsg = "Please enter a product name.";
+      setUploadError(errorMsg);
+      showToast(errorMsg, "error");
       return;
     }
 
     // Only validate categories if NOT shop by store only
     if (formData.isShopByStoreOnly !== "Yes") {
       if (!formData.category) {
-        setUploadError("Please select a category.");
+        const errorMsg = "Please select a category.";
+        setUploadError(errorMsg);
+        showToast(errorMsg, "error");
         return;
       }
     } else {
       // If shop by store only is Yes, then shopId is required
       if (!formData.shopId) {
-        setUploadError("Please select a store.");
+        const errorMsg = "Please select a store.";
+        setUploadError(errorMsg);
+        showToast(errorMsg, "error");
         setUploading(false);
         return;
       }
@@ -1265,7 +1357,9 @@ export default function SellerAddProduct() {
       if (finalVariations.length === 0) {
         if (formData.discPrice) {
           if (mrp > 0 && sellingPrice > mrp) {
-            setUploadError("Selling price cannot be greater than Maximum Retail Price");
+            const errorMsg = "Selling price cannot be greater than Maximum Retail Price";
+            setUploadError(errorMsg);
+            showToast(errorMsg, "error");
             setUploading(false);
             return;
           }
@@ -1282,14 +1376,18 @@ export default function SellerAddProduct() {
             image: variationForm.image || ""
           });
         } else {
-          setUploadError("Please add at least one product variation");
+          const errorMsg = "Please add at least one product variation";
+          setUploadError(errorMsg);
+          showToast(errorMsg, "error");
           setUploading(false);
           return;
         }
       } else if (finalVariations.length === 1) {
            // Update single variation logic (Simple Product Mode)
            if (mrp > 0 && sellingPrice > mrp) {
-             setUploadError("Selling price cannot be greater than Maximum Retail Price");
+             const errorMsg = "Selling price cannot be greater than Maximum Retail Price";
+             setUploadError(errorMsg);
+             showToast(errorMsg, "error");
              setUploading(false);
              return;
            }
@@ -1373,6 +1471,9 @@ export default function SellerAddProduct() {
       }
 
       if (response.success) {
+        const successMsg = id ? "Product updated successfully!" : "Product created successfully!";
+        setSuccessMessage(successMsg);
+        showToast(successMsg, "success");
         setTimeout(() => {
           if (!id) {
             setFormData({
@@ -1430,14 +1531,16 @@ export default function SellerAddProduct() {
           navigate("/seller/product/list");
         }, 1500);
       } else {
-        setUploadError(response.message || "Failed to create product");
+        const errorMsg = response.message || "Failed to create product";
+        setUploadError(errorMsg);
+        showToast(errorMsg, "error");
       }
     } catch (error: any) {
-      setUploadError(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to upload images. Please try again."
-      );
+      const errorMsg = error.response?.data?.message ||
+        error.message ||
+        "Failed to upload images. Please try again.";
+      setUploadError(errorMsg);
+      showToast(errorMsg, "error");
     } finally {
       setUploading(false);
     }
@@ -1542,6 +1645,35 @@ export default function SellerAddProduct() {
               </div>
             </div>
           )}
+
+          {uploadError && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg shadow-sm animate-in fade-in duration-200">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-red-500 mr-3 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <h4 className="font-bold text-red-800 text-sm">Error</h4>
+                  <p className="text-red-700 text-xs mt-1">{uploadError}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-r-lg shadow-sm animate-in fade-in duration-200">
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-500 mr-3 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <h4 className="font-bold text-green-800 text-sm">Success</h4>
+                  <p className="text-green-700 text-xs mt-1">{successMessage}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Product Section */}
           {/* Top Image & Name Section */}
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200 p-4 space-y-4">
@@ -1868,74 +2000,106 @@ export default function SellerAddProduct() {
                 </div>
                 )}
 
-                {shouldShowField('header_category') && (
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Header Category
-                  </label>
-                  <ThemedDropdown
-                    options={headerCategories.map(hc => ({ id: hc._id, label: hc.name, value: hc._id }))}
-                    value={formData.headerCategory}
-                    onChange={(val) => setFormData(prev => ({ ...prev, headerCategory: val }))}
-                    placeholder="Select Header Category"
-                  />
-                </div>
-                )}
+                {/* ── Category Section: locked when entire seller account is disabled ── */}
+                {user?.isEnabled === false ? (
+                  <div className="col-span-full">
+                    <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl border border-amber-300 bg-amber-50">
+                      <svg className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-800">Account Restricted</p>
+                        <p className="text-xs text-amber-700 mt-0.5">
+                          Your seller account is currently disabled. Please contact the administrator.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {!canCreateCategories && shouldShowField('header_category') && (
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                        Header Category
+                      </label>
+                      <ThemedDropdown
+                        options={headerCategories.map(hc => ({ id: hc._id, label: hc.name, value: hc._id }))}
+                        value={formData.headerCategory}
+                        onChange={(val) => setFormData(prev => ({ ...prev, headerCategory: val }))}
+                        placeholder="Select Header Category"
+                      />
+                    </div>
+                    )}
 
-                {shouldShowField('category') && (
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Category
-                  </label>
-                  <ThemedDropdown
-                    options={categories
-                      .filter((cat: any) => {
-                        if (formData.headerCategory) {
-                          const catHeaderId = typeof cat.headerCategoryId === "string"
-                              ? cat.headerCategoryId
-                              : cat.headerCategoryId?._id;
-                          return catHeaderId === formData.headerCategory;
+                    {shouldShowField('category') && (
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                        Category
+                      </label>
+                      <ThemedDropdown
+                        options={canCreateCategories
+                          ? categories
+                              .filter((cat: any) => !cat.parentId)
+                              .map((cat: any) => ({ id: cat._id || cat.id, label: cat.name, value: cat._id || cat.id }))
+                          : categories
+                              .filter((cat: any) => {
+                                if (formData.headerCategory) {
+                                  const catHeaderId = typeof cat.headerCategoryId === "string"
+                                      ? cat.headerCategoryId
+                                      : cat.headerCategoryId?._id;
+                                  return catHeaderId === formData.headerCategory;
+                                }
+                                return false;
+                              })
+                              .map((cat: any) => ({ id: cat._id || cat.id, label: cat.name, value: cat._id || cat.id }))
                         }
-                        return true;
-                      })
-                      .map((cat: any) => ({ id: cat._id || cat.id, label: cat.name, value: cat._id || cat.id }))
-                    }
-                    value={formData.category}
-                    onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
-                    placeholder="Select Category"
-                  />
-                </div>
-                )}
+                        value={formData.category}
+                        onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
+                        placeholder={canCreateCategories ? "Select Category" : formData.headerCategory ? "Select Category" : "Select Header Category First"}
+                        disabled={!canCreateCategories && !formData.headerCategory}
+                      />
+                    </div>
+                    )}
 
-                {shouldShowField('subcategory') && (
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    SubCategory
-                  </label>
-                  <ThemedDropdown
-                    options={subcategories.map(sub => ({ id: sub._id, label: sub.subcategoryName, value: sub._id }))}
-                    value={formData.subcategory}
-                    onChange={(val) => setFormData(prev => ({ ...prev, subcategory: val }))}
-                    placeholder={formData.category ? "Select Subcategory" : "Select Category First"}
-                    disabled={!formData.category}
-                  />
-                </div>
-                )}
+                    {shouldShowField('subcategory') && (
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                        SubCategory
+                      </label>
+                      <ThemedDropdown
+                        options={canCreateCategories
+                          ? subcategories
+                              .filter((sub: any) => {
+                                const parentId = typeof sub.parentId === "object" && sub.parentId ? sub.parentId._id : sub.parentId;
+                                return String(parentId) === String(formData.category);
+                              })
+                              .map((sub: any) => ({ id: sub._id, label: sub.subcategoryName, value: sub._id }))
+                          : subcategories.map(sub => ({ id: sub._id, label: sub.subcategoryName, value: sub._id }))
+                        }
+                        value={formData.subcategory}
+                        onChange={(val) => setFormData(prev => ({ ...prev, subcategory: val }))}
+                        placeholder={formData.category ? "Select Subcategory" : "Select Category First"}
+                        disabled={!formData.category}
+                      />
+                    </div>
+                    )}
 
-                {shouldShowField('sub_subcategory') && (
-                <div>
-                  <label className="block text-sm font-semibold text-neutral-700 mb-2">
-                    Sub-SubCategory
-                  </label>
-                  <input
-                    type="text"
-                    name="subSubCategory"
-                    value={formData.subSubCategory}
-                    onChange={handleChange}
-                    placeholder="Enter Sub-SubCategory"
-                    className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
-                  />
-                </div>
+                    {shouldShowField('sub_subcategory') && (
+                    <div>
+                      <label className="block text-sm font-semibold text-neutral-700 mb-2">
+                        Sub-SubCategory
+                      </label>
+                      <input
+                        type="text"
+                        name="subSubCategory"
+                        value={formData.subSubCategory}
+                        onChange={handleChange}
+                        placeholder="Enter Sub-SubCategory"
+                        className="w-full px-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
+                      />
+                    </div>
+                    )}
+                  </>
                 )}
 
                 <div>
@@ -2461,7 +2625,7 @@ export default function SellerAddProduct() {
                           </div>
 
                           {/* Generated Table */}
-                           {variations.length > 0 && (
+                           {false && (
                              <div className="overflow-x-auto border border-neutral-200 rounded-lg mt-4">
                                  <table className="w-full text-sm text-left">
                                      <thead className="bg-[var(--primary-color)]/10 text-[var(--primary-color)] font-semibold border-b border-[var(--primary-color)]/20">
@@ -2686,7 +2850,15 @@ export default function SellerAddProduct() {
                      </div>
                   ) : (
                     /* Variation Form (Old Manual) - Sync with Admin Structure */
-                    <div className="bg-neutral-50 rounded-xl p-6 border border-neutral-200">
+                    <div id="variation-form-section" className={`bg-neutral-50 rounded-xl p-6 border space-y-4 ${editingVariationIndex !== null ? 'border-[var(--primary-color)] ring-1 ring-[var(--primary-color)]' : 'border-neutral-200'}`}>
+                      {uploadError && (uploadError.toLowerCase().includes("variation") || uploadError.toLowerCase().includes("selling price")) && (
+                        <div className="bg-red-50 border border-red-200 px-4 py-3 rounded-lg flex items-center gap-2 text-red-700 text-sm font-semibold animate-in fade-in">
+                          <svg className="w-5 h-5 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <span>{uploadError}</span>
+                        </div>
+                      )}
                       <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-start">
                         {/* Variation Image */}
                         <div className="md:col-span-1">
@@ -2936,18 +3108,346 @@ export default function SellerAddProduct() {
                            </div>
                         </div>
 
-                        <div className="flex items-end h-full pt-6 md:col-span-5 justify-end">
+                        <div className="flex items-end h-full pt-6 md:col-span-5 justify-end gap-3">
+                          {editingVariationIndex !== null && (
+                            <button
+                              type="button"
+                              onClick={cancelVariationEdit}
+                              className="px-6 py-2 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 rounded-lg text-sm font-medium transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={addVariation}
                             className="px-6 py-2 bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
                           >
-                            Add Variation +
+                            {editingVariationIndex !== null ? "Update Variation" : "Add Variation +"}
                           </button>
                         </div>
                       </div>
                     </div>
                   )}
+
+              {/* Variations List/Table */}
+              {variations.length > 0 && (
+                enableAttributes ? (
+                    <div className="overflow-x-auto border border-neutral-200 rounded-lg mt-4">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-pink-50 text-[#880E4F] font-semibold border-b border-pink-100">
+                                <tr>
+                                    <th className="px-4 py-3 w-[80px]">Image</th>
+                                    <th className="px-4 py-3 min-w-[150px]">{formData.variationName || "Variation"}</th>
+                                    <th className="px-4 py-3 min-w-[100px]">MRP (₹)</th>
+                                    <th className="px-4 py-3 min-w-[100px]">Selling Price (₹) <span className="text-red-500">*</span></th>
+                                    <th className="px-4 py-3 min-w-[100px]">Offer Price (Online)</th>
+                                    <th className="px-4 py-3 min-w-[100px]">Wholesale</th>
+                                    <th className="px-4 py-3 min-w-[80px]">Stock</th>
+                                    <th className="px-4 py-3 min-w-[180px]">SKU/Barcode</th>
+                                    <th className="px-4 py-3 min-w-[100px]">Unit Pricing</th>
+                                    <th className="px-4 py-3 w-10 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-neutral-100 bg-white">
+                                {variations.map((v, idx) => (
+                                    <tr key={idx} className="hover:bg-neutral-50 group">
+                                        <td className="px-4 py-2">
+                                            <div className="relative w-12 h-12 bg-white border border-neutral-300 rounded overflow-hidden flex items-center justify-center cursor-pointer hover:border-[var(--primary-color)]">
+                                                {v.image ? (
+                                                    <div className="w-full h-full relative group/img">
+                                                        <img src={v.image} alt="Var" className="w-full h-full object-cover" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setVariations(prev => {
+                                                                    const n = [...prev];
+                                                                    n[idx].image = "";
+                                                                    return n;
+                                                                });
+                                                            }}
+                                                            className="absolute top-0 right-0 bg-red-500 text-white w-4 h-4 flex items-center justify-center text-[10px] opacity-0 group-hover/img:opacity-100"
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                                            onChange={async (e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if(!file) return;
+                                                                if(!validateImageFile(file).valid) return;
+                                                                try {
+                                                                    const res = await uploadImage(file, "Geeta Stores/products/variations");
+                                                                    if(res.secureUrl) {
+                                                                        setVariations(prev => {
+                                                                            const n = [...prev];
+                                                                            n[idx].image = res.secureUrl;
+                                                                            return n;
+                                                                        });
+                                                                    }
+                                                                } catch(err) { console.error(err); }
+                                                            }}
+                                                        />
+                                                    </>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-2 font-medium text-neutral-800">{v.title}</td>
+                                        <td className="px-4 py-2">
+                                            <input
+                                                type="number"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[var(--primary-color)] focus:outline-none"
+                                                value={v.compareAtPrice}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setVariations(prev => {
+                                                        const n = [...prev];
+                                                        n[idx].compareAtPrice = parseFloat(val) || 0;
+                                                        return n;
+                                                    });
+                                                }}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <input
+                                                type="number"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[var(--primary-color)] focus:outline-none"
+                                                value={v.price}
+                                                onChange={e => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    setVariations(prev => {
+                                                        const n = [...prev];
+                                                        n[idx].price = val;
+                                                        n[idx].discPrice = n[idx].offerPrice || val;
+                                                        return n;
+                                                    });
+                                                }}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <input
+                                                type="number"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[var(--primary-color)] focus:outline-none"
+                                                value={v.offerPrice}
+                                                onChange={e => {
+                                                    const val = parseFloat(e.target.value) || 0;
+                                                    setVariations(prev => {
+                                                        const n = [...prev];
+                                                        n[idx].offerPrice = val;
+                                                        n[idx].discPrice = val || n[idx].price;
+                                                        return n;
+                                                    });
+                                                }}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <input
+                                                type="number"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[var(--primary-color)] focus:outline-none"
+                                                value={v.wholesalePrice}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setVariations(prev => {
+                                                        const n = [...prev];
+                                                        n[idx].wholesalePrice = parseFloat(val) || 0;
+                                                        return n;
+                                                    });
+                                                }}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <input
+                                                type="number"
+                                                className="w-full px-2 py-1.5 border border-neutral-300 rounded focus:border-[var(--primary-color)] focus:outline-none"
+                                                value={v.stock}
+                                                onChange={e => {
+                                                    const val = e.target.value;
+                                                    setVariations(prev => {
+                                                        const n = [...prev];
+                                                        n[idx].stock = parseInt(val) || 0;
+                                                        return n;
+                                                    });
+                                                }}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <div className="flex flex-col gap-1 min-w-[180px]">
+                                                <div className="flex flex-wrap gap-1 mb-1">
+                                                    {(v.barcode || []).map(b => (
+                                                        <span key={b} className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-neutral-100 text-neutral-700 rounded text-[10px] border border-neutral-200">
+                                                            {b}
+                                                            <button type="button" onClick={() => removeBarcode('table-variation', b, idx)} className="hover:text-red-500">&times;</button>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="text"
+                                                        className="w-full flex-1 px-2 py-1 border border-neutral-300 rounded focus:border-[var(--primary-color)] focus:outline-none text-xs"
+                                                        value={currentTableVarBarcode[idx] || ""}
+                                                        placeholder="Add barcode"
+                                                        onChange={e => setCurrentTableVarBarcode(prev => ({ ...prev, [idx]: e.target.value }))}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") {
+                                                                e.preventDefault();
+                                                                addBarcode('table-variation', idx, currentTableVarBarcode[idx]);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => addBarcode('table-variation', idx, currentTableVarBarcode[idx])}
+                                                        className="p-1 bg-[var(--primary-color)] text-white rounded hover:bg-[var(--primary-dark)]"
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleAutoGenerateBarcode("table-variation", idx)}
+                                                        className="p-1 text-neutral-400 hover:text-[var(--primary-color)] transition-colors"
+                                                        title="Auto Generate"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => startScanning("table-variation", idx)}
+                                                        className="p-1 text-[var(--primary-color)] hover:bg-pink-50 rounded transition-colors"
+                                                        title="Scan Barcode"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-2 text-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const existing = v.tieredPrices || [];
+                                                    setTempTieredPrices(existing.map(t => ({ minQty: Number(t.minQty), price: Number(t.price) })));
+                                                    setUnitPricingModal({ isOpen: true, variationIndex: idx });
+                                                }}
+                                                className={`text-xs px-2 py-1 rounded border font-medium transition-colors ${
+                                                    v.tieredPrices && v.tieredPrices.length > 0
+                                                    ? "bg-pink-100 text-[var(--primary-dark)] border-pink-200 hover:bg-pink-200"
+                                                    : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
+                                                }`}
+                                            >
+                                                {v.tieredPrices && v.tieredPrices.length > 0 ? `${v.tieredPrices.length} Slabs` : "Add +"}
+                                            </button>
+                                        </td>
+                                        <td className="px-4 py-2 text-center">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => handleEditVariation(idx)} 
+                                                    className={`p-1 rounded-full transition-colors ${editingVariationIndex === idx ? 'bg-[var(--primary-color)] text-white' : 'text-gray-400 hover:text-[var(--primary-color)] hover:bg-pink-50'}`}
+                                                    title="Edit variation"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                </button>
+                                                <button type="button" onClick={() => removeVariation(idx)} className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded-full hover:bg-red-50" title="Delete variation">
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : (
+                    <div className="border border-neutral-200 rounded-lg overflow-hidden mt-4">
+                      <div className="bg-neutral-50 px-4 py-2 border-b border-neutral-200">
+                        <h3 className="text-sm font-semibold text-neutral-700">Added Variations</h3>
+                      </div>
+                      <div className="divide-y divide-neutral-100">
+                        {variations.map((variation, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-4 bg-white hover:bg-neutral-50 transition-colors"
+                          >
+                            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 flex-1">
+                               <div>
+                                 <span className="text-xs text-neutral-400 block">Barcodes</span>
+                                 <div className="flex flex-wrap gap-1">
+                                    {(variation.barcode || []).map(b => (
+                                        <span key={b} className="text-[10px] bg-neutral-100 px-1 rounded border border-neutral-200">{b}</span>
+                                    ))}
+                                 </div>
+                              </div>
+                               <div>
+                                 <span className="text-xs text-neutral-400 block">Unit Value</span>
+                                 <div className="flex items-center gap-2">
+                                   <div className="w-9 h-9 bg-white border border-neutral-200 rounded overflow-hidden flex items-center justify-center shrink-0">
+                                     {(variation.image || (variation as any).imageUrl || formData.mainImageUrl) ? (
+                                       <img src={variation.image || (variation as any).imageUrl || formData.mainImageUrl} alt="" className="w-full h-full object-cover" />
+                                     ) : (
+                                       <span className="text-[10px] text-neutral-300 font-bold">IMG</span>
+                                     )}
+                                   </div>
+                                   <span className="font-medium text-neutral-900">{variation.title}</span>
+                                 </div>
+                               </div>
+                              <div>
+                                <span className="text-xs text-neutral-400 block">Price</span>
+                                <span className="font-medium text-[var(--primary-color)]">₹{variation.price}</span>
+                                {variation.discPrice > 0 && (
+                                   <span className="text-xs text-neutral-400 line-through ml-2">₹{variation.discPrice}</span>
+                                )}
+                                {variation.tieredPrices && variation.tieredPrices.length > 0 && (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                        {variation.tieredPrices.map((t, idx) => (
+                                            <span key={idx} className="text-[10px] bg-pink-50 text-[var(--primary-dark)] px-1.5 py-0.5 rounded border border-pink-100">
+                                                {t.minQty}+ @ ₹{t.price}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                              </div>
+                              <div>
+                                <span className="text-xs text-neutral-400 block">Stock</span>
+                                <span className="text-neutral-700">{variation.stock === 0 ? "Unlimited" : variation.stock}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs text-neutral-400 block">Status</span>
+                                <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${variation.status === 'Available' ? 'bg-[var(--primary-alpha-20)] text-[var(--primary-darker)]' : 'bg-red-100 text-red-800'}`}>
+                                  {variation.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 ml-4">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditVariation(index)}
+                                  className={`p-2 rounded-lg transition-colors ${editingVariationIndex === index ? 'bg-pink-100 text-[var(--primary-color)]' : 'text-neutral-400 hover:text-[var(--primary-color)] hover:bg-pink-50'}`}
+                                  title="Edit variation"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeVariation(index)}
+                                  className="p-2 text-neutral-400 hover:text-red-600 transition-colors"
+                                  title="Remove variation"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                )
+              )}
                </div>
                </>
                )}

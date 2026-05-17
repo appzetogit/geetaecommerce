@@ -2250,13 +2250,14 @@ const applySearchedImage = () => {
                                   : cat.headerCategoryId?._id;
                               return catHeaderId === formData.headerCategory;
                             }
-                            return true;
+                            return false;
                           })
                           .map((cat: any) => ({ id: cat._id || cat.id, label: cat.name, value: cat._id || cat.id }))
                         }
                         value={formData.category}
                         onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
-                        placeholder="Select Category"
+                        placeholder={formData.headerCategory ? "Select Category" : "Select Header Category First"}
+                        disabled={!formData.headerCategory}
                       />
                     </div>
                 )}
