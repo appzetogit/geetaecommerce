@@ -1,4 +1,3 @@
-
 import { Request, Response } from 'express';
 import Cart from '../../../models/Cart';
 import CartItem from '../../../models/CartItem';
@@ -277,7 +276,7 @@ export const addToCart = async (req: Request, res: Response) => {
 
         // Fetch Visible Sellers again for filtering response
         // Optimization: could pass this down, but strict separation is safer
-         let visibleSellerIds: string[] = [];
+        let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
             const visibleSellers = await Seller.find({
@@ -289,7 +288,7 @@ export const addToCart = async (req: Request, res: Response) => {
                     { canCreateCategories: { $ne: true } }
                 ]
             }).select("_id");
-             visibleSellerIds = visibleSellers.map(s => s._id.toString());
+            visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
 
         const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
@@ -338,13 +337,6 @@ export const updateCartItem = async (req: Request, res: Response) => {
         const userLng = longitude ? parseFloat(longitude as string) : null;
         const locationProvided = userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng);
 
-        // if (userLat === null || userLng === null || isNaN(userLat) || isNaN(userLng)) {
-        //     return res.status(400).json({
-        //         success: false,
-        //         message: 'Location is required to update cart'
-        //     });
-        // }
-
         let nearbySellerIds: mongoose.Types.ObjectId[] = [];
         if (locationProvided) {
             nearbySellerIds = await findSellersWithinRange(userLat!, userLng!);
@@ -385,19 +377,11 @@ export const updateCartItem = async (req: Request, res: Response) => {
 
         if (!isAvailable) {
              console.warn(`WARNING: Item ${itemId} update allowed despite location check failure.`);
-            // return res.status(403).json({
-            //     success: false,
-            //     message: 'This item is no longer available in your location'
-            // });
         }
 
         cartItem.quantity = quantity;
         await cartItem.save();
 
-        // Calculate total - assume all valid if no location
-        // Or better, reuse calculateCartTotal logic which we haven't fully relaxed for 'no location' arg
-        // But let's pass empty array if no location, and calculateCartTotal logic (Step 292) relies on nearbySellerIds.
-        // We should fix that too if needed, but for now:
         cart.total = await calculateCartTotal(cart._id, nearbySellerIds);
         await cart.save();
 
@@ -409,7 +393,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
             }
         });
 
-         // Fetch Visible Sellers to whitelist again for filtering
+        // Fetch Visible Sellers to whitelist again for filtering
         let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
@@ -422,14 +406,14 @@ export const updateCartItem = async (req: Request, res: Response) => {
                     { canCreateCategories: { $ne: true } }
                 ]
             }).select("_id");
-             visibleSellerIds = visibleSellers.map(s => s._id.toString());
+            visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
 
         const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
             const prod = item.product;
-             const sellerId = prod?.seller?.toString();
+            const sellerId = prod?.seller?.toString();
 
-             if (!locationProvided) return true; // Show all if no location
+            if (!locationProvided) return true; // Show all if no location
 
             return prod && (nearbySellerIds.some(id => id.toString() === sellerId) || visibleSellerIds.includes(sellerId));
         });
