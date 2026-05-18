@@ -186,7 +186,17 @@ const AdminManageStaff: React.FC = () => {
   };
 
   const handleLogoutAll = () => {
-    toast.success('Successfully logged out all staff members');
+    if (moduleType === 'seller') {
+      localStorage.removeItem('seller_staff_session');
+      localStorage.removeItem('seller_staff_base_token');
+    } else {
+      localStorage.removeItem('admin_staff_session');
+      localStorage.removeItem('admin_staff_base_token');
+    }
+    toast.success('Successfully logged out and terminated all staff sessions');
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   const openGlobalPermissions = () => {

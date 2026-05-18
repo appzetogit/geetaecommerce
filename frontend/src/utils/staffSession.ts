@@ -191,13 +191,21 @@ export const canStaffAccessPath = (
       }
     }
 
-    // Keep POS access compatibility with existing toggle behavior.
-    if (
-      uiSet.has("pos_access") &&
-      normalizedPath.startsWith(`/${module}/pos`)
-    ) {
-      return true;
+    // Keep POS access compatibility with existing toggle behavior, but restrict it to
+    // the main POS page and customer helper routes so it doesn't broadly leak specific POS sub-pages
+    // like reports, supplier ledger, and bill settings which have their own fine-grained permissions.
+    if (uiSet.has("pos_access")) {
+      const isBasePOS = normalizedPath === `/${module}/pos` || normalizedPath === `/${module}/pos/`;
+      const isPOSCustomerHelper = normalizedPath.startsWith(`/${module}/pos/customers`);
+      if (isBasePOS || isPOSCustomerHelper) {
+        return true;
+      }
     }
+
+    // Since this staff member has fine-grained UI permissions configured,
+    // we strictly return false if they did not match any of the above checks.
+    // Do NOT fall back to legacy checking, which would bypass the fine-grained UI permissions!
+    return false;
   }
 
   const posAllowed =

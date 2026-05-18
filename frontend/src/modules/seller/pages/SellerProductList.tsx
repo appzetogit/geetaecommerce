@@ -10,6 +10,8 @@ import {
   getCategories,
   type Category,
 } from "../../../services/api/categoryService";
+import { getSellerProfile } from "../../../services/api/auth/sellerAuthService";
+import { getSellerOwnCategories } from "../../../services/api/seller/sellerPurchaseService";
 import { useToast } from "../../../context/ToastContext";
 import QRScannerModal from "../../../components/QRScannerModal";
 import { useAuth } from "../../../context/AuthContext";
@@ -75,6 +77,7 @@ export default function SellerProductList() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [canCreateCategories, setCanCreateCategories] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -111,8 +114,19 @@ export default function SellerProductList() {
       setHasUnsavedChanges(false);
       setChangedProductIds(new Set());
 
+      let isCatPermOff = false;
+      try {
+        const profileRes = await getSellerProfile();
+        if (profileRes?.success && profileRes?.data) {
+          isCatPermOff = profileRes.data.canCreateCategories === true;
+          setCanCreateCategories(isCatPermOff);
+        }
+      } catch (e) {
+        console.error("Error fetching seller profile in ProductList:", e);
+      }
+
       // Fetch categories for filter dropdown
-      const categoriesResponse = await getCategories();
+      const categoriesResponse = isCatPermOff ? await getSellerOwnCategories() : await getCategories();
       if (categoriesResponse.success) {
         setCategories(categoriesResponse.data);
       }
@@ -1341,6 +1355,7 @@ export default function SellerProductList() {
         <SellerStockBulkEdit
           products={products}
           categories={categories}
+          canCreateCategories={canCreateCategories}
           onClose={() => setShowBulkEdit(false)}
           onSave={fetchData}
         />

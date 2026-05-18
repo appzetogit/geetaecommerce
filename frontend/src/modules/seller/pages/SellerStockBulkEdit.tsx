@@ -10,6 +10,7 @@ import {
 import { uploadImage } from "../../../services/api/uploadService";
 import { getBrands, Brand } from "../../../services/api/brandService";
 import { getAllSubcategories, Category, SubCategory, ApiResponse } from "../../../services/api/categoryService";
+import { getSellerOwnSubcategories } from "../../../services/api/seller/sellerPurchaseService";
 import { getAttributes } from "../../../services/api/seller/sellerAttributeService";
 import AttributeDropdown from "../../../components/AttributeDropdown";
 import SearchableSelect from "../../../components/SearchableSelect";
@@ -19,6 +20,7 @@ import VariationDropdown from "../../../components/VariationDropdown";
 interface SellerStockBulkEditProps {
   products: Product[];
   categories: Category[];
+  canCreateCategories?: boolean;
   initialPage?: number;
   initialLimit?: number;
   onClose: () => void;
@@ -127,6 +129,7 @@ interface EditableProduct {
 export default function SellerStockBulkEdit({
   products,
   categories,
+  canCreateCategories = false,
   initialPage = 1,
   initialLimit = 10,
   onClose,
@@ -371,7 +374,7 @@ export default function SellerStockBulkEdit({
                  // Checking if getAllSubcategories is correct replacement.
                  // Admin service: getSubCategories({ limit: 1000 })
                  // Seller service: getAllSubcategories
-                getAllSubcategories({ limit: 1000 } as any),
+                canCreateCategories ? getSellerOwnSubcategories() : getAllSubcategories({ limit: 1000 } as any),
                 getBrands(),
                 getAttributes() // sellerAttributeService returns response.data directly
             ]);
@@ -389,7 +392,7 @@ export default function SellerStockBulkEdit({
         }
     };
     fetchData();
-  }, []);
+  }, [canCreateCategories]);
 
   // Initialize editable products
   useEffect(() => {

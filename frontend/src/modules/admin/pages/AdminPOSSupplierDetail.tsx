@@ -11,6 +11,11 @@ import {
     SupplierTransaction
 } from '../../../services/api/admin/supplierService';
 import { jsPDF } from "jspdf";
+import {
+    getAdminPurchaseEntries,
+    deleteAdminPurchaseEntry
+} from '../../../services/api/admin/adminPosPurchaseEntryService';
+import * as XLSX from 'xlsx';
 
 const AdminPOSSupplierDetail = () => {
     const { id } = useParams<{ id: string }>();
@@ -19,6 +24,9 @@ const AdminPOSSupplierDetail = () => {
     const [supplier, setSupplier] = useState<Supplier | null>(null);
     const [transactions, setTransactions] = useState<SupplierTransaction[]>([]);
     const [loading, setLoading] = useState(true);
+    const [purchaseEntries, setPurchaseEntries] = useState<any[]>([]);
+    const [activeTab, setActiveTab] = useState<'ledger' | 'purchases'>('ledger');
+    const [expandedPurchaseId, setExpandedPurchaseId] = useState<string | null>(null);
 
     // Modal states
     const [showPayModal, setShowPayModal] = useState(false);
@@ -60,6 +68,22 @@ const AdminPOSSupplierDetail = () => {
                     gstNumber: res.data.supplier.gstNumber || '',
                     notes: res.data.supplier.notes || ''
                 });
+
+                // Load supplier's purchase entries
+                try {
+                    const pRes = await getAdminPurchaseEntries();
+                    if (pRes.success && Array.isArray(pRes.data)) {
+                        const filtered = pRes.data.filter(entry => 
+                            entry.supplier && 
+                            (String(entry.supplier._id) === String(id) || 
+                             String(entry.supplier.id) === String(id) ||
+                             String(entry.supplier.phone) === String(res.data.supplier.phone))
+                        );
+                        setPurchaseEntries(filtered);
+                    }
+                } catch (err) {
+                    console.error("Failed to load purchases:", err);
+                }
             }
         } catch (error) {
             console.error(error);
@@ -155,6 +179,308 @@ const AdminPOSSupplierDetail = () => {
         setAmount('');
         setDate(dateNow);
         setNote('');
+    };
+
+    const handleDeletePurchase = async (entryId: string) => {
+        if (!window.confirm("Are you sure you want to delete this purchase entry? This will NOT automatically reverse inventory changes but will remove it from the supplier's order history.")) return;
+        try {
+            const res = await deleteAdminPurchaseEntry(entryId);
+            if (res.success) {
+                showToast("Purchase entry deleted successfully", "success");
+                setPurchaseEntries(prev => prev.filter(e => e.id !== entryId));
+            }
+        } catch (error) {
+            showToast("Failed to delete purchase entry", "error");
+        }
+    };
+
+    const printInvoice = (entry: any) => {
+        const printWindow = window.open('', '_blank', 'width=980,height=760');
+        if (!printWindow) {
+            showToast('Please allow popups to print invoice.', 'error');
+            return;
+        }
+
+        let bs: any = null;
+        try {
+            const rawSettings = localStorage.getItem('admin_pos_bill_settings');
+            if (rawSettings) bs = JSON.parse(rawSettings);
+        } catch (e) {
+            console.error(e);
+        }
+
+        const esc = (v: string) =>
+          v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const shopTitle = esc(String(bs?.shopName || 'GEETA'));
+        const addrLines = String(
+          bs?.address ||
+            'Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001'
+        );
+        const addrHtml = esc(addrLines).replace(/\n/g, '<br>');
+        const phoneLine = esc(String(bs?.phone || '7898111456'));
+        const fssaiBlk =
+          bs?.fssai?.enabled && bs?.fssai?.text
+            ? `FSSAI: ${esc(String(bs.fssai.text))}`
+            : 'FSSAI: 583545736';
+
+        const billNoPrefix = entry.type === 'quotation' ? 'QTN' : 'BILL';
+        const billNo = `${billNoPrefix}/${new Date(entry.createdAt || Date.now()).getFullYear()}/${entry.id.slice(-5)}`;
+        const supplierName = entry.supplier?.name || supplier?.name || 'Walk-in Supplier';
+        const supplierAddress = entry.supplier?.address || supplier?.address || '-';
+        const supplierPhone = entry.supplier?.phone || supplier?.phone || '-';
+        const supplierGst = entry.supplier?.gstNumber || supplier?.gstNumber || '-';
+
+        const taxGroups: { [percent: number]: { taxable: number; cgst: number; sgst: number } } = {};
+        const items = Array.isArray(entry.items) ? entry.items : [];
+        items.forEach((item: any) => {
+          const gross = (item.purchasePrice || item.price || 0) * (item.qty || 0);
+          const discount = item.billDiscountType === '%' ? (gross * (item.billDiscount || 0)) / 100 : (item.billDiscount || 0);
+          const netBeforeTax = Math.max(gross - discount, 0);
+
+          let lineTax = 0;
+          let lineTaxable = 0;
+          const gstPercent = item.gstPercent !== undefined ? item.gstPercent : 18;
+
+          if (item.includingGST) {
+            lineTax = (netBeforeTax * gstPercent) / (100 + gstPercent);
+            lineTaxable = netBeforeTax - lineTax;
+          } else {
+            lineTax = (netBeforeTax * gstPercent) / 100;
+            lineTaxable = netBeforeTax;
+          }
+
+          const rate = gstPercent;
+          if (!taxGroups[rate]) {
+            taxGroups[rate] = { taxable: 0, cgst: 0, sgst: 0 };
+          }
+          taxGroups[rate].taxable += lineTaxable;
+          taxGroups[rate].cgst += lineTax / 2;
+          taxGroups[rate].sgst += lineTax / 2;
+        });
+
+        const gstRowsHtml = Object.entries(taxGroups).flatMap(([rateStr, data]) => {
+          const rate = Number(rateStr);
+          const halfRate = (rate / 2).toFixed(1) + '%';
+          return [
+            `<tr><td>CGST</td><td>${halfRate}</td><td>${data.taxable.toFixed(2)}</td><td>${data.cgst.toFixed(2)}</td></tr>`,
+            `<tr><td>SGST</td><td>${halfRate}</td><td>${data.taxable.toFixed(2)}</td><td>${data.sgst.toFixed(2)}</td></tr>`
+          ];
+        }).join('');
+
+        const rows = items.map((item: any, idx: number) => {
+          const gross = (item.purchasePrice || item.price || 0) * (item.qty || 0);
+          const discount = item.billDiscountType === '%' ? (gross * (item.billDiscount || 0)) / 100 : (item.billDiscount || 0);
+          const taxableLine = Math.max(gross - discount, 0);
+          const lineTax = item.includingGST ? 0 : (taxableLine * (item.gstPercent !== undefined ? item.gstPercent : 18)) / 100;
+          const lineNet = taxableLine + lineTax;
+          return `
+            <tr>
+              <td>${idx + 1}</td>
+              <td>${item.productName}</td>
+              <td>${item.hsn || '-'}</td>
+              <td>${(item.mrp || 0).toFixed(2)}</td>
+              <td>${(item.qty || 0).toFixed(2)}</td>
+              <td>${(item.purchasePrice || item.price || 0).toFixed(2)}</td>
+              <td>${(item.billDiscount || 0).toFixed(2)}${item.billDiscountType || '%'}</td>
+              <td>${((item.gstPercent !== undefined ? item.gstPercent : 18) / 2).toFixed(2)}</td>
+              <td>${((item.gstPercent !== undefined ? item.gstPercent : 18) / 2).toFixed(2)}</td>
+              <td>${lineNet.toFixed(2)}</td>
+            </tr>
+          `;
+        }).join('');
+
+        const grossAmount = entry.totals?.grossAmount !== undefined ? entry.totals.grossAmount : 0;
+        const discountAmount = entry.totals?.discountAmount !== undefined ? entry.totals.discountAmount : 0;
+        const taxAmount = entry.totals?.taxAmount !== undefined ? entry.totals.taxAmount : 0;
+        const roundOff = entry.totals?.roundOff !== undefined ? entry.totals.roundOff : 0;
+        const netAmount = entry.totals?.netAmount !== undefined ? entry.totals.netAmount : 0;
+
+        const html = `
+          <html>
+            <head>
+              <title>${entry.type === 'quotation' ? 'Quotation' : 'Retail Invoice'} - ${billNo}</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 22px; color: #111; }
+                h1, h2, h3, p { margin: 0; }
+                .top { text-align: center; margin-bottom: 10px; }
+                .top h1 { font-size: 34px; letter-spacing: 1px; }
+                .top p { font-size: 18px; margin-top: 3px; }
+                .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; font-size: 16px; }
+                .meta .box { border: 1px solid #d9d9d9; padding: 10px; min-height: 90px; }
+                .meta .line { display: flex; justify-content: space-between; margin: 2px 0; }
+                table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+                th, td { border: 1px solid #d9d9d9; padding: 7px 6px; font-size: 14px; text-align: left; }
+                th { background: #f6f6f6; font-weight: 700; }
+                td:last-child, th:last-child { text-align: right; }
+                .summary-wrap { display: grid; grid-template-columns: 1fr 320px; gap: 16px; margin-top: 12px; }
+                .gst-box, .totals-box { border: 1px solid #d9d9d9; padding: 8px; }
+                .totals-row { display: flex; justify-content: space-between; margin: 4px 0; font-size: 15px; }
+                .net { font-size: 20px; font-weight: 800; margin-top: 6px; border-top: 1px dashed #999; padding-top: 6px; }
+                .footer { margin-top: 18px; font-size: 14px; }
+              </style>
+            </head>
+            <body>
+              <div class="top">
+                <h1 style="font-size: 28px; font-weight: 800; margin-bottom: 4px;">${shopTitle}</h1>
+                <p style="font-size: 14px; line-height: 1.4;">${addrHtml}<br>${phoneLine}<br>${fssaiBlk}</p>
+              </div>
+
+              <div class="meta">
+                <div class="box">
+                  <h3 style="margin-bottom:6px;">Supplier Details</h3>
+                  <div class="line"><span>Name</span><strong>${supplierName}</strong></div>
+                  <div class="line"><span>Address</span><span>${supplierAddress}</span></div>
+                  <div class="line"><span>Phone</span><span>${supplierPhone}</span></div>
+                  <div class="line"><span>GSTIN</span><span>${supplierGst}</span></div>
+                </div>
+                <div class="box">
+                  <h3 style="margin-bottom:6px;">${entry.type === 'quotation' ? 'Quotation' : 'Retail Invoice'}</h3>
+                  <div class="line"><span>Type</span><strong>${entry.type.toUpperCase()}</strong></div>
+                  <div class="line"><span>Bill No</span><span>${billNo}</span></div>
+                  <div class="line"><span>Date</span><span>${entry.date}</span></div>
+                  <div class="line"><span>Payment</span><span>${entry.paymentMode}</span></div>
+                </div>
+              </div>
+
+              <table>
+                <thead>
+                  <tr>
+                    <th>S No</th>
+                    <th>Item Name</th>
+                    <th>HSN Code</th>
+                    <th>MRP</th>
+                    <th>Quantity</th>
+                    <th>Rate/P</th>
+                    <th>Disc</th>
+                    <th>CGST %</th>
+                    <th>SGST %</th>
+                    <th>Net Amt.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows}
+                </tbody>
+              </table>
+
+              <div class="summary-wrap">
+                <div class="gst-box">
+                  <h3 style="margin-bottom:6px;">GST Summary</h3>
+                  <table>
+                    <thead>
+                      <tr><th>Type of Tax</th><th>%</th><th>Taxable</th><th>Tax Amount</th></tr>
+                    </thead>
+                    <tbody>
+                      ${gstRowsHtml}
+                    </tbody>
+                  </table>
+                </div>
+                <div class="totals-box">
+                  <div class="totals-row"><span>Gross Amt.</span><strong>${grossAmount.toFixed(2)}</strong></div>
+                  <div class="totals-row"><span>Total Deduction</span><strong>${discountAmount.toFixed(2)}</strong></div>
+                  <div class="totals-row"><span>GST Amt.</span><strong>${taxAmount.toFixed(2)}</strong></div>
+                  <div class="totals-row"><span>Round Off</span><strong>${roundOff.toFixed(2)}</strong></div>
+                  <div class="totals-row net-total"><span>Total Amount</span><strong>${netAmount.toFixed(2)}</strong></div>
+                </div>
+              </div>
+
+              <p>Amt in words: ${netAmount.toFixed(2)} only</p>
+              <p>${entry.type === 'quotation' ? 'Quotation is valid for limited period.' : 'Payment must be paid within agreed days.'}</p>
+              <p style="margin-top: 24px; text-align:right;">Authorised Signature</p>
+
+              <script>
+                setTimeout(function() { window.print(); }, 400);
+              </script>
+            </body>
+          </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+    };
+
+    const handleExportExcel = () => {
+        if (!supplier) return;
+        if (purchaseEntries.length === 0) {
+            showToast("No purchase history to export", "error");
+            return;
+        }
+
+        try {
+            const exportRows: any[] = [];
+
+            purchaseEntries.forEach(entry => {
+                const billNoPrefix = entry.type === 'quotation' ? 'QTN' : 'BILL';
+                const billNo = `${billNoPrefix}/${new Date(entry.createdAt || Date.now()).getFullYear()}/${entry.id.slice(-5)}`;
+                const items = Array.isArray(entry.items) ? entry.items : [];
+
+                if (items.length === 0) {
+                    exportRows.push({
+                        "Bill Date": entry.date || new Date(entry.createdAt).toLocaleDateString(),
+                        "Bill No": billNo,
+                        "Type": entry.type.toUpperCase(),
+                        "Payment Mode": entry.paymentMode || '-',
+                        "Product Name": "(No Items)",
+                        "Batch": "-",
+                        "HSN": "-",
+                        "MRP (Rs)": 0,
+                        "Quantity": 0,
+                        "Purchase Price (Rs)": 0,
+                        "Discount": "-",
+                        "GST %": 0,
+                        "Gross Total (Rs)": entry.totals?.grossAmount || 0,
+                        "Bill Discount (Rs)": entry.totals?.discountAmount || 0,
+                        "GST Amount (Rs)": entry.totals?.taxAmount || 0,
+                        "Net Amount (Rs)": entry.totals?.netAmount || 0
+                    });
+                } else {
+                    items.forEach((item: any) => {
+                        const gross = (item.purchasePrice || item.price || 0) * (item.qty || 0);
+                        const discount = item.billDiscountType === '%' ? (gross * (item.billDiscount || 0)) / 100 : (item.billDiscount || 0);
+                        const taxable = Math.max(gross - discount, 0);
+                        const gstPercent = item.gstPercent !== undefined ? item.gstPercent : 18;
+                        const gst = item.includingGST ? 0 : (taxable * gstPercent) / 100;
+                        const netAmount = taxable + gst;
+
+                        exportRows.push({
+                            "Bill Date": entry.date || new Date(entry.createdAt).toLocaleDateString(),
+                            "Bill No": billNo,
+                            "Type": entry.type.toUpperCase(),
+                            "Payment Mode": entry.paymentMode || '-',
+                            "Product Name": item.productName || '-',
+                            "Batch": item.batch || '-',
+                            "HSN": item.hsn || '-',
+                            "MRP (Rs)": item.mrp || 0,
+                            "Quantity": item.qty || 0,
+                            "Purchase Price (Rs)": item.purchasePrice || item.price || 0,
+                            "Discount": `${item.billDiscount || 0}${item.billDiscountType || '%'}`,
+                            "GST %": gstPercent,
+                            "Item Net Total (Rs)": netAmount,
+                            "Bill Net Total (Rs)": entry.totals?.netAmount || 0
+                        });
+                    });
+                }
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportRows);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Purchase History");
+
+            const maxLens = Object.keys(exportRows[0] || {}).map(key => {
+                let max = key.length;
+                exportRows.forEach(row => {
+                    const val = String(row[key] || '');
+                    if (val.length > max) max = val.length;
+                });
+                return { wch: max + 2 };
+            });
+            worksheet['!cols'] = maxLens;
+
+            XLSX.writeFile(workbook, `${supplier.name.replace(/\s+/g, '_')}_Purchase_History_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast("Purchase history exported to Excel successfully", "success");
+        } catch (error) {
+            console.error(error);
+            showToast("Failed to export Excel file", "error");
+        }
     };
 
     const handleExportPDF = () => {
@@ -270,6 +596,12 @@ const AdminPOSSupplierDetail = () => {
                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                              PDF
                         </button>
+                        <button onClick={handleExportExcel} className="flex-1 md:flex-none p-2.5 bg-gray-50 text-gray-600 rounded-xl hover:bg-gray-100 transition-colors border border-gray-100 font-bold text-xs flex items-center justify-center gap-2">
+                             <svg className="w-3.5 h-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                             </svg>
+                             Excel
+                        </button>
                     </div>
                 </div>
 
@@ -299,49 +631,190 @@ const AdminPOSSupplierDetail = () => {
                     </div>
                 </div>
 
-                {/* Transactions Table */}
-                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-                        <h3 className="font-black text-gray-900">Transaction History</h3>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase">{transactions.length} entries</span>
-                    </div>
-
-                    <div className="divide-y divide-gray-50">
-                        {transactions.length === 0 ? (
-                            <div className="p-12 text-center flex flex-col items-center gap-3">
-                                <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center text-gray-300">
-                                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0l-8 4-8-4" /></svg>
-                                </div>
-                                <p className="text-gray-400 font-medium italic text-sm">No transactions yet</p>
-                            </div>
-                        ) : (
-                            transactions.map((t, idx) => (
-                                <div key={t._id || idx} className="p-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${t.amount < 0 ? 'bg-[var(--primary-alpha-10)] text-[var(--primary-color)]' : 'bg-red-50 text-red-500'}`}>
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                {t.amount < 0
-                                                    ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                                    : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
-                                                }
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs font-black text-gray-900 leading-tight uppercase tracking-tight">{t.type}</p>
-                                            <p className="text-[10px] text-gray-400 font-bold mt-0.5">{new Date(t.date).toLocaleDateString()} • {t.description}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className={`text-base font-black ${t.amount < 0 ? 'text-[var(--primary-color)]' : 'text-red-500'}`}>
-                                            {t.amount < 0 ? '-' : '+'}₹{Math.abs(t.amount).toLocaleString()}
-                                        </p>
-                                        <p className="text-[10px] font-bold text-gray-300">Bal: ₹{t.balanceAfter.toLocaleString()}</p>
-                                    </div>
-                                </div>
-                            ))
+                {/* Tabs Selector */}
+                <div className="flex bg-gray-100 p-1.5 rounded-2xl border border-gray-200/30 max-w-sm mx-auto">
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('ledger')}
+                        className={`flex-1 py-2 px-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all duration-300 ${activeTab === 'ledger' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                    >
+                        Ledger Statement
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('purchases')}
+                        className={`flex-1 py-2 px-3 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all duration-300 relative ${activeTab === 'purchases' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                    >
+                        Purchase History
+                        {purchaseEntries.length > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-[var(--primary-color)] text-white text-[8px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white">
+                                {purchaseEntries.length}
+                            </span>
                         )}
-                    </div>
+                    </button>
                 </div>
+
+                {activeTab === 'ledger' ? (
+                    /* Transactions Table */
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                            <h3 className="font-black text-gray-900">Transaction History</h3>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">{transactions.length} entries</span>
+                        </div>
+
+                        <div className="divide-y divide-gray-50">
+                            {transactions.length === 0 ? (
+                                <div className="p-12 text-center flex flex-col items-center gap-3">
+                                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center text-gray-300">
+                                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0l-8 4-8-4" /></svg>
+                                    </div>
+                                    <p className="text-gray-400 font-medium italic text-sm">No transactions yet</p>
+                                </div>
+                            ) : (
+                                transactions.map((t, idx) => (
+                                    <div key={t._id || idx} className="p-5 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${t.amount < 0 ? 'bg-[var(--primary-alpha-10)] text-[var(--primary-color)]' : 'bg-red-50 text-red-500'}`}>
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    {t.amount < 0
+                                                        ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                        : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
+                                                    }
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-black text-gray-900 leading-tight uppercase tracking-tight">{t.type}</p>
+                                                <p className="text-[10px] text-gray-400 font-bold mt-0.5">{new Date(t.date).toLocaleDateString()} • {t.description}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={`text-base font-black ${t.amount < 0 ? 'text-[var(--primary-color)]' : 'text-red-500'}`}>
+                                                {t.amount < 0 ? '-' : '+'}₹{Math.abs(t.amount).toLocaleString()}
+                                            </p>
+                                            <p className="text-[10px] font-bold text-gray-300">Bal: ₹{t.balanceAfter.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    /* Purchase History Table */
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                            <h3 className="font-black text-gray-900">Purchase Bills & Quotations</h3>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase">{purchaseEntries.length} entries</span>
+                        </div>
+
+                        <div className="divide-y divide-gray-50">
+                            {purchaseEntries.length === 0 ? (
+                                <div className="p-12 text-center flex flex-col items-center gap-3">
+                                    <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center text-gray-300">
+                                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                    </div>
+                                    <p className="text-gray-400 font-medium italic text-sm">No purchase orders or quotations found</p>
+                                </div>
+                            ) : (
+                                purchaseEntries.map((entry, idx) => {
+                                    const isExpanded = expandedPurchaseId === entry.id;
+                                    const billNoPrefix = entry.type === 'quotation' ? 'QTN' : 'BILL';
+                                    const billNo = `${billNoPrefix}/${new Date(entry.createdAt || Date.now()).getFullYear()}/${entry.id.slice(-5)}`;
+                                    return (
+                                        <div key={entry.id || idx} className="hover:bg-gray-50/50 transition-colors border-b border-gray-100 last:border-0">
+                                            {/* Main Row */}
+                                            <div className="p-5 flex items-center justify-between cursor-pointer" onClick={() => setExpandedPurchaseId(isExpanded ? null : entry.id)}>
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${entry.type === 'quotation' ? 'bg-orange-50 text-orange-500' : 'bg-green-50 text-green-500'}`}>
+                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            {entry.type === 'quotation'
+                                                                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                                            }
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-xs font-black text-gray-900 leading-tight uppercase tracking-tight">{billNo}</p>
+                                                            <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${entry.type === 'quotation' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>
+                                                                {entry.type}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-[10px] text-gray-400 font-bold mt-0.5">
+                                                            {entry.date ? new Date(entry.date).toLocaleDateString() : 'N/A'} • {entry.paymentMode} • {entry.items?.length || 0} items
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-4">
+                                                    <div className="text-right">
+                                                        <p className="text-base font-black text-gray-900">
+                                                            ₹{(entry.totals?.netAmount || 0).toLocaleString()}
+                                                        </p>
+                                                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">Gross: ₹{(entry.totals?.grossAmount || 0).toLocaleString()}</p>
+                                                    </div>
+                                                    <svg className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                </div>
+                                            </div>
+
+                                            {/* Expanded Details Panel */}
+                                            {isExpanded && (
+                                                <div className="px-5 pb-5 pt-2 border-t border-gray-50 bg-gray-50/30 space-y-4 animate-in slide-in-from-top-2 duration-200">
+                                                    <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white">
+                                                        <table className="min-w-full divide-y divide-gray-100">
+                                                            <tbody className="divide-y divide-gray-50">
+                                                                {entry.items?.map((item: any, itemIdx: number) => {
+                                                                    const gross = (item.purchasePrice || item.price || 0) * (item.qty || 0);
+                                                                    const discount = item.billDiscountType === '%' ? (gross * (item.billDiscount || 0)) / 100 : (item.billDiscount || 0);
+                                                                    const taxable = Math.max(gross - discount, 0);
+                                                                    const gstPercent = item.gstPercent !== undefined ? item.gstPercent : 18;
+                                                                    const gst = item.includingGST ? 0 : (taxable * gstPercent) / 100;
+                                                                    const itemNet = taxable + gst;
+                                                                    return (
+                                                                        <tr key={item.id || itemIdx} className="hover:bg-gray-50/50">
+                                                                            <td className="px-4 py-2.5">
+                                                                                <p className="text-xs font-bold text-gray-900">{item.productName}</p>
+                                                                                {item.batch && <span className="text-[9px] text-gray-400 font-mono">Batch: {item.batch}</span>}
+                                                                            </td>
+                                                                            <td className="px-4 py-2.5 text-center text-xs font-bold text-gray-500">₹{(item.mrp || 0).toLocaleString()}</td>
+                                                                            <td className="px-4 py-2.5 text-center text-xs font-bold text-gray-900">{item.qty}</td>
+                                                                            <td className="px-4 py-2.5 text-center text-xs font-bold text-gray-900">₹{(item.purchasePrice || item.price || 0).toLocaleString()}</td>
+                                                                            <td className="px-4 py-2.5 text-center text-xs font-bold text-green-600">{item.billDiscount || 0}{item.billDiscountType || '%'}</td>
+                                                                            <td className="px-4 py-2.5 text-center text-xs font-bold text-gray-500">{gstPercent}%</td>
+                                                                            <td className="px-4 py-2.5 text-right text-xs font-bold text-gray-900">₹{itemNet.toLocaleString()}</td>
+                                                                        </tr>
+                                                                    );
+                                                                })}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => printInvoice(entry)}
+                                                            className="py-2 px-4 bg-gray-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-gray-800 transition-colors flex items-center gap-1.5 shadow-sm"
+                                                        >
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                                            Print Invoice
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDeletePurchase(entry.id)}
+                                                            className="py-2 px-4 bg-red-50 text-red-600 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-red-100 transition-colors flex items-center gap-1.5"
+                                                        >
+                                                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                            Delete Bill
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 <div className="pt-8 opacity-40 hover:opacity-100 transition-opacity flex justify-center">
                     <button onClick={handleDelete} className="text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-50 px-4 py-2 rounded-xl">

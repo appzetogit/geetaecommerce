@@ -126,6 +126,7 @@ export const getCart = async (req: Request, res: Response) => {
                 let isAvailable = true; // Default to true if no location
 
                 if (locationProvided) {
+                    const sellerId = product.seller.toString();
                     // Check if Visible (Admin or enabled with permissions) or Nearby
                     const isVisible = visibleSellerIds.includes(sellerId);
                     const isNearby = nearbySellerIds.some(id => id.toString() === sellerId);

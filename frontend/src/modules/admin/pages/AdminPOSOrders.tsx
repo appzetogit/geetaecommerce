@@ -1628,20 +1628,44 @@ const AdminPOSOrders = () => {
   };
 
   const calculatePurchaseBreakdown = () => {
-    const gross = purchaseItems.reduce((sum, item) => sum + item.purchasePrice * item.qty, 0);
-    const discount = purchaseItems.reduce((sum, item) => {
+    let gross = 0;
+    let discount = 0;
+    let tax = 0;
+    let preRounded = 0;
+
+    purchaseItems.forEach((item) => {
       const lineGross = item.purchasePrice * item.qty;
-      return sum + (item.billDiscountType === '%' ? (lineGross * item.billDiscount) / 100 : item.billDiscount);
-    }, 0);
-    const tax = purchaseItems.reduce((sum, item) => {
-      const lineGross = item.purchasePrice * item.qty;
-      const lineDiscount = item.billDiscountType === '%' ? (lineGross * item.billDiscount) / 100 : item.billDiscount;
-      const taxable = Math.max(lineGross - lineDiscount, 0);
-      return sum + (item.includingGST ? 0 : (taxable * item.gstPercent) / 100);
-    }, 0);
-    const preRounded = gross - discount + tax;
+      const lineDiscount = item.billDiscountType === '%' 
+        ? (lineGross * item.billDiscount) / 100 
+        : item.billDiscount;
+      const netBeforeTax = Math.max(lineGross - lineDiscount, 0);
+
+      let lineTax = 0;
+      let lineNet = 0;
+      let lineGrossExcludingTax = lineGross;
+      let lineDiscountExcludingTax = lineDiscount;
+
+      if (item.includingGST) {
+        // GST is included in the purchase price
+        lineTax = (netBeforeTax * item.gstPercent) / (100 + item.gstPercent);
+        lineNet = netBeforeTax;
+        lineGrossExcludingTax = lineGross / (1 + item.gstPercent / 100);
+        lineDiscountExcludingTax = lineDiscount / (1 + item.gstPercent / 100);
+      } else {
+        // GST is excluded from the purchase price
+        lineTax = (netBeforeTax * item.gstPercent) / 100;
+        lineNet = netBeforeTax + lineTax;
+      }
+
+      gross += lineGrossExcludingTax;
+      discount += lineDiscountExcludingTax;
+      tax += lineTax;
+      preRounded += lineNet;
+    });
+
     const net = Math.round(preRounded);
     const roundOff = Number((net - preRounded).toFixed(2));
+
     return {
       grossAmount: Number(gross.toFixed(2)),
       discountAmount: Number(discount.toFixed(2)),
@@ -1679,9 +1703,42 @@ const AdminPOSOrders = () => {
     const supplierAddress = entry.supplier?.address || '-';
     const supplierPhone = entry.supplier?.phone || '-';
     const supplierGst = entry.supplier?.gstNumber || '-';
-    const taxable = (entry.totals.grossAmount - entry.totals.discountAmount).toFixed(2);
-    const cgst = (entry.totals.taxAmount / 2).toFixed(2);
-    const sgst = (entry.totals.taxAmount / 2).toFixed(2);
+
+    // Group tax by GST percentage
+    const taxGroups: { [percent: number]: { taxable: number; cgst: number; sgst: number } } = {};
+    entry.items.forEach(item => {
+      const gross = item.purchasePrice * item.qty;
+      const discount = item.billDiscountType === '%' ? (gross * item.billDiscount) / 100 : item.billDiscount;
+      const netBeforeTax = Math.max(gross - discount, 0);
+
+      let lineTax = 0;
+      let lineTaxable = 0;
+
+      if (item.includingGST) {
+        lineTax = (netBeforeTax * item.gstPercent) / (100 + item.gstPercent);
+        lineTaxable = netBeforeTax - lineTax;
+      } else {
+        lineTax = (netBeforeTax * item.gstPercent) / 100;
+        lineTaxable = netBeforeTax;
+      }
+
+      const rate = item.gstPercent;
+      if (!taxGroups[rate]) {
+        taxGroups[rate] = { taxable: 0, cgst: 0, sgst: 0 };
+      }
+      taxGroups[rate].taxable += lineTaxable;
+      taxGroups[rate].cgst += lineTax / 2;
+      taxGroups[rate].sgst += lineTax / 2;
+    });
+
+    const gstRowsHtml = Object.entries(taxGroups).flatMap(([rateStr, data]) => {
+      const rate = Number(rateStr);
+      const halfRate = (rate / 2).toFixed(1) + '%';
+      return [
+        `<tr><td>CGST</td><td>${halfRate}</td><td>${data.taxable.toFixed(2)}</td><td>${data.cgst.toFixed(2)}</td></tr>`,
+        `<tr><td>SGST</td><td>${halfRate}</td><td>${data.taxable.toFixed(2)}</td><td>${data.sgst.toFixed(2)}</td></tr>`
+      ];
+    }).join('');
 
     const rows = entry.items.map((item, idx) => {
       const gross = item.purchasePrice * item.qty;
@@ -1780,8 +1837,7 @@ const AdminPOSOrders = () => {
                   <tr><th>Type of Tax</th><th>%</th><th>Taxable</th><th>Tax Amount</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>CGST</td><td>-</td><td>${taxable}</td><td>${cgst}</td></tr>
-                  <tr><td>SGST</td><td>-</td><td>${taxable}</td><td>${sgst}</td></tr>
+                  ${gstRowsHtml}
                 </tbody>
               </table>
             </div>
@@ -2653,9 +2709,41 @@ const AdminPOSOrders = () => {
       const supplierAddress = entry.supplier?.address || '-';
       const supplierPhone = entry.supplier?.phone || '-';
       const supplierGst = entry.supplier?.gstNumber || '-';
-      const taxable = (entry.totals.grossAmount - entry.totals.discountAmount).toFixed(2);
-      const cgst = (entry.totals.taxAmount / 2).toFixed(2);
-      const sgst = (entry.totals.taxAmount / 2).toFixed(2);
+      // Group tax by GST percentage
+      const taxGroups: { [percent: number]: { taxable: number; cgst: number; sgst: number } } = {};
+      entry.items.forEach(item => {
+        const gross = item.purchasePrice * item.qty;
+        const discount = item.billDiscountType === '%' ? (gross * item.billDiscount) / 100 : item.billDiscount;
+        const netBeforeTax = Math.max(gross - discount, 0);
+
+        let lineTax = 0;
+        let lineTaxable = 0;
+
+        if (item.includingGST) {
+          lineTax = (netBeforeTax * item.gstPercent) / (100 + item.gstPercent);
+          lineTaxable = netBeforeTax - lineTax;
+        } else {
+          lineTax = (netBeforeTax * item.gstPercent) / 100;
+          lineTaxable = netBeforeTax;
+        }
+
+        const rate = item.gstPercent;
+        if (!taxGroups[rate]) {
+          taxGroups[rate] = { taxable: 0, cgst: 0, sgst: 0 };
+        }
+        taxGroups[rate].taxable += lineTaxable;
+        taxGroups[rate].cgst += lineTax / 2;
+        taxGroups[rate].sgst += lineTax / 2;
+      });
+
+      const gstTableBody = Object.entries(taxGroups).flatMap(([rateStr, data]) => {
+        const rate = Number(rateStr);
+        const halfRate = (rate / 2).toFixed(1) + '%';
+        return [
+          ['CGST', halfRate, data.taxable.toFixed(2), data.cgst.toFixed(2)],
+          ['SGST', halfRate, data.taxable.toFixed(2), data.sgst.toFixed(2)]
+        ];
+      });
       const invoiceNum = lastBillDetails?.invoiceNum || entry.id.slice(-5);
 
       // --- Header (Image 4 Style) ---
@@ -2742,10 +2830,7 @@ const AdminPOSOrders = () => {
 
       autoTable(doc, {
         head: [['Type of Tax', '%', 'Taxable', 'Tax Amount']],
-        body: [
-          ['CGST', '-', taxable, cgst],
-          ['SGST', '-', taxable, sgst]
-        ],
+        body: gstTableBody,
         startY: finalY + 8,
         margin: { left: 16 },
         tableWidth: 92,

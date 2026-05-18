@@ -1175,23 +1175,39 @@ const AdminPOSReport = () => {
                     margin: 0 !important; 
                     padding: 0 !important; 
                     font-family: 'Times New Roman', Times, serif !important;
+                    background: white !important;
                   }
                   
-                  /* Completely hide the main app root during printing */
-                  body.is-printing-admin-report #root { display: none !important; }
+                  /* ULTRA AGGRESSIVE: Hide everything that is NOT the print wrapper */
+                  body.is-printing-admin-report > *:not(.admin-report-print-wrapper) {
+                    display: none !important;
+                    visibility: hidden !important;
+                    height: 0 !important;
+                    overflow: hidden !important;
+                  }
                   
                   /* Force the receipt container (now at body level via portal) to be visible */
                   body.is-printing-admin-report .admin-report-print-wrapper { 
                     display: block !important;
                     visibility: visible !important;
-                    position: relative !important;
+                    position: absolute !important;
+                    top: 0 !important;
+                    left: 0 !important;
                     width: 100% !important; 
                     background: white !important;
                     margin: 0 !important;
                     padding: 0 !important;
+                    z-index: 999999 !important;
                   }
                   
-                  body.is-printing-admin-report .admin-report-print-wrapper * { visibility: visible !important; }
+                  body.is-printing-admin-report .admin-report-print-wrapper * { 
+                    visibility: visible !important; 
+                    display: block;
+                  }
+                  
+                  /* Fix grid/flex children layout in print */
+                  body.is-printing-admin-report .admin-report-print-wrapper .grid { display: grid !important; }
+                  body.is-printing-admin-report .admin-report-print-wrapper .flex { display: flex !important; }
                   
                   body.is-printing-admin-report .receipt-container { 
                     width: 100% !important; 

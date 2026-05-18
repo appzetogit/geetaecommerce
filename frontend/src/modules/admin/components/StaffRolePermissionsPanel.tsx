@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useLocation } from 'react-router-dom';
 import { getStoredStaffList, setStoredStaffList, StaffModule, getStaffSession, setStaffSession } from '../../../utils/staffSession';
 import { updateStaff as apiUpdateStaff } from '../../../services/api/admin/adminStaffService';
+import { getRoles as apiGetRoles, updateRole as apiUpdateRole } from '../../../services/api/admin/adminRoleService';
 
 interface StaffRolePermissionsPanelProps {
   isOpen: boolean;
@@ -552,14 +553,26 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
     return buildAdminPermissionGroups();
   });
 
-  // Whenever panel opens for a staff member, sync toggles from stored permissions
+  // Whenever panel opens, selectedRole changes, or staff changes, sync toggles from stored permissions
   useEffect(() => {
-    if (!staff) return;
-
-    // Find freshest staff data from storage (may contain updated permissions)
+    let effectivePermissions: string[] = ['pos', 'orders', 'customers'];
     const storedList = getStoredStaffList(moduleType);
-    const storedMember = storedList.find(m => m.id === staff.id);
-    const effectivePermissions = storedMember?.permissions || staff.permissions || ['pos', 'orders', 'customers'];
+
+    if (staff) {
+      // Individual Staff Mode: Find freshest staff data from storage
+      const storedMember = storedList.find(m => m.id === staff.id);
+      effectivePermissions = storedMember?.permissions || staff.permissions || ['pos', 'orders', 'customers'];
+    } else {
+      // Global/Role Mode: Find any staff member with the selected role to load their permissions
+      const normalizedTargetRole = selectedRole.trim().toUpperCase().replace(/_/g, '').replace(/\s+/g, '');
+      const roleMember = storedList.find(m => {
+        const memberRole = (m.role || '').trim().toUpperCase().replace(/_/g, '').replace(/\s+/g, '');
+        return memberRole === normalizedTargetRole;
+      });
+      if (roleMember && Array.isArray(roleMember.permissions)) {
+        effectivePermissions = roleMember.permissions;
+      }
+    }
 
     const hasPOSPermission = effectivePermissions.includes('pos');
 
@@ -575,7 +588,7 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
       : buildAdminPermissionGroups();
 
     const mapped = baseGroups.map(group => ({
-              ...group,
+      ...group,
       permissions: group.permissions.map(permission => {
         if (group.id === 'access' && permission.id === 'pos_access') {
           return { ...permission, enabled: hasPOSPermission };
@@ -590,7 +603,7 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
     }));
 
     setPermissionGroups(mapped);
-  }, [staff, moduleType, isSellerManageStaff]);
+  }, [staff, selectedRole, moduleType, isSellerManageStaff]);
 
   const getPermissionEnabled = (groupId: string, permissionId: string): boolean => {
     const group = permissionGroups.find(g => g.id === groupId);
@@ -619,17 +632,19 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
   };
 
   const handleSave = async () => {
+    const staffList = getStoredStaffList(moduleType);
+
+    // Collect all enabled permission IDs from UI
+    const enabledPermissionIds = permissionGroups.flatMap((group) =>
+      group.permissions.filter((p) => p.enabled).map((p) => p.id)
+    );
+
+    // POS access toggle still controls legacy "pos" permission (actual access check)
+    const allowPOS = getPermissionEnabled('access', 'pos_access');
+    const UI_PREFIX = 'ui:';
+
     if (staff) {
-      const staffList = getStoredStaffList(moduleType);
-
-      // Collect all enabled permission IDs from UI
-      const enabledPermissionIds = permissionGroups.flatMap((group) =>
-        group.permissions.filter((p) => p.enabled).map((p) => p.id)
-      );
-
-      // POS access toggle still controls legacy "pos" permission (actual access check)
-      const allowPOS = getPermissionEnabled('access', 'pos_access');
-
+      // --- Individual Staff Mode ---
       const updatedStaffList = staffList.map((member) => {
         if (member.id !== staff.id) return member;
 
@@ -648,7 +663,6 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
 
         // Store UI-level permissions alongside, with a prefix so they don't
         // interfere with existing access checks (which only look for 'pos', 'orders', 'customers')
-        const UI_PREFIX = 'ui:';
         const filteredBase = Array.from(baseSet).filter((perm) => !perm.startsWith(UI_PREFIX));
         const uiPermissions = enabledPermissionIds.map((id) => `${UI_PREFIX}${id}`);
         const nextPermissions = [...filteredBase, ...uiPermissions];
@@ -691,12 +705,10 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
       }
 
       const activeSession = getStaffSession(moduleType);
-      let currentMember = staff;
       if (activeSession && activeSession.id === staff.id) {
         const refreshedStaff = updatedStaffList.find((member) => member.id === staff.id);
         if (refreshedStaff) {
           setStaffSession(moduleType, refreshedStaff);
-          currentMember = refreshedStaff as Staff;
         }
       }
 
@@ -709,9 +721,125 @@ const StaffRolePermissionsPanel: React.FC<StaffRolePermissionsPanelProps> = ({ i
           });
         }
       } catch (error) {
-        // Don't break UI if API fails; just log in console
         // eslint-disable-next-line no-console
         console.error('Failed to update staff permissions', error);
+      }
+    } else {
+      // --- Global/Role-wide Mode ---
+      const normalizedTargetRole = selectedRole.trim().toUpperCase().replace(/_/g, '').replace(/\s+/g, '');
+
+      // 1. Update localStorage staff list for the current module
+      const updatedStaffList = staffList.map((member) => {
+        const memberRole = (member.role || '').trim().toUpperCase().replace(/_/g, '').replace(/\s+/g, '');
+        if (memberRole !== normalizedTargetRole) return member;
+
+        const basePermissions =
+          Array.isArray(member.permissions) && member.permissions.length > 0
+          ? member.permissions
+          : ['pos', 'orders', 'customers'];
+
+        const baseSet = new Set(basePermissions);
+        if (allowPOS) {
+          baseSet.add('pos');
+        } else {
+          baseSet.delete('pos');
+        }
+
+        const filteredBase = Array.from(baseSet).filter((perm) => !perm.startsWith(UI_PREFIX));
+        const uiPermissions = enabledPermissionIds.map((id) => `${UI_PREFIX}${id}`);
+        const nextPermissions = [...filteredBase, ...uiPermissions];
+
+        return {
+          ...member,
+          permissions: nextPermissions,
+        };
+      });
+
+      setStoredStaffList(moduleType, updatedStaffList);
+
+      // 2. Keep the other module (admin <-> seller) in sync
+      const otherModule: StaffModule = moduleType === 'admin' ? 'seller' : 'admin';
+      const otherList = getStoredStaffList(otherModule);
+      if (otherList.length > 0) {
+        const syncedOtherList = otherList.map((member) => {
+          const memberRole = (member.role || '').trim().toUpperCase().replace(/_/g, '').replace(/\s+/g, '');
+          if (memberRole !== normalizedTargetRole) return member;
+
+          const sourceMember = updatedStaffList.find(m => m.id === member.id || m.phone === member.phone);
+          if (sourceMember) {
+            return {
+              ...member,
+              permissions: sourceMember.permissions,
+            };
+          }
+          return member;
+        });
+        setStoredStaffList(otherModule, syncedOtherList);
+
+        // Update active other session if applicable
+        const otherSession = getStaffSession(otherModule);
+        if (otherSession) {
+          const otherSessionRole = (otherSession.role || '').trim().toUpperCase().replace(/_/g, '').replace(/\s+/g, '');
+          if (otherSessionRole === normalizedTargetRole) {
+            const refreshedOther = syncedOtherList.find(
+              (member) => member.id === otherSession.id || member.phone === otherSession.phone
+            );
+            if (refreshedOther) {
+              setStaffSession(otherModule, refreshedOther);
+            }
+          }
+        }
+      }
+
+      // 3. Update currently active local session if they match the role
+      const activeSession = getStaffSession(moduleType);
+      if (activeSession) {
+        const activeSessionRole = (activeSession.role || '').trim().toUpperCase().replace(/_/g, '').replace(/\s+/g, '');
+        if (activeSessionRole === normalizedTargetRole) {
+          const refreshedStaff = updatedStaffList.find((member) => member.id === activeSession.id);
+          if (refreshedStaff) {
+            setStaffSession(moduleType, refreshedStaff);
+          }
+        }
+      }
+
+      // 4. Persist permissions for each matched staff member to the backend (fire-and-forget style)
+      const targetMembers = updatedStaffList.filter((member) => {
+        const memberRole = (member.role || '').trim().toUpperCase().replace(/_/g, '').replace(/\s+/g, '');
+        return memberRole === normalizedTargetRole;
+      });
+
+      for (const member of targetMembers) {
+        apiUpdateStaff(member.id, {
+          permissions: member.permissions,
+        }).catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error(`Failed to update backend staff permissions for ${member.name}`, err);
+        });
+      }
+
+      // 5. Update the global Role document itself in the Role collection (Admin module only)
+      if (moduleType === 'admin') {
+        apiGetRoles().then((rolesRes) => {
+          if (rolesRes.success && Array.isArray(rolesRes.data)) {
+            const matchedRoleDoc = rolesRes.data.find(
+              (r) => r.name.trim().toUpperCase().replace(/_/g, '').replace(/\s+/g, '') === normalizedTargetRole
+            );
+            if (matchedRoleDoc) {
+              const uiPermissions = enabledPermissionIds.map((id) => `${UI_PREFIX}${id}`);
+              const legacyPermissions = allowPOS ? ['pos'] : [];
+              apiUpdateRole(matchedRoleDoc._id, {
+                permissions: [...legacyPermissions, ...uiPermissions],
+              }).catch((err) => {
+                // eslint-disable-next-line no-console
+                console.error('Failed to update global role document permissions', err);
+              });
+            }
+          }
+        }).catch((err) => {
+          // eslint-disable-next-line no-console
+          console.error('Failed to fetch role definitions for global sync', err);
+        });
       }
     }
 

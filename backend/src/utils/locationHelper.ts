@@ -48,17 +48,32 @@ export async function findSellersWithinRange(
   }
 
   try {
-    // Fetch all approved sellers with location
+    // Fetch all approved sellers with location or Admin status
     const sellers = await Seller.find({
       status: "Approved",
-      location: { $exists: true, $ne: null },
-      serviceRadiusKm: { $exists: true, $gt: 0 },
-    }).select("_id location serviceRadiusKm");
+      $or: [
+        { location: { $exists: true, $ne: null }, serviceRadiusKm: { $exists: true, $gt: 0 } },
+        { email: /admin/i },
+        { category: "Admin" },
+        { storeName: { $regex: /Admin/i } }
+      ]
+    }).select("_id location serviceRadiusKm email category storeName");
 
-    // Filter sellers where user is within their service radius
+    // Filter sellers where user is within their service radius, or it's an Admin seller
     const nearbySellerIds: mongoose.Types.ObjectId[] = [];
 
     for (const seller of sellers) {
+      // Always include Admin sellers regardless of distance/coordinates
+      const isAdminSeller =
+        /admin/i.test(seller.email || "") ||
+        seller.category === "Admin" ||
+        /Admin/i.test(seller.storeName || "");
+
+      if (isAdminSeller) {
+        nearbySellerIds.push(seller._id as mongoose.Types.ObjectId);
+        continue;
+      }
+
       if (seller.location && seller.location.coordinates) {
         const sellerLng = seller.location.coordinates[0];
         const sellerLat = seller.location.coordinates[1];

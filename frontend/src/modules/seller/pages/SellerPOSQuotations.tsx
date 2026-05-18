@@ -123,9 +123,42 @@ const SellerPOSQuotations: React.FC = () => {
     const supplierAddress = entry.supplier?.address || '-';
     const supplierPhone = entry.supplier?.phone || '-';
     const supplierGst = entry.supplier?.gstNumber || '-';
-    const taxable = (entry.totals.grossAmount - entry.totals.discountAmount).toFixed(2);
-    const cgst = (entry.totals.taxAmount / 2).toFixed(2);
-    const sgst = (entry.totals.taxAmount / 2).toFixed(2);
+
+    // Group tax by GST percentage
+    const taxGroups: { [percent: number]: { taxable: number; cgst: number; sgst: number } } = {};
+    entry.items.forEach(item => {
+      const gross = item.purchasePrice * item.qty;
+      const discount = item.billDiscountType === '%' ? (gross * item.billDiscount) / 100 : item.billDiscount;
+      const netBeforeTax = Math.max(gross - discount, 0);
+
+      let lineTax = 0;
+      let lineTaxable = 0;
+
+      if (item.includingGST) {
+        lineTax = (netBeforeTax * item.gstPercent) / (100 + item.gstPercent);
+        lineTaxable = netBeforeTax - lineTax;
+      } else {
+        lineTax = (netBeforeTax * item.gstPercent) / 100;
+        lineTaxable = netBeforeTax;
+      }
+
+      const rate = item.gstPercent;
+      if (!taxGroups[rate]) {
+        taxGroups[rate] = { taxable: 0, cgst: 0, sgst: 0 };
+      }
+      taxGroups[rate].taxable += lineTaxable;
+      taxGroups[rate].cgst += lineTax / 2;
+      taxGroups[rate].sgst += lineTax / 2;
+    });
+
+    const gstRowsHtml = Object.entries(taxGroups).flatMap(([rateStr, data]) => {
+      const rate = Number(rateStr);
+      const halfRate = (rate / 2).toFixed(1) + '%';
+      return [
+        `<tr><td>CGST</td><td>${halfRate}</td><td>${data.taxable.toFixed(2)}</td><td>${data.cgst.toFixed(2)}</td></tr>`,
+        `<tr><td>SGST</td><td>${halfRate}</td><td>${data.taxable.toFixed(2)}</td><td>${data.sgst.toFixed(2)}</td></tr>`
+      ];
+    }).join('');
 
     const rows = entry.items.map((item, idx) => {
       const gross = item.purchasePrice * item.qty;
@@ -223,8 +256,7 @@ const SellerPOSQuotations: React.FC = () => {
                   <tr><th>Type of Tax</th><th>%</th><th>Taxable</th><th>Tax Amount</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td>CGST</td><td>-</td><td>${taxable}</td><td>${cgst}</td></tr>
-                  <tr><td>SGST</td><td>-</td><td>${taxable}</td><td>${sgst}</td></tr>
+                  ${gstRowsHtml}
                 </tbody>
               </table>
             </div>
