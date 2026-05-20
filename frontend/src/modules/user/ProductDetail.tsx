@@ -13,6 +13,7 @@ import { useLoading } from '../../context/LoadingContext';
 import Button from '../../components/ui/button';
 import Badge from '../../components/ui/badge';
 import { getProductById, getProducts } from '../../services/api/customerProductService';
+import { getSimilarProducts as getSemanticSimilarProducts } from '../../services/api/searchService';
 import WishlistButton from '../../components/WishlistButton';
 import StarRating from "../../components/ui/StarRating";
 import ProductCard from "./components/ProductCard";
@@ -126,6 +127,17 @@ export default function ProductDetail() {
           setSimilarProducts(similar);
           setSimilarProductsPage(1);
           setHasMoreSimilar(similar.length >= 6);
+
+          getSemanticSimilarProducts(id)
+            .then((similarResponse) => {
+              if (similarResponse.success && similarResponse.data.length > 0) {
+                setSimilarProducts(similarResponse.data);
+                setHasMoreSimilar(false);
+              }
+            })
+            .catch((err) => {
+              console.error("Failed to fetch semantic similar products", err);
+            });
 
           // Fetch reviews
           fetchReviews(id);
@@ -1321,16 +1333,16 @@ export default function ProductDetail() {
           </div>
         )}
 
-        {/* Top products in this category */}
+        {/* Similar products */}
         {similarProducts.length > 0 && (
           <div className="mt-6 mb-24">
             <div className="bg-neutral-100/50 border-t border-b border-neutral-200/50 py-4 px-3">
               <div className="flex items-center mb-4 px-1">
                 <h3 className="text-lg font-semibold text-neutral-900">
-                  Top products in this category
+                  Similar Products
                 </h3>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pb-2 px-1">
+              <div className="flex gap-4 overflow-x-auto pb-2 px-1 scrollbar-hide">
                 {similarProducts.map((similarProduct) => {
                   const similarCartItem = cart.items.find(
                     (item) =>
@@ -1341,15 +1353,16 @@ export default function ProductDetail() {
                   const similarInCartQty = similarCartItem?.quantity || 0;
 
                   return (
-                    <ProductCard
-                      key={similarProduct.id || similarProduct._id}
-                      product={similarProduct}
-                      categoryStyle={true}
-                      showBadge={true}
-                      showHeartIcon={true}
-                      showRating={true}
-                      compact={true}
-                    />
+                    <div key={similarProduct.id || similarProduct._id} className="w-44 flex-shrink-0 sm:w-52 md:w-56">
+                      <ProductCard
+                        product={similarProduct}
+                        categoryStyle={true}
+                        showBadge={true}
+                        showHeartIcon={true}
+                        showRating={true}
+                        compact={true}
+                      />
+                    </div>
                   );
                 })}
               </div>

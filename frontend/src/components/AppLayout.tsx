@@ -231,8 +231,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const isSearchPage = location.pathname === '/search';
   const isCheckoutPage = location.pathname === '/checkout' || location.pathname.startsWith('/checkout/');
   const isCartPage = location.pathname === '/cart';
-  const showHeader = isSearchPage && !isCheckoutPage && !isCartPage;
-  const showSearchBar = isSearchPage && !isCheckoutPage && !isCartPage;
+  const showHeader = false;
+  const showSearchBar = false;
   const showFooter = !isCheckoutPage && !isProductDetailPage;
 
   // Search Suggestions State
@@ -243,7 +243,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (!searchQuery.trim() || searchQuery.length < 2) {
+      if (!showSearchBar || !searchQuery.trim() || searchQuery.length < 2) {
         setSuggestions([]);
         return;
       }
@@ -271,7 +271,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
     const timeout = setTimeout(fetchSuggestions, 400);
     return () => clearTimeout(timeout);
-  }, [searchQuery, userLocation]);
+  }, [searchQuery, userLocation, showSearchBar]);
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -496,7 +496,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
           )}
 
           {/* Sticky Header - Show on search page and other non-home pages, excluding account page */}
-          {(showHeader || isSearchPage) && (
+          {showHeader && (
             <header className="sticky top-0 z-50 bg-white shadow-sm md:shadow-md md:top-[60px]">
               {/* Delivery info line */}
               <div className="px-4 md:px-6 lg:px-8 py-1.5 bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)] text-center">

@@ -14,6 +14,45 @@ import { notifySellersOfOrderUpdate } from "../../../services/sellerNotification
 import { generateDeliveryOtp } from "../../../services/deliveryOtpService";
 import { Server as SocketIOServer } from "socket.io";
 
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const buildVariationSearchValue = (variationValue: any) => {
+    if (!variationValue || typeof variationValue !== 'string') {
+        return variationValue;
+    }
+    const trimmedValue = variationValue.trim();
+    if (!trimmedValue) {
+        return variationValue;
+    }
+    return new RegExp(`^${escapeRegExp(trimmedValue)}$`, 'i');
+};
+
+const matchesVariation = (variation: any, variationValue: any) => {
+    if (!variationValue) return false;
+    const rawValue = String(variationValue);
+    if (variation?._id && variation._id.toString() === rawValue) {
+        return true;
+    }
+    const normalizedValue = rawValue.trim().toLowerCase();
+    return (
+        (typeof variation?.value === 'string' && variation.value.trim().toLowerCase() === normalizedValue) ||
+        (typeof variation?.name === 'string' && variation.name.trim().toLowerCase() === normalizedValue) ||
+        (typeof variation?.title === 'string' && variation.title.trim().toLowerCase() === normalizedValue) ||
+        (typeof variation?.pack === 'string' && variation.pack.trim().toLowerCase() === normalizedValue)
+    );
+};
+
+const getVariationMatchConditions = (variationValue: any) => {
+    const variationSearchValue = buildVariationSearchValue(variationValue);
+    return [
+        { "variations._id": mongoose.isValidObjectId(variationValue) ? variationValue : new mongoose.Types.ObjectId() },
+        { "variations.value": variationSearchValue },
+        { "variations.name": variationSearchValue },
+        { "variations.title": variationSearchValue },
+        { "variations.pack": variationSearchValue }
+    ];
+};
+
 // Create a new order
 export const createOrder = async (req: Request, res: Response) => {
     let session: mongoose.ClientSession | null = null;
@@ -170,6 +209,7 @@ export const createOrder = async (req: Request, res: Response) => {
             // The frontend sends variation info as 'variant' or 'variation'
             // In the product model, it's stored in 'variations' array
             const variationValue = item.variant || item.variation;
+            const variationConditions = variationValue ? getVariationMatchConditions(variationValue) : [];
 
             if (variationValue) {
                 // Try to decrement stock for the specific variation first
@@ -178,12 +218,7 @@ export const createOrder = async (req: Request, res: Response) => {
                     ? await Product.findOneAndUpdate(
                         {
                             _id: item.product.id,
-                            $or: [
-                                { "variations._id": mongoose.isValidObjectId(variationValue) ? variationValue : new mongoose.Types.ObjectId() },
-                                { "variations.value": variationValue },
-                                { "variations.title": variationValue },
-                                { "variations.pack": variationValue }
-                            ],
+                            $or: variationConditions,
                             "variations.stock": { $gte: qty }
                         },
                         { $inc: { "variations.$.stock": -qty, stock: -qty } },
@@ -192,12 +227,7 @@ export const createOrder = async (req: Request, res: Response) => {
                     : await Product.findOneAndUpdate(
                         {
                             _id: item.product.id,
-                            $or: [
-                                { "variations._id": mongoose.isValidObjectId(variationValue) ? variationValue : new mongoose.Types.ObjectId() },
-                                { "variations.value": variationValue },
-                                { "variations.title": variationValue },
-                                { "variations.pack": variationValue }
-                            ],
+                            $or: variationConditions,
                             "variations.stock": { $gte: qty }
                         },
                         { $inc: { "variations.$.stock": -qty, stock: -qty } },
@@ -264,12 +294,7 @@ export const createOrder = async (req: Request, res: Response) => {
             // Determine the price based on variation and discounts
             let selectedVariation;
             if (variationValue && product.variations) {
-                 selectedVariation = product.variations.find((v: any) =>
-                     (v._id && v._id.toString() === variationValue) ||
-                     v.value === variationValue ||
-                     v.title === variationValue ||
-                     v.pack === variationValue
-                 );
+                 selectedVariation = product.variations.find((v: any) => matchesVariation(v, variationValue));
             }
             if (!selectedVariation && product.variations && product.variations.length > 0) {
                  // Fallback to first if no variation spec or not found (consistent with stock fallback)
@@ -358,8 +383,8 @@ export const createOrder = async (req: Request, res: Response) => {
         if (session) {
             await newOrder.save({ session });
             // Increment customer order stats
-            await Customer.findByIdAndUpdate(userId, { 
-                $inc: { totalOrders: 1, totalSpent: newOrder.total } 
+            await Customer.findByIdAndUpdate(userId, {
+                $inc: { totalOrders: 1, totalSpent: newOrder.total }
             }, { session });
             await session.commitTransaction();
         } else {
@@ -371,8 +396,8 @@ export const createOrder = async (req: Request, res: Response) => {
             }
             await newOrder.save();
             // Increment customer order stats
-            await Customer.findByIdAndUpdate(userId, { 
-                $inc: { totalOrders: 1, totalSpent: newOrder.total } 
+            await Customer.findByIdAndUpdate(userId, {
+                $inc: { totalOrders: 1, totalSpent: newOrder.total }
             });
         }
 
@@ -870,42 +895,70 @@ export const initiateOnlineOrder = async (req: Request, res: Response) => {
                      continue;
                 }
             } else {
-                const query = {
-                    _id: item.product.id,
-                ...(variationValue ? {
-                    $or: [
-                        { "variations._id": mongoose.isValidObjectId(variationValue) ? variationValue : new mongoose.Types.ObjectId() },
-                        { "variations.value": variationValue },
-                        { "variations.title": variationValue },
-                        { "variations.pack": variationValue }
-                    ],
-                     "variations.stock": { $gte: qty }
-                } : { stock: { $gte: qty } })
-            };
+                const variationConditions = variationValue ? getVariationMatchConditions(variationValue) : [];
 
-            const update = variationValue
-                ? { $inc: { "variations.$.stock": -qty, stock: -qty } }
-                : { $inc: { stock: -qty } };
+                if (variationValue) {
+                    product = session
+                        ? await Product.findOneAndUpdate(
+                            {
+                                _id: item.product.id,
+                                $or: variationConditions,
+                                "variations.stock": { $gte: qty }
+                            },
+                            { $inc: { "variations.$.stock": -qty, stock: -qty } },
+                            { session, new: true }
+                        )
+                        : await Product.findOneAndUpdate(
+                            {
+                                _id: item.product.id,
+                                $or: variationConditions,
+                                "variations.stock": { $gte: qty }
+                            },
+                            { $inc: { "variations.$.stock": -qty, stock: -qty } },
+                            { new: true }
+                        );
+                }
 
-            product = session
-                ? await Product.findOneAndUpdate(query, update, { session, new: true })
-                : await Product.findOneAndUpdate(query, update, { new: true });
-            }
+                if (!product) {
+                    const checkProduct = await Product.findById(item.product.id);
 
-            // Fallback logic for variations (simplified from createOrder for brevity, but crucial parts retained)
-            if (!product && variationValue) {
-                // ... (If specific variation query failed, maybe try generic or throw error)
-                // Assuming strict check for now as per createOrder logic
-                throw new Error(`Insufficient stock for variation: ${variationValue}`);
-            }
-            if(!product && !variationValue) {
-                 // Try finding if it has variations but none selected (fallback to first)
-                 const checkProd = await Product.findById(item.product.id);
-                 if(checkProd && checkProd.variations && checkProd.variations.length > 0) {
-                     product = session
-                        ? await Product.findOneAndUpdate({ _id: item.product.id, "variations.0.stock": { $gte: qty } }, { $inc: { "variations.0.stock": -qty, stock: -qty } }, { session, new: true })
-                        : await Product.findOneAndUpdate({ _id: item.product.id, "variations.0.stock": { $gte: qty } }, { $inc: { "variations.0.stock": -qty, stock: -qty } }, { new: true });
-                 }
+                    if (checkProduct && checkProduct.variations && checkProduct.variations.length > 0) {
+                        if (variationValue) {
+                             throw new Error(`Insufficient stock for variation: ${variationValue}`);
+                        }
+
+                        product = session
+                            ? await Product.findOneAndUpdate(
+                                {
+                                    _id: item.product.id,
+                                    "variations.0.stock": { $gte: qty }
+                                },
+                                { $inc: { "variations.0.stock": -qty, stock: -qty } },
+                                { session, new: true }
+                            )
+                            : await Product.findOneAndUpdate(
+                                {
+                                    _id: item.product.id,
+                                    "variations.0.stock": { $gte: qty }
+                                },
+                                { $inc: { "variations.0.stock": -qty, stock: -qty } },
+                                { new: true }
+                            );
+                    } else {
+                        // No variations, just decrement top-level stock
+                        product = session
+                            ? await Product.findOneAndUpdate(
+                                { _id: item.product.id, stock: { $gte: qty } },
+                                { $inc: { stock: -qty } },
+                                { session, new: true }
+                              )
+                            : await Product.findOneAndUpdate(
+                                { _id: item.product.id, stock: { $gte: qty } },
+                                { $inc: { stock: -qty } },
+                                { new: true }
+                              );
+                    }
+                }
             }
             // End of Free Gift vs Regular Product Logic
 
@@ -924,9 +977,7 @@ export const initiateOnlineOrder = async (req: Request, res: Response) => {
             // Price Logic
             let selectedVariation;
             if (variationValue && product.variations) {
-                selectedVariation = product.variations.find((v: any) =>
-                    (v._id && v._id.toString() === variationValue) || v.value === variationValue || v.title === variationValue || v.pack === variationValue
-                );
+                selectedVariation = product.variations.find((v: any) => matchesVariation(v, variationValue));
             }
             if (!selectedVariation && product.variations && product.variations.length > 0) selectedVariation = product.variations[0];
 
@@ -995,15 +1046,15 @@ export const initiateOnlineOrder = async (req: Request, res: Response) => {
         if (session) {
             await newOrder.save({ session });
             // Increment customer order stats (pre-emptive for online orders)
-            await Customer.findByIdAndUpdate(userId, { 
-                $inc: { totalOrders: 1, totalSpent: newOrder.total } 
+            await Customer.findByIdAndUpdate(userId, {
+                $inc: { totalOrders: 1, totalSpent: newOrder.total }
             }, { session });
             await session.commitTransaction();
         } else {
              await newOrder.save();
              // Increment customer order stats
-             await Customer.findByIdAndUpdate(userId, { 
-                 $inc: { totalOrders: 1, totalSpent: newOrder.total } 
+             await Customer.findByIdAndUpdate(userId, {
+                 $inc: { totalOrders: 1, totalSpent: newOrder.total }
              });
         }
 

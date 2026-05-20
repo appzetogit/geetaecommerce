@@ -89,7 +89,7 @@ export const getProducts = async (params?: GetProductsParams): Promise<ProductLi
  * Get search suggestions (Public)
  */
 export const getSearchSuggestions = async (q: string, latitude?: number, longitude?: number): Promise<{ success: boolean; data: any[] }> => {
-    const response = await api.get('/customer/products/suggestions', {
+    const response = await api.get('/search/suggestions', {
         params: { q, latitude, longitude }
     });
     return response.data;

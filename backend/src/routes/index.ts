@@ -31,6 +31,7 @@ import productReviewRoutes from "./productReviewRoutes";
 import bannerRoutes from "./bannerRoutes";
 import flashDealRoutes from "./flashDealRoutes";
 import adminRoutes from "./adminRoutes";
+import searchRoutes from "./searchRoutes";
 import customerTrackingRoutes from "../modules/customer/routes/trackingRoutes";
 import deliveryTrackingRoutes from "../modules/delivery/routes/trackingRoutes";
 import {
@@ -77,6 +78,7 @@ router.use(
 
 // Customer routes - Specific routes MUST be registered before general /customer route
 // to prevent Express from matching the broader route first
+router.use("/search", searchRoutes);
 router.use("/customer/products", customerProductRoutes);
 router.use("/customer/categories", customerCategoryRoutes);
 

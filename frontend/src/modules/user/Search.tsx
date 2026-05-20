@@ -1,236 +1,527 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import ProductCard from './components/ProductCard';
-import { getProducts } from '../../services/api/customerProductService';
-import { getHomeContent } from '../../services/api/customerHomeService';
-import { Product } from '../../types/domain';
-import { useLocation } from '../../hooks/useLocation';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  ArrowDownUp,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Search as SearchIcon,
+  SlidersHorizontal,
+  Sparkles,
+  TrendingUp,
+  X,
+} from "lucide-react";
+import ProductCard from "./components/ProductCard";
+import {
+  getSemanticSuggestions,
+  getSmartRecommendations,
+  getTrendingSearches,
+  semanticSearch,
+  SearchProduct,
+  SearchSuggestion,
+  trackSearchClick,
+} from "../../services/api/searchService";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { useLocation } from "../../hooks/useLocation";
+
+type SortOption = "relevance" | "price_asc" | "price_desc" | "popular";
+
+const sortLabels: Record<SortOption, string> = {
+  relevance: "Relevance",
+  price_asc: "Price low",
+  price_desc: "Price high",
+  popular: "Popular",
+};
 
 export default function Search() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { location } = useLocation();
-  const searchQuery = searchParams.get('q') || '';
-  const [searchResults, setSearchResults] = useState<Product[]>([]);
-  const [trendingItems, setTrendingItems] = useState<any[]>([]);
-  const [cookingIdeas, setCookingIdeas] = useState<any[]>([]);
+  const initialQuery = searchParams.get("q") || "";
+  const [inputValue, setInputValue] = useState(initialQuery);
+  const [results, setResults] = useState<SearchProduct[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [popularSearches, setPopularSearches] = useState<string[]>([]);
+  const [zeroResultSearches, setZeroResultSearches] = useState<string[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<SearchProduct[]>([]);
   const [loading, setLoading] = useState(false);
-  const [contentLoading, setContentLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const limit = 1000;
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(Number(searchParams.get("page") || 1));
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalResults, setTotalResults] = useState(0);
+  const [sort, setSort] = useState<SortOption>((searchParams.get("sort") as SortOption) || "relevance");
+  const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
+  const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const debouncedQuery = useDebouncedValue(inputValue, 300);
+  const debouncedMinPrice = useDebouncedValue(minPrice, 300);
+  const debouncedMaxPrice = useDebouncedValue(maxPrice, 300);
+  const suggestionBoxRef = useRef<HTMLDivElement>(null);
+  const limit = 20;
 
-  // Fetch products based on search query
   useEffect(() => {
-    const fetchProducts = async () => {
-      if (!searchQuery.trim()) {
-        setSearchResults([]);
-        return;
-      }
+    const query = searchParams.get("q") || "";
+    setInputValue(query);
+    setPage(Number(searchParams.get("page") || 1));
+    setSort((searchParams.get("sort") as SortOption) || "relevance");
+    setMinPrice(searchParams.get("minPrice") || "");
+    setMaxPrice(searchParams.get("maxPrice") || "");
+  }, [searchParams]);
 
-      setLoading(true);
-      try {
-        const params: any = { 
-          search: searchQuery,
-          page: currentPage,
-          limit: limit
-        };
-        // Include user location for seller service radius filtering
-        if (location?.latitude && location?.longitude) {
-          params.latitude = location.latitude;
-          params.longitude = location.longitude;
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getTrendingSearches(10, controller.signal)
+      .then((response) => {
+        if (!response.success) return;
+        setPopularSearches(response.data.popular.map((item) => item.query));
+        setZeroResultSearches(response.data.zeroResults.map((item) => item.query));
+      })
+      .catch((err) => {
+        if (err.name !== "CanceledError" && err.name !== "AbortError") {
+          console.error("Failed to load trending searches", err);
         }
-        const response = await getProducts(params);
-        setSearchResults(response.data as unknown as Product[]);
-        if (response.pagination) {
-          setTotalPages(response.pagination.pages);
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getSmartRecommendations(
+      {
+        limit: 10,
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+      },
+      controller.signal
+    )
+      .then((response) => {
+        if (response.success) setRecommendedProducts(response.data || []);
+      })
+      .catch((err) => {
+        if (err.name !== "CanceledError" && err.name !== "AbortError") {
+          console.error("Failed to load recommendations", err);
         }
-      } catch (error) {
-        console.error('Error searching products:', error);
-        setSearchResults([]);
-      } finally {
-        setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [location?.latitude, location?.longitude]);
+
+  useEffect(() => {
+    const query = debouncedQuery.trim();
+    if (query.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    setSuggestionsLoading(true);
+
+    getSemanticSuggestions(query, controller.signal)
+      .then((response) => {
+        if (response.success) {
+          setSuggestions(response.data);
+          setShowSuggestions(true);
+          setActiveSuggestionIndex(-1);
+        }
+      })
+      .catch((err) => {
+        if (err.name !== "CanceledError" && err.name !== "AbortError") {
+          console.error("Failed to load suggestions", err);
+        }
+      })
+      .finally(() => setSuggestionsLoading(false));
+
+    return () => controller.abort();
+  }, [debouncedQuery]);
+
+  useEffect(() => {
+    const query = debouncedQuery.trim();
+
+    if (!query) {
+      setResults([]);
+      setTotalPages(0);
+      setTotalResults(0);
+      setError(null);
+      return;
+    }
+
+    const params: Record<string, string> = { q: query };
+    if (page > 1) params.page = String(page);
+    if (sort !== "relevance") params.sort = sort;
+    if (debouncedMinPrice) params.minPrice = debouncedMinPrice;
+    if (debouncedMaxPrice) params.maxPrice = debouncedMaxPrice;
+    setSearchParams(params, { replace: true });
+
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+
+    semanticSearch(
+      {
+        q: query,
+        page,
+        limit,
+        sort,
+        minPrice: debouncedMinPrice ? Number(debouncedMinPrice) : undefined,
+        maxPrice: debouncedMaxPrice ? Number(debouncedMaxPrice) : undefined,
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+      },
+      controller.signal
+    )
+      .then((response) => {
+        setResults(response.data || []);
+        setTotalPages(response.pagination?.pages || 0);
+        setTotalResults(response.pagination?.total || 0);
+      })
+      .catch((err) => {
+        if (err.name === "CanceledError" || err.name === "AbortError") return;
+        console.error("Search failed", err);
+        setResults([]);
+        setTotalPages(0);
+        setTotalResults(0);
+        setError("Search failed. Please try again.");
+      })
+      .finally(() => setLoading(false));
+
+    return () => controller.abort();
+  }, [
+    debouncedQuery,
+    page,
+    sort,
+    debouncedMinPrice,
+    debouncedMaxPrice,
+    location?.latitude,
+    location?.longitude,
+    setSearchParams,
+  ]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedQuery, sort, debouncedMinPrice, debouncedMaxPrice]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionBoxRef.current && !suggestionBoxRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
       }
     };
 
-    const timeout = setTimeout(fetchProducts, 500); // 500ms debounce
-    return () => clearTimeout(timeout);
-  }, [searchQuery, location, currentPage]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-  useEffect(() => {
-    setCurrentPage(1); // Reset page when search query changes
-  }, [searchQuery]);
+  const chips = useMemo(() => {
+    const fallback = ["atta", "milk", "dal", "rice", "oil", "snacks", "bread", "eggs"];
+    return popularSearches.length ? popularSearches.slice(0, 10) : fallback;
+  }, [popularSearches]);
 
-  // Scroll restoration logic for Search
-  const lastProductScrolledRef = useRef(false);
-  useEffect(() => {
-    if (loading || searchResults.length === 0 || lastProductScrolledRef.current) return;
+  const applySearch = (query: string) => {
+    const nextQuery = query.trim();
+    setInputValue(nextQuery);
+    setPage(1);
+    setShowSuggestions(false);
+    setSearchParams(nextQuery ? { q: nextQuery } : {}, { replace: false });
+  };
 
-    const state = window.history.state?.usr;
-    if (state?.scrollRestore?.source === 'product-card') {
-      const targetProductId = state.scrollRestore.productId;
-      const timer = setTimeout(() => {
-        const productElement = document.getElementById(`product-${targetProductId}`);
-        if (productElement) {
-          productElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          productElement.classList.add('ring-2', 'ring-[var(--customer-primary)]', 'ring-offset-2', 'transition-all');
-          setTimeout(() => {
-            productElement.classList.remove('ring-2', 'ring-[var(--customer-primary)]', 'ring-offset-2');
-          }, 2000);
-        } else {
-          // Fallback to coordinates
-          const mainElement = document.querySelector('main');
-          if (state.scrollRestore.preferredTarget === 'main' && mainElement) {
-             mainElement.scrollTop = state.scrollRestore.mainTop;
-          } else {
-             window.scrollTo(0, state.scrollRestore.windowTop);
-          }
-        }
-        lastProductScrolledRef.current = true;
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [loading, searchResults.length]);
-
-  // Fetch trending/home content for initial view
-  useEffect(() => {
-    const fetchInitialContent = async () => {
-      try {
-        const response = await getHomeContent(
-          undefined,
-          location?.latitude,
-          location?.longitude
-        );
-        if (response.success && response.data) {
-          setTrendingItems(response.data.trending || []);
-          setCookingIdeas(response.data.cookingIdeas || []);
-        }
-      } catch (error) {
-        console.error("Error fetching search initial content", error);
-      } finally {
-        setContentLoading(false);
+  const handleSuggestionClick = (item: SearchSuggestion) => {
+    setShowSuggestions(false);
+    if (item.type === "product") {
+      if (inputValue.trim()) {
+        trackSearchClick(inputValue.trim(), String(item.id)).catch(() => undefined);
       }
-    };
-
-    if (!searchQuery.trim()) {
-      fetchInitialContent();
+      navigate(`/product/${item.id}`);
+      return;
     }
-  }, [searchQuery, location?.latitude, location?.longitude]);
+    if (item.type === "category") {
+      navigate(`/category/${item.id}`);
+      return;
+    }
+    applySearch(item.name);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || suggestions.length === 0) {
+      if (event.key === "Enter") applySearch(inputValue);
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveSuggestionIndex((index) => (index + 1) % suggestions.length);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveSuggestionIndex((index) => (index <= 0 ? suggestions.length - 1 : index - 1));
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const selected = suggestions[activeSuggestionIndex];
+      selected ? handleSuggestionClick(selected) : applySearch(inputValue);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setInputValue("");
+    setResults([]);
+    setSuggestions([]);
+    setPage(1);
+    setSearchParams({});
+  };
 
   return (
-    <div className="pb-24 md:pb-8 bg-white min-h-screen">
-
-      {/* Search Results */}
-      {searchQuery.trim() && (
-        <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6">
-          <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6">
-            Search Results {searchResults.length > 0 && `(${searchResults.length})`}
-          </h2>
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--customer-primary-dark)]"></div>
+    <div className="min-h-screen bg-neutral-50 pb-24 md:pb-8">
+      <div className="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto max-w-7xl px-4 py-3 md:px-6">
+          <div ref={suggestionBoxRef} className="relative">
+            <div className="flex h-12 items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 shadow-sm">
+              <SearchIcon className="h-5 w-5 text-neutral-500" aria-hidden="true" />
+              <input
+                value={inputValue}
+                onChange={(event) => {
+                  setInputValue(event.target.value);
+                  setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onKeyDown={handleKeyDown}
+                placeholder="Search for atta, dal, coke and more"
+                className="h-full min-w-0 flex-1 bg-transparent text-sm font-medium text-neutral-900 outline-none placeholder:text-neutral-400 md:text-base"
+                aria-label="Search products"
+              />
+              {suggestionsLoading && <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />}
+              {inputValue && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
-          ) : searchResults.length > 0 ? (
-            <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
-                {searchResults.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    categoryStyle={true}
-                    showBadge={true}
-                    showPackBadge={false}
-                    showStockInfo={true}
-                  />
-                ))}
-              </div>
-              
 
-            </>
-          ) : (
-            <div className="text-center py-12 md:py-16 text-neutral-500">
-              <p className="text-lg md:text-xl mb-2">No products found</p>
-              <p className="text-sm md:text-base">Try a different search term</p>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Trending in your city */}
-      {!searchQuery.trim() && (
-        <>
-          {contentLoading && (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--customer-primary-dark)]"></div>
-            </div>
-          )}
-
-          {!contentLoading && trendingItems.length > 0 && (
-            <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6">
-              <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6">Trending in your city</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4">
-                {trendingItems.map((item) => (
-                  <div
-                    key={item.id || item._id}
-                    className="bg-white rounded-lg border-2 border-[var(--customer-primary-dark)] p-3 cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => navigate(item.type === 'category' ? `/category/${item.id || item._id}` : `/product/${item.id || item._id}`)}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-14 z-50 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-xl">
+                {suggestions.map((item, index) => (
+                  <button
+                    key={`${item.type}-${item.id}-${item.name}`}
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSuggestionClick(item)}
+                    className={`flex w-full items-center gap-3 px-3 py-2 text-left transition-colors ${
+                      activeSuggestionIndex === index ? "bg-neutral-100" : "hover:bg-neutral-50"
+                    }`}
                   >
-                    <div className="w-full h-24 rounded-lg mb-2 overflow-hidden bg-neutral-50 flex items-center justify-center">
-                      {item.image || item.imageUrl ? (
-                        <img
-                          src={item.image || item.imageUrl}
-                          alt={item.name}
-                          className="w-full h-full object-contain bg-white rounded-sm"
-                        />
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-neutral-100 text-neutral-500">
+                      {item.image ? (
+                        <img src={item.image} alt="" className="h-full w-full rounded-md object-contain" />
+                      ) : item.type === "trending" ? (
+                        <TrendingUp className="h-4 w-4" />
                       ) : (
-                        <div className="text-4xl">🔥</div>
+                        <SearchIcon className="h-4 w-4" />
                       )}
                     </div>
-                    <div className="text-xs font-semibold text-neutral-900 text-center line-clamp-2">
-                      {item.name || item.title}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-neutral-900">{item.name}</p>
+                      <p className="text-xs capitalize text-neutral-500">{item.categoryName || item.type}</p>
                     </div>
-                  </div>
+                    {item.price !== undefined && (
+                      <span className="text-sm font-bold text-[var(--customer-primary)]">
+                        Rs {Number(item.price).toLocaleString("en-IN")}
+                      </span>
+                    )}
+                  </button>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        </div>
+      </div>
 
-          {/* See all products - Placeholder or link to popular items */}
-          <div className="px-4 md:px-6 lg:px-8 py-2 md:py-4">
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2 cursor-pointer" onClick={() => navigate('/category/all')}>
-              <span className="text-sm md:text-base text-neutral-700 font-medium whitespace-nowrap">Browse all categories ▸</span>
+      <div className="mx-auto max-w-7xl px-4 py-4 md:px-6 md:py-6">
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+          {chips.map((chip) => (
+            <button
+              key={chip}
+              type="button"
+              onClick={() => applySearch(chip)}
+              className="flex flex-shrink-0 items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 shadow-sm hover:border-[var(--customer-primary)] hover:text-[var(--customer-primary)]"
+            >
+              <TrendingUp className="h-3.5 w-3.5" />
+              {chip}
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-4 rounded-lg border border-neutral-200 bg-white p-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
+              <Sparkles className="h-4 w-4 text-[var(--customer-primary)]" />
+              {debouncedQuery.trim()
+                ? `${totalResults.toLocaleString("en-IN")} results for "${debouncedQuery.trim()}"`
+                : "Trending searches"}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 rounded-lg border border-neutral-200 px-2 py-1.5">
+                <SlidersHorizontal className="h-4 w-4 text-neutral-500" />
+                <input
+                  value={minPrice}
+                  onChange={(event) => setMinPrice(event.target.value.replace(/[^\d]/g, ""))}
+                  placeholder="Min"
+                  className="w-16 text-xs outline-none"
+                  inputMode="numeric"
+                  aria-label="Minimum price"
+                />
+                <span className="text-neutral-300">-</span>
+                <input
+                  value={maxPrice}
+                  onChange={(event) => setMaxPrice(event.target.value.replace(/[^\d]/g, ""))}
+                  placeholder="Max"
+                  className="w-16 text-xs outline-none"
+                  inputMode="numeric"
+                  aria-label="Maximum price"
+                />
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-neutral-200 px-2 py-1.5">
+                <ArrowDownUp className="h-4 w-4 text-neutral-500" />
+                <select
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as SortOption)}
+                  className="bg-white text-xs font-semibold text-neutral-700 outline-none"
+                  aria-label="Sort results"
+                >
+                  {Object.entries(sortLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Cooking ideas */}
-          {!contentLoading && cookingIdeas.length > 0 && (
-            <div className="px-4 md:px-6 lg:px-8 py-4 md:py-6">
-              <h2 className="text-lg md:text-2xl font-semibold text-neutral-900 mb-3 md:mb-6">Cooking ideas</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                {cookingIdeas.map((idea, idx) => (
-                  <div key={idea.id || idea._id || idx} className="relative rounded-lg overflow-hidden aspect-[4/3] bg-neutral-100 cursor-pointer" onClick={() => navigate(`/product/${idea.productId || idea.id}`)}>
-                    {idea.image && <img src={idea.image} alt={idea.title} className="w-full h-full object-cover" />}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
-                    <div className="absolute bottom-2 left-2 right-2 text-white text-xs font-bold line-clamp-2">{idea.title}</div>
-                    <button className="absolute top-2 right-2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                          d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          fill="none"
-                        />
-                      </svg>
-                    </button>
-                  </div>
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-9 w-9 animate-spin text-[var(--customer-primary)]" />
+          </div>
+        ) : error ? (
+          <div className="rounded-lg border border-red-100 bg-white px-4 py-12 text-center text-sm font-medium text-red-600">
+            {error}
+          </div>
+        ) : debouncedQuery.trim() && results.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5">
+              {results.map((product) => (
+                <div key={product.id || product._id} className="relative">
+                  {product.searchScore && (
+                    <div className="absolute right-2 top-2 z-20 rounded-full bg-white/95 px-2 py-1 text-[10px] font-black text-[var(--customer-primary)] shadow-sm">
+                      {Math.round(product.searchScore.finalScore * 100)}%
+                    </div>
+                  )}
+                  <ProductCard product={product} categoryStyle showBadge showPackBadge={false} showStockInfo />
+                </div>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-6 flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  disabled={page <= 1}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-700 disabled:opacity-40"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="text-sm font-semibold text-neutral-700">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+                  disabled={page >= totalPages}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-700 disabled:opacity-40"
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </>
+        ) : debouncedQuery.trim() ? (
+          <div className="rounded-lg border border-neutral-200 bg-white px-4 py-14 text-center">
+            <p className="text-base font-semibold text-neutral-900">No products found</p>
+            <p className="mt-1 text-sm text-neutral-500">Try another search term.</p>
+            {zeroResultSearches.length > 0 && (
+              <div className="mt-5 flex flex-wrap justify-center gap-2">
+                {zeroResultSearches.slice(0, 5).map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => applySearch(item)}
+                    className="rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-semibold text-neutral-700"
+                  >
+                    {item}
+                  </button>
                 ))}
               </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
+              {chips.slice(0, 10).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => applySearch(item)}
+                  className="rounded-lg border border-neutral-200 bg-white p-4 text-left shadow-sm transition hover:border-[var(--customer-primary)]"
+                >
+                  <TrendingUp className="mb-3 h-5 w-5 text-[var(--customer-primary)]" />
+                  <span className="text-sm font-bold text-neutral-900">{item}</span>
+                </button>
+              ))}
             </div>
-          )}
-        </>
-      )}
+
+            {recommendedProducts.length > 0 && (
+              <section>
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-neutral-800">
+                  <Sparkles className="h-4 w-4 text-[var(--customer-primary)]" />
+                  Recommended For You
+                </div>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {recommendedProducts.map((product) => (
+                    <ProductCard
+                      key={product.id || product._id}
+                      product={product}
+                      categoryStyle
+                      showBadge
+                      showPackBadge={false}
+                      showStockInfo
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

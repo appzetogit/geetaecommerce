@@ -30,7 +30,12 @@ export const getSocketBaseURL = (): string => {
     return import.meta.env.VITE_API_URL;
   }
 
-  // Otherwise, extract base URL from VITE_API_BASE_URL
+  // In development, use localhost:5000 directly (since Vite proxy doesn't work for WebSockets)
+  if (import.meta.DEV) {
+    return "http://localhost:5000";
+  }
+
+  // In production, use the production API URL
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "https://api.geeta.today/api/v1";
 
   // Remove /api/v1 or /api from the end

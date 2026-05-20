@@ -11,6 +11,7 @@ if (dns.setDefaultResultOrder) {
 }
 dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
 import routes from "./routes";
+import searchRoutes from "./routes/searchRoutes";
 import { errorHandler } from "./middleware/errorHandler";
 import { notFound } from "./middleware/notFound";
 import { ensureDefaultAdmin } from "./utils/ensureDefaultAdmin";
@@ -139,6 +140,7 @@ app.get("/", (_req: Request, res: Response) => {
 
 
 // API Routes
+app.use("/api/search", searchRoutes);
 app.use("/api/v1", routes);
 
 // Error handling middleware (must be last)

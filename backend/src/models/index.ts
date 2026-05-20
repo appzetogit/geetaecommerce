@@ -12,6 +12,7 @@ export { default as Category } from "./Category";
 export { default as SubCategory } from "./SubCategory";
 export { default as Brand } from "./Brand";
 export { default as Product } from "./Product";
+export { default as SearchAnalytics } from "./SearchAnalytics";
 export { default as Order } from "./Order";
 export { default as OrderItem } from "./OrderItem";
 export { default as Coupon } from "./Coupon";

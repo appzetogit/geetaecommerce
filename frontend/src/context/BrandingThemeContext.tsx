@@ -122,12 +122,19 @@ export const BrandingThemeProvider: React.FC<{
   useEffect(() => {
     try {
       const socketUrl = getSocketBaseURL();
+      console.log("[BrandingTheme] Attempting socket connection to:", socketUrl);
+
       const socket = socketIO(socketUrl, {
         transports: ["websocket", "polling"],
         reconnection: true,
         reconnectionDelay: 2000,
         reconnectionAttempts: 5,
+        timeout: 5000, // 5 second connection timeout
         // No auth needed for theme events (broadcast to all)
+      });
+
+      socket.on("connect", () => {
+        console.log("[BrandingTheme] Socket connected successfully");
       });
 
       socket.on("themeUpdated", (data: any) => {
@@ -144,18 +151,26 @@ export const BrandingThemeProvider: React.FC<{
         invalidateThemeCache();
       });
 
-      socket.on("connect_error", (err) => {
+      socket.on("connect_error", (err: any) => {
         console.warn("[BrandingTheme] Socket connection error:", err.message);
+        // Don't break the app - themes will still load from API
+      });
+
+      socket.on("disconnect", (reason) => {
+        console.log("[BrandingTheme] Socket disconnected:", reason);
       });
 
       socketRef.current = socket;
     } catch (err) {
       console.warn("[BrandingTheme] Failed to initialize socket:", err);
+      // Silently fail - the theme will still work via HTTP API
     }
 
     return () => {
-      socketRef.current?.disconnect();
-      socketRef.current = null;
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
   }, []);
 

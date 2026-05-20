@@ -87,24 +87,88 @@ export default function Checkout() {
           getCoupons()
         ]);
 
-        if (addressResponse.success && Array.isArray(addressResponse.data) && addressResponse.data.length > 0) {
-          const defaultAddr = addressResponse.data.find((a: any) => a.isDefault) || addressResponse.data[0];
-          const mappedAddress: OrderAddress = {
-            name: defaultAddr.fullName,
-            phone: defaultAddr.phone,
-            flat: '',
-            street: defaultAddr.address,
-            city: defaultAddr.city,
-            state: defaultAddr.state,
-            pincode: defaultAddr.pincode,
-            landmark: defaultAddr.landmark || '',
-            latitude: defaultAddr.latitude,
-            longitude: defaultAddr.longitude,
-            id: defaultAddr._id,
-            _id: defaultAddr._id
-          };
-          setSavedAddress(mappedAddress);
-          setSelectedAddress(mappedAddress);
+        if (addressResponse.success) {
+          const addressList = Array.isArray(addressResponse.data)
+            ? addressResponse.data
+            : addressResponse.data
+              ? [addressResponse.data]
+              : [];
+          const hasSavedAddresses = addressList.length > 0;
+          let mappedAddress: OrderAddress | null = null;
+
+          if (userLocation && userLocation.address) {
+            // 1. Try to find a saved address that matches userLocation (the location header)
+            let matchedAddr = null;
+            if (hasSavedAddresses) {
+              matchedAddr = addressList.find((a: any) => {
+                if (a.latitude != null && a.longitude != null && userLocation.latitude != null && userLocation.longitude != null) {
+                  const latDiff = Math.abs(a.latitude - userLocation.latitude);
+                  const lngDiff = Math.abs(a.longitude - userLocation.longitude);
+                  return latDiff < 0.001 && lngDiff < 0.001; // within ~100m
+                }
+                if (a.address && userLocation.address) {
+                  const aClean = a.address.toLowerCase().replace(/[^a-z0-9]/g, '');
+                  const uClean = userLocation.address.toLowerCase().replace(/[^a-z0-9]/g, '');
+                  return aClean.includes(uClean) || uClean.includes(aClean);
+                }
+                return false;
+              });
+            }
+
+            if (matchedAddr) {
+              mappedAddress = {
+                name: matchedAddr.fullName,
+                phone: matchedAddr.phone,
+                flat: '',
+                street: matchedAddr.address,
+                city: matchedAddr.city,
+                state: matchedAddr.state,
+                pincode: matchedAddr.pincode,
+                landmark: matchedAddr.landmark || '',
+                latitude: matchedAddr.latitude,
+                longitude: matchedAddr.longitude,
+                id: matchedAddr._id,
+                _id: matchedAddr._id
+              };
+            } else {
+              // Construct from userLocation, using name/phone from the default/first saved address if available
+              const firstSaved = hasSavedAddresses ? addressList[0] : null;
+              mappedAddress = {
+                name: firstSaved?.fullName || '',
+                phone: firstSaved?.phone || '',
+                flat: '',
+                street: userLocation.address,
+                city: userLocation.city || '',
+                state: userLocation.state || '',
+                pincode: userLocation.pincode || '',
+                landmark: '',
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+              };
+            }
+          } else if (hasSavedAddresses) {
+            // No userLocation, fall back to default/first saved address
+            const defaultAddr = addressList.find((a: any) => a.isDefault) || addressList[0];
+            mappedAddress = {
+              name: defaultAddr.fullName,
+              phone: defaultAddr.phone,
+              flat: '',
+              street: defaultAddr.address,
+              city: defaultAddr.city,
+              state: defaultAddr.state,
+              pincode: defaultAddr.pincode,
+              landmark: defaultAddr.landmark || '',
+              latitude: defaultAddr.latitude,
+              longitude: defaultAddr.longitude,
+              id: defaultAddr._id,
+              _id: defaultAddr._id
+            };
+          }
+
+          if (mappedAddress) {
+            setSavedAddress(mappedAddress);
+            setSelectedAddress(mappedAddress);
+          }
         }
 
         if (couponResponse.success) {
@@ -115,7 +179,7 @@ export default function Checkout() {
       }
     };
     fetchInitialData();
-  }, [location.key]);
+  }, [location.key, userLocation]);
 
   // Fetch similar products dynamically
   useEffect(() => {

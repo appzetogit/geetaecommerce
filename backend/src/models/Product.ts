@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
+import { generateEmbedding } from "../utils/embedding";
 
 export interface IProduct extends Document {
   // Basic Info
@@ -90,6 +91,17 @@ export interface IProduct extends Document {
 
   // Tags
   tags: string[];
+
+  // Search
+  embedding: number[];
+  searchMetadata?: {
+    sourceText?: string;
+    model?: string;
+    dimensions?: number;
+    updatedAt?: Date;
+    version?: number;
+  };
+  searchCount: number;
 
   // Approval
   requiresApproval: boolean;
@@ -357,6 +369,25 @@ export interface IProduct extends Document {
       default: [],
     },
 
+    // AI search
+    embedding: {
+      type: [Number],
+      default: [],
+      select: false,
+    },
+    searchMetadata: {
+      sourceText: { type: String, trim: true, select: false },
+      model: { type: String, default: "Xenova/all-MiniLM-L6-v2" },
+      dimensions: { type: Number, default: 0 },
+      updatedAt: { type: Date },
+      version: { type: Number, default: 1 },
+    },
+    searchCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     // Approval
     requiresApproval: {
       type: Boolean,
@@ -412,6 +443,78 @@ export interface IProduct extends Document {
 ProductSchema.virtual("mrp").get(function () {
   return this.compareAtPrice;
 });
+
+const SEARCHABLE_PRODUCT_FIELDS = [
+  "productName",
+  "smallDescription",
+  "description",
+  "category",
+  "subcategory",
+  "subSubCategory",
+  "brand",
+  "tags",
+  "manufacturer",
+  "marketer",
+  "seoKeywords",
+  "seoTitle",
+  "seoDescription",
+  "pack",
+];
+
+const readName = (value: unknown): string => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    const record = value as Record<string, any>;
+    return String(record.name || record.productName || record.title || "").trim();
+  }
+  return "";
+};
+
+const lookupModelName = async (modelName: string, value: unknown): Promise<string> => {
+  if (!value) return "";
+  const directName = readName(value);
+  if (directName && !mongoose.Types.ObjectId.isValid(directName)) return directName;
+
+  const id = typeof value === "object" ? (value as any)?._id || (value as any)?.id : value;
+  if (!id || !mongoose.Types.ObjectId.isValid(String(id))) return "";
+
+  const Model = mongoose.models[modelName];
+  if (!Model) return "";
+
+  const item = await Model.findById(id).select("name").lean();
+  return readName(item);
+};
+
+export const buildProductSearchText = async (product: Partial<IProduct> | Record<string, any>): Promise<string> => {
+  const pieces = [
+    product.productName,
+    product.smallDescription,
+    product.description,
+    await lookupModelName("Category", product.category),
+    await lookupModelName("SubCategory", product.subcategory),
+    product.subSubCategory,
+    await lookupModelName("Brand", product.brand),
+    Array.isArray(product.tags) ? product.tags.join(" ") : product.tags,
+    product.manufacturer,
+    product.marketer,
+    product.seoTitle,
+    product.seoKeywords,
+    product.seoDescription,
+    product.pack,
+  ];
+
+  return pieces
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const hasSearchableChanges = (doc: IProduct): boolean => {
+  return doc.isNew || SEARCHABLE_PRODUCT_FIELDS.some((field) => doc.isModified(field));
+};
 
 // Calculate discount and sync stock/price from variations before saving
 ProductSchema.pre("save", function (next) {
@@ -500,6 +603,76 @@ ProductSchema.pre("save", function (next) {
   next();
 });
 
+ProductSchema.pre("save", async function (next) {
+  if (!hasSearchableChanges(this)) return next();
+
+  try {
+    const sourceText = await buildProductSearchText(this);
+    if (!sourceText) return next();
+
+    const embedding = await generateEmbedding(sourceText);
+    this.embedding = embedding;
+    this.searchMetadata = {
+      sourceText,
+      model: "Xenova/all-MiniLM-L6-v2",
+      dimensions: embedding.length,
+      updatedAt: new Date(),
+      version: 1,
+    };
+  } catch (error) {
+    console.error("[Product] Skipping embedding generation during save", error);
+  }
+
+  return next();
+});
+
+ProductSchema.pre("findOneAndUpdate", async function (next) {
+  const update = this.getUpdate() as Record<string, any> | null;
+  if (!update) return next();
+
+  const updatePayload = { ...(update.$set || {}), ...update };
+  delete updatePayload.$set;
+  delete updatePayload.$inc;
+  delete updatePayload.$unset;
+  delete updatePayload.$push;
+  delete updatePayload.$pull;
+
+  const shouldRefreshEmbedding = SEARCHABLE_PRODUCT_FIELDS.some((field) =>
+    Object.prototype.hasOwnProperty.call(updatePayload, field)
+  );
+
+  if (!shouldRefreshEmbedding) return next();
+
+  try {
+    const current = await this.model.findOne(this.getQuery()).select("+embedding +searchMetadata").lean();
+    if (!current) return next();
+
+    const merged = { ...current, ...updatePayload };
+    const sourceText = await buildProductSearchText(merged);
+    if (!sourceText) return next();
+
+    const embedding = await generateEmbedding(sourceText);
+    this.setUpdate({
+      ...update,
+      $set: {
+        ...(update.$set || {}),
+        embedding,
+        searchMetadata: {
+          sourceText,
+          model: "Xenova/all-MiniLM-L6-v2",
+          dimensions: embedding.length,
+          updatedAt: new Date(),
+          version: 1,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("[Product] Skipping embedding generation during update", error);
+  }
+
+  return next();
+});
+
 // Indexes for faster queries
 ProductSchema.index({ seller: 1, status: 1 });
 ProductSchema.index({ category: 1 });
@@ -507,6 +680,8 @@ ProductSchema.index({ subcategory: 1 });
 ProductSchema.index({ brand: 1 });
 ProductSchema.index({ status: 1 });
 ProductSchema.index({ publish: 1 });
+ProductSchema.index({ tags: 1 });
+ProductSchema.index({ searchCount: -1 });
 // Compound indexes for common queries
 ProductSchema.index({ status: 1, publish: 1 }); // For getProducts
 ProductSchema.index({ category: 1, status: 1, publish: 1 }); // For category products
