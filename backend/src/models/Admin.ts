@@ -10,6 +10,8 @@ export interface IAdmin extends Document {
   password: string;
   createdAt: Date;
   updatedAt: Date;
+  fcmToken?: string;
+  fcmTokenMobile?: string;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -77,7 +79,7 @@ const AdminSchema = new Schema<IAdmin>(
 );
 
 // Hash password before saving
-AdminSchema.pre('save', async function (next) {
+AdminSchema.pre('save', async function (this: IAdmin, next) {
   if (!this.isModified('password')) {
     return next();
   }

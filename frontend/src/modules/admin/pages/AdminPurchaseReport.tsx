@@ -112,15 +112,34 @@ const AdminPurchaseReport: React.FC = () => {
     });
   }, [entries]);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const filteredRows = useMemo(() => {
+    if (!searchQuery) return rows;
+    const lowerQuery = searchQuery.toLowerCase();
+    return rows.filter(row => 
+        row.productName.toLowerCase().includes(lowerQuery) ||
+        row.billNo.toLowerCase().includes(lowerQuery) ||
+        row.supplier.toLowerCase().includes(lowerQuery)
+    );
+  }, [rows, searchQuery]);
+
+  const paginatedRows = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return filteredRows.slice(startIndex, startIndex + pageSize);
+  }, [filteredRows, currentPage]);
+
   const selectedSet = useMemo(() => new Set(selectedRowKeys), [selectedRowKeys]);
-  const allSelected = rows.length > 0 && rows.every((row) => selectedSet.has(row.key));
+  const allSelected = filteredRows.length > 0 && filteredRows.every((row) => selectedSet.has(row.key));
 
   const handleSelectAll = () => {
     if (allSelected) {
       setSelectedRowKeys([]);
       return;
     }
-    setSelectedRowKeys(rows.map((row) => row.key));
+    setSelectedRowKeys(filteredRows.map((row) => row.key));
   };
 
   const handleToggleRow = (key: string) => {
@@ -485,9 +504,21 @@ const AdminPurchaseReport: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-gray-600">
-            Selected: <span className="font-semibold text-gray-800">{selectedRowKeys.length}</span> rows
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-gray-600">
+              Selected: <span className="font-semibold text-gray-800">{selectedRowKeys.length}</span> rows
+            </p>
+            <input 
+              type="text" 
+              placeholder="Search product, bill, supplier..." 
+              value={searchQuery}
+              onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+              }}
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-[var(--primary-color)] w-64 max-w-full"
+            />
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -546,14 +577,14 @@ const AdminPurchaseReport: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {rows.length === 0 ? (
+                {paginatedRows.length === 0 ? (
                   <tr>
                     <td colSpan={15} className="px-4 py-10 text-center text-gray-500">
                       No purchase entries found
                     </td>
                   </tr>
                 ) : (
-                  rows.map((row) => (
+                  paginatedRows.map((row) => (
                     <tr
                       key={row.key}
                       className={`border-t border-gray-100 text-sm transition-colors ${!editMode ? 'hover:bg-gray-50 cursor-pointer' : ''}`}
@@ -689,6 +720,48 @@ const AdminPurchaseReport: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {filteredRows.length > 0 && (
+            <div className="flex justify-between items-center px-4 py-3 border-t border-gray-100 bg-gray-50">
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <div className="flex items-center">
+                        Rows per page:
+                        <select 
+                            value={pageSize}
+                            onChange={(e) => {
+                                setPageSize(Number(e.target.value));
+                                setCurrentPage(1);
+                            }}
+                            className="ml-2 border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-[var(--primary-color)] bg-white text-gray-700"
+                        >
+                            <option value={10}>10</option>
+                            <option value={25}>25</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                        </select>
+                    </div>
+                    <div>
+                        Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredRows.length)} of {filteredRows.length} entries
+                    </div>
+                </div>
+                <div className="flex gap-1">
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="px-3 py-1 rounded border border-gray-200 bg-white disabled:opacity-50 hover:bg-gray-50 transition-colors text-sm"
+                    >
+                        Previous
+                    </button>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(filteredRows.length / pageSize), p + 1))}
+                        disabled={currentPage === Math.ceil(filteredRows.length / pageSize)}
+                        className="px-3 py-1 rounded border border-gray-200 bg-white disabled:opacity-50 hover:bg-gray-50 transition-colors text-sm"
+                    >
+                        Next
+                    </button>
+                </div>
+            </div>
+          )}
         </div>
 
         {/* Action Sheet Modal */}

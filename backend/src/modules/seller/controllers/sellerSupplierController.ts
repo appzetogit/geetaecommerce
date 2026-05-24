@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 
 export const getAllSuppliers = async (req: Request, res: Response): Promise<void> => {
     try {
-        const sellerId = (req as any).user?._id;
+        const sellerId = (req as any).user?.userId;
         const { search, hasDue, hasAdvance } = req.query;
         const query: any = { sellerId, isAdmin: false };
 
@@ -31,7 +31,7 @@ export const getAllSuppliers = async (req: Request, res: Response): Promise<void
 
 export const getSupplierById = async (req: Request, res: Response): Promise<void> => {
     try {
-        const sellerId = (req as any).user?._id;
+        const sellerId = (req as any).user?.userId;
         const supplier = await SupplierLedger.findOne({ _id: req.params.id, sellerId });
         if (!supplier) {
             res.status(404).json({ success: false, message: "Supplier not found" });
@@ -52,7 +52,7 @@ export const createSupplier = async (req: Request, res: Response): Promise<void>
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        const sellerId = (req as any).user?._id;
+        const sellerId = (req as any).user?.userId;
         const { name, phone, address, gstNumber, openingBalance, notes } = req.body;
 
         const supplier = new SupplierLedger({
@@ -93,7 +93,7 @@ export const createSupplier = async (req: Request, res: Response): Promise<void>
 
 export const updateSupplier = async (req: Request, res: Response): Promise<void> => {
     try {
-        const sellerId = (req as any).user?._id;
+        const sellerId = (req as any).user?.userId;
         const supplier = await SupplierLedger.findOneAndUpdate(
             { _id: req.params.id, sellerId },
             req.body,
@@ -111,7 +111,7 @@ export const updateSupplier = async (req: Request, res: Response): Promise<void>
 
 export const deleteSupplier = async (req: Request, res: Response): Promise<void> => {
     try {
-        const sellerId = (req as any).user?._id;
+        const sellerId = (req as any).user?.userId;
         const supplier = await SupplierLedger.findOneAndDelete({ _id: req.params.id, sellerId });
         if (!supplier) {
             res.status(404).json({ success: false, message: "Supplier not found" });
@@ -128,7 +128,7 @@ export const addDebt = async (req: Request, res: Response): Promise<void> => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        const sellerId = (req as any).user?._id;
+        const sellerId = (req as any).user?.userId;
         const { amount, description, date } = req.body;
         const supplier = await SupplierLedger.findOne({ _id: req.params.id, sellerId });
         if (!supplier) {
@@ -166,7 +166,7 @@ export const paySupplier = async (req: Request, res: Response): Promise<void> =>
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        const sellerId = (req as any).user?._id;
+        const sellerId = (req as any).user?.userId;
         const { amount, description, date } = req.body;
         const supplier = await SupplierLedger.findOne({ _id: req.params.id, sellerId });
         if (!supplier) {

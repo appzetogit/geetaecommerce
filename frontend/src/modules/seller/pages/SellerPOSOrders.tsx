@@ -440,10 +440,22 @@ const SellerPOSOrders = () => {
                item.product?.id ||
                (typeof item.product === 'string' && /^[a-f\d]{24}$/i.test(item.product) ? item.product : '') ||
                '';
-             const resolvedVariationId = item.variationId || item.variation;
+             let resolvedVariationId = item.variationId;
+             if (!resolvedVariationId && item.variation && Array.isArray(item.product?.variations)) {
+                 const match = item.product.variations.find((v: any) => {
+                     const vName = v.title || v.name ? `${v.name}: ${v.value}` : 'Variation';
+                     return vName === item.variation || v.name === item.variation || v.sku === item.sku;
+                 });
+                 if (match) {
+                     resolvedVariationId = match._id;
+                 }
+             }
+             if (!resolvedVariationId) {
+                 resolvedVariationId = item.variation;
+             }
 
              return {
-               _id: resolvedProductId || item._id,
+               _id: resolvedVariationId ? `${resolvedProductId}-${resolvedVariationId}` : (resolvedProductId || item._id),
                productName: item.productName || item.product?.productName || item.product || 'Unknown Product',
                // If we have custom unitPrice, use it as customPrice
                price: item.unitPrice,
@@ -1570,16 +1582,29 @@ const SellerPOSOrders = () => {
     }
 
     setCart(prev => {
-      const existing = prev.find(item => item._id === product._id);
+      const existing = prev.find(item => {
+           if (item._id === product._id) return true;
+           // Try to match based on base product ID and variation ID/string
+           const baseId1 = (item as any).originalProductId || String(item._id).split('-')[0];
+           const baseId2 = (product as any).originalProductId || String(product._id).split('-')[0];
+           
+           if (baseId1 === baseId2) {
+               const var1 = (item as any).variationId || (item as any).variation || item.productName;
+               const var2 = (product as any).variationId || (product as any).variation || product.productName;
+               if (String(var1) === String(var2)) return true;
+               if (typeof var1 === 'string' && typeof var2 === 'string' && (var1.includes(var2) || var2.includes(var1))) return true;
+           }
+           return false;
+      });
+
       if (existing) {
         if (existing.qty >= product.stock) {
             showToast("Cannot add more than available stock", "error");
             return prev;
         }
-        return prev.map(item => item._id === product._id ? { ...item, qty: item.qty + 1 } : item);
+        return prev.map(item => item === existing ? { ...item, qty: item.qty + 1 } : item);
       }
 
-      const price = (orderType === 'Wholesale' && product.wholesalePrice) ? product.wholesalePrice : product.price;
       const newItem = { ...(product as CartItem), qty: 1 };
       if (orderType === 'Wholesale' && product.wholesalePrice) {
           newItem.customPrice = product.wholesalePrice;
@@ -2020,7 +2045,7 @@ const SellerPOSOrders = () => {
         mrp: Number(product.compareAtPrice || product.price || 0),
         retailPrice: Number(product.price || 0),
         wholesalePrice: Number(product.wholesalePrice || 0),
-        purchasePrice: Number(product.purchasePrice || product.price || 0),
+        purchasePrice: purchaseMode === 'Quotation' ? Number(product.price || 0) : Number(product.purchasePrice || product.price || 0),
         qty: 1,
         currentQty: Number(product.stock || 0),
         includingGST: true,
@@ -2106,7 +2131,7 @@ const SellerPOSOrders = () => {
         mrp: Number(variation?.compareAtPrice ?? baseItem.mrp ?? 0),
         retailPrice: Number(variation?.price ?? baseItem.retailPrice ?? 0),
         wholesalePrice: Number(variation?.wholesalePrice ?? baseItem.wholesalePrice ?? 0),
-        purchasePrice: Number(variation?.purchasePrice ?? baseItem.purchasePrice ?? 0),
+        purchasePrice: purchaseMode === 'Quotation' ? Number(variation?.price ?? baseItem.retailPrice ?? 0) : Number(variation?.purchasePrice ?? baseItem.purchasePrice ?? 0),
         qty: 1,
         currentQty: Number(variation?.stock ?? 0),
         includingGST: true,
@@ -2405,7 +2430,7 @@ const SellerPOSOrders = () => {
             mrp: parseFloat(quickForm.mrp) || 0,
             retailPrice: parseFloat(quickForm.price) || 0,
             wholesalePrice: parseFloat(quickForm.wholesalePrice) || 0,
-            purchasePrice: parseFloat(quickForm.purchasePrice) || parseFloat(quickForm.price) || 0,
+            purchasePrice: purchaseMode === 'Quotation' ? (parseFloat(quickForm.price) || 0) : (parseFloat(quickForm.purchasePrice) || parseFloat(quickForm.price) || 0),
             qty: parseInt(quickForm.qty) || 1,
             currentQty: finalProductData?.stock || 0,
             includingGST: true,
@@ -4364,26 +4389,36 @@ const SellerPOSOrders = () => {
               }`}>
                 {purchaseMode === 'Purchase' ? 'PURCHASE MODE' : 'QUOTATION MODE'}
               </span>
-            </div>
-
-            <div className="mt-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleAttachBill}
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className={`w-full rounded-xl py-2.5 text-sm font-semibold transition-colors md:py-2 md:text-[13px] border ${
-                  billAttachment
-                    ? 'bg-[var(--primary-color)] text-white border-[var(--primary-color)]'
-                    : 'bg-[var(--primary-color)] text-white border-[var(--primary-color)] hover:bg-[var(--primary-dark)]'
-                }`}
-              >
-                {billAttachment ? '✓ Bill Attached' : '+Attach Bills'}
-              </button>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                <button
+                  onClick={() => setShowSupplierModal(true)}
+                  className="flex items-center gap-2 justify-center rounded-xl border border-[var(--primary-color)]/30 text-[var(--primary-color)] bg-[var(--primary-color)]/10 py-2.5 text-sm font-semibold md:py-2 md:text-[13px]"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3M4 11h16M5 21h14a1 1 0 001-1V8a1 1 0 00-1-1H5a1 1 0 00-1 1v12a1 1 0 001 1z" />
+                  </svg>
+                  {purchaseSupplier ? purchaseSupplier.name : 'Add Supplier'}
+                </button>
+                <div className="relative">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAttachBill}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`w-full h-full rounded-xl py-2.5 text-sm font-semibold transition-colors md:py-2 md:text-[13px] border ${
+                      billAttachment
+                        ? 'bg-[var(--primary-color)] text-white border-[var(--primary-color)]'
+                        : 'bg-[var(--primary-color)] text-white border-[var(--primary-color)] hover:bg-[var(--primary-dark)]'
+                    }`}
+                  >
+                    {billAttachment ? 'Bill Attached' : '+Attach Bills'}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 mt-2">
@@ -4539,7 +4574,16 @@ const SellerPOSOrders = () => {
                             >
                               -
                             </button>
-                            <div className="w-8 flex items-center justify-center text-sm font-bold text-gray-800">{item.qty}</div>
+                            <input
+                              type="number"
+                              min={1}
+                              value={item.qty || ''}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                updatePurchaseItem(item.id, { qty: isNaN(val) ? 0 : Math.max(1, val) });
+                              }}
+                              className="w-12 text-center bg-transparent text-sm font-bold text-gray-800 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
                             <button
                               onClick={() => updatePurchaseItem(item.id, { qty: item.qty + 1 })}
                               className="w-7 h-7 flex items-center justify-center text-[var(--primary-color)] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"

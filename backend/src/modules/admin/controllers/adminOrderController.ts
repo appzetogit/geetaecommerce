@@ -402,35 +402,57 @@ export const updateOrderItems = asyncHandler(
              const qty = Number(item.quantity) || 0;
              let restored = false;
 
-             // Try to match variation by SKU
-             if (item.sku && product.variations && product.variations.length > 0) {
-                const vIndex = product.variations.findIndex((v: any) => v.sku === item.sku);
-                if (vIndex > -1) {
-                   const prevVarStock = Number(product.variations[vIndex].stock) || 0;
-                   const newVarStock = prevVarStock + qty;
-
-                   const prevParentStock = Number(product.stock) || 0;
-                   const newParentStock = prevParentStock + qty;
-
-                   product.variations[vIndex].stock = newVarStock;
-                   product.stock = newParentStock;
-
-                   await product.save({ session });
-
-                   await StockLedger.create([{
-                       product: product._id,
-                       variationId: product.variations[vIndex]._id,
-                       sku: item.sku,
-                       quantity: qty,
-                       type: "IN",
-                       source: "ORDER_EDIT_RESTORE",
-                       referenceId: order._id,
-                       previousStock: prevVarStock,
-                       newStock: newVarStock,
-                       [stockModifierField]: userId
-                   }], { session });
-                   restored = true;
+             let vIndex = -1;
+             if (product.variations && product.variations.length > 0) {
+                if (item.sku && item.sku !== "NO-SKU") {
+                   vIndex = product.variations.findIndex((v: any) => v.sku === item.sku);
                 }
+                
+                if (vIndex === -1 && item.variation) {
+                   const variationLabel = item.variation.toLowerCase();
+                   vIndex = product.variations.findIndex((v: any) => {
+                       const vName = typeof v.name === 'string' ? v.name : '';
+                       const vTitle = typeof v.title === 'string' ? v.title : '';
+                       const vValue = typeof v.value === 'string' ? v.value : '';
+                       const composedName = `${vName}: ${vValue}`.toLowerCase();
+                       const composedTitle = `${vTitle}: ${vValue}`.toLowerCase();
+                       
+                       return (
+                           vValue.toLowerCase() === variationLabel ||
+                           vName.toLowerCase() === variationLabel ||
+                           vTitle.toLowerCase() === variationLabel ||
+                           composedName === variationLabel ||
+                           composedTitle === variationLabel
+                       );
+                   });
+                }
+             }
+
+             if (vIndex > -1) {
+                const prevVarStock = Number(product.variations![vIndex].stock) || 0;
+                const newVarStock = prevVarStock + qty;
+
+                const prevParentStock = Number(product.stock) || 0;
+                const newParentStock = prevParentStock + qty;
+
+                product.variations![vIndex].stock = newVarStock;
+                product.stock = newParentStock;
+
+                await product.save({ session });
+
+                await StockLedger.create([{
+                    product: product._id,
+                    variationId: product.variations![vIndex]._id,
+                    sku: item.sku,
+                    quantity: qty,
+                    type: "IN",
+                    source: "ORDER_EDIT_RESTORE",
+                    referenceId: order._id,
+                    previousStock: prevVarStock,
+                    newStock: newVarStock,
+                    [stockModifierField]: userId
+                }], { session });
+                restored = true;
              }
 
              if (!restored) {
@@ -573,7 +595,7 @@ export const updateOrderItems = asyncHandler(
             foundVariation = variation;
             unitPrice = Number(itemData.unitPrice) || variation.price || unitPrice;
             mrp = Number(itemData.mrp) || Number(variation.compareAtPrice) || Number(product.compareAtPrice) || mrp;
-            variationName = variation.title || variation.name ? `${variation.name}: ${variation.value}` : 'Variation';
+            variationName = (variation as any).title || variation.name ? `${variation.name}: ${variation.value}` : 'Variation';
             sku = variation.sku || sku;
             variationId = variation._id;
 

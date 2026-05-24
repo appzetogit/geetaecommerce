@@ -18,9 +18,9 @@ const SellerPOSStateSchema = new Schema<ISellerPOSState>(
       index: true,
     },
     bills: {
-      type: [Schema.Types.Mixed],
+      type: [mongoose.Schema.Types.Mixed],
       default: [],
-    },
+    } as any,
     activeBillId: {
       type: String,
       default: "1",

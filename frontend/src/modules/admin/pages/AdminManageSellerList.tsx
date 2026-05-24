@@ -406,7 +406,7 @@ export default function AdminManageSellerList() {
                 setSellers(prevSellers =>
                     prevSellers.map(s =>
                         s._id === sellerId
-                            ? { ...s, isEnabled: newStatus }
+                            ? { ...s, isEnabled: newStatus, ...(newStatus === false ? { canCreateCategories: false } : {}) }
                             : s
                     )
                 );
@@ -426,7 +426,7 @@ export default function AdminManageSellerList() {
         if (!seller) return;
 
         const newPermission = !seller.canCreateCategories;
-        const permissionOn = !newPermission;
+        const permissionOn = newPermission;
 
         try {
             const response = await updateSeller(id, { canCreateCategories: newPermission });
@@ -687,14 +687,15 @@ export default function AdminManageSellerList() {
                                             </td>
                                             <td className="p-4 align-middle">
                                                 {(() => {
-                                                    const isPermissionOn = !seller.canCreateCategories;
+                                                    const isPermissionOn = seller.isEnabled && seller.canCreateCategories;
                                                     return (
                                                 <button
                                                     onClick={() => handleToggleCategoryPermission(seller._id)}
+                                                    disabled={!seller.isEnabled}
                                                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 ${
-                                                        isPermissionOn ? 'bg-[var(--primary-color)]' : 'bg-gray-200'
+                                                        !seller.isEnabled ? 'bg-gray-300 cursor-not-allowed opacity-50' : isPermissionOn ? 'bg-[var(--primary-color)]' : 'bg-gray-200'
                                                     }`}
-                                                    title={isPermissionOn ? 'Category permission enabled (cannot create)' : 'Category permission disabled (can create)'}
+                                                    title={isPermissionOn ? 'Category permission enabled (can create custom categories)' : 'Category permission disabled (cannot create custom categories)'}
                                                 >
                                                     <span
                                                         className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${

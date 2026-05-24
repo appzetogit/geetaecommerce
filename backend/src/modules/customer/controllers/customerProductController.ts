@@ -280,7 +280,10 @@ export const getSearchSuggestions = async (req: Request, res: Response) => {
       ]
     };
 
-    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
+    const userLat = latitude ? parseFloat(latitude as string) : null;
+    const userLng = longitude ? parseFloat(longitude as string) : null;
+
+    if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
       const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
       const visibleSellers = await Seller.find({
         _id: { $in: nearbySellerIds },

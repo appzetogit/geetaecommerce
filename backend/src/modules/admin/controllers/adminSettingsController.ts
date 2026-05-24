@@ -8,7 +8,7 @@ import PaymentMethod from "../../../models/PaymentMethod";
  */
 export const getAppSettings = asyncHandler(
   async (_req: Request, res: Response) => {
-    let settings = await AppSettings.findOne().lean();
+    let settings: any = await AppSettings.findOne().lean();
 
     // Create default settings if none exist
     if (!settings) {
@@ -37,7 +37,7 @@ export const updateAppSettings = asyncHandler(
     const updateData = req.body;
     updateData.updatedBy = req.user?.userId;
 
-    let settings = await AppSettings.findOne();
+    let settings: any = await AppSettings.findOne();
 
     if (!settings) {
       settings = await AppSettings.create(updateData);

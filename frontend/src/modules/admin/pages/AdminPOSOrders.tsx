@@ -2023,7 +2023,7 @@ const AdminPOSOrders = () => {
         mrp: Number(product.compareAtPrice || product.price || 0),
         retailPrice: Number(product.price || 0),
         wholesalePrice: Number(product.wholesalePrice || 0),
-        purchasePrice: Number(product.purchasePrice || product.price || 0),
+        purchasePrice: purchaseMode === 'Quotation' ? Number(product.price || 0) : Number(product.purchasePrice || product.price || 0),
         qty: 1,
         currentQty: Number(product.stock || 0),
         includingGST: true,
@@ -2109,7 +2109,7 @@ const AdminPOSOrders = () => {
         mrp: Number(variation?.compareAtPrice ?? baseItem.mrp ?? 0),
         retailPrice: Number(variation?.price ?? baseItem.retailPrice ?? 0),
         wholesalePrice: Number(variation?.wholesalePrice ?? baseItem.wholesalePrice ?? 0),
-        purchasePrice: Number(variation?.purchasePrice ?? baseItem.purchasePrice ?? 0),
+        purchasePrice: purchaseMode === 'Quotation' ? Number(variation?.price ?? baseItem.retailPrice ?? 0) : Number(variation?.purchasePrice ?? baseItem.purchasePrice ?? 0),
         qty: 1,
         currentQty: Number(variation?.stock ?? 0),
         includingGST: true,
@@ -2491,7 +2491,7 @@ const AdminPOSOrders = () => {
             mrp: parseFloat(quickForm.mrp) || 0,
             retailPrice: parseFloat(quickForm.price) || 0,
             wholesalePrice: parseFloat(quickForm.wholesalePrice) || 0,
-            purchasePrice: parseFloat(quickForm.purchasePrice) || parseFloat(quickForm.price) || 0,
+            purchasePrice: purchaseMode === 'Quotation' ? (parseFloat(quickForm.price) || 0) : (parseFloat(quickForm.purchasePrice) || parseFloat(quickForm.price) || 0),
             qty: parseInt(quickForm.qty) || 1,
             currentQty: finalProductData?.stock || 0,
             includingGST: true,
@@ -4762,7 +4762,16 @@ const AdminPOSOrders = () => {
                             >
                               -
                             </button>
-                            <div className="w-8 flex items-center justify-center text-sm font-bold text-gray-800">{item.qty}</div>
+                            <input
+                              type="number"
+                              min={1}
+                              value={item.qty || ''}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                updatePurchaseItem(item.id, { qty: isNaN(val) ? 0 : Math.max(1, val) });
+                              }}
+                              className="w-12 text-center bg-transparent text-sm font-bold text-gray-800 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
                             <button
                               onClick={() => updatePurchaseItem(item.id, { qty: item.qty + 1 })}
                               className="w-7 h-7 flex items-center justify-center text-[var(--primary-color)] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-lg"

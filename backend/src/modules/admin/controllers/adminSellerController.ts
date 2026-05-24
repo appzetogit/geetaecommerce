@@ -26,9 +26,14 @@ export const toggleSellerEnabled = asyncHandler(async (req: Request, res: Respon
     const { id } = req.params;
     const { isEnabled } = req.body;
 
+    const updateData: any = { isEnabled };
+    if (isEnabled === false) {
+        updateData.canCreateCategories = false;
+    }
+
     const seller = await Seller.findByIdAndUpdate(
         id,
-        { isEnabled },
+        updateData,
         { new: true, runValidators: true }
     );
 

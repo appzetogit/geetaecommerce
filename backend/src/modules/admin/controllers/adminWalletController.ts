@@ -4,6 +4,7 @@ import Seller from "../../../models/Seller";
 import Customer from "../../../models/Customer";
 import Order from "../../../models/Order";
 import Payment from "../../../models/Payment";
+import OrderItem from "../../../models/OrderItem";
 import Commission from "../../../models/Commission";
 import WalletTransaction from "../../../models/WalletTransaction";
 import WithdrawRequest from "../../../models/WithdrawRequest";

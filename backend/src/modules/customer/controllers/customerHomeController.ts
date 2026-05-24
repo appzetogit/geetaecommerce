@@ -758,7 +758,10 @@ export const getStoreProducts = async (req: Request, res: Response) => {
       ]
     };
 
-    if (userLat && userLng && !isNaN(userLat) && !isNaN(userLng)) {
+    const userLat = latitude ? parseFloat(latitude as string) : null;
+    const userLng = longitude ? parseFloat(longitude as string) : null;
+
+    if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
       const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
       console.log(`[getStoreProducts] Found ${nearbySellerIds.length} sellers within range`);
 

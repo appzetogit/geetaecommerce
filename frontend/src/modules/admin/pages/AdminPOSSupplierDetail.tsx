@@ -746,6 +746,16 @@ const AdminPOSSupplierDetail = () => {
                                                 </div>
 
                                                 <div className="flex items-center gap-4">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            sessionStorage.setItem('edit_purchase_data', JSON.stringify(entry));
+                                                            navigate('/admin/pos/orders?mode=edit_purchase');
+                                                        }}
+                                                        className="px-3 py-1 bg-white border border-gray-200 rounded-md text-xs font-bold text-gray-600 hover:text-[var(--primary-color)] hover:border-[var(--primary-color)] shadow-sm transition-colors"
+                                                    >
+                                                        Edit
+                                                    </button>
                                                     <div className="text-right">
                                                         <p className="text-base font-black text-gray-900">
                                                             ₹{(entry.totals?.netAmount || 0).toLocaleString()}

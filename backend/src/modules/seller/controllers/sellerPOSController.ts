@@ -225,7 +225,7 @@ export const createPOSOrder = asyncHandler(
              warrantyDuration: item.warrantyDuration || product?.warrantyDuration || ""
            });
 
-           if (varId && product) {
+           if (varId && product && product.variations) {
                 const v = product.variations.find((v:any) => v._id.toString() === varId.toString());
                 if (v) orderItem.variation = `${v.name || 'Variation'}: ${v.value}`;
            } else if (item.variationName) {
