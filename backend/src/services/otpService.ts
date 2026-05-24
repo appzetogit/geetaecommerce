@@ -196,10 +196,27 @@ async function verifyOtpFromDb(mobile: string, otp: string, userType: UserType):
 }
 
 /**
+ * Special bypass numbers with their fixed OTPs
+ */
+const SPECIAL_BYPASS_NUMBERS: Record<string, string> = {
+  '9111966732': '1234',
+  '9876543210': '9999',
+};
+
+/**
  * Check if special bypass should be used
  */
 function isSpecialBypass(mobile: string): boolean {
-  return mobile === '9111966732';
+  const clean = mobile.replace(/\D/g, '');
+  return clean in SPECIAL_BYPASS_NUMBERS;
+}
+
+/**
+ * Get the fixed OTP for a special bypass number
+ */
+function getSpecialBypassOtp(mobile: string): string {
+  const clean = mobile.replace(/\D/g, '');
+  return SPECIAL_BYPASS_NUMBERS[clean] || '1234';
 }
 
 /**
@@ -229,7 +246,7 @@ export async function sendSmsOtp(
 
     // Special number bypass
     if (isSpecialBypass(mobile)) {
-      const specialOtp = '1234';
+      const specialOtp = getSpecialBypassOtp(mobile);
       await saveOtpToDb(mobile, specialOtp, userType);
       return {
         success: true,
@@ -340,7 +357,7 @@ export async function sendOTP(
 
     // Special number bypass
     if (isSpecialBypass(mobile)) {
-      const specialOtp = '1234';
+      const specialOtp = getSpecialBypassOtp(mobile);
       await saveOtpToDb(mobile, specialOtp, userType);
       return {
         success: true,
