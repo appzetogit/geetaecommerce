@@ -1342,7 +1342,7 @@ export default function ProductDetail() {
                   Similar Products
                 </h3>
               </div>
-              <div className="flex gap-4 overflow-x-auto pb-2 px-1 scrollbar-hide">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-2 px-1">
                 {similarProducts.map((similarProduct) => {
                   const similarCartItem = cart.items.find(
                     (item) =>
@@ -1353,7 +1353,7 @@ export default function ProductDetail() {
                   const similarInCartQty = similarCartItem?.quantity || 0;
 
                   return (
-                    <div key={similarProduct.id || similarProduct._id} className="w-44 flex-shrink-0 sm:w-52 md:w-56">
+                    <div key={similarProduct.id || similarProduct._id} className="w-full">
                       <ProductCard
                         product={similarProduct}
                         categoryStyle={true}
