@@ -9,6 +9,56 @@ import Brand from "../../../models/Brand";
 import AppSettings from "../../../models/AppSettings";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
 
+const escapeRegex = (value: string): string => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
+const normalizeSlug = (value: string): string => {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+};
+
+const findHeaderCategoryBySlug = async (value: string) => {
+  const rawSlug = String(value || "").trim();
+  const normalizedSlug = normalizeSlug(rawSlug);
+  const namePattern = rawSlug.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+
+  return HeaderCategory.findOne({
+    status: "Published",
+    $or: [
+      { slug: rawSlug },
+      { slug: { $regex: new RegExp(`^${escapeRegex(rawSlug)}$`, "i") } },
+      { slug: normalizedSlug },
+      { slug: { $regex: new RegExp(`^${escapeRegex(normalizedSlug)}$`, "i") } },
+      ...(namePattern
+        ? [{ name: { $regex: new RegExp(`^${escapeRegex(namePattern)}$`, "i") } }]
+        : []),
+    ],
+  })
+    .select("_id")
+    .lean();
+};
+
+const getHeaderCategoryTreeIds = async (headerCategoryId: mongoose.Types.ObjectId) => {
+  const allIds: mongoose.Types.ObjectId[] = [];
+  let frontier = (
+    await Category.find({ headerCategoryId, status: "Active" }).select("_id").lean()
+  ).map((category: any) => category._id);
+
+  while (frontier.length) {
+    allIds.push(...frontier);
+    frontier = (
+      await Category.find({ parentId: { $in: frontier }, status: "Active" }).select("_id").lean()
+    ).map((category: any) => category._id);
+  }
+
+  return allIds;
+};
+
 // Get products with filtering options (public)
 export const getProducts = async (req: Request, res: Response) => {
   try {
@@ -131,13 +181,16 @@ export const getProducts = async (req: Request, res: Response) => {
     }
 
     if (headerCategorySlug && headerCategorySlug !== "all") {
-      const header = await HeaderCategory.findOne({ slug: headerCategorySlug, status: "Published" }).select("_id").lean();
+      const header = await findHeaderCategoryBySlug(headerCategorySlug as string);
       if (header?._id) {
-        const roots = await Category.find({ headerCategoryId: header._id, status: "Active" }).select("_id").lean();
-        const rootIds = roots.map((c: any) => c._id);
-        const children = rootIds.length ? await Category.find({ parentId: { $in: rootIds }, status: "Active" }).select("_id").lean() : [];
-        const allIds = [...rootIds, ...children.map((c: any) => c._id)];
-        andConditions.push({ category: { $in: allIds } });
+        const categoryIds = await getHeaderCategoryTreeIds(header._id);
+        andConditions.push({
+          $or: [
+            { headerCategoryId: header._id },
+            { category: { $in: categoryIds } },
+            { subcategory: { $in: categoryIds } },
+          ],
+        });
       } else {
         andConditions.push({ category: { $in: [] } });
       }
