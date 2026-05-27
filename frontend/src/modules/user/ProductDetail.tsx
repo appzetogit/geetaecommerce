@@ -132,7 +132,14 @@ export default function ProductDetail() {
             .then((similarResponse) => {
               if (similarResponse.success && similarResponse.data.length > 0) {
                 setSimilarProducts(similarResponse.data);
-                setHasMoreSimilar(false);
+                const categoryId =
+                  productData.subcategory?._id ||
+                  productData.subcategory?.id ||
+                  (typeof productData.subcategory === "string" ? productData.subcategory : null) ||
+                  productData.category?._id ||
+                  productData.category?.id ||
+                  (typeof productData.category === "string" ? productData.category : null);
+                setHasMoreSimilar(Boolean(categoryId));
               }
             })
             .catch((err) => {
