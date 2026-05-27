@@ -1008,6 +1008,28 @@ const AdminPOSOrders = () => {
           const quote: PurchaseEntryRecord = JSON.parse(raw);
           setQuotationItemsStore(quote.items);
           setPurchaseSupplier(quote.supplier);
+          if (quote.supplier?.name) {
+            const matchedCustomer = customers.find((c) => c.phone === quote.supplier?.phone);
+            const customerFromQuote = matchedCustomer || ({
+              _id: `quotation-${quote.id}`,
+              name: quote.supplier.name,
+              phone: quote.supplier.phone || '',
+              email: '',
+              address: quote.supplier.address || '',
+              city: '',
+              state: '',
+              pincode: '',
+              gst: quote.supplier.gstNumber || '',
+            } as Customer);
+            const displayName = customerFromQuote.phone
+              ? `${customerFromQuote.name} (${customerFromQuote.phone})`
+              : customerFromQuote.name;
+            setSelectedCustomer(customerFromQuote);
+            setCustomerSearch(displayName);
+          } else {
+            setSelectedCustomer(null);
+            setCustomerSearch('');
+          }
           try {
             localStorage.setItem('admin_pos_last_purchase_supplier', JSON.stringify(quote.supplier));
           } catch {}
@@ -1063,6 +1085,8 @@ const AdminPOSOrders = () => {
       setPurchaseMode('Quotation');
       setQuotationItemsStore([]);
       setPurchaseSupplier(null);
+      setSelectedCustomer(null);
+      setCustomerSearch('');
       try {
         localStorage.removeItem('admin_pos_last_purchase_supplier');
       } catch {}
@@ -1866,8 +1890,12 @@ const AdminPOSOrders = () => {
   };
 
   const handleSavePurchaseEntry = async () => {
-    if (!purchaseSupplier) {
+    if (purchaseMode === 'Purchase' && !purchaseSupplier) {
       showToast('Please add/select supplier first.', 'error');
+      return;
+    }
+    if (purchaseMode === 'Quotation' && !selectedCustomer) {
+      showToast('Please add/select customer first.', 'error');
       return;
     }
     if (purchaseItems.length === 0) {
@@ -1876,10 +1904,29 @@ const AdminPOSOrders = () => {
     }
 
     const totals = calculatePurchaseBreakdown();
+    const supplierForEntry: PurchaseSupplier | null = purchaseMode === 'Purchase'
+      ? purchaseSupplier
+      : selectedCustomer
+        ? {
+            name: selectedCustomer.name || '',
+            phone: selectedCustomer.phone || '',
+            address: [
+              selectedCustomer.address,
+              selectedCustomer.city,
+              selectedCustomer.state,
+              selectedCustomer.pincode,
+            ].filter(Boolean).join(', '),
+            notes: '',
+            gstNumber: selectedCustomer.gst || '',
+            openingBalance: '',
+            openingBalanceType: 'Receive',
+          }
+        : null;
+
     const entry: PurchaseEntryRecord = {
       id: editingQuotationId || `pur_${Date.now()}`,
       type: purchaseMode === 'Purchase' ? 'purchase' : 'quotation',
-      supplier: purchaseSupplier,
+      supplier: supplierForEntry,
       paymentMode: purchasePaymentMethod,
       date: purchaseDate,
       items: purchaseItems,
@@ -4582,13 +4629,25 @@ const AdminPOSOrders = () => {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => setShowSupplierModal(true)}
+                onClick={() => {
+                  if (purchaseMode === 'Quotation') {
+                    setShowAddCustomerModal(true);
+                    return;
+                  }
+                  setShowSupplierModal(true);
+                }}
                 className="flex items-center gap-2 justify-center rounded-xl border border-[var(--primary-color)]/30 text-[var(--primary-color)] bg-[var(--primary-color)]/10 py-2.5 text-sm font-semibold md:py-2 md:text-[13px]"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3M4 11h16M5 21h14a1 1 0 001-1V8a1 1 0 00-1-1H5a1 1 0 00-1 1v12a1 1 0 001 1z" />
+                  {purchaseMode === 'Quotation' ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.121 17.804A6.97 6.97 0 0112 15a6.97 6.97 0 016.879 2.804M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3M4 11h16M5 21h14a1 1 0 001-1V8a1 1 0 00-1-1H5a1 1 0 00-1 1v12a1 1 0 001 1z" />
+                  )}
                 </svg>
-                {purchaseSupplier ? purchaseSupplier.name : 'Add Supplier'}
+                {purchaseMode === 'Quotation'
+                  ? 'Add Customer'
+                  : (purchaseSupplier ? purchaseSupplier.name : 'Add Supplier')}
               </button>
               <input
                 type="file"
@@ -6089,7 +6148,7 @@ const AdminPOSOrders = () => {
 
       {/* --- ADD CUSTOMER MODAL --- */}
       {showAddCustomerModal && (
-        <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
                 <div className="bg-[var(--primary-color)] px-6 py-4 text-white flex justify-between items-center">
                     <h3 className="text-lg font-bold">Register New Customer</h3>
