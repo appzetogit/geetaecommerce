@@ -11,8 +11,12 @@ import { findSellersWithinRange } from "../utils/locationHelper";
 import { cache } from "../utils/cache";
 
 const DEFAULT_CANDIDATE_LIMIT = Number(process.env.SEARCH_CANDIDATE_LIMIT || 1500);
-const SEMANTIC_WEIGHT = 0.7;
-const KEYWORD_WEIGHT = 0.3;
+const SEMANTIC_WEIGHT = 0.35;
+const KEYWORD_WEIGHT = 0.65;
+const LEXICAL_MATCH_THRESHOLD = 0.18;
+const SHORT_QUERY_SEMANTIC_THRESHOLD = 0.62;
+const LONG_QUERY_SEMANTIC_THRESHOLD = 0.52;
+const SEMANTIC_ONLY_FINAL_THRESHOLD = 0.35;
 const SEARCH_CACHE_TTL_MS = Number(process.env.SEARCH_CACHE_TTL_MS || 60_000);
 const TRENDING_CACHE_TTL_MS = Number(process.env.SEARCH_TRENDING_CACHE_TTL_MS || 120_000);
 const SUGGESTIONS_CACHE_TTL_MS = Number(process.env.SEARCH_SUGGESTIONS_CACHE_TTL_MS || 30_000);
@@ -54,6 +58,10 @@ const getTokens = (value: string): string[] => {
   return normalizeText(value).split(" ").filter((token) => token.length > 1);
 };
 
+const escapeRegex = (value: string): string => {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 const levenshteinDistance = (left: string, right: string): number => {
   if (left === right) return 0;
   if (!left.length) return right.length;
@@ -80,13 +88,14 @@ const tokenSimilarity = (queryToken: string, fieldToken: string): number => {
   if (!queryToken || !fieldToken) return 0;
   if (queryToken === fieldToken) return 1;
   if (fieldToken.startsWith(queryToken)) return 0.92;
-  if (fieldToken.includes(queryToken) || queryToken.includes(fieldToken)) return 0.78;
+  if (queryToken.length >= 4 && fieldToken.includes(queryToken)) return 0.78;
+  if (fieldToken.length >= 4 && queryToken.includes(fieldToken)) return 0.65;
 
   const maxLength = Math.max(queryToken.length, fieldToken.length);
   if (maxLength < 4) return 0;
   const distance = levenshteinDistance(queryToken, fieldToken);
   const score = 1 - distance / maxLength;
-  return score >= 0.72 ? score * 0.72 : 0;
+  return score >= 0.66 ? score * 0.72 : 0;
 };
 
 const fieldMatchScore = (queryTokens: string[], field: unknown): number => {
@@ -117,6 +126,52 @@ const keywordScore = (query: string, product: any): number => {
     fieldMatchScore(queryTokens, brandName) * 0.12 +
     fieldMatchScore(queryTokens, `${product.smallDescription || ""} ${product.description || ""}`) * 0.1
   );
+};
+
+const lexicalCandidateFields = [
+  "productName",
+  "smallDescription",
+  "description",
+  "tags",
+  "sku",
+  "barcode",
+  "variations.name",
+  "variations.value",
+  "variations.sku",
+  "variations.barcode",
+  "pack",
+];
+
+const buildLexicalCandidateConditions = (query: string) => {
+  const phrases = Array.from(new Set([query, ...getTokens(query)]))
+    .map((phrase) => phrase.trim())
+    .filter((phrase) => phrase.length > 1)
+    .slice(0, 8);
+
+  const exactConditions = phrases.flatMap((phrase) => {
+    const regex = new RegExp(escapeRegex(phrase), "i");
+    return lexicalCandidateFields.map((field) => ({ [field]: regex }));
+  });
+
+  const fuzzyPrefixConditions = phrases
+    .filter((phrase) => phrase.length >= 4)
+    .flatMap((phrase) => {
+      const prefixLength = Math.min(4, Math.max(3, phrase.length - 2));
+      const regex = new RegExp(`\\b${escapeRegex(phrase.slice(0, prefixLength))}`, "i");
+      return lexicalCandidateFields.map((field) => ({ [field]: regex }));
+    });
+
+  return [...exactConditions, ...fuzzyPrefixConditions];
+};
+
+const mergeProductsById = (...groups: any[][]) => {
+  const seen = new Set<string>();
+  return groups.flat().filter((product) => {
+    const id = String(product._id);
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
 };
 
 const toNumber = (value: unknown): number | undefined => {
@@ -281,13 +336,33 @@ export const hybridProductSearch = async (options: SearchOptions) => {
       buildVisibleProductQuery(options),
     ]);
 
-    const products = await Product.find(productQuery)
-      .select(productProjection)
-      .populate("category", "name image")
-      .populate("subcategory", "name")
-      .populate("brand", "name")
-      .limit(DEFAULT_CANDIDATE_LIMIT)
-      .lean();
+    const lexicalConditions = buildLexicalCandidateConditions(query);
+    const lexicalCandidateQuery = lexicalConditions.length
+      ? { ...productQuery, $or: lexicalConditions }
+      : productQuery;
+
+    const [lexicalProducts, semanticProducts] = await Promise.all([
+      Product.find(lexicalCandidateQuery)
+        .select(productProjection)
+        .populate("category", "name image")
+        .populate("subcategory", "name")
+        .populate("brand", "name")
+        .limit(DEFAULT_CANDIDATE_LIMIT)
+        .lean(),
+      Product.find(productQuery)
+        .select(productProjection)
+        .populate("category", "name image")
+        .populate("subcategory", "name")
+        .populate("brand", "name")
+        .sort({ searchCount: -1, popular: -1, createdAt: -1 })
+        .limit(DEFAULT_CANDIDATE_LIMIT)
+        .lean(),
+    ]);
+
+    const products = mergeProductsById(lexicalProducts, semanticProducts);
+    const queryTokens = getTokens(query);
+    const semanticOnlyThreshold =
+      queryTokens.length <= 2 ? SHORT_QUERY_SEMANTIC_THRESHOLD : LONG_QUERY_SEMANTIC_THRESHOLD;
 
     const scored = products
       .map((product: any) => {
@@ -308,7 +383,14 @@ export const hybridProductSearch = async (options: SearchOptions) => {
           finalScore: Number(finalScore.toFixed(4)),
         });
       })
-      .filter((product) => product.searchScore.finalScore > 0.08 || product.searchScore.keywordScore > 0.25);
+      .filter(
+        (product) =>
+          product.searchScore.keywordScore >= LEXICAL_MATCH_THRESHOLD ||
+          (
+            product.searchScore.semanticScore >= semanticOnlyThreshold &&
+            product.searchScore.finalScore >= SEMANTIC_ONLY_FINAL_THRESHOLD
+          )
+      );
 
     const sorted = sortResults(scored, options.sort || "relevance");
     total = sorted.length;

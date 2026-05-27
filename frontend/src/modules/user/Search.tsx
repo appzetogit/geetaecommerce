@@ -55,15 +55,18 @@ export default function Search() {
   const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const [selectedQuery, setSelectedQuery] = useState(initialQuery);
   const debouncedQuery = useDebouncedValue(inputValue, 300);
   const debouncedMinPrice = useDebouncedValue(minPrice, 300);
   const debouncedMaxPrice = useDebouncedValue(maxPrice, 300);
+  const activeQuery = selectedQuery || debouncedQuery;
   const suggestionBoxRef = useRef<HTMLDivElement>(null);
   const limit = 20;
 
   useEffect(() => {
     const query = searchParams.get("q") || "";
     setInputValue(query);
+    setSelectedQuery(query);
     setPage(Number(searchParams.get("page") || 1));
     setSort((searchParams.get("sort") as SortOption) || "relevance");
     setMinPrice(searchParams.get("minPrice") || "");
@@ -139,7 +142,7 @@ export default function Search() {
   }, [debouncedQuery]);
 
   useEffect(() => {
-    const query = debouncedQuery.trim();
+    const query = activeQuery.trim();
 
     if (!query) {
       setResults([]);
@@ -190,7 +193,7 @@ export default function Search() {
 
     return () => controller.abort();
   }, [
-    debouncedQuery,
+    activeQuery,
     page,
     sort,
     debouncedMinPrice,
@@ -202,7 +205,7 @@ export default function Search() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedQuery, sort, debouncedMinPrice, debouncedMaxPrice]);
+  }, [activeQuery, sort, debouncedMinPrice, debouncedMaxPrice]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -223,6 +226,7 @@ export default function Search() {
   const applySearch = (query: string) => {
     const nextQuery = query.trim();
     setInputValue(nextQuery);
+    setSelectedQuery(nextQuery);
     setPage(1);
     setShowSuggestions(false);
     setSearchParams(nextQuery ? { q: nextQuery } : {}, { replace: false });
@@ -276,6 +280,7 @@ export default function Search() {
 
   const clearSearch = () => {
     setInputValue("");
+    setSelectedQuery("");
     setResults([]);
     setSuggestions([]);
     setPage(1);
@@ -293,6 +298,7 @@ export default function Search() {
                 value={inputValue}
                 onChange={(event) => {
                   setInputValue(event.target.value);
+                  setSelectedQuery("");
                   setShowSuggestions(true);
                 }}
                 onFocus={() => setShowSuggestions(true)}
@@ -371,8 +377,8 @@ export default function Search() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-2 text-sm font-semibold text-neutral-800">
               <Sparkles className="h-4 w-4 text-[var(--customer-primary)]" />
-              {debouncedQuery.trim()
-                ? `${totalResults.toLocaleString("en-IN")} results for "${debouncedQuery.trim()}"`
+              {activeQuery.trim()
+                ? `${totalResults.toLocaleString("en-IN")} results for "${activeQuery.trim()}"`
                 : "Trending searches"}
             </div>
             <div className="flex flex-wrap items-center gap-2">
