@@ -1367,11 +1367,11 @@ export default function ProductDetail() {
                 })}
               </div>
               {(product?.subcategory?._id || product?.subcategory?.id || category?.id) && hasMoreSimilar && (
-                <div className="mt-6 flex justify-center pb-2">
+                <div className="relative z-[60] mt-6 flex justify-center pb-2">
                   <button
                     onClick={handleLoadMoreSimilar}
                     disabled={isSimilarLoading}
-                    className="text-sm font-semibold text-[var(--customer-primary-dark)] hover:text-[var(--customer-primary-dark)] transition-colors border border-[var(--customer-primary-dark)] px-6 py-2 rounded-full hover:bg-[var(--customer-primary-alpha-10)] shadow-sm disabled:opacity-50 min-w-[120px]"
+                    className="relative z-[60] text-sm font-semibold text-[var(--customer-primary-dark)] hover:text-[var(--customer-primary-dark)] transition-colors border border-[var(--customer-primary-dark)] px-6 py-2 rounded-full hover:bg-[var(--customer-primary-alpha-10)] shadow-sm disabled:opacity-50 min-w-[120px]"
                   >
                     {isSimilarLoading ? (
                       <div className="flex items-center gap-2">
