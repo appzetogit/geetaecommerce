@@ -232,6 +232,10 @@ export const updateOrderItems = async (
       sku?: string;
       productName?: string;
       productImage?: string;
+      hsnCode?: string;
+      gst?: number;
+      warrantyType?: string;
+      warrantyDuration?: string;
     }>;
     customerId?: string;
     customerName?: string;

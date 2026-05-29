@@ -34,6 +34,9 @@ export interface CartItem extends Product {
   originalProductId?: string | null;
   warrantyType?: "None" | "Warranty" | "Guarantee";
   warrantyDuration?: string;
+  // Tax (GST) per line
+  hsnCode?: string;
+  gst?: number; // percentage, e.g. 18
 }
 
 interface Seller {
@@ -434,6 +437,14 @@ const AdminPOSOrders = () => {
                               ? variationPrice
                               : (productPrice > 0 ? productPrice : 0)))));
 
+             const persistedGstRaw = (item as any).gst;
+             const resolvedGst =
+               persistedGstRaw === undefined || persistedGstRaw === null || persistedGstRaw === ''
+                 ? 18
+                 : Number(persistedGstRaw);
+             const safeResolvedGst = Number.isFinite(resolvedGst) && resolvedGst >= 0 ? resolvedGst : 18;
+             const resolvedHsn =
+               (item as any).hsnCode || item.product?.hsnCode || '';
              return {
                _id: resolvedProductId || item._id,
                productName: item.productName || item.product?.productName || item.product || 'Unknown Product',
@@ -452,6 +463,10 @@ const AdminPOSOrders = () => {
                compareAtPrice: resolvedMrp,
                purchasePrice: 0,
                wholesalePrice: 0,
+               hsnCode: resolvedHsn,
+               gst: safeResolvedGst,
+               warrantyType: item.warrantyType || 'None',
+               warrantyDuration: item.warrantyDuration || '',
                category: 'uncategorized', // Mock
                seller: '', // Mock
                galleryImages: [],
@@ -523,7 +538,7 @@ const AdminPOSOrders = () => {
   // Quick Add Form
   const [quickForm, setQuickForm] = useState({ barcode: '', name: '', price: '', qty: '1', mrp: '', purchasePrice: '', wholesalePrice: '', categoryId: '', brandId: '', addToInventory: false, warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
   // Edit Item Form
-  const [editForm, setEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
+  const [editForm, setEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '', hsnCode: '', gst: '18' });
   const [purchaseEditForm, setPurchaseEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
 
   // New UI States
@@ -2604,6 +2619,12 @@ const AdminPOSOrders = () => {
       : (inferredMrpFromName > Number(currentPrice)
           ? inferredMrpFromName
           : 0);
+    const existingHsn = (item as any).hsnCode || '';
+    const existingGst = (item as any).gst;
+    const gstStr =
+      existingGst === undefined || existingGst === null || existingGst === ''
+        ? '18'
+        : String(existingGst);
     setEditForm({
       name: item.productName,
       price: currentPrice.toString(),
@@ -2612,7 +2633,9 @@ const AdminPOSOrders = () => {
       purchasePrice: (item.purchasePrice || 0).toString(),
       wholesalePrice: (item.wholesalePrice || 0).toString(),
       warrantyType: (item as any).warrantyType || 'None',
-      warrantyDuration: (item as any).warrantyDuration || ''
+      warrantyDuration: (item as any).warrantyDuration || '',
+      hsnCode: existingHsn,
+      gst: gstStr,
     });
   };
 
@@ -2642,6 +2665,9 @@ const AdminPOSOrders = () => {
              }
           }
 
+          const productHsnCode: string = (product as any).hsnCode || '';
+          const productGst: any = (product as any).gst;
+
           if (isEditMode) {
             // In edit order mode, only update purchase/wholesale price from product
             // Keep mrp/price/warranty as-is from the existing order item
@@ -2649,6 +2675,8 @@ const AdminPOSOrders = () => {
               ...prev,
               purchasePrice: (purchasePrice || 0).toString(),
               wholesalePrice: (wholesalePrice || 0).toString(),
+              // Seed HSN code from product only if missing on the order item
+              hsnCode: prev.hsnCode && prev.hsnCode.trim() ? prev.hsnCode : productHsnCode,
             }));
           } else {
             // Update the form with the fetched values
@@ -2658,7 +2686,14 @@ const AdminPOSOrders = () => {
                 purchasePrice: (purchasePrice || 0).toString(),
                 wholesalePrice: (wholesalePrice || 0).toString(),
                 warrantyType: product.warrantyType || 'None',
-                warrantyDuration: product.warrantyDuration || ''
+                warrantyDuration: product.warrantyDuration || '',
+                hsnCode: prev.hsnCode && prev.hsnCode.trim() ? prev.hsnCode : productHsnCode,
+                gst:
+                  prev.gst && prev.gst !== ''
+                    ? prev.gst
+                    : productGst !== undefined && productGst !== null
+                      ? String(productGst)
+                      : '18',
             }));
           }
         }
@@ -2676,6 +2711,8 @@ const AdminPOSOrders = () => {
 
     setCart(prev => prev.map(item => {
       if (item._id === editingItem._id) {
+        const parsedGst = parseFloat(editForm.gst);
+        const safeGst = Number.isFinite(parsedGst) && parsedGst >= 0 ? parsedGst : 18;
         const updatedItem = {
           ...item,
           productName: editForm.name,
@@ -2686,6 +2723,8 @@ const AdminPOSOrders = () => {
           qty: parseInt(editForm.qty) || 1,
           warrantyType: editForm.warrantyType,
           warrantyDuration: editForm.warrantyDuration,
+          hsnCode: editForm.hsnCode.trim(),
+          gst: safeGst,
           updateInventory: (document.getElementById('updateInventory') as HTMLInputElement)?.checked || false
         };
 
@@ -2699,9 +2738,11 @@ const AdminPOSOrders = () => {
                 wholesalePrice: updatedItem.wholesalePrice,
                 warrantyType: updatedItem.warrantyType as "None" | "Warranty" | "Guarantee",
                 warrantyDuration: updatedItem.warrantyDuration,
+                hsnCode: updatedItem.hsnCode,
+                gst: updatedItem.gst,
                 // We don't update stock here as stock is handled during checkout,
                 // but we update the display info.
-            }).catch(console.error);
+            } as any).catch(console.error);
         }
 
         return updatedItem;
@@ -3452,16 +3493,28 @@ const AdminPOSOrders = () => {
       if (!targetEditId) return;
       setLoading(true);
       try {
-          const items = cart.map(item => ({
-              productId: (item.originalProductId || item._id)?.match?.(/^[a-f\d]{24}$/i) ? (item.originalProductId || item._id) : undefined,
-              variationId: item.variationId,
-              quantity: item.qty,
-              unitPrice: getEffectivePrice(item),
-              mrp: Number(item.compareAtPrice || 0),
-              sku: item.sku,
-              productName: item.productName,
-              productImage: item.mainImage || (item as any).image || ''
-          }));
+          const items = cart.map(item => {
+              const gstRaw = (item as any).gst;
+              const gstNum =
+                gstRaw === undefined || gstRaw === null || gstRaw === ''
+                  ? 18
+                  : Number(gstRaw);
+              const safeGst = Number.isFinite(gstNum) && gstNum >= 0 ? gstNum : 18;
+              return {
+                productId: (item.originalProductId || item._id)?.match?.(/^[a-f\d]{24}$/i) ? (item.originalProductId || item._id) : undefined,
+                variationId: item.variationId,
+                quantity: item.qty,
+                unitPrice: getEffectivePrice(item),
+                mrp: Number(item.compareAtPrice || 0),
+                sku: item.sku,
+                productName: item.productName,
+                productImage: item.mainImage || (item as any).image || '',
+                hsnCode: (item as any).hsnCode || '',
+                gst: safeGst,
+                warrantyType: (item as any).warrantyType || 'None',
+                warrantyDuration: (item as any).warrantyDuration || ''
+              };
+          });
 
           const res = await updateOrderItems(targetEditId, {
               items,
@@ -5580,6 +5633,26 @@ const AdminPOSOrders = () => {
                                value={editForm.wholesalePrice} onChange={e => setEditForm({...editForm, wholesalePrice: e.target.value})}
                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
                                placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+                            <input
+                               type="text"
+                               value={editForm.hsnCode}
+                               onChange={e => setEditForm({...editForm, hsnCode: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
+                               placeholder="e.g. 9608"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">GST (%)</label>
+                            <input
+                               type="number" min="0" step="0.01"
+                               value={editForm.gst}
+                               onChange={e => setEditForm({...editForm, gst: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
+                               placeholder="18"
                             />
                         </div>
                         <div>

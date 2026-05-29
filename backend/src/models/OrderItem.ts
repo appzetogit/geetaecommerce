@@ -16,6 +16,13 @@ export interface IOrderItem extends Document {
   quantity: number;
   total: number;
 
+  // Tax (GST)
+  hsnCode?: string;
+  // GST percentage applied on this line item (e.g. 18 means 18%)
+  gst?: number;
+  // GST amount computed for this line item
+  gstAmount?: number;
+
   // Variation
   variation?: string;
 
@@ -83,6 +90,23 @@ const OrderItemSchema = new Schema<IOrderItem>(
       type: Number,
       required: [true, "Total is required"],
       min: [0, "Total cannot be negative"],
+    },
+
+    // Tax (GST)
+    hsnCode: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    gst: {
+      type: Number,
+      min: [0, "GST cannot be negative"],
+      default: 18,
+    },
+    gstAmount: {
+      type: Number,
+      min: [0, "GST amount cannot be negative"],
+      default: 0,
     },
 
     // Variation

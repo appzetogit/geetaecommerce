@@ -483,6 +483,7 @@ export const updateOrderItems = asyncHandler(
 
       // 3. Create new OrderItems and deduct stock
       let newSubtotal = 0;
+      let newTaxTotal = 0;
       const newItemIds = [];
 
       for (let itemIndex = 0; itemIndex < newItemsData.length; itemIndex++) {
@@ -533,6 +534,16 @@ export const updateOrderItems = asyncHandler(
           const customTotal = customUnitPrice * quantity;
           newSubtotal += customTotal;
 
+          // GST is treated as inclusive in the unit price (consistent with retail invoice flow)
+          const customGstRate = itemData.gst !== undefined && itemData.gst !== null && itemData.gst !== ""
+            ? Number(itemData.gst)
+            : 18;
+          const safeCustomGstRate = Number.isFinite(customGstRate) && customGstRate >= 0 ? customGstRate : 18;
+          const customGstAmount = safeCustomGstRate > 0
+            ? Number(((customTotal * safeCustomGstRate) / (100 + safeCustomGstRate)).toFixed(2))
+            : 0;
+          newTaxTotal += customGstAmount;
+
           const detachedOrderItem = new OrderItem({
             order: order._id,
             productName: fallbackProductName,
@@ -542,6 +553,9 @@ export const updateOrderItems = asyncHandler(
             unitPrice: customUnitPrice,
             quantity,
             total: customTotal,
+            hsnCode: typeof itemData.hsnCode === "string" ? itemData.hsnCode.trim() : "",
+            gst: safeCustomGstRate,
+            gstAmount: customGstAmount,
             variation: customVariationLabel,
             status: "Pending",
             warrantyType: itemData.warrantyType || "None",
@@ -612,6 +626,31 @@ export const updateOrderItems = asyncHandler(
         const total = unitPrice * quantity;
         newSubtotal += total;
 
+        // Resolve GST rate: explicit payload value > product default > 18%
+        const payloadGstProvided =
+          itemData.gst !== undefined && itemData.gst !== null && itemData.gst !== "";
+        const productGstRate =
+          (product as any).gst !== undefined && (product as any).gst !== null
+            ? Number((product as any).gst)
+            : NaN;
+        const resolvedGstRate = payloadGstProvided
+          ? Number(itemData.gst)
+          : Number.isFinite(productGstRate)
+            ? productGstRate
+            : 18;
+        const safeGstRate = Number.isFinite(resolvedGstRate) && resolvedGstRate >= 0 ? resolvedGstRate : 18;
+
+        // GST is inclusive in the unit price (B2C retail behaviour)
+        const lineGstAmount = safeGstRate > 0
+          ? Number(((total * safeGstRate) / (100 + safeGstRate)).toFixed(2))
+          : 0;
+        newTaxTotal += lineGstAmount;
+
+        const resolvedHsnCode =
+          typeof itemData.hsnCode === "string" && itemData.hsnCode.trim()
+            ? itemData.hsnCode.trim()
+            : (product as any).hsnCode || "";
+
         const newOrderItem = new OrderItem({
           order: order._id,
           product: product._id,
@@ -623,6 +662,9 @@ export const updateOrderItems = asyncHandler(
           unitPrice: unitPrice,
           quantity: quantity,
           total: total,
+          hsnCode: resolvedHsnCode,
+          gst: safeGstRate,
+          gstAmount: lineGstAmount,
           variation: variationName,
           status: "Pending",
           warrantyType: itemData.warrantyType || product.warrantyType || "None",
@@ -689,7 +731,10 @@ export const updateOrderItems = asyncHandler(
 
       order.items = newItemIds as any;
       order.subtotal = newSubtotal;
-      order.total = newSubtotal + (order.tax || 0) + (order.shipping || 0) - (order.discount || 0);
+      // Recompute tax from line-level GST (inclusive in unit price).
+      // Subtotal already includes tax for GST-inclusive pricing, so we don't add it again to total.
+      order.tax = Number(newTaxTotal.toFixed(2));
+      order.total = newSubtotal + (order.shipping || 0) - (order.discount || 0);
 
       await order.save({ session });
 
