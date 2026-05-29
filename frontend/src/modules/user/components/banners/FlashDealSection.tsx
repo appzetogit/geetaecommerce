@@ -5,6 +5,7 @@ import { useThemeContext } from '../../../../context/ThemeContext';
 import { bannerService } from '../../../../services/bannerService';
 import { getProductById } from '../../../../services/api/customerProductService';
 import { calculateProductPrice } from '../../../../utils/priceUtils';
+import { useLocation } from '../../../../hooks/useLocation';
 
 interface TimeLeft {
   days: number;
@@ -20,6 +21,7 @@ export default function FlashDealSection() {
   const [products, setProducts] = useState<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { location } = useLocation();
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -33,7 +35,7 @@ export default function FlashDealSection() {
             if (data.flashDealProductIds && data.flashDealProductIds.length > 0) {
                 const promises = data.flashDealProductIds.slice(0, 10).map(async (id) => {
                     try {
-                        return await getProductById(id);
+                        return await getProductById(id, location?.latitude, location?.longitude);
                     } catch (error) {
                         console.warn(`[FlashDeal] Product ID ${id} not found or error occurred:`, error);
                         return null;
@@ -44,7 +46,8 @@ export default function FlashDealSection() {
                     .filter(res => res && res.success && res.data)
                     .map(res => ({
                         ...res!.data,
-                        id: (res!.data as any)._id || (res!.data as any).id
+                        id: (res!.data as any)._id || (res!.data as any).id,
+                        isAvailable: (res!.data as any).isAvailableAtLocation !== false
                     }));
             }
 

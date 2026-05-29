@@ -7,6 +7,7 @@ import GoogleMapsAutocomplete from "../../../components/GoogleMapsAutocomplete";
 
 interface DeliveryBoyFormData {
   name: string;
+  email: string;
   mobile: string;
   password: string;
   confirmPassword: string;
@@ -44,6 +45,7 @@ export default function AdminAddDeliveryBoy() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<DeliveryBoyFormData>({
     name: "",
+    email: "",
     mobile: "",
     password: "",
     confirmPassword: "",
@@ -122,7 +124,7 @@ export default function AdminAddDeliveryBoy() {
     if (loading) return;
 
     // Validation
-    if (!formData.name || !formData.mobile || !formData.password || !formData.address || !formData.city) {
+    if (!formData.name || !formData.email || !formData.mobile || !formData.password || !formData.address || !formData.city) {
         toast.error("Please fill all required fields");
         return;
     }
@@ -176,6 +178,10 @@ export default function AdminAddDeliveryBoy() {
             <div>
                 <label className="block text-sm font-bold text-neutral-800 mb-2">Name <span className="text-red-500">*</span></label>
                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded outline-none text-sm" placeholder="Enter Name" />
+            </div>
+            <div>
+                <label className="block text-sm font-bold text-neutral-800 mb-2">Email <span className="text-red-500">*</span></label>
+                <input type="email" name="email" value={formData.email} onChange={handleInputChange} required className="w-full px-4 py-2.5 bg-white border border-neutral-300 rounded outline-none text-sm" placeholder="Enter Email" />
             </div>
             <div>
                 <label className="block text-sm font-bold text-neutral-800 mb-2">Mobile <span className="text-red-500">*</span></label>

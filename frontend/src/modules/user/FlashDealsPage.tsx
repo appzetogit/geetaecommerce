@@ -5,6 +5,7 @@ import { getProductById } from "../../services/api/customerProductService";
 import { bannerService } from "../../services/bannerService";
 import { useThemeContext } from "../../context/ThemeContext";
 import { getTheme } from "../../utils/themes";
+import { useLocation } from "../../hooks/useLocation";
 
 export default function FlashDealsPage() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function FlashDealsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { location } = useLocation();
 
   useEffect(() => {
     const fetchFlashDeals = async () => {
@@ -24,13 +26,14 @@ export default function FlashDealsPage() {
 
         // 1. Specific IDs from Flash Deal configuration
         if (configResponse.flashDealProductIds && configResponse.flashDealProductIds.length > 0) {
-          const promises = configResponse.flashDealProductIds.map((id: string) => getProductById(id));
+          const promises = configResponse.flashDealProductIds.map((id: string) => getProductById(id, location?.latitude, location?.longitude));
           const results = await Promise.all(promises);
           fetchedProducts = results
             .filter((res) => res.success && res.data)
             .map((res) => ({
               ...res.data,
               id: (res.data as any)._id || (res.data as any).id,
+              isAvailable: (res.data as any).isAvailableAtLocation !== false,
             }));
         }
 

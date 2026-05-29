@@ -11,6 +11,7 @@ import axios from "axios";
 import { calculateDistance } from "../../../utils/locationHelper";
 import { notifyDeliveryBoysOfNewOrder } from "../../../services/orderNotificationService";
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
+import { notifyAdminsOfNewOrder } from "../../../services/adminNotificationService";
 import { generateDeliveryOtp } from "../../../services/deliveryOtpService";
 import { Server as SocketIOServer } from "socket.io";
 
@@ -411,6 +412,7 @@ export const createOrder = async (req: Request, res: Response) => {
                 if (savedOrder) {
                     await notifyDeliveryBoysOfNewOrder(io, savedOrder);
                     await notifySellersOfOrderUpdate(io, savedOrder, 'NEW_ORDER');
+                    await notifyAdminsOfNewOrder(io, savedOrder);
                 }
             }
         } catch (notificationError) {

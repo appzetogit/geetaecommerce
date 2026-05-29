@@ -86,11 +86,18 @@ export function LocationProvider({ children }: { children: ReactNode }) {
           try {
             const parsedLocation = JSON.parse(cachedLocationData);
             if (parsedLocation && parsedLocation.latitude && parsedLocation.longitude) {
-              console.log('[LocationContext] Restoring cached location from localStorage');
-              setLocation(parsedLocation);
-              setIsLocationEnabled(true);
-              setLocationPermissionStatus('granted');
-              restoredFromCache = true;
+              const addressIsCoords = /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(parsedLocation.address || '');
+              
+              if (addressIsCoords) {
+                console.log('[LocationContext] Cached location is just coordinates, forcing refresh...');
+                restoredFromCache = false;
+              } else {
+                console.log('[LocationContext] Restoring cached location from localStorage');
+                setLocation(parsedLocation);
+                setIsLocationEnabled(true);
+                setLocationPermissionStatus('granted');
+                restoredFromCache = true;
+              }
             }
           } catch (e) {
             console.error('Failed to parse cached location', e);
@@ -393,8 +400,8 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         const preciseLat = lat.toFixed(6);
         const preciseLng = lng.toFixed(6);
 
-        // Use more precise result types and location_type to get better address match
-        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${preciseLat},${preciseLng}&key=${apiKey}&result_type=street_address|premise|route|sublocality|locality|administrative_area_level_1|postal_code&location_type=ROOFTOP|RANGE_INTERPOLATED&language=en`;
+        // Use coordinates to get the best address match without restricting to ROOFTOP
+        const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${preciseLat},${preciseLng}&key=${apiKey}&language=en`;
 
         const response = await fetch(geocodeUrl, {
           signal: signal || controller.signal,
@@ -410,7 +417,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
         // Handle API errors
         if (data.status === 'ZERO_RESULTS') {
-          return { formatted_address: `${lat}, ${lng}` };
+          throw new Error('ZERO_RESULTS from Google Maps');
         }
 
         if (data.status !== 'OK') {
@@ -418,29 +425,12 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         }
 
         if (data.results.length === 0) {
-          return { formatted_address: `${lat}, ${lng}` };
+          throw new Error('Empty results from Google Maps');
         }
 
-        // Find the result that best matches the input coordinates
-        // Filter results and find the one closest to input coordinates
-        let bestResult = data.results[0];
-        let minDistance = Infinity;
-
-        for (const result of data.results) {
-          const resultLocation = result.geometry?.location;
-          if (resultLocation) {
-            const latDiff = Math.abs(resultLocation.lat - lat);
-            const lngDiff = Math.abs(resultLocation.lng - lng);
-            const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
-
-            if (distance < minDistance) {
-              minDistance = distance;
-              bestResult = result;
-            }
-          }
-        }
-
-        const result = bestResult;
+        // Use the first result provided by Google Maps, as it is always the most specific 
+        // (rooftop/premise) and accurate address for reverse geocoding.
+        const result = data.results[0];
         const addressComponents = result.address_components || [];
 
         // Verify the geocoded location matches input coordinates

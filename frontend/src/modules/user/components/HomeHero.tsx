@@ -207,7 +207,7 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
   const { themeKey: currentThemeKey } = useThemeContext();
 
   const navigate = useNavigate();
-  const { location: userLocation } = useLocation();
+  const { location: userLocation, requestLocation, isLocationLoading } = useLocation();
   const heroRef = useRef<HTMLDivElement>(null);
   const topSectionRef = useRef<HTMLDivElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
@@ -530,12 +530,28 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
               />
             </div>
             {locationDisplayText && (
-              <div className="flex items-center gap-1 text-neutral-700 text-xs md:text-sm">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span className="line-clamp-1 font-medium" title={locationDisplayText}>{locationDisplayText}</span>
+              <div 
+                className={`flex items-center gap-1 text-neutral-700 text-xs md:text-sm cursor-pointer hover:opacity-80 transition-opacity ${isLocationLoading ? 'opacity-70 pointer-events-none' : ''}`}
+                onClick={() => {
+                  if (!isLocationLoading) {
+                    requestLocation();
+                  }
+                }}
+              >
+                {isLocationLoading ? (
+                  <svg className="animate-spin h-3.5 w-3.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="12" cy="10" r="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+                <span className="line-clamp-1 font-medium" title={locationDisplayText}>
+                  {isLocationLoading ? 'Updating location...' : locationDisplayText}
+                </span>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
                   <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

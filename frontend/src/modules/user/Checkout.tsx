@@ -599,6 +599,8 @@ export default function Checkout() {
   };
 
   const performOrderPlacement = async (method: string) => {
+    if (isProcessingPayment) return;
+    setIsProcessingPayment(true);
     // Re-validate just in case
     if (!selectedAddress || cart.items.length === 0) return;
     if (outOfStockItems.length > 0) {
@@ -664,6 +666,8 @@ export default function Checkout() {
       console.error("Order placement failed", error);
       const errorMessage = error.message || error.response?.data?.message || "Failed to place order. Please try again.";
       alert(errorMessage);
+    } finally {
+      setIsProcessingPayment(false);
     }
   };
 
@@ -694,6 +698,8 @@ export default function Checkout() {
       return;
     }
 
+    if (isProcessingPayment) return;
+    
     handlePaymentSelection(selectedPaymentMethod);
   };
 
@@ -2002,13 +2008,13 @@ export default function Checkout() {
         {selectedAddress ? (
           <button
             onClick={handlePlaceOrderClick}
-            disabled={cart.items.length === 0 || outOfStockItems.length > 0}
-            className={`w-full py-3 px-4 font-bold text-sm uppercase tracking-wide transition-colors ${cart.items.length > 0 && outOfStockItems.length === 0
+            disabled={cart.items.length === 0 || outOfStockItems.length > 0 || isProcessingPayment}
+            className={`w-full py-3 px-4 font-bold text-sm uppercase tracking-wide transition-colors ${cart.items.length > 0 && outOfStockItems.length === 0 && !isProcessingPayment
               ? 'bg-[var(--customer-primary-dark)] text-white hover:bg-[var(--customer-primary-darker)]'
               : 'bg-neutral-300 text-neutral-500 cursor-not-allowed'
               }`}
           >
-            Place Order
+            {isProcessingPayment ? 'Processing...' : 'Place Order'}
           </button>
         ) : (
           <button

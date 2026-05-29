@@ -8,6 +8,7 @@ import { getNotifications, Notification as AdminNotificationData } from '../../.
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { useAppContext } from '../../../context/AppContext';
+import AdminNotificationAlert, { AdminNotificationData as AlertNotificationData } from './AdminNotificationAlert';
 
 interface AdminHeaderProps {
   onMenuClick: () => void;
@@ -23,6 +24,7 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
   const [searchQuery, setSearchQuery] = useState('');
   const [notifications, setNotifications] = useState<AdminNotificationData[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [currentAlert, setCurrentAlert] = useState<AlertNotificationData | null>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
 
@@ -63,7 +65,8 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
 
   // Socket.io initialization
   useEffect(() => {
-    if (!isAuthenticated || !token || !user || (user.userType !== 'Admin' && user.userType !== 'Super Admin')) {
+    const userRole = user?.role || user?.userType;
+    if (!isAuthenticated || !token || !user || (userRole !== 'Admin' && userRole !== 'Super Admin')) {
       if (socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
@@ -82,6 +85,11 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
     newSocket.on('connect', () => {
       console.log('✅ Admin connected to socket server');
       newSocket.emit('join-admin-room', user.userId || user.id);
+    });
+
+    newSocket.on('new-order-alert', (alertData: AlertNotificationData) => {
+      console.log('🚨 New Order Alert Received:', alertData);
+      setCurrentAlert(alertData);
     });
 
     newSocket.on('new-notification', async (notification: AdminNotificationData) => {
@@ -137,7 +145,7 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
     return () => {
       newSocket.disconnect();
     };
-  }, [isAuthenticated, token, user?.userId, user?.id, user?.userType]);
+  }, [isAuthenticated, token, user?.userId, user?.id, user?.userType, user?.role]);
 
   const handleLogout = () => {
     logout();
@@ -151,8 +159,14 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
   const { config } = useAppContext();
 
   return (
-    <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-30">
-      <div
+    <>
+      <AdminNotificationAlert 
+        notification={currentAlert}
+        onClose={() => setCurrentAlert(null)}
+        onActionComplete={() => setCurrentAlert(null)}
+      />
+      <header className="bg-white shadow-sm border-b border-neutral-200 sticky top-0 z-30">
+        <div
         className={`flex ${isPosOrdersPage ? 'flex-row items-center' : 'flex-col sm:flex-row items-start sm:items-center'} justify-between px-3 sm:px-4 md:px-6 ${isPosOrdersPage ? 'py-2 sm:py-4 gap-2 sm:gap-0' : 'py-3 sm:py-4 gap-3 sm:gap-0'}`}
       >
         {/* Logo and Hamburger Menu */}
@@ -402,6 +416,7 @@ export default function AdminHeader({ onMenuClick, isSidebarOpen }: AdminHeaderP
           </button>
         </div>
       </div>
-    </header>
+      </header>
+    </>
   );
 }
