@@ -18,7 +18,7 @@ export interface IOrderItem extends Document {
 
   // Tax (GST)
   hsnCode?: string;
-  // GST percentage applied on this line item (e.g. 18 means 18%)
+  // GST percentage applied on this line item (e.g. 5 means 5%)
   gst?: number;
   // GST amount computed for this line item
   gstAmount?: number;
@@ -101,7 +101,7 @@ const OrderItemSchema = new Schema<IOrderItem>(
     gst: {
       type: Number,
       min: [0, "GST cannot be negative"],
-      default: 18,
+      default: 5,
     },
     gstAmount: {
       type: Number,

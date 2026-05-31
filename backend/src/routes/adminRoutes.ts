@@ -231,6 +231,13 @@ router.delete("/pos/suppliers/:id", supplierController.deleteSupplier);
 router.post("/pos/suppliers/:id/debt", supplierController.addDebt);
 router.post("/pos/suppliers/:id/pay", supplierController.paySupplier);
 
+// ==================== Custom GST Report (Purchase GST Register) Routes ====================
+import * as adminGSTReportController from "../modules/admin/controllers/adminGSTReportController";
+router.get("/reports/gst-register", adminGSTReportController.listGSTReport);
+router.post("/reports/gst-register", adminGSTReportController.createGSTReportEntry);
+router.patch("/reports/gst-register/:id", adminGSTReportController.updateGSTReportEntry);
+router.delete("/reports/gst-register/:id", adminGSTReportController.deleteGSTReportEntry);
+
 // ==================== Return Request Routes ====================
 router.get("/return-requests", orderController.getReturnRequests);
 router.get("/return-requests/:id", orderController.getReturnRequestById);

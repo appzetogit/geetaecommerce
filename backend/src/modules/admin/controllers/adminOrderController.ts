@@ -537,8 +537,8 @@ export const updateOrderItems = asyncHandler(
           // GST is treated as inclusive in the unit price (consistent with retail invoice flow)
           const customGstRate = itemData.gst !== undefined && itemData.gst !== null && itemData.gst !== ""
             ? Number(itemData.gst)
-            : 18;
-          const safeCustomGstRate = Number.isFinite(customGstRate) && customGstRate >= 0 ? customGstRate : 18;
+            : 5;
+          const safeCustomGstRate = Number.isFinite(customGstRate) && customGstRate >= 0 ? customGstRate : 5;
           const customGstAmount = safeCustomGstRate > 0
             ? Number(((customTotal * safeCustomGstRate) / (100 + safeCustomGstRate)).toFixed(2))
             : 0;
@@ -626,7 +626,7 @@ export const updateOrderItems = asyncHandler(
         const total = unitPrice * quantity;
         newSubtotal += total;
 
-        // Resolve GST rate: explicit payload value > product default > 18%
+        // Resolve GST rate: explicit payload value > product default > 5%
         const payloadGstProvided =
           itemData.gst !== undefined && itemData.gst !== null && itemData.gst !== "";
         const productGstRate =
@@ -637,8 +637,8 @@ export const updateOrderItems = asyncHandler(
           ? Number(itemData.gst)
           : Number.isFinite(productGstRate)
             ? productGstRate
-            : 18;
-        const safeGstRate = Number.isFinite(resolvedGstRate) && resolvedGstRate >= 0 ? resolvedGstRate : 18;
+            : 5;
+        const safeGstRate = Number.isFinite(resolvedGstRate) && resolvedGstRate >= 0 ? resolvedGstRate : 5;
 
         // GST is inclusive in the unit price (B2C retail behaviour)
         const lineGstAmount = safeGstRate > 0
