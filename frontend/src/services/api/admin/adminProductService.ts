@@ -122,6 +122,7 @@ export interface Product {
   barcode?: string[];
   rackNumber?: string;
   hsnCode?: string;
+  gst?: number;
   purchasePrice?: number;
   lowStockQuantity?: number;
   deliveryTime?: string;
@@ -203,6 +204,7 @@ export interface CreateProductData {
   barcode?: string[];
   rackNumber?: string;
   hsnCode?: string;
+  gst?: number;
   purchasePrice?: number;
   lowStockQuantity?: number;
   deliveryTime?: string;

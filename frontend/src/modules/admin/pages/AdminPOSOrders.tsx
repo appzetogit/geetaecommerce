@@ -36,7 +36,7 @@ export interface CartItem extends Product {
   warrantyDuration?: string;
   // Tax (GST) per line
   hsnCode?: string;
-  gst?: number; // percentage, e.g. 18
+  gst?: number; // percentage, e.g. 5
 }
 
 interface Seller {
@@ -110,6 +110,11 @@ export interface PurchaseEntryRecord {
   createdAt: string;
   billAttachment?: string;
 }
+
+// Bumped from v1 to v2 after switching the default GST to 5% (was 18%).
+// Older drafts persisted under v1 are intentionally ignored so stale 18% defaults don't leak in.
+const POS_ENTRY_DRAFT_KEY = 'admin_pos_purchase_entry_draft_v2';
+const POS_ENTRY_DRAFT_LEGACY_KEYS: readonly string[] = ['admin_pos_purchase_entry_draft_v1'];
 
 const AdminPOSOrders = () => {
    const [searchParams] = useSearchParams();
@@ -440,9 +445,9 @@ const AdminPOSOrders = () => {
              const persistedGstRaw = (item as any).gst;
              const resolvedGst =
                persistedGstRaw === undefined || persistedGstRaw === null || persistedGstRaw === ''
-                 ? 18
+                 ? 5
                  : Number(persistedGstRaw);
-             const safeResolvedGst = Number.isFinite(resolvedGst) && resolvedGst >= 0 ? resolvedGst : 18;
+             const safeResolvedGst = Number.isFinite(resolvedGst) && resolvedGst >= 0 ? resolvedGst : 5;
              const resolvedHsn =
                (item as any).hsnCode || item.product?.hsnCode || '';
              return {
@@ -536,10 +541,10 @@ const AdminPOSOrders = () => {
   const [billToRemove, setBillToRemove] = useState<string | null>(null);
 
   // Quick Add Form
-  const [quickForm, setQuickForm] = useState({ barcode: '', name: '', price: '', qty: '1', mrp: '', purchasePrice: '', wholesalePrice: '', categoryId: '', brandId: '', addToInventory: false, warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
+  const [quickForm, setQuickForm] = useState({ barcode: '', name: '', price: '', qty: '1', mrp: '', purchasePrice: '', wholesalePrice: '', categoryId: '', brandId: '', addToInventory: false, warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '', hsnCode: '', gst: '5' });
   // Edit Item Form
-  const [editForm, setEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '', hsnCode: '', gst: '18' });
-  const [purchaseEditForm, setPurchaseEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
+  const [editForm, setEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '', hsnCode: '', gst: '5' });
+  const [purchaseEditForm, setPurchaseEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '', hsnCode: '', gst: '5' });
 
   // New UI States
   const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
@@ -683,7 +688,6 @@ const AdminPOSOrders = () => {
   const [purchaseItemsStore, setPurchaseItemsStore] = useState<PurchaseItem[]>([]);
   const [quotationItemsStore, setQuotationItemsStore] = useState<PurchaseItem[]>([]);
 
-  const POS_ENTRY_DRAFT_KEY = 'admin_pos_purchase_entry_draft_v1';
   const prevShowPurchaseEntryRef = useRef<boolean>(false);
 
   const purchaseItems = purchaseMode === 'Purchase' ? purchaseItemsStore : quotationItemsStore;
@@ -948,7 +952,7 @@ const AdminPOSOrders = () => {
                              includingGST: true,
                              billDiscount: 0,
                              billDiscountType: '%',
-                             gstPercent: 18,
+                             gstPercent: 5,
                              barcode: Array.isArray(variationMatch?.barcode) ? String(variationMatch.barcode[0] || '') : String(variationMatch?.barcode || ''),
                              mfgDate: '',
                              expiry: '',
@@ -1064,23 +1068,32 @@ const AdminPOSOrders = () => {
         try {
           const quote: PurchaseEntryRecord = JSON.parse(raw);
           // Convert PurchaseItem to CartItem
-          const cartItems: CartItem[] = quote.items.map(item => ({
-            ...item,
-            _id: item.isVariant ? `${item.productId}-${item.variationId}` : item.productId,
-            productName: item.productName,
-            price: item.retailPrice,
-            mrp: item.mrp || item.retailPrice,
-            qty: item.qty,
-            stock: 999, // Dummy stock for checkout
-            image: item.image,
-            purchasePrice: item.purchasePrice,
-            wholesalePrice: item.wholesalePrice || 0,
-            gstPercent: item.gstPercent || 0,
-            billDiscount: item.billDiscount || 0,
-            originalProductId: item.productId,
-            variationId: item.variationId,
-            isVariation: item.isVariant
-          } as any));
+          const cartItems: CartItem[] = quote.items.map(item => {
+            const persistedGst = item.gstPercent;
+            const safePersistedGst =
+              persistedGst === undefined || persistedGst === null || !Number.isFinite(Number(persistedGst))
+                ? 5
+                : Number(persistedGst);
+            return {
+              ...item,
+              _id: item.isVariant ? `${item.productId}-${item.variationId}` : item.productId,
+              productName: item.productName,
+              price: item.retailPrice,
+              mrp: item.mrp || item.retailPrice,
+              qty: item.qty,
+              stock: 999, // Dummy stock for checkout
+              image: item.image,
+              purchasePrice: item.purchasePrice,
+              wholesalePrice: item.wholesalePrice || 0,
+              gstPercent: safePersistedGst,
+              gst: safePersistedGst,
+              hsnCode: item.hsn || '',
+              billDiscount: item.billDiscount || 0,
+              originalProductId: item.productId,
+              variationId: item.variationId,
+              isVariation: item.isVariant
+            } as any;
+          });
           setCart(cartItems);
           if (quote.supplier) {
             // Try to find matching customer
@@ -1130,17 +1143,31 @@ const AdminPOSOrders = () => {
     } else if (!mode) {
       // No explicit mode in URL -> restore draft (refresh-safe)
       try {
+        // Drop any legacy draft snapshots that pre-date the 5% GST default migration.
+        POS_ENTRY_DRAFT_LEGACY_KEYS.forEach(legacyKey => {
+          try { localStorage.removeItem(legacyKey); } catch { /* ignore */ }
+        });
+
         const raw = localStorage.getItem(POS_ENTRY_DRAFT_KEY);
         if (!raw) return;
         const draft = JSON.parse(raw);
         if (!draft || typeof draft !== 'object') return;
         if (!draft.showPurchaseEntry) return;
 
+        // Normalize GST on restored items: missing/invalid -> 5%
+        const normalizeGstOnItems = (items: any[]): any[] =>
+          items.map(it => {
+            const raw = it?.gstPercent;
+            const num = Number(raw);
+            const safe = Number.isFinite(num) && num >= 0 ? num : 5;
+            return { ...it, gstPercent: safe };
+          });
+
         if (draft.purchaseMode === 'Quotation' || draft.purchaseMode === 'Purchase') {
           setPurchaseMode(draft.purchaseMode);
         }
-        if (Array.isArray(draft.purchaseItemsStore)) setPurchaseItemsStore(draft.purchaseItemsStore);
-        if (Array.isArray(draft.quotationItemsStore)) setQuotationItemsStore(draft.quotationItemsStore);
+        if (Array.isArray(draft.purchaseItemsStore)) setPurchaseItemsStore(normalizeGstOnItems(draft.purchaseItemsStore));
+        if (Array.isArray(draft.quotationItemsStore)) setQuotationItemsStore(normalizeGstOnItems(draft.quotationItemsStore));
         setPurchaseSupplier(draft.purchaseSupplier ?? null);
         if (typeof draft.purchaseDate === 'string' && draft.purchaseDate) setPurchaseDate(draft.purchaseDate);
         if (draft.purchasePaymentMethod === 'Cash' || draft.purchasePaymentMethod === 'Credit' || draft.purchasePaymentMethod === 'Online') {
@@ -2091,7 +2118,7 @@ const AdminPOSOrders = () => {
         includingGST: true,
         billDiscount: 0,
         billDiscountType: '%',
-        gstPercent: 18,
+        gstPercent: 5,
         barcode: Array.isArray(product.barcode) ? String(product.barcode[0] || '') : String(product.barcode || ''),
         mfgDate: '',
         expiry: '',
@@ -2177,7 +2204,7 @@ const AdminPOSOrders = () => {
         includingGST: true,
         billDiscount: 0,
         billDiscountType: '%',
-        gstPercent: 18,
+        gstPercent: 5,
         barcode: Array.isArray(variation?.barcode) ? String(variation.barcode[0] || '') : String(variation?.barcode || ''),
         mfgDate: '',
         expiry: '',
@@ -2501,6 +2528,9 @@ const AdminPOSOrders = () => {
 
     let productId = 'quick-' + Date.now();
     let finalProductData: any = null;
+    const parsedQuickGst = parseFloat(quickForm.gst);
+    const safeQuickGst = Number.isFinite(parsedQuickGst) && parsedQuickGst >= 0 ? parsedQuickGst : 5;
+    const quickHsn = quickForm.hsnCode.trim();
 
     if (quickForm.addToInventory) {
         setLoading(true);
@@ -2517,6 +2547,8 @@ const AdminPOSOrders = () => {
                 brand: quickForm.brandId,
                 warrantyType: quickForm.warrantyType as "None" | "Warranty" | "Guarantee",
                 warrantyDuration: quickForm.warrantyDuration,
+                hsnCode: quickHsn,
+                gst: safeQuickGst,
                 seller: selectedSeller || undefined, // Will default to Admin Store in backend if undefined
                 publish: true
             });
@@ -2559,11 +2591,11 @@ const AdminPOSOrders = () => {
             includingGST: true,
             billDiscount: 0,
             billDiscountType: '₹',
-            gstPercent: finalProductData?.gstPercent || 0,
+            gstPercent: safeQuickGst,
             barcode: quickForm.barcode || '',
             mfgDate: '',
             expiry: '',
-            hsn: '',
+            hsn: quickHsn,
             batch: '',
             packOf: 1,
             additionalOpen: false
@@ -2574,7 +2606,9 @@ const AdminPOSOrders = () => {
         const newItem: any = finalProductData ? {
             ...finalProductData,
             qty: parseInt(quickForm.qty) || 1,
-            originalProductId: finalProductData._id
+            originalProductId: finalProductData._id,
+            hsnCode: finalProductData.hsnCode || quickHsn,
+            gst: finalProductData.gst !== undefined && finalProductData.gst !== null ? finalProductData.gst : safeQuickGst
         } : {
           _id: productId,
           productName: quickForm.name,
@@ -2585,6 +2619,8 @@ const AdminPOSOrders = () => {
           qty: parseInt(quickForm.qty) || 1,
           warrantyType: quickForm.warrantyType,
           warrantyDuration: quickForm.warrantyDuration,
+          hsnCode: quickHsn,
+          gst: safeQuickGst,
           mainImage: '', // Placeholder
           originalProductId: null,
           addToInventory: quickForm.addToInventory // Store flag
@@ -2600,7 +2636,9 @@ const AdminPOSOrders = () => {
         purchasePrice: '', wholesalePrice: '',
         categoryId: '', brandId: '', addToInventory: false,
         warrantyType: 'None',
-        warrantyDuration: ''
+        warrantyDuration: '',
+        hsnCode: '',
+        gst: '5'
     });
   };
 
@@ -2623,7 +2661,7 @@ const AdminPOSOrders = () => {
     const existingGst = (item as any).gst;
     const gstStr =
       existingGst === undefined || existingGst === null || existingGst === ''
-        ? '18'
+        ? '5'
         : String(existingGst);
     setEditForm({
       name: item.productName,
@@ -2693,7 +2731,7 @@ const AdminPOSOrders = () => {
                     ? prev.gst
                     : productGst !== undefined && productGst !== null
                       ? String(productGst)
-                      : '18',
+                      : '5',
             }));
           }
         }
@@ -2712,7 +2750,7 @@ const AdminPOSOrders = () => {
     setCart(prev => prev.map(item => {
       if (item._id === editingItem._id) {
         const parsedGst = parseFloat(editForm.gst);
-        const safeGst = Number.isFinite(parsedGst) && parsedGst >= 0 ? parsedGst : 18;
+        const safeGst = Number.isFinite(parsedGst) && parsedGst >= 0 ? parsedGst : 5;
         const updatedItem = {
           ...item,
           productName: editForm.name,
@@ -2754,6 +2792,11 @@ const AdminPOSOrders = () => {
 
   const openPurchaseEditModal = (item: PurchaseItem) => {
     setEditingPurchaseItem(item);
+    const existingGst = item.gstPercent;
+    const gstStr =
+      existingGst === undefined || existingGst === null || (typeof existingGst === 'number' && !Number.isFinite(existingGst))
+        ? '5'
+        : String(existingGst);
     setPurchaseEditForm({
       name: item.productName,
       price: item.retailPrice.toString(),
@@ -2762,13 +2805,18 @@ const AdminPOSOrders = () => {
       purchasePrice: item.purchasePrice.toString(),
       wholesalePrice: item.wholesalePrice.toString(),
       warrantyType: 'None',
-      warrantyDuration: ''
+      warrantyDuration: '',
+      hsnCode: item.hsn || '',
+      gst: gstStr,
     });
   };
 
   const handlePurchaseEditItemSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPurchaseItem) return;
+
+    const parsedGst = parseFloat(purchaseEditForm.gst);
+    const safeGst = Number.isFinite(parsedGst) && parsedGst >= 0 ? parsedGst : 5;
 
     updatePurchaseItem(editingPurchaseItem.id, {
       productName: purchaseEditForm.name,
@@ -2777,6 +2825,8 @@ const AdminPOSOrders = () => {
       purchasePrice: parseFloat(purchaseEditForm.purchasePrice) || 0,
       wholesalePrice: parseFloat(purchaseEditForm.wholesalePrice) || 0,
       qty: parseInt(purchaseEditForm.qty) || 1,
+      hsn: purchaseEditForm.hsnCode.trim(),
+      gstPercent: safeGst,
     });
     setEditingPurchaseItem(null);
   };
@@ -3497,9 +3547,9 @@ const AdminPOSOrders = () => {
               const gstRaw = (item as any).gst;
               const gstNum =
                 gstRaw === undefined || gstRaw === null || gstRaw === ''
-                  ? 18
+                  ? 5
                   : Number(gstRaw);
-              const safeGst = Number.isFinite(gstNum) && gstNum >= 0 ? gstNum : 18;
+              const safeGst = Number.isFinite(gstNum) && gstNum >= 0 ? gstNum : 5;
               return {
                 productId: (item.originalProductId || item._id)?.match?.(/^[a-f\d]{24}$/i) ? (item.originalProductId || item._id) : undefined,
                 variationId: item.variationId,
@@ -5517,6 +5567,26 @@ const AdminPOSOrders = () => {
                             />
                         </div>
                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+                            <input
+                               type="text"
+                               value={quickForm.hsnCode}
+                               onChange={e => setQuickForm({...quickForm, hsnCode: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--primary-color)] focus:outline-none"
+                               placeholder="e.g. 9608"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">GST (%)</label>
+                            <input
+                               type="number" min="0" step="0.01"
+                               value={quickForm.gst}
+                               onChange={e => setQuickForm({...quickForm, gst: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--primary-color)] focus:outline-none"
+                               placeholder="5"
+                            />
+                        </div>
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                             <input
                                type="number" required min="1"
@@ -5652,7 +5722,7 @@ const AdminPOSOrders = () => {
                                value={editForm.gst}
                                onChange={e => setEditForm({...editForm, gst: e.target.value})}
                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
-                               placeholder="18"
+                               placeholder="5"
                             />
                         </div>
                         <div>
@@ -5757,6 +5827,26 @@ const AdminPOSOrders = () => {
                                value={purchaseEditForm.wholesalePrice} onChange={e => setPurchaseEditForm({...purchaseEditForm, wholesalePrice: e.target.value})}
                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--primary-color)] focus:outline-none"
                                placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+                            <input
+                               type="text"
+                               value={purchaseEditForm.hsnCode}
+                               onChange={e => setPurchaseEditForm({...purchaseEditForm, hsnCode: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--primary-color)] focus:outline-none"
+                               placeholder="e.g. 9608"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">GST (%)</label>
+                            <input
+                               type="number" min="0" step="0.01"
+                               value={purchaseEditForm.gst}
+                               onChange={e => setPurchaseEditForm({...purchaseEditForm, gst: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--primary-color)] focus:outline-none"
+                               placeholder="5"
                             />
                         </div>
                         <div>

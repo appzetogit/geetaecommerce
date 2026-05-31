@@ -129,6 +129,7 @@ const SellerLowStockSummary = lazy(() => import("./modules/seller/pages/SellerLo
 const SellerOutOfStockSummary = lazy(() => import("./modules/seller/pages/SellerOutOfStockSummary"));
 const SellerLossSummary = lazy(() => import("./modules/seller/pages/SellerLossSummary"));
 const SellerGSTSalesReport = lazy(() => import("./modules/seller/pages/SellerGSTSalesReport"));
+const SellerGSTReport = lazy(() => import("./modules/seller/pages/SellerGSTReport"));
 const SellerPaymentReport = lazy(() => import("./modules/seller/pages/SellerPaymentReport"));
 const SellerReportSalesSummary = lazy(() => import("./modules/seller/pages/SellerReportSalesSummary"));
 const SellerReturnExchangeSummary = lazy(() => import("./modules/seller/pages/SellerReturnExchangeSummary"));
@@ -219,6 +220,7 @@ const AdminLowStockSummary = lazy(() => import("./modules/admin/pages/AdminLowSt
 const AdminOutOfStockSummary = lazy(() => import("./modules/admin/pages/AdminOutOfStockSummary"));
 const AdminLossSummary = lazy(() => import("./modules/admin/pages/AdminLossSummary"));
 const AdminGSTSalesReport = lazy(() => import("./modules/admin/pages/AdminGSTSalesReport"));
+const AdminGSTReport = lazy(() => import("./modules/admin/pages/AdminGSTReport"));
 const AdminPaymentReport = lazy(() => import("./modules/admin/pages/AdminPaymentReport"));
 const AdminOnlineOrderReport = lazy(() => import("./modules/admin/pages/AdminOnlineOrderReport"));
 const AdminPOSInvoiceReport = lazy(() => import("./modules/admin/pages/AdminPOSInvoiceReport"));
@@ -493,6 +495,7 @@ function App() {
                               <Route path="inventory-reports/out-of-stock" element={<SellerOutOfStockSummary />} />
                               <Route path="inventory-reports/loss-summary" element={<SellerLossSummary />} />
                               <Route path="reports/gst-sales" element={<SellerGSTSalesReport />} />
+                              <Route path="reports/gst-register" element={<SellerGSTReport />} />
                               <Route path="reports/payment" element={<SellerPaymentReport />} />
                               <Route path="reports/sales/summary" element={<SellerReportSalesSummary />} />
                               <Route path="reports/sales/return-exchange" element={<SellerReturnExchangeSummary />} />
@@ -597,6 +600,7 @@ function App() {
                             <Route path="reports/inventory/out-of-stock" element={<AdminOutOfStockSummary />} />
                             <Route path="reports/inventory/loss-summary" element={<AdminLossSummary />} />
                             <Route path="reports/gst-sales" element={<AdminGSTSalesReport />} />
+                            <Route path="reports/gst-register" element={<AdminGSTReport />} />
                             <Route path="reports/payment" element={<AdminPaymentReport />} />
                             <Route path="reports/order" element={<AdminOnlineOrderReport />} />
                             <Route path="reports/invoice" element={<AdminPOSInvoiceReport />} />

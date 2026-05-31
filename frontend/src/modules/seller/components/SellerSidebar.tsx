@@ -268,6 +268,13 @@ const menuItems: MenuItem[] = [
         ),
       },
       {
+        label: "Custom GST Report",
+        path: "/seller/reports/gst-register",
+        icon: (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18"></path><path d="M9 4v16"></path><path d="M15 14h3"></path><path d="M15 17h3"></path></svg>
+        ),
+      },
+      {
         label: "Payment Report",
         path: "/seller/reports/payment",
         icon: (

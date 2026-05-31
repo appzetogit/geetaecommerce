@@ -8,6 +8,12 @@ import {
   getStockSalesSummary,
   getDueSummaryReport
 } from "../modules/seller/controllers/reportController";
+import {
+  listGSTReport,
+  createGSTReportEntry,
+  updateGSTReportEntry,
+  deleteGSTReportEntry,
+} from "../modules/seller/controllers/sellerGSTReportController";
 import { authenticate, requireUserType, checkEnabled } from "../middleware/auth";
 
 const router = Router();
@@ -24,5 +30,11 @@ router.get("/sales-summary", getSalesSummaryReport);
 router.get("/return-exchange", getReturnExchangeReport);
 router.get("/stock-sales-summary", getStockSalesSummary);
 router.get("/due-summary", getDueSummaryReport);
+
+// Custom GST Report (Purchase GST Register) - manual register CRUD
+router.get("/gst-register", listGSTReport);
+router.post("/gst-register", createGSTReportEntry);
+router.patch("/gst-register/:id", updateGSTReportEntry);
+router.delete("/gst-register/:id", deleteGSTReportEntry);
 
 export default router;

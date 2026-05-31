@@ -32,6 +32,8 @@ export interface IProduct extends Document {
   barcode?: string[];
   rackNumber?: string;
   hsnCode?: string;
+  // GST percentage (e.g. 5 for 5%). Defaults to 5 if not provided.
+  gst?: number;
   purchasePrice?: number;
   lowStockQuantity?: number;
   deliveryTime?: string;
@@ -235,6 +237,11 @@ export interface IProduct extends Document {
     hsnCode: {
       type: String,
       trim: true,
+    },
+    gst: {
+      type: Number,
+      min: [0, "GST cannot be negative"],
+      default: 5,
     },
     purchasePrice: {
       type: Number,
