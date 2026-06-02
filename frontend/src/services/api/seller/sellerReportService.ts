@@ -3,18 +3,21 @@ import { ApiResponse } from "./types";
 
 export interface GSTSalesData {
   _id: string; // Order Item ID
-  date: string;
-  invoiceNo: string;
-  customerName: string;
-  gstin: string;
+  date?: string;
+  invoiceNo?: string;
+  customerName?: string;
+  gstin?: string;
   productName: string;
-  hsn: string;
-  quantity: number;
-  stock: number;
-  price: number;
-  taxPercentage: number;
-  taxAmount: number;
-  totalAmount: number;
+  hsn?: string;
+  hsnCode?: string;
+  quantity?: number;
+  stock?: number;
+  price?: number;
+  taxableAmount?: number;
+  taxPercentage?: number;
+  gst?: number;
+  taxAmount?: number;
+  totalAmount?: number;
 }
 
 export interface PaymentData {

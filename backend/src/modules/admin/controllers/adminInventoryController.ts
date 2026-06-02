@@ -7,6 +7,7 @@ import InventoryLoss from "../../../models/InventoryLoss";
 import StockLedger from "../../../models/StockLedger";
 import Return from "../../../models/Return";
 import OrderItem from "../../../models/OrderItem";
+import AdminPurchaseEntry from "../../../models/AdminPurchaseEntry";
 import "../../../models/Category";
 import "../../../models/Brand";
 import "../../../models/Seller";
@@ -866,7 +867,7 @@ export const deleteLossRecord = asyncHandler(async (req: Request, res: Response)
 });
 
 export const getGSTSalesReport = asyncHandler(
-  async (req: Request, res: Response) => {
+    async (req: Request, res: Response) => {
     const {
       page = 1,
       limit = 20,
@@ -880,6 +881,78 @@ export const getGSTSalesReport = asyncHandler(
     const skip = (pageNum - 1) * limitNum;
 
     const searchRegex = search ? new RegExp(search as string, "i") : null;
+    const normalizeDate = (value: any) => {
+      if (!value) return "";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? String(value) : date.toISOString().slice(0, 10);
+    };
+    const isWithinRange = (dateValue: string, from?: string, to?: string) => {
+      if ((!from && !to) || !dateValue) return true;
+      const ts = new Date(dateValue).getTime();
+      if (Number.isNaN(ts)) return true;
+      if (from) {
+        const fromTs = new Date(from as string).getTime();
+        if (!Number.isNaN(fromTs) && ts < fromTs) return false;
+      }
+      if (to) {
+        const toDate = new Date(to as string);
+        if (!Number.isNaN(toDate.getTime())) {
+          toDate.setHours(23, 59, 59, 999);
+          if (ts > toDate.getTime()) return false;
+        }
+      }
+      return true;
+    };
+    const buildQuotationRows = (entries: any[]) => {
+      return entries.flatMap((entry) => {
+        const entryData = entry.data || {};
+        const items = Array.isArray(entryData.items) ? entryData.items : [];
+        const quoteDate = normalizeDate(entryData.date || entry.date || entry.createdAt);
+        const invoiceNo = `QTN-${String(entry.entryId || entryData.id || entry._id).slice(-8).toUpperCase()}`;
+        const customerName =
+          entryData.customer?.name ||
+          entryData.customerName ||
+          entryData.supplier?.name ||
+          "Quotation";
+
+        return items.map((item: any, index: number) => {
+          const quantity = Number(item.qty ?? item.quantity ?? 0);
+          const unitPrice = Number(item.purchasePrice ?? item.unitPrice ?? item.price ?? 0);
+          const gross = unitPrice * quantity;
+          const discount =
+            item.billDiscountType === "%"
+              ? (gross * Number(item.billDiscount ?? 0)) / 100
+              : Number(item.billDiscount ?? 0);
+          const netBeforeTax = Math.max(gross - discount, 0);
+          const rate = Number(item.gstPercent ?? item.gst ?? item.taxPercentage ?? 0);
+          const inclusive = item.includingGST !== false;
+          const taxAmount = rate > 0
+            ? inclusive
+              ? Number(((netBeforeTax * rate) / (100 + rate)).toFixed(2))
+              : Number(((netBeforeTax * rate) / 100).toFixed(2))
+            : 0;
+          const taxableAmount = inclusive ? Number((netBeforeTax - taxAmount).toFixed(2)) : netBeforeTax;
+          const totalAmount = Number((taxableAmount + taxAmount).toFixed(2));
+
+          return {
+            _id: `${entry.entryId || entry._id}-${index}`,
+            type: "quotation",
+            date: quoteDate,
+            invoiceNo,
+            customerName,
+            productName: item.productName || "Quotation Item",
+            hsn: item.hsnCode || item.hsn || "N/A",
+            quantity,
+            stock: 0,
+            price: unitPrice,
+            taxableAmount,
+            taxPercentage: rate,
+            taxAmount,
+            totalAmount,
+          };
+        });
+      });
+    };
 
     const matchQuery: any = {};
     if (dateFrom || dateTo) {
@@ -930,13 +1003,46 @@ export const getGSTSalesReport = asyncHandler(
           customerName: "$customerName",
           gstin: { $ifNull: ["$billingAddress.gstin", "N/A"] }, // Assuming billing address has GSTIN if B2B
           productName: "$itemDetails.productName",
-          hsn: { $ifNull: ["$productDetails.hsnCode", ""] },
+          hsn: { $ifNull: ["$itemDetails.hsnCode", { $ifNull: ["$productDetails.hsnCode", "N/A"] }] },
           quantity: "$itemDetails.quantity",
           taxableAmount: {
-            $multiply: ["$itemDetails.unitPrice", "$itemDetails.quantity"]
-            // Note: If unitPrice is inclusive of tax, we need to back-calculate.
-            // Assuming unitPrice is the selling price. If tax is extra or inclusive depends on business logic.
-            // For simplicity, let's assume unitPrice is the taxable value for now or just display it.
+            $let: {
+              vars: {
+                rate: { $ifNull: ["$itemDetails.gst", { $ifNull: ["$taxDetails.percentage", 0] }] }
+              },
+              in: {
+                $cond: [
+                  { $gt: ["$$rate", 0] },
+                  { $divide: ["$itemDetails.total", { $add: [1, { $divide: ["$$rate", 100] }] }] },
+                  { $multiply: ["$itemDetails.unitPrice", "$itemDetails.quantity"] }
+                ]
+              }
+            }
+          },
+          taxPercentage: { $ifNull: ["$itemDetails.gst", { $ifNull: ["$taxDetails.percentage", 0] }] },
+          taxAmount: {
+            $ifNull: [
+              "$itemDetails.gstAmount",
+              {
+                $let: {
+                  vars: {
+                    rate: { $ifNull: ["$itemDetails.gst", { $ifNull: ["$taxDetails.percentage", 0] }] }
+                  },
+                  in: {
+                    $cond: [
+                      { $gt: ["$$rate", 0] },
+                      {
+                        $divide: [
+                          { $multiply: ["$itemDetails.total", "$$rate"] },
+                          { $add: [100, "$$rate"] }
+                        ]
+                      },
+                      0
+                    ]
+                  }
+                }
+              }
+            ]
           },
           cgst: { $ifNull: ["$taxDetails.cgst", 0] }, // If tax model has split
           sgst: { $ifNull: ["$taxDetails.sgst", 0] },
@@ -955,28 +1061,35 @@ export const getGSTSalesReport = asyncHandler(
           }
         }
       ] : []),
-      { $sort: { date: -1, invoiceNo: -1 } },
-      {
-        $facet: {
-          data: [
-            { $skip: skip },
-            { $limit: limitNum }
-          ],
-          totalCount: [
-            { $count: "count" }
-          ]
-        }
-      }
+      { $sort: { date: -1, invoiceNo: -1 } }
     ];
 
     const results = await Order.aggregate(pipeline);
-    const data = results[0].data;
-    const total = results[0].totalCount[0]?.count || 0;
+    const orderRows = results || [];
+    const quotationEntries = await AdminPurchaseEntry.find({
+      admin: new mongoose.Types.ObjectId((req as any).user.userId),
+      type: "quotation",
+    }).lean();
+    const quotationRows = buildQuotationRows(quotationEntries).filter((row) => {
+      if (!isWithinRange(row.date, dateFrom as string | undefined, dateTo as string | undefined)) {
+        return false;
+      }
+      if (!searchRegex) return true;
+      return searchRegex.test(row.invoiceNo) || searchRegex.test(row.customerName) || searchRegex.test(row.productName);
+    });
+
+    const data = [...orderRows, ...quotationRows].sort((a, b) => {
+      const dateDiff = String(b.date || "").localeCompare(String(a.date || ""));
+      if (dateDiff !== 0) return dateDiff;
+      return String(b.invoiceNo || "").localeCompare(String(a.invoiceNo || ""));
+    });
+    const total = data.length;
+    const paginatedData = data.slice(skip, skip + limitNum);
 
     return res.status(200).json({
       success: true,
       message: "GST Sales report fetched successfully",
-      data,
+      data: paginatedData,
       pagination: {
         page: pageNum,
         limit: limitNum,

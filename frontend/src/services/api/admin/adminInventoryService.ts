@@ -152,12 +152,23 @@ export const deleteLossRecord = async (id: string): Promise<ApiResponse<any>> =>
 
 export interface GSTSalesData {
   _id: string;
+  date?: string;
+  invoiceNo?: string;
+  customerName?: string;
+  gstin?: string;
   productName: string;
-  hsnCode: string;
-  stock: number;
-  price: number;
-  taxPercentage: number;
-  taxAmount: number;
+  hsn?: string;
+  hsnCode?: string;
+  quantity?: number;
+  stock?: number;
+  price?: number;
+  taxableAmount?: number;
+  taxPercentage?: number;
+  taxAmount?: number;
+  cgst?: number;
+  sgst?: number;
+  igst?: number;
+  totalAmount?: number;
 }
 
 /**

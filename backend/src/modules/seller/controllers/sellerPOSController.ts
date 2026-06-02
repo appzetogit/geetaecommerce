@@ -47,7 +47,7 @@ export const getPOSProducts = asyncHandler(
     }
 
     const products = await Product.find(query)
-      .select("productName mainImage price compareAtPrice wholesalePrice purchasePrice discPrice stock sku variations category barcode itemCode seller")
+      .select("productName mainImage price compareAtPrice wholesalePrice purchasePrice discPrice stock sku variations category barcode itemCode seller hsnCode gst tax")
       .populate("category", "name")
       .sort({ productName: 1 })
       .limit(100); // Limit results for performance
@@ -160,6 +160,31 @@ export const createPOSOrder = asyncHandler(
                sku: (product?.sku && String(product.sku).trim()) || (item.sku) || "NO-SKU",
            };
 
+           const payloadHsnCode =
+             typeof item.hsnCode === "string" && item.hsnCode.trim()
+               ? item.hsnCode.trim()
+               : typeof item.hsn === "string" && item.hsn.trim()
+                 ? item.hsn.trim()
+                 : "";
+           const payloadGstRateRaw =
+             item.gst !== undefined && item.gst !== null && item.gst !== ""
+               ? Number(item.gst)
+               : item.gstPercent !== undefined && item.gstPercent !== null && item.gstPercent !== ""
+                 ? Number(item.gstPercent)
+                 : undefined;
+           const resolvedGstRate = Number.isFinite(payloadGstRateRaw as number)
+             ? Number(payloadGstRateRaw)
+             : Number.isFinite(Number((product as any)?.gst))
+               ? Number((product as any).gst)
+               : 5;
+           const safeGstRate = resolvedGstRate >= 0 ? resolvedGstRate : 5;
+           const resolvedHsnCode =
+             payloadHsnCode ||
+             (typeof (product as any)?.hsnCode === "string" ? String((product as any).hsnCode).trim() : "");
+           const resolvedGstAmount = safeGstRate > 0
+             ? Number(((totalItemPrice * safeGstRate) / (100 + safeGstRate)).toFixed(2))
+             : 0;
+
            let sku = productData.sku;
            let varId = null;
 
@@ -217,9 +242,12 @@ export const createPOSOrder = asyncHandler(
              productName: productData.productName,
              productImage: productData.mainImage,
              sku: sku || "NO-SKU",
+             hsnCode: resolvedHsnCode,
+             gst: safeGstRate,
              unitPrice: unitPrice,
              quantity: soldQty,
              total: totalItemPrice,
+             gstAmount: resolvedGstAmount,
              status: "Delivered",
              warrantyType: item.warrantyType || product?.warrantyType || "None",
              warrantyDuration: item.warrantyDuration || product?.warrantyDuration || ""

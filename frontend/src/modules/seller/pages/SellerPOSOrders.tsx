@@ -950,6 +950,8 @@ const SellerPOSOrders = () => {
 
              // Prepare Cart Item
              let itemToAdd: any = { ...match };
+             itemToAdd.hsn = itemToAdd.hsn || itemToAdd.hsnCode || "";
+             itemToAdd.gstPercent = Number(itemToAdd.gstPercent ?? itemToAdd.gst ?? itemToAdd.taxPercentage ?? 0);
 
              if (variationMatch) {
                 // Formatting variation as CartItem
@@ -1606,6 +1608,8 @@ const SellerPOSOrders = () => {
       }
 
       const newItem = { ...(product as CartItem), qty: 1 };
+      newItem.hsn = newItem.hsn || (product as any).hsnCode || "";
+      newItem.gstPercent = Number(newItem.gstPercent ?? (product as any).gst ?? (product as any).taxPercentage ?? 0);
       if (orderType === 'Wholesale' && product.wholesalePrice) {
           newItem.customPrice = product.wholesalePrice;
       }
@@ -3061,6 +3065,8 @@ const SellerPOSOrders = () => {
                 quantity: item.qty,
                 price: getEffectivePrice(item),
                 variationId: item.variationId,
+                hsnCode: item.hsn || (item as any).hsnCode || "",
+                gst: Number(item.gstPercent ?? (item as any).gst ?? 0),
                 warrantyType: (item as any).warrantyType || 'None',
                 warrantyDuration: (item as any).warrantyDuration || ''
             })),
@@ -3186,6 +3192,8 @@ const SellerPOSOrders = () => {
                 quantity: item.qty,
                 price: getEffectivePrice(item),
                 variationId: item.variationId,
+                hsnCode: item.hsn || (item as any).hsnCode || "",
+                gst: Number(item.gstPercent ?? (item as any).gst ?? 0),
                 warrantyType: (item as any).warrantyType || 'None',
                 warrantyDuration: (item as any).warrantyDuration || ''
             })),
@@ -3246,6 +3254,8 @@ const SellerPOSOrders = () => {
                     quantity: item.qty,
                     price: getEffectivePrice(item),
                     variationId: item.variationId,
+                    hsnCode: item.hsn || (item as any).hsnCode || "",
+                    gst: Number(item.gstPercent ?? (item as any).gst ?? 0),
                     warrantyType: (item as any).warrantyType || 'None',
                     warrantyDuration: (item as any).warrantyDuration || ''
                 })),
@@ -3303,6 +3313,8 @@ const SellerPOSOrders = () => {
               sku: item.sku,
               productName: item.productName,
               productImage: item.mainImage || (item as any).image || '',
+              hsnCode: item.hsn || (item as any).hsnCode || "",
+              gst: Number(item.gstPercent ?? (item as any).gst ?? 0),
               warrantyType: (item as any).warrantyType || 'None',
               warrantyDuration: (item as any).warrantyDuration || ''
           }));
