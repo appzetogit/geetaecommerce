@@ -243,6 +243,23 @@ export const createProduct = asyncHandler(
       newProductData.shopId = null;
     }
 
+    // Auto-inherit headerCategoryId from the selected Category when missing.
+    // Sellers with `canCreateCategories` OFF aren't allowed to set this directly,
+    // but they CAN inherit it from an admin-managed Category they pick — that's
+    // the only way their products surface on the right header-category tab.
+    if (!newProductData.headerCategoryId && newProductData.category) {
+      try {
+        const catDoc = await Category.findById(newProductData.category)
+          .select("headerCategoryId")
+          .lean();
+        if (catDoc?.headerCategoryId) {
+          newProductData.headerCategoryId = catDoc.headerCategoryId;
+        }
+      } catch {
+        // Non-fatal.
+      }
+    }
+
     const product = await Product.create(newProductData);
 
     return res.status(201).json({
@@ -588,6 +605,26 @@ export const updateProduct = asyncHandler(
         success: false,
         message: "Product not found",
       });
+    }
+
+    // Auto-inherit headerCategoryId from the (possibly newly-set) category if
+    // the caller didn't touch it explicitly. Keeps the product on the right
+    // header-category tab when sellers move it between categories.
+    if (
+      updateData.headerCategoryId === undefined &&
+      updateData.category &&
+      String(updateData.category) !== String(product.category)
+    ) {
+      try {
+        const catDoc = await Category.findById(updateData.category)
+          .select("headerCategoryId")
+          .lean();
+        if (catDoc?.headerCategoryId) {
+          updateData.headerCategoryId = catDoc.headerCategoryId;
+        }
+      } catch {
+        // Non-fatal.
+      }
     }
 
     // Apply updates

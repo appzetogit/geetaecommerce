@@ -3305,7 +3305,11 @@ const AdminPOSOrders = () => {
                   quantity: item.qty,
                   price: getEffectivePrice(item),
                   mrp: Number(item.compareAtPrice || 0),
-                  variationId: item.variationId
+                  variationId: item.variationId,
+                  hsnCode: (item as any).hsnCode || (item as any).hsn || '',
+                  gst: Number((item as any).gst ?? (item as any).gstPercent ?? NaN),
+                  warrantyType: (item as any).warrantyType || 'None',
+                  warrantyDuration: (item as any).warrantyDuration || ''
               })),
               gateway: method,
               createdBy: activeStaffSession?.id,
@@ -3430,7 +3434,11 @@ const AdminPOSOrders = () => {
                 quantity: item.qty,
                 price: getEffectivePrice(item),
                 mrp: Number(item.compareAtPrice || 0),
-                variationId: item.variationId
+                variationId: item.variationId,
+                hsnCode: (item as any).hsnCode || (item as any).hsn || '',
+                gst: Number((item as any).gst ?? (item as any).gstPercent ?? NaN),
+                warrantyType: (item as any).warrantyType || 'None',
+                warrantyDuration: (item as any).warrantyDuration || ''
             })),
             paymentMethod: 'Cash',
             paymentStatus: "Paid" as const,
@@ -3494,7 +3502,11 @@ const AdminPOSOrders = () => {
                     quantity: item.qty,
                     price: getEffectivePrice(item),
                     mrp: Number(item.compareAtPrice || 0),
-                    variationId: item.variationId
+                    variationId: item.variationId,
+                    hsnCode: (item as any).hsnCode || (item as any).hsn || '',
+                    gst: Number((item as any).gst ?? (item as any).gstPercent ?? NaN),
+                    warrantyType: (item as any).warrantyType || 'None',
+                    warrantyDuration: (item as any).warrantyDuration || ''
                 })),
                 paymentMethod: 'Credit',
                 paymentStatus: "Pending" as const,

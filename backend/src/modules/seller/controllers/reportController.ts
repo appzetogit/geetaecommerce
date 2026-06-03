@@ -222,14 +222,28 @@ export const getGSTSalesReport = asyncHandler(
             });
         };
 
-        const matchQuery: any = {
-            seller: new mongoose.Types.ObjectId(sellerId)
-        };
+        const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+
+        // PRE-FETCH: get all POS order IDs for this seller using the adminNotes index.
+        // This is far more efficient than starting the pipeline with a $lookup (full scan).
+        const posOrders = await Order.find({
+            adminNotes: { $regex: `POS Order - Seller: ${sellerId}`, $options: "i" }
+        }).select("_id").lean();
+        const posOrderIds = posOrders.map((o: any) => o._id);
 
         // Aggregation Pipeline
         const pipeline: any[] = [
-            // 1. Match Seller Items
-            { $match: matchQuery },
+            // 1. Match Seller Items — uses indexes on OrderItem.seller and OrderItem.order.
+            //    Includes items directly assigned to this seller (online orders)
+            //    AND all items in POS orders created by this seller (by order._id pre-fetch).
+            {
+                $match: {
+                    $or: [
+                        { seller: sellerObjectId },
+                        { order: { $in: posOrderIds } }
+                    ]
+                }
+            },
 
             // 2. Lookup Order Details
             {

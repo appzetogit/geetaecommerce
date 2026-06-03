@@ -1294,6 +1294,7 @@ export const createPOSOrder = asyncHandler(
 
         // 2. Create Order Items
         let subtotal = 0;
+        let taxTotal = 0;
         const orderItemsIds = [];
 
         for (const item of items) {
@@ -1304,9 +1305,10 @@ export const createPOSOrder = asyncHandler(
                seller: null
            };
            let productId = null;
+           let product: any = null;
 
            if (mongoose.Types.ObjectId.isValid(item.productId)) {
-               const product = await Product.findById(item.productId).populate('seller');
+               product = await Product.findById(item.productId).populate('seller');
                if (product) {
                    productId = product._id;
                    productData = {
@@ -1321,6 +1323,35 @@ export const createPOSOrder = asyncHandler(
            const total = Number(item.price) * Number(item.quantity);
            subtotal += total;
 
+           // Resolve HSN/GST: prefer per-line payload (POS Edit Item modal), then product, then defaults.
+           const payloadHsnCode =
+             typeof item.hsnCode === "string" && item.hsnCode.trim()
+               ? item.hsnCode.trim()
+               : typeof item.hsn === "string" && item.hsn.trim()
+                 ? item.hsn.trim()
+                 : "";
+           const resolvedHsnCode =
+             payloadHsnCode ||
+             (typeof (product as any)?.hsnCode === "string" ? String((product as any).hsnCode).trim() : "");
+
+           const payloadGstRateRaw =
+             item.gst !== undefined && item.gst !== null && item.gst !== ""
+               ? Number(item.gst)
+               : item.gstPercent !== undefined && item.gstPercent !== null && item.gstPercent !== ""
+                 ? Number(item.gstPercent)
+                 : NaN;
+           const resolvedGstRate = Number.isFinite(payloadGstRateRaw)
+             ? payloadGstRateRaw
+             : Number.isFinite(Number((product as any)?.gst))
+               ? Number((product as any).gst)
+               : 5;
+           const safeGstRate = resolvedGstRate >= 0 ? resolvedGstRate : 5;
+           // GST is treated as inclusive in the POS price (B2C retail convention).
+           const resolvedGstAmount = safeGstRate > 0
+             ? Number(((total * safeGstRate) / (100 + safeGstRate)).toFixed(2))
+             : 0;
+           taxTotal += resolvedGstAmount;
+
             const orderItemPayload: any = {
               order: order._id,
               productName: productData.productName,
@@ -1330,7 +1361,12 @@ export const createPOSOrder = asyncHandler(
               unitPrice: item.price,
               quantity: item.quantity,
               total: total,
-             status: "Delivered"
+              hsnCode: resolvedHsnCode,
+              gst: safeGstRate,
+              gstAmount: resolvedGstAmount,
+              warrantyType: item.warrantyType || (product as any)?.warrantyType || "None",
+              warrantyDuration: item.warrantyDuration || (product as any)?.warrantyDuration || "",
+              status: "Delivered"
            };
 
            if (productId) orderItemPayload.product = productId;
@@ -1341,13 +1377,14 @@ export const createPOSOrder = asyncHandler(
         }
 
         // 3. Update Order with correct totals
-        const tax = 0;
         const shipping = 0;
         const discount = 0;
-        const total = subtotal + tax + shipping - discount;
+        // GST is inclusive in unitPrice, so subtotal already contains tax — don't add it again to the grand total.
+        const total = subtotal + shipping - discount;
 
         order.items = orderItemsIds;
         order.subtotal = subtotal;
+        order.tax = Number(taxTotal.toFixed(2));
         order.total = total;
 
         if (paymentMethod === 'Credit') {
@@ -1484,6 +1521,7 @@ export const initiatePOSOnlineOrder = asyncHandler(
 
     // Calculate Total
     let subtotal = 0;
+    let taxTotal = 0;
     const orderItemsPayload = [];
 
     for (const item of items) {
@@ -1494,9 +1532,10 @@ export const initiatePOSOnlineOrder = asyncHandler(
            seller: null
        };
        let productId = null;
+       let product: any = null;
 
        if (item.productId && mongoose.Types.ObjectId.isValid(item.productId)) {
-           const product = await Product.findById(item.productId).populate('seller');
+           product = await Product.findById(item.productId).populate('seller');
            if (product) {
                productId = product._id;
                productData = {
@@ -1511,6 +1550,34 @@ export const initiatePOSOnlineOrder = asyncHandler(
        const total = Number(item.price) * Number(item.quantity);
        subtotal += total;
 
+       // Resolve HSN/GST: prefer per-line payload, then product, then defaults.
+       const payloadHsnCode =
+         typeof item.hsnCode === "string" && item.hsnCode.trim()
+           ? item.hsnCode.trim()
+           : typeof item.hsn === "string" && item.hsn.trim()
+             ? item.hsn.trim()
+             : "";
+       const resolvedHsnCode =
+         payloadHsnCode ||
+         (typeof (product as any)?.hsnCode === "string" ? String((product as any).hsnCode).trim() : "");
+
+       const payloadGstRateRaw =
+         item.gst !== undefined && item.gst !== null && item.gst !== ""
+           ? Number(item.gst)
+           : item.gstPercent !== undefined && item.gstPercent !== null && item.gstPercent !== ""
+             ? Number(item.gstPercent)
+             : NaN;
+       const resolvedGstRate = Number.isFinite(payloadGstRateRaw)
+         ? payloadGstRateRaw
+         : Number.isFinite(Number((product as any)?.gst))
+           ? Number((product as any).gst)
+           : 5;
+       const safeGstRate = resolvedGstRate >= 0 ? resolvedGstRate : 5;
+       const resolvedGstAmount = safeGstRate > 0
+         ? Number(((total * safeGstRate) / (100 + safeGstRate)).toFixed(2))
+         : 0;
+       taxTotal += resolvedGstAmount;
+
         const payload: any = {
           productName: productData.productName,
           productImage: productData.mainImage,
@@ -1519,6 +1586,11 @@ export const initiatePOSOnlineOrder = asyncHandler(
           unitPrice: item.price,
           quantity: item.quantity,
           total: total,
+          hsnCode: resolvedHsnCode,
+          gst: safeGstRate,
+          gstAmount: resolvedGstAmount,
+          warrantyType: item.warrantyType || (product as any)?.warrantyType || "None",
+          warrantyDuration: item.warrantyDuration || (product as any)?.warrantyDuration || "",
          status: "Pending" // Initial status
        };
        if (productId) payload.product = productId;
@@ -1541,7 +1613,8 @@ export const initiatePOSOnlineOrder = asyncHandler(
       },
       items: [], // Will populate after creating items
       subtotal: subtotal,
-      total: subtotal, // Assuming no tax/shipping for POS for now
+      tax: Number(taxTotal.toFixed(2)),
+      total: subtotal, // GST is inclusive in unit prices, so grand total stays at subtotal.
       paymentMethod: gateway,
       paymentStatus: "Pending",
       status: "Pending",

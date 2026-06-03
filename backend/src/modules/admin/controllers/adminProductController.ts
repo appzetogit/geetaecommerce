@@ -1004,6 +1004,22 @@ export const createProduct = asyncHandler(
       }
       productData.requiresApproval = false;
 
+      // Auto-inherit headerCategoryId from the selected Category when missing,
+      // so the product shows up on the matching header-category tab even if
+      // the admin/seller form didn't explicitly set it.
+      if (!productData.headerCategoryId && productData.category) {
+        try {
+          const catDoc = await Category.findById(productData.category)
+            .select("headerCategoryId")
+            .lean();
+          if (catDoc?.headerCategoryId) {
+            productData.headerCategoryId = catDoc.headerCategoryId;
+          }
+        } catch {
+          // Non-fatal: continue without inherited headerCategoryId.
+        }
+      }
+
       const product = await Product.create(productData);
 
       // Create inventory record
@@ -1289,6 +1305,26 @@ export const updateProduct = asyncHandler(
       });
     }
 
+    // Auto-inherit headerCategoryId from the (possibly newly-set) category if the
+    // payload didn't explicitly set one. Mirrors createProduct so the product
+    // stays in sync with its category's header on edits.
+    if (
+      updateData.headerCategoryId === undefined &&
+      updateData.category &&
+      String(updateData.category) !== String(product.category)
+    ) {
+      try {
+        const catDoc = await Category.findById(updateData.category)
+          .select("headerCategoryId")
+          .lean();
+        if (catDoc?.headerCategoryId) {
+          updateData.headerCategoryId = catDoc.headerCategoryId;
+        }
+      } catch {
+        // Non-fatal.
+      }
+    }
+
     // Category status verification removed to allow POS billing for inactive category products
     /*
     if (updateData.category) {
@@ -1565,6 +1601,110 @@ export const bulkUpdateProducts = asyncHandler(
       data: {
         matched: result.matchedCount,
         modified: result.modifiedCount,
+      },
+    });
+  }
+);
+
+/**
+ * Backfill `headerCategoryId` on existing products from their Category.
+ *
+ * Historically, products were created/imported without explicitly setting
+ * `headerCategoryId`. The header-category tab on the storefront then relied on
+ * a Category-tree walk to surface those products, which can silently miss
+ * items (e.g. inactive intermediate categories, partially-tagged trees).
+ *
+ * This endpoint runs a one-shot reconciliation: for every product missing a
+ * `headerCategoryId`, if its `category` document has one, copy it onto the
+ * product so it appears on the correct header tab.
+ *
+ * Optional body param: { dryRun: boolean } — when true, only reports counts.
+ */
+export const backfillProductHeaderCategory = asyncHandler(
+  async (req: Request, res: Response) => {
+    const dryRun = req.body?.dryRun === true;
+
+    // Find candidate products: missing headerCategoryId and have a category set.
+    const products = await Product.find({
+      category: { $exists: true, $ne: null },
+      $or: [
+        { headerCategoryId: { $exists: false } },
+        { headerCategoryId: null },
+      ],
+    })
+      .select("_id category headerCategoryId")
+      .lean();
+
+    if (products.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No products need backfill",
+        data: { scanned: 0, updated: 0 },
+      });
+    }
+
+    // Resolve headerCategoryId for each unique Category referenced by candidates.
+    const uniqueCategoryIds = Array.from(
+      new Set(products.map((p: any) => String(p.category)))
+    );
+
+    const categories = await Category.find({
+      _id: { $in: uniqueCategoryIds },
+    })
+      .select("_id headerCategoryId")
+      .lean();
+
+    const categoryHeaderMap = new Map<string, string>();
+    for (const cat of categories) {
+      if ((cat as any).headerCategoryId) {
+        categoryHeaderMap.set(
+          String(cat._id),
+          String((cat as any).headerCategoryId)
+        );
+      }
+    }
+
+    // Group products by target headerCategoryId to enable bulk updateMany.
+    const byHeader: Record<string, mongoose.Types.ObjectId[]> = {};
+    let candidateCount = 0;
+    for (const p of products as any[]) {
+      const headerId = categoryHeaderMap.get(String(p.category));
+      if (!headerId) continue;
+      if (!byHeader[headerId]) byHeader[headerId] = [];
+      byHeader[headerId].push(p._id);
+      candidateCount += 1;
+    }
+
+    if (dryRun) {
+      return res.status(200).json({
+        success: true,
+        message: `Dry-run complete: ${candidateCount} products would be updated across ${Object.keys(byHeader).length} header categories`,
+        data: {
+          scanned: products.length,
+          willUpdate: candidateCount,
+          byHeader: Object.fromEntries(
+            Object.entries(byHeader).map(([k, v]) => [k, v.length])
+          ),
+        },
+      });
+    }
+
+    let modifiedTotal = 0;
+    for (const [headerIdStr, productIds] of Object.entries(byHeader)) {
+      const headerId = new mongoose.Types.ObjectId(headerIdStr);
+      const result = await Product.updateMany(
+        { _id: { $in: productIds } },
+        { $set: { headerCategoryId: headerId } }
+      );
+      modifiedTotal += result.modifiedCount ?? 0;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Backfilled headerCategoryId on ${modifiedTotal} products`,
+      data: {
+        scanned: products.length,
+        updated: modifiedTotal,
       },
     });
   }

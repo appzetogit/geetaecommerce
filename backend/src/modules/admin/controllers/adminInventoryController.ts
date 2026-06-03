@@ -954,7 +954,11 @@ export const getGSTSalesReport = asyncHandler(
       });
     };
 
-    const matchQuery: any = {};
+    const matchQuery: any = {
+      // Scope: admin should NOT see seller-created POS orders (they belong to the seller's GST register).
+      // Seller POS orders are stamped with `adminNotes: "POS Order - Seller: <sellerId>"`.
+      adminNotes: { $not: { $regex: "POS Order - Seller:", $options: "i" } },
+    };
     if (dateFrom || dateTo) {
       matchQuery.orderDate = {};
       if (dateFrom) matchQuery.orderDate.$gte = new Date(dateFrom as string);
@@ -1116,7 +1120,10 @@ export const getPaymentReport = asyncHandler(
 
     const searchRegex = search ? new RegExp(search as string, "i") : null;
 
-    const matchQuery: any = {};
+    const matchQuery: any = {
+      // Scope: hide seller-created POS orders from the admin payment report.
+      adminNotes: { $not: { $regex: "POS Order - Seller:", $options: "i" } },
+    };
     if (dateFrom || dateTo) {
       matchQuery.orderDate = {};
       if (dateFrom) matchQuery.orderDate.$gte = new Date(dateFrom as string);
@@ -1215,7 +1222,10 @@ export const getSalesSummaryReport = asyncHandler(
     const sanitizedSearch = search ? (search as string).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : null;
     const searchRegex = sanitizedSearch ? new RegExp(sanitizedSearch, "i") : null;
 
-    const matchQuery: any = {};
+    const matchQuery: any = {
+      // Scope: hide seller-created POS orders from the admin sales summary.
+      adminNotes: { $not: { $regex: "POS Order - Seller:", $options: "i" } },
+    };
     if (dateFrom || dateTo) {
       matchQuery.orderDate = {};
       if (dateFrom) {
@@ -1539,7 +1549,9 @@ export const getStockSalesSummary = asyncHandler(
 
     // Initial Match Stage for Orders
     const matchQuery: any = {
-       // status: "Delivered" // Uncomment if strictly delivered only
+      // status: "Delivered" // Uncomment if strictly delivered only
+      // Scope: hide seller-created POS orders from the admin stock sales summary.
+      adminNotes: { $not: { $regex: "POS Order - Seller:", $options: "i" } },
     };
 
     // Order Date Filter
@@ -1743,7 +1755,9 @@ export const getDueSummaryReport = asyncHandler(
       // Let's filter for paymentStatus != 'Paid' OR 'Refunded'?
       // Actually, let's return all and let frontend decide or just filter primarily Pending/Failed.
       // Usually a due report is for unpaid items.
-      paymentStatus: { $in: ["Pending", "Failed"] }
+      paymentStatus: { $in: ["Pending", "Failed"] },
+      // Scope: hide seller-created POS orders from the admin due summary.
+      adminNotes: { $not: { $regex: "POS Order - Seller:", $options: "i" } },
     };
 
     if (dateFrom || dateTo) {

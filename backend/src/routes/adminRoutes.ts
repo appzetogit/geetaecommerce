@@ -170,6 +170,13 @@ router.delete("/products/:id", productController.deleteProduct);
 // router.patch("/products/:id/approve", productController.approveProductRequest);
 router.post("/products/bulk-import", productController.bulkImportProducts);
 router.put("/products/bulk-update", productController.bulkUpdateProducts);
+// One-shot reconciliation: copy headerCategoryId from each product's Category
+// onto the product itself (for items created before that auto-inheritance was
+// added). POST so admins can run it from the UI / postman with a dryRun flag.
+router.post(
+  "/products/backfill-header-category",
+  productController.backfillProductHeaderCategory
+);
 
 // ==================== Inventory Routes ====================
 router.get("/inventory/stock-summary", inventoryController.getStockSummary);

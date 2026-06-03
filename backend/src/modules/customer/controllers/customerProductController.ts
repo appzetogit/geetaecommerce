@@ -43,16 +43,32 @@ const findHeaderCategoryBySlug = async (value: string) => {
     .lean();
 };
 
+// Collect every Category._id that belongs to a header category, regardless of
+// status. We don't filter by `status: "Active"` here because the outer product
+// query already restricts to `activeCategoryIds`; doing it twice causes the
+// tree walk to stop at any inactive intermediate Category and silently hide
+// every product under it on the header-category tab.
 const getHeaderCategoryTreeIds = async (headerCategoryId: mongoose.Types.ObjectId) => {
   const allIds: mongoose.Types.ObjectId[] = [];
+  const seen = new Set<string>();
+
   let frontier = (
-    await Category.find({ headerCategoryId, status: "Active" }).select("_id").lean()
+    await Category.find({ headerCategoryId }).select("_id").lean()
   ).map((category: any) => category._id);
 
   while (frontier.length) {
-    allIds.push(...frontier);
+    const fresh = frontier.filter((id: any) => {
+      const key = String(id);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    if (!fresh.length) break;
+    allIds.push(...fresh);
+
     frontier = (
-      await Category.find({ parentId: { $in: frontier }, status: "Active" }).select("_id").lean()
+      await Category.find({ parentId: { $in: fresh } }).select("_id").lean()
     ).map((category: any) => category._id);
   }
 
