@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import ProductCard from "./components/ProductCard";
 import { getProductById } from "../../services/api/customerProductService";
 import { bannerService } from "../../services/bannerService";
-import { useThemeContext } from "../../context/ThemeContext";
+
+// Drive the hero band and CTA off the admin-managed Customer App Theme rather
+// than the previously hardcoded orange (#FF6D00 / #FF9100 / #E65100).
+const BRAND_GRADIENT = "linear-gradient(135deg, var(--customer-primary) 0%, var(--customer-primary-light) 100%)";
 
 export default function DealOfTheDayPage() {
   const navigate = useNavigate();
@@ -74,7 +77,7 @@ export default function DealOfTheDayPage() {
       {/* Hero Banner Area */}
       <div
         className="px-4 md:px-6 lg:px-8 py-6 md:py-10 text-white"
-        style={{ background: `linear-gradient(135deg, #FF6D00 0%, #FF9100 100%)` }}
+        style={{ background: BRAND_GRADIENT }}
       >
         <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl md:text-5xl font-black mb-2 tracking-tighter uppercase">DEAL OF THE DAY</h2>
@@ -115,7 +118,8 @@ export default function DealOfTheDayPage() {
                 <p className="text-neutral-500 font-bold text-lg">No active deals found for today.</p>
                 <button
                     onClick={() => navigate('/')}
-                    className="mt-6 px-8 py-3 bg-[#E65100] text-white rounded-xl font-bold hover:shadow-lg transition-all"
+                    className="mt-6 px-8 py-3 text-white rounded-xl font-bold hover:shadow-lg transition-all"
+                    style={{ backgroundColor: 'var(--customer-primary)' }}
                 >Continue Shopping</button>
             </div>
           </div>

@@ -1,11 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getTheme } from '../../../../utils/themes';
 import { useThemeContext } from '../../../../context/ThemeContext';
 import { bannerService } from '../../../../services/bannerService';
 import { getProductById } from '../../../../services/api/customerProductService';
 import { calculateProductPrice } from '../../../../utils/priceUtils';
 import { useLocation } from '../../../../hooks/useLocation';
+
+// Admin-managed Customer App Theme tokens. We intentionally read these instead
+// of the header-category palette so admin-created deals respect the brand color
+// the admin picked in the "Customer App Theme" settings, regardless of which
+// header tab the customer is currently viewing.
+const BRAND = {
+  primary: 'var(--customer-primary)',
+  primaryLight: 'var(--customer-primary-light)',
+  primaryTint: 'var(--customer-primary-alpha-10)',
+};
 
 interface TimeLeft {
   days: number;
@@ -16,7 +25,8 @@ interface TimeLeft {
 
 export default function FlashDealSection() {
   const navigate = useNavigate();
-  const { activeCategory, currentTheme: theme } = useThemeContext();
+  // We still track activeCategory so deals refetch when the customer changes tab.
+  const { activeCategory } = useThemeContext();
   const [config, setConfig] = useState<{flashDealTargetDate: string; flashDealImage?: string; isActive?: boolean; flashDealProductIds?: string[]}>({ flashDealTargetDate: '', isActive: true });
   const [products, setProducts] = useState<any[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -121,7 +131,7 @@ export default function FlashDealSection() {
   );
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 mb-8 mt-4">
+    <div className="px-4 md:px-6 lg:px-8 mb-2 mt-4">
       <div className="rounded-2xl shadow-sm border border-neutral-100 overflow-hidden flex flex-col md:flex-row md:items-stretch">
 
         {/* LEFT SIDE (Desktop Sidebar / Mobile Header) */}
@@ -133,7 +143,7 @@ export default function FlashDealSection() {
                 className="absolute inset-0 hidden md:block bg-center bg-cover transition-all duration-500"
                 style={{
                   backgroundImage: config.flashDealImage ? `url(${config.flashDealImage})` : 'none',
-                  background: !config.flashDealImage ? `linear-gradient(135deg, ${theme.primary[0]} 0%, ${theme.primary[1]} 100%)` : undefined
+                  background: !config.flashDealImage ? `linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryLight} 100%)` : undefined
                 }}
              >
                {/* Dark overlay if image is present to make text readable */}
@@ -145,7 +155,7 @@ export default function FlashDealSection() {
                 className="absolute inset-0 md:hidden bg-center bg-cover transition-all duration-500"
                 style={{
                   backgroundImage: config.flashDealImage ? `url(${config.flashDealImage})` : 'none',
-                  background: !config.flashDealImage ? `linear-gradient(135deg, ${theme.primary[3]} 33%, #fff 100%)` : undefined
+                  background: !config.flashDealImage ? `linear-gradient(135deg, ${BRAND.primaryTint} 33%, #fff 100%)` : undefined
                 }}
              >
                 {/* Overlay for mobile if image is present */}
@@ -156,7 +166,7 @@ export default function FlashDealSection() {
                 {/* Header Text */}
                 <div className="flex flex-col items-center md:items-start text-center md:text-left mb-6 md:mb-8">
                     {/* Mobile Title */}
-                    <h2 className="md:hidden text-xl font-black tracking-tight" style={{ color: theme.primary[0] }}>FLASH DEAL</h2>
+                    <h2 className="md:hidden text-xl font-black tracking-tight" style={{ color: BRAND.primary }}>FLASH DEAL</h2>
                     {/* Desktop Title */}
                     <h2 className="hidden md:block text-3xl lg:text-4xl font-black tracking-tight text-white mb-2">FLASH DEAL</h2>
 
@@ -171,7 +181,7 @@ export default function FlashDealSection() {
                         className="relative flex items-center gap-1 md:gap-1.5 p-3 rounded-xl shadow-lg z-10 md:w-full md:justify-center md:py-4 md:shadow-none md:bg-white/20 md:backdrop-blur-sm"
                     >
                         {/* Mobile Timer BG */}
-                        <div className="absolute inset-0 rounded-xl md:hidden" style={{ backgroundColor: theme.primary[0] }} />
+                        <div className="absolute inset-0 rounded-xl md:hidden" style={{ backgroundColor: BRAND.primary }} />
 
                         <div className="relative z-10 flex items-center gap-1 md:gap-1.5">
                             <TimerBox value={timeLeft.days} label="Days" />
@@ -190,7 +200,7 @@ export default function FlashDealSection() {
                     <button
                         onClick={() => navigate('/flash-deals')}
                         className="w-full py-3 bg-white hover:bg-white/90 text-sm font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
-                        style={{ color: theme.primary[0] }}
+                        style={{ color: BRAND.primary }}
                     >
                         View All Deals
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
@@ -218,7 +228,7 @@ export default function FlashDealSection() {
                                     {discount > 0 && (
                                         <div
                                             className="absolute top-0 left-0 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 md:px-3 md:py-1 rounded-br-lg z-10"
-                                            style={{ backgroundColor: theme.primary[0] }}
+                                            style={{ backgroundColor: BRAND.primary }}
                                         >
                                             -{discount}%
                                         </div>
@@ -258,7 +268,7 @@ export default function FlashDealSection() {
             <button
                 onClick={() => navigate('/flash-deals')}
                 className="text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all px-6 py-2 rounded-full border border-neutral-200 bg-white"
-                style={{ color: theme.primary[0] }}
+                style={{ color: BRAND.primary }}
             >
                 View All <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </button>

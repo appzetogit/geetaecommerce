@@ -1,15 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getTheme } from '../../../../utils/themes';
-import { useThemeContext } from '../../../../context/ThemeContext';
-import { getProducts, getProductById } from '../../../../services/api/customerProductService';
+import { getProductById } from '../../../../services/api/customerProductService';
 import { Product } from '../../../../types/domain';
 import { calculateProductPrice } from '../../../../utils/priceUtils';
 import { bannerService } from '../../../../services/bannerService';
 
+// Admin-managed Customer App Theme tokens. We avoid the per-header-category
+// palette here so admin-curated deals always reflect the brand color chosen in
+// the Customer App Theme settings.
+const BRAND = {
+  primary: 'var(--customer-primary)',
+  tint: 'var(--customer-primary-alpha-10)',
+  border: 'var(--customer-primary-alpha-30)',
+};
+
 export default function FeaturedDeal() {
   const navigate = useNavigate();
-  const { activeCategory, currentTheme: theme } = useThemeContext();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -83,24 +89,27 @@ export default function FeaturedDeal() {
   if (featuredProducts.length === 0) return null;
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 mt-4 mb-6">
+    <div className="px-4 md:px-6 lg:px-8 mb-6">
       <div
         className="rounded-xl p-4 md:p-6 shadow-sm relative overflow-hidden flex flex-col gap-4"
         style={{
-          background: theme.primary[3],
-          border: `1px solid ${theme.primary[2]}`
+          background: BRAND.tint,
+          border: `1px solid ${BRAND.border}`
         }}
       >
           {/* Header */}
-          <div className="flex justify-between items-center z-10 text-left border-b border-sky-100/50 pb-3">
+          <div
+            className="flex justify-between items-center z-10 text-left border-b pb-3"
+            style={{ borderColor: BRAND.border }}
+          >
               <div>
                   <h3 className="text-xl font-black text-slate-800 tracking-tight">Featured Deals</h3>
                   <p className="text-[11px] text-slate-500 mt-0.5">See the latest deals and exciting new offers!</p>
               </div>
               <button
                 onClick={() => navigate('/featured-deals')}
-                className="text-xs font-bold flex items-center gap-1 transition-colors bg-white/50 px-3 py-1.5 rounded-full border border-sky-100"
-                style={{ color: theme.primary[0] }}
+                className="text-xs font-bold flex items-center gap-1 transition-colors bg-white/50 px-3 py-1.5 rounded-full border"
+                style={{ color: BRAND.primary, borderColor: BRAND.border }}
               >
                   View All <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
@@ -166,7 +175,11 @@ export default function FeaturedDeal() {
           {featuredProducts.length > 1 && (
              <div className="flex justify-center gap-2 mt-2">
                  {featuredProducts.map((_, i) => (
-                     <div key={i} className={`w-2 h-2 rounded-full transition-colors bg-sky-300`} />
+                     <div
+                       key={i}
+                       className="w-2 h-2 rounded-full transition-colors"
+                       style={{ backgroundColor: BRAND.border }}
+                     />
                  ))}
              </div>
           )}

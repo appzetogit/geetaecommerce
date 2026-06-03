@@ -1,23 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useThemeContext } from '../../../../context/ThemeContext';
 import { getProductById } from '../../../../services/api/customerProductService';
 import { Product } from '../../../../types/domain';
 import { calculateProductPrice } from '../../../../utils/priceUtils';
 import { bannerService } from '../../../../services/bannerService';
 
+// Admin-managed Customer App Theme tokens. Replaces the previously hardcoded
+// orange palette so this admin-curated section follows the brand color picked
+// in the Customer App Theme settings instead of being permanently orange.
+const BRAND = {
+  primary: 'var(--customer-primary)',
+  primaryLight: 'var(--customer-primary-light)',
+  tint: 'var(--customer-primary-alpha-10)',
+  border: 'var(--customer-primary-alpha-30)',
+};
+
 export default function DealOfTheDay() {
   const navigate = useNavigate();
-  const { currentTheme: dynamicTheme } = useThemeContext();
-  const theme = {
-    primary: ['rgb(251, 146, 60)', 'rgb(253, 186, 116)', 'rgb(254, 215, 170)', 'rgb(255, 237, 213)'],
-    secondary: ['rgb(255, 237, 213)', 'rgb(254, 215, 170)', 'rgb(253, 186, 116)'],
-    textColor: '#9a3412',
-    accentColor: '#c2410c',
-    bannerText: 'AUTUMN',
-    saleText: 'SALE',
-    headerTextColor: '#7c2d12',
-  };
   const [dealProducts, setDealProducts] = useState<Product[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -107,14 +106,14 @@ export default function DealOfTheDay() {
       <div
         className="rounded-xl p-6 md:p-8 text-center shadow-lg relative overflow-hidden flex flex-col gap-6"
         style={{
-          background: `linear-gradient(to bottom, white, ${theme.primary[3]})`,
-          border: `1px solid ${theme.primary[2]}`
+          background: `linear-gradient(to bottom, white, ${BRAND.tint})`,
+          border: `1px solid ${BRAND.border}`
         }}
       >
           {/* Header */}
           <div
             className="flex justify-between items-center z-10 text-left border-b pb-4"
-            style={{ borderColor: theme.primary[2] }}
+            style={{ borderColor: BRAND.border }}
           >
               <div>
                   <h3 className="text-2xl font-bold text-gray-800">Deal of the Day</h3>
@@ -123,7 +122,7 @@ export default function DealOfTheDay() {
               <button
                 onClick={() => navigate('/deal-of-the-day')}
                 className="text-sm font-semibold flex items-center gap-1 transition-colors"
-                style={{ color: '#d35400' }}
+                style={{ color: BRAND.primary }}
               >
                   View All <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
@@ -141,12 +140,12 @@ export default function DealOfTheDay() {
                       <div
                          key={product.id}
                          className="flex-none w-full md:w-[48%] lg:w-[40%] xl:w-[30%] snap-center bg-white rounded-xl p-6 shadow-md border flex flex-col items-center gap-4 cursor-pointer hover:shadow-xl transition-shadow relative"
-                         style={{ borderColor: theme.primary[2] }}
+                         style={{ borderColor: BRAND.border }}
                          onClick={() => navigate(`/product/${product.id}`)}
                       >
                          <div
                             className="absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full bg-white border"
-                            style={{ color: theme.primary[0], borderColor: theme.primary[2] }}
+                            style={{ color: BRAND.primary, borderColor: BRAND.border }}
                          >
                              Active Deal
                          </div>
@@ -170,14 +169,14 @@ export default function DealOfTheDay() {
                          <div className="w-full text-center">
                              <h4 className="font-bold text-gray-900 text-lg md:text-xl line-clamp-2 mb-2">{product.name}</h4>
                              <div className="flex items-center justify-center gap-3">
-                                 <span className="text-3xl font-bold" style={{ color: theme.primary[0] }}>₹{displayPrice}</span>
+                                 <span className="text-3xl font-bold" style={{ color: BRAND.primary }}>₹{displayPrice}</span>
                                  {mrp > displayPrice && (
                                     <span className="text-sm text-gray-400 line-through">₹{mrp}</span>
                                  )}
                              </div>
                              <button
                                 className="mt-4 w-full text-white font-bold py-2 px-4 rounded-lg transition-colors"
-                                style={{ backgroundColor: theme.primary[0] }}
+                                style={{ backgroundColor: BRAND.primary }}
                              >
                                  View Deal
                              </button>
@@ -191,7 +190,7 @@ export default function DealOfTheDay() {
           {dealProducts.length > 1 && (
              <div className="flex justify-center gap-2 mt-2">
                  {dealProducts.map((_, i) => (
-                     <div key={i} className="w-2 h-2 rounded-full transition-colors" style={{ backgroundColor: theme.primary[1] }} />
+                     <div key={i} className="w-2 h-2 rounded-full transition-colors" style={{ backgroundColor: BRAND.primaryLight }} />
                  ))}
              </div>
           )}

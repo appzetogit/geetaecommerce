@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import ProductCard from "./components/ProductCard";
 import { getProductById } from "../../services/api/customerProductService";
 import { bannerService } from "../../services/bannerService";
-import { useThemeContext } from "../../context/ThemeContext";
-import { getTheme } from "../../utils/themes";
 import { useLocation } from "../../hooks/useLocation";
+
+// Use the admin-managed Customer App Theme so the hero band reflects the brand
+// color, not the (per-tab) header-category palette.
+const BRAND_GRADIENT = "linear-gradient(135deg, var(--customer-primary) 0%, var(--customer-primary-light) 100%)";
 
 export default function FlashDealsPage() {
   const navigate = useNavigate();
-  const { activeCategory } = useThemeContext();
-  const theme = getTheme(activeCategory || "all");
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export default function FlashDealsPage() {
       {/* Hero Banner Area */}
       <div
         className="px-4 md:px-6 lg:px-8 py-6 md:py-10 text-white"
-        style={{ background: `linear-gradient(135deg, ${theme.primary[0]} 0%, ${theme.primary[2]} 100%)` }}
+        style={{ background: BRAND_GRADIENT }}
       >
         <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl md:text-5xl font-black mb-2 tracking-tighter">GRAB THE DEALS!</h2>

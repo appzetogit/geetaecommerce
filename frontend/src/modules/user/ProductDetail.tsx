@@ -17,6 +17,9 @@ import { getSimilarProducts as getSemanticSimilarProducts } from '../../services
 import WishlistButton from '../../components/WishlistButton';
 import StarRating from "../../components/ui/StarRating";
 import ProductCard from "./components/ProductCard";
+import DealOfTheDay from "./components/banners/DealOfTheDay";
+import FeaturedDeal from "./components/banners/FeaturedDeal";
+import FlashDealSection from "./components/banners/FlashDealSection";
 import { calculateProductPrice, getApplicableUnitPrice } from '../../utils/priceUtils';
 
 export default function ProductDetail() {
@@ -1339,6 +1342,16 @@ export default function ProductDetail() {
             </motion.div>
           </div>
         )}
+
+        {/* Admin-curated deal sections (order: Deal of the Day → Featured Deals → Flash Deals).
+            Mounted just above Similar Products so the customer always sees the promoted
+            inventory before falling back to algorithmic similars. Each component already
+            self-hides when the admin hasn't configured products for it. */}
+        <div className="mt-2">
+          <DealOfTheDay />
+          <FeaturedDeal />
+          <FlashDealSection />
+        </div>
 
         {/* Similar products */}
         {similarProducts.length > 0 && (

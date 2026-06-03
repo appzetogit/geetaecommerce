@@ -866,8 +866,10 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
           </div>
 
           {/* Category Cards Grid - Right */}
+          {/* Cap visible category cards at 4 so the strip stays compact even when
+              the PromoStrip admin config has more than 4 entries. */}
           <div className="flex-1 grid grid-cols-2 gap-2">
-            {categoryCards.map((card) => {
+            {categoryCards.slice(0, 4).map((card) => {
               // Use subcategory images from the map if available, otherwise check card.subcategoryImages, then fallback to emoji icons
               const subcategoryImages = subcategoryImagesMap[card.id] || card.subcategoryImages || [];
               const hasSubcategoryImages = subcategoryImages.length > 0;
