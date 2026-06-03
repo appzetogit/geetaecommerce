@@ -212,6 +212,72 @@ export default function AppLayout({ children }: AppLayoutProps) {
     };
   }, [location.key, location.pathname, location.search, navigationType]);
 
+  // Focus-on-back from the "View Similar Products" button on ProductDetail.
+  // The button stashes the productId in sessionStorage before calling
+  // navigate(-1); on the landing route we wait for the listing to mount, then
+  // scroll the matching ProductCard (`#product-<id>`) into view and pulse a
+  // brand-colored outline so the customer instantly sees where they came from.
+  useEffect(() => {
+    let focusProductId: string | null = null;
+    try {
+      focusProductId = sessionStorage.getItem('viewSimilarProducts.focusProductId');
+    } catch {
+      focusProductId = null;
+    }
+    if (!focusProductId) return;
+
+    // Don't try to focus on the product page itself — only on listings.
+    if (location.pathname.startsWith('/product/')) return;
+
+    let attempts = 0;
+    let timeoutId: number | null = null;
+    let cleanupTimeoutId: number | null = null;
+
+    const tryFocus = () => {
+      const target = document.getElementById(`product-${focusProductId}`);
+      if (!target) {
+        attempts += 1;
+        if (attempts > 30) {
+          // Give up after ~3s — the listing either doesn't include this product
+          // (e.g. user came from a different category) or it's lazy-loaded
+          // beyond what we render. Clear the marker either way so we don't
+          // keep hunting on subsequent navigations.
+          try { sessionStorage.removeItem('viewSimilarProducts.focusProductId'); } catch {}
+          return;
+        }
+        timeoutId = window.setTimeout(tryFocus, 100);
+        return;
+      }
+
+      try { sessionStorage.removeItem('viewSimilarProducts.focusProductId'); } catch {}
+
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Brief highlight pulse — uses inline style so it doesn't depend on any
+      // Tailwind class being statically extracted.
+      const previousBoxShadow = target.style.boxShadow;
+      const previousTransition = target.style.transition;
+      target.style.transition = 'box-shadow 0.4s ease-out';
+      target.style.boxShadow = '0 0 0 3px var(--customer-primary), 0 0 18px 4px var(--customer-primary-alpha-30)';
+      cleanupTimeoutId = window.setTimeout(() => {
+        if (!target) return;
+        target.style.boxShadow = previousBoxShadow;
+        target.style.transition = previousTransition;
+      }, 1800);
+    };
+
+    // Wait one frame for the route's content to mount before the first lookup.
+    const rafId = requestAnimationFrame(() => {
+      timeoutId = window.setTimeout(tryFocus, 80);
+    });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      if (cleanupTimeoutId !== null) window.clearTimeout(cleanupTimeoutId);
+    };
+  }, [location.key, location.pathname, location.search]);
+
   // Track categories active state for rotation
   const isCategoriesActive = isActive('/categories') || location.pathname.startsWith('/category/');
 

@@ -726,6 +726,45 @@ export default function ProductDetail() {
                 </div>
               </>
             )}
+
+            {/* "View Similar Products" pill — sits in the bottom-right of the product
+                image. Records the productId we came from in sessionStorage and goes
+                back; AppLayout reads that key on route change to scroll the previous
+                listing to the matching product card and briefly highlight it. */}
+            <button
+              type="button"
+              onClick={() => {
+                const pid = product?.id || product?._id;
+                if (pid) {
+                  try {
+                    sessionStorage.setItem(
+                      'viewSimilarProducts.focusProductId',
+                      String(pid)
+                    );
+                  } catch {
+                    // sessionStorage can throw in private modes; the back navigation
+                    // should still work, we just lose the auto-focus.
+                  }
+                }
+                // Fall back to home if there's no history entry to pop (e.g. the
+                // user landed on this page via a shared link).
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate('/');
+                }
+              }}
+              aria-label="View similar products on the previous page"
+              className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full shadow-md backdrop-blur-sm text-xs font-bold text-white hover:shadow-lg active:scale-95 transition-all"
+              style={{ backgroundColor: 'var(--customer-primary)' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12h13" />
+                <path d="M8 7l-5 5 5 5" />
+                <circle cx="20" cy="12" r="1.5" fill="currentColor" />
+              </svg>
+              View Similar Products
+            </button>
           </div>
 
           {/* Thumbnail Gallery - Show below main image if multiple images */}
