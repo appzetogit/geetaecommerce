@@ -4,6 +4,9 @@ import { getSellerProfile, updateSellerProfile } from '../../../services/api/aut
 import { useAuth } from '../../../context/AuthContext';
 import { getCategories, Category } from '../../../services/api/categoryService';
 import GoogleMapsAutocomplete from '../../../components/GoogleMapsAutocomplete';
+// Reuses the same map picker the admin uses for sellers — already supports
+// click-to-pin, drag-marker, and a service-radius preview circle.
+import GoogleLocationPickerMap from '../../admin/components/GoogleLocationPickerMap';
 
 const SellerAccountSettings = () => {
   const { user, updateUser } = useAuth();
@@ -457,6 +460,44 @@ const SellerAccountSettings = () => {
                                 Products will be shown to users within this radius from your store location
                               </p>
                             )}
+                          </div>
+
+                          {/* Interactive map: lets the seller fine-tune their store pin
+                              after searching for an address via GoogleMapsAutocomplete.
+                              Clicking the map or dragging the marker updates latitude/
+                              longitude on sellerData; the circle previews the chosen
+                              service radius live as the seller changes the dropdown. */}
+                          <div className="md:col-span-2 space-y-1.5">
+                            <label className="text-sm font-semibold text-gray-700 ml-1">
+                              Pin Store Location on Map
+                            </label>
+                            {isEditing ? (
+                              <p className="text-xs text-gray-500 ml-1">
+                                Drag the map so the <span className="font-semibold text-red-500">red pin</span> sits exactly on your store. You can also tap any spot on the map to drop the pin there. The shaded circle previews your service radius.
+                              </p>
+                            ) : (
+                              <p className="text-xs text-gray-500 ml-1">
+                                The marker shows where customers see your store. The shaded circle is your current service area. Click "Edit" to move the pin.
+                              </p>
+                            )}
+                            <div className="w-full h-[320px] md:h-[380px] rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                              <GoogleLocationPickerMap
+                                latitude={Number(sellerData.latitude) || 0}
+                                longitude={Number(sellerData.longitude) || 0}
+                                radiusKm={parseFloat(sellerData.serviceRadiusKm) || undefined}
+                                // Center crosshair + pan-to-pin only while editing — view mode
+                                // just shows the committed marker and the service-area circle.
+                                showCenterPin={isEditing}
+                                selectOnDragEnd={isEditing}
+                                onLocationSelect={isEditing ? (lat: number, lng: number) => {
+                                  setSellerData(prev => ({
+                                    ...prev,
+                                    latitude: lat.toString(),
+                                    longitude: lng.toString(),
+                                  }));
+                                } : undefined}
+                              />
+                            </div>
                           </div>
 
                         </div>

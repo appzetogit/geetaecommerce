@@ -86,19 +86,25 @@ export default function Categories() {
           }
         }
 
-        // Inject Seller Categories
+        // Inject Seller Categories. Customers must only see Active
+        // seller-own categories; Inactive ones are hidden so the seller can
+        // soft-disable them without removing the document. Missing `status`
+        // is treated as Active for back-compat with older cached payloads.
         const sellerCatsStorage = localStorage.getItem('seller_own_categories');
         if (sellerCatsStorage) {
             try {
                 const sellerCats = JSON.parse(sellerCatsStorage);
-                if (sellerCats.length > 0) {
+                const activeSellerCats = (sellerCats as any[]).filter(
+                    (c) => c && (c.status === undefined || c.status === 'Active')
+                );
+                if (activeSellerCats.length > 0) {
                     const sellerSection = {
                         id: 'seller-categories-section',
                         title: 'Seller Categories',
                         type: 'category', // or whatever type matches CategoryTileSection
                         displayType: 'category', // Ensure this matches rendering logic
                         columns: 4,
-                        data: sellerCats.map((c: any) => ({
+                        data: activeSellerCats.map((c: any) => ({
                             id: c._id,
                             name: c.name,
                             image: c.image,

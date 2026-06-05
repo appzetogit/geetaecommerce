@@ -1160,7 +1160,15 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
     query.status = status;
   }
 
-  if (publish !== undefined) query.publish = publish === "true";
+  // Unpublished products (admin UI badge "Inactive") are hidden by default
+  // because the seller is signalling they don't want the product live. The
+  // admin can still see them by explicitly filtering for `publish=false`
+  // (the "Unpublished" option in the Status dropdown on the stock screen).
+  if (publish !== undefined) {
+    query.publish = publish === "true";
+  } else {
+    query.publish = true;
+  }
 
   const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 

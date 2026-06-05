@@ -63,11 +63,45 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, user } = useAuth();
   const { location } = useLocation();
 
-  // Sync cart from backend on mount or when user logs in
+  // Mirror of `items` always pointing at the latest value. Used by the
+  // auth-transition effect below so it can read the cart contents at the
+  // exact moment of login without re-running on every `items` change.
+  const itemsRef = useRef<ExtendedCartItem[]>(items);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  // Guards against repeatedly merging the same set of guest items if React
+  // re-runs the auth effect (e.g. StrictMode in dev, or transient auth
+  // flickers). We treat each login transition as a single merge attempt.
+  const hasMergedGuestCartRef = useRef(false);
+
+  // Sync cart from backend on mount or when user logs in.
+  //
+  // Guest cart merge:
+  // -----------------
+  // If the user added products as a guest (items live in local state +
+  // localStorage and have NO backend `id`), we must push them to the
+  // server-side cart on login instead of letting `fetchCart` silently
+  // overwrite them with the user's saved cart. We replay each guest item
+  // through the existing addToCart endpoint, which already dedupes by
+  // (cart, product, variation) and sums quantities — so a guest who had
+  // product P x1 and a logged-in cart that already contained product P x2
+  // ends up with P x3 after merge.
   useEffect(() => {
     if (isAuthenticated) {
-      fetchCart();
+      const guestItems = (itemsRef.current || []).filter(
+        (i) => i?.product && !i.id && !i.isFreeGift
+      );
+      if (guestItems.length > 0 && !hasMergedGuestCartRef.current) {
+        hasMergedGuestCartRef.current = true;
+        void mergeGuestCartIntoServer(guestItems);
+      } else {
+        fetchCart();
+      }
     } else {
+      // Reset so a future login (after logout) can merge again.
+      hasMergedGuestCartRef.current = false;
       setLoading(false);
     }
     fetchFreeGiftRules();
@@ -87,6 +121,47 @@ export function CartProvider({ children }: { children: ReactNode }) {
       console.error("Failed to fetch cart", e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Replay every guest item through the server-side addToCart endpoint, then
+  // pull the merged cart back. Sequential POSTs avoid write contention on the
+  // same Cart document (each call rewrites cart.total + saves). Failures on
+  // individual items (e.g. product was deactivated while the user was a
+  // guest) are logged but do not abort the merge.
+  const mergeGuestCartIntoServer = async (guestItems: ExtendedCartItem[]) => {
+    setLoading(true);
+    try {
+      for (const item of guestItems) {
+        const prod: any = item.product;
+        const productId: string | undefined = prod?._id || prod?.id;
+        if (!productId) continue;
+        // Variant info is carried on the product object on guest items (see
+        // optimistic-add path in `addToCart` below), so extract it the same
+        // way that path packs it for authenticated users.
+        const variation: string | undefined =
+          prod?.variantId ||
+          prod?.selectedVariant?._id ||
+          prod?.variantTitle ||
+          prod?.pack ||
+          undefined;
+        const qty = Math.max(1, item.quantity || 1);
+        try {
+          await apiAddToCart(
+            productId,
+            qty,
+            variation,
+            location?.latitude,
+            location?.longitude
+          );
+        } catch (err) {
+          console.error("Guest cart merge: failed to push item", productId, err);
+        }
+      }
+    } finally {
+      // Always pull final merged state from the server, even if some pushes
+      // failed — backend is the source of truth from here on.
+      await fetchCart();
     }
   };
 

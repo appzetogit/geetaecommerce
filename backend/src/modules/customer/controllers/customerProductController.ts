@@ -128,16 +128,18 @@ export const getProducts = async (req: Request, res: Response) => {
     const userLat = latitude ? parseFloat(latitude as string) : null;
     const userLng = longitude ? parseFloat(longitude as string) : null;
 
-    // Helper to get visible sellers (Enabled and (Admin or canCreateCategories is false))
-    const getVisibleSellersQuery = () => ({
-      isEnabled: true,
-      $or: [
-        { email: /admin/i },
-        { category: "Admin" },
-        { storeName: { $regex: /Admin/i } },
-        { canCreateCategories: { $ne: true } } // Default to false if not set, or explicitly false (Enabled in UI)
-      ]
-    });
+    // Customer-side seller visibility is gated only by `isEnabled`.
+    //
+    // Historical note: this query used to also require
+    //   $or: [admin-email, admin-category, admin-storeName, canCreateCategories !== true]
+    // but `canCreateCategories` is an admin/authoring permission whose schema
+    // default is `true` — meaning every newly registered seller was silently
+    // hidden from customers (e.g. "New Shop" / "Gstore" had products that
+    // never appeared on the storefront even though they were inside the
+    // service-radius circle). Authorization for the storefront is `isEnabled`
+    // (the admin-managed toggle); radius-eligibility is enforced separately
+    // by findSellersWithinRange().
+    const getVisibleSellersQuery = () => ({ isEnabled: true });
 
     let visibleSellerIds: mongoose.Types.ObjectId[] = [];
 
@@ -339,15 +341,7 @@ export const getSearchSuggestions = async (req: Request, res: Response) => {
       ]
     };
 
-    const visibleSellersQuery = {
-      isEnabled: true,
-      $or: [
-        { email: /admin/i },
-        { category: "Admin" },
-        { storeName: { $regex: /Admin/i } },
-        { canCreateCategories: { $ne: true } }
-      ]
-    };
+    const visibleSellersQuery = { isEnabled: true } as const;
 
     const userLat = latitude ? parseFloat(latitude as string) : null;
     const userLng = longitude ? parseFloat(longitude as string) : null;
@@ -434,7 +428,7 @@ export const getProductById = async (req: Request, res: Response) => {
       .populate("brand", "name")
       .populate(
         "seller",
-        "storeName city fssaiLicNo address location serviceRadiusKm email isEnabled canCreateCategories category"
+        "storeName city fssaiLicNo address location serviceRadiusKm email isEnabled category"
       );
 
     if (!product || !product.category) { // If category is null due to match filter, hide product
@@ -456,26 +450,17 @@ export const getProductById = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if seller is enabled and has customer visibility (canCreateCategories is false/null)
+    // Hide the product if the owning seller has been disabled by the admin.
+    // (The legacy `canCreateCategories === true` block was removed — that
+    // flag is an authoring permission, not a customer-visibility gate, and
+    // defaulted to true, which silently 404'd every normal seller's
+    // products.)
     const sellerInfo = product.seller as any;
-    if (sellerInfo) {
-      if (sellerInfo.isEnabled === false) {
-        return res.status(404).json({
-          success: false,
-          message: "This product is currently unavailable",
-        });
-      }
-      
-      const isAdmin = sellerInfo.email?.match(/admin/i) || 
-                      sellerInfo.category === "Admin" || 
-                      sellerInfo.storeName?.match(/Admin/i);
-
-      if (sellerInfo.canCreateCategories === true && !isAdmin) {
-        return res.status(404).json({
-          success: false,
-          message: "This product is for internal use only",
-        });
-      }
+    if (sellerInfo && sellerInfo.isEnabled === false) {
+      return res.status(404).json({
+        success: false,
+        message: "This product is currently unavailable",
+      });
     }
 
     // Parse location

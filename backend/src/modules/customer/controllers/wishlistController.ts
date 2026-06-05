@@ -25,16 +25,10 @@ export const getWishlist = async (req: Request, res: Response) => {
 
         const nearbySellerIdsRaw = await findSellersWithinRange(userLat, userLng);
         
-        // Filter nearby sellers by visibility (Enabled and (Admin or canCreateCategories is false))
+        // Filter nearby sellers by visibility — only `isEnabled` matters.
         const visibleSellers = await Seller.find({
             _id: { $in: nearbySellerIdsRaw },
             isEnabled: true,
-            $or: [
-                { email: /admin/i },
-                { category: "Admin" },
-                { storeName: { $regex: /Admin/i } },
-                { canCreateCategories: { $ne: true } }
-            ]
         }).select("_id");
         const nearbySellerIds = visibleSellers.map(s => s._id);
 
@@ -98,16 +92,10 @@ export const addToWishlist = async (req: Request, res: Response) => {
 
         const nearbySellerIdsRaw = await findSellersWithinRange(userLat, userLng);
         
-        // Filter nearby sellers by visibility
+        // Filter nearby sellers by visibility — only `isEnabled`.
         const visibleSellers = await Seller.find({
             _id: { $in: nearbySellerIdsRaw },
             isEnabled: true,
-            $or: [
-                { email: /admin/i },
-                { category: "Admin" },
-                { storeName: { $regex: /Admin/i } },
-                { canCreateCategories: { $ne: true } }
-            ]
         }).select("_id");
         const nearbySellerIds = visibleSellers.map(s => s._id);
 

@@ -153,19 +153,26 @@ export default function Home() {
         if (response.success && response.data) {
           let finalData = { ...response.data };
 
-          // Inject Seller Categories into homeSections
+          // Inject Seller Categories into homeSections. Customers must only
+          // see Active seller-own categories — when a seller marks one as
+          // Inactive on their portal it should disappear from the storefront.
+          // Missing `status` is treated as Active for back-compat with legacy
+          // localStorage payloads.
           const sellerCatsStorage = localStorage.getItem('seller_own_categories');
           if (sellerCatsStorage) {
             try {
               const sellerCats = JSON.parse(sellerCatsStorage);
-              if (sellerCats.length > 0) {
+              const activeSellerCats = (sellerCats as any[]).filter(
+                (c) => c && (c.status === undefined || c.status === 'Active')
+              );
+              if (activeSellerCats.length > 0) {
                  const sellerSection = {
                       id: 'seller-categories-section-home',
                       title: 'Seller Categories',
                       type: 'category',
                       displayType: 'category',
                       columns: 4,
-                      data: sellerCats.map((c: any) => ({
+                      data: activeSellerCats.map((c: any) => ({
                           id: c._id,
                           name: c.name,
                           image: c.image,

@@ -13,19 +13,13 @@ const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.O
         select: 'price seller status publish storeName category'
     });
 
-    // Fetch Visible Sellers (Admin or canCreateCategories is false)
+    // Fetch visible sellers — only `isEnabled` matters on the customer side.
+    // (The legacy `canCreateCategories`/admin-name OR-block was removed
+    // because its default-true value silently hid normal sellers.)
     let visibleSellerIds: string[] = [];
     try {
         const Seller = (await import("../../../models/Seller")).default;
-        const visibleSellers = await Seller.find({
-             isEnabled: true,
-             $or: [
-                { email: "admin-store@geetastores.com" },
-                { category: "Admin" },
-                { storeName: { $regex: /Admin/i } },
-                { canCreateCategories: { $ne: true } }
-            ]
-        }).select("_id");
+        const visibleSellers = await Seller.find({ isEnabled: true }).select("_id");
         visibleSellerIds = visibleSellers.map(s => s._id.toString());
     } catch (e) { console.error("Error fetching visible sellers", e); }
 
@@ -75,19 +69,12 @@ export const getCart = async (req: Request, res: Response) => {
              locationProvided = true;
         }
 
-        // Fetch Visible Sellers to whitelist
+        // Fetch visible sellers — gated only by `isEnabled` (see notes in
+        // customerProductController.ts).
         let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
-            const visibleSellers = await Seller.find({
-                isEnabled: true,
-                $or: [
-                    { email: "admin-store@geetastores.com" },
-                    { category: "Admin" },
-                    { storeName: { $regex: /Admin/i } },
-                    { canCreateCategories: { $ne: true } }
-                ]
-            }).select("_id");
+            const visibleSellers = await Seller.find({ isEnabled: true }).select("_id");
             visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
 
@@ -203,17 +190,12 @@ export const addToCart = async (req: Request, res: Response) => {
         if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
              const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
 
-             // Check if Visible Seller
+             // Check if Visible Seller — only `isEnabled` matters.
             let isVisibleSeller = false;
             try {
                  const Seller = (await import("../../../models/Seller")).default;
                  const seller = await Seller.findById(product.seller);
-                 if (seller && seller.isEnabled && (
-                     seller.email === "admin-store@geetastores.com" ||
-                     seller.category === "Admin" ||
-                     /Admin/i.test(seller.storeName || "") ||
-                     seller.canCreateCategories !== true
-                 )) {
+                 if (seller && seller.isEnabled === true) {
                      isVisibleSeller = true;
                  }
             } catch(e) {}
@@ -274,20 +256,11 @@ export const addToCart = async (req: Request, res: Response) => {
             }
         });
 
-        // Fetch Visible Sellers again for filtering response
-        // Optimization: could pass this down, but strict separation is safer
+        // Fetch Visible Sellers again for filtering response — only `isEnabled`.
         let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
-            const visibleSellers = await Seller.find({
-                isEnabled: true,
-                $or: [
-                    { email: "admin-store@geetastores.com" },
-                    { category: "Admin" },
-                    { storeName: { $regex: /Admin/i } },
-                    { canCreateCategories: { $ne: true } }
-                ]
-            }).select("_id");
+            const visibleSellers = await Seller.find({ isEnabled: true }).select("_id");
             visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
 
@@ -359,12 +332,7 @@ export const updateCartItem = async (req: Request, res: Response) => {
         try {
              const Seller = (await import("../../../models/Seller")).default;
              const seller = await Seller.findById(product.seller);
-             if (seller && seller.isEnabled && (
-                 seller.email === "admin-store@geetastores.com" ||
-                 seller.category === "Admin" ||
-                 /Admin/i.test(seller.storeName || "") ||
-                 seller.canCreateCategories !== true
-             )) {
+             if (seller && seller.isEnabled === true) {
                  isVisibleSeller = true;
              }
         } catch(e) {}
@@ -393,19 +361,11 @@ export const updateCartItem = async (req: Request, res: Response) => {
             }
         });
 
-        // Fetch Visible Sellers to whitelist again for filtering
+        // Fetch Visible Sellers to whitelist again for filtering — only `isEnabled`.
         let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
-            const visibleSellers = await Seller.find({
-                isEnabled: true,
-                $or: [
-                    { email: "admin-store@geetastores.com" },
-                    { category: "Admin" },
-                    { storeName: { $regex: /Admin/i } },
-                    { canCreateCategories: { $ne: true } }
-                ]
-            }).select("_id");
+            const visibleSellers = await Seller.find({ isEnabled: true }).select("_id");
             visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
 

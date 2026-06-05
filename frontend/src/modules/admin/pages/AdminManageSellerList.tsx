@@ -43,6 +43,7 @@ interface Seller {
     viewCustomerDetails?: boolean;
     isEnabled?: boolean;
     canCreateCategories?: boolean;
+    createdAt?: string;
 }
 
 // Helper function to convert backend seller to frontend format
@@ -85,7 +86,21 @@ const mapSellerToFrontend = (seller: SellerType): Seller => {
         viewCustomerDetails: seller.viewCustomerDetails,
         isEnabled: seller.isEnabled ?? true, // Use backend state or default to true
         canCreateCategories: seller.canCreateCategories ?? true,
+        createdAt: seller.createdAt,
     };
+};
+
+// Format an ISO timestamp into a human-friendly joining date (e.g. "5 Jun 2026").
+// Returns "N/A" for missing/invalid values so the UI stays clean.
+const formatJoiningDate = (value?: string): string => {
+    if (!value) return 'N/A';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+    });
 };
 
 // Stable fallback logo to avoid endless reload loops when logo is missing
@@ -1036,6 +1051,10 @@ export default function AdminManageSellerList() {
                                         <div>
                                             <label className="text-xs text-neutral-500">Commission</label>
                                             <p className="text-sm font-medium text-neutral-900">{editingSeller.commission.toFixed(2)}%</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-neutral-500">Date of Joining</label>
+                                            <p className="text-sm font-medium text-neutral-900">{formatJoiningDate(editingSeller.createdAt)}</p>
                                         </div>
                                     </div>
                                 </div>

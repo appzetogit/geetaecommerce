@@ -180,15 +180,10 @@ const toNumber = (value: unknown): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
-const visibleSellerQuery = {
-  isEnabled: true,
-  $or: [
-    { email: /admin/i },
-    { category: "Admin" },
-    { storeName: { $regex: /Admin/i } },
-    { canCreateCategories: { $ne: true } },
-  ],
-};
+// Customer-side seller visibility is gated solely by `isEnabled`.
+// (`canCreateCategories` is an admin/authoring permission whose default is
+// `true` — using it here previously hid every normal seller's products.)
+const visibleSellerQuery = { isEnabled: true } as const;
 
 const buildVisibleProductQuery = async (options: Partial<SearchOptions>) => {
   const query: Record<string, any> = {

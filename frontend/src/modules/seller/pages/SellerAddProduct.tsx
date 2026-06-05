@@ -803,6 +803,10 @@ export default function SellerAddProduct() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
+  // Pre-fetched seller-own subcategories. Kept separate from `subcategories`
+  // (which holds admin-or-own depending on the currently selected category)
+  // so we can swap into seller-own mode without re-hitting the network.
+  const [ownSubcategories, setOwnSubcategories] = useState<any[]>([]);
   const [taxes, setTaxes] = useState<Tax[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [headerCategories, setHeaderCategories] = useState<HeaderCategory[]>(
@@ -810,37 +814,62 @@ export default function SellerAddProduct() {
   );
   const [shops, setShops] = useState<Shop[]>([]);
 
+  // True when the admin has granted this seller permission to ALSO maintain
+  // their own private category tree. This used to *replace* the admin tree
+  // in the dropdown, which meant sellers with the permission could no longer
+  // upload products into admin categories. It is now additive: admin tree is
+  // always available; own categories are appended when this flag is true.
   const [canCreateCategories, setCanCreateCategories] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        let isCatPermOff = false;
+        let hasOwnCatPerm = false;
         try {
           const profileRes = await getSellerProfile();
           if (profileRes?.success && profileRes?.data) {
-            isCatPermOff = profileRes.data.canCreateCategories === true;
-            setCanCreateCategories(isCatPermOff);
+            hasOwnCatPerm = profileRes.data.canCreateCategories === true;
+            setCanCreateCategories(hasOwnCatPerm);
           }
         } catch (e) {
           console.error("Error fetching seller profile:", e);
         }
 
-        // Use Promise.allSettled to ensure one failing API doesn't break all others
+        // Always load the admin taxonomy. Conditionally also load seller-own
+        // categories/subcategories — they are *appended* to the admin tree.
         const results = await Promise.allSettled([
-          isCatPermOff ? getSellerOwnCategories() : getCategories(),
+          getCategories(),
           getActiveTaxes(),
           getBrands(),
-          isCatPermOff ? Promise.resolve({ success: true, data: [] }) as any : getHeaderCategoriesPublic(),
+          getHeaderCategoriesPublic(),
           getShops(),
           getAppSettings(),
-          isCatPermOff ? getSellerOwnSubcategories() : Promise.resolve({ success: true, data: [] }) as any,
+          hasOwnCatPerm
+            ? getSellerOwnCategories()
+            : (Promise.resolve({ success: true, data: [] }) as any),
+          hasOwnCatPerm
+            ? getSellerOwnSubcategories()
+            : (Promise.resolve({ success: true, data: [] }) as any),
         ]);
 
-        // Handle categories
-        if (results[0].status === "fulfilled" && results[0].value.success) {
-          setCategories(results[0].value.data);
-        }
+        // Merge admin + own categories into a single list, tagging each with
+        // its source so the dropdown can render labels and the subcategory
+        // effect can route to the correct API.
+        const adminCats =
+          results[0].status === "fulfilled" && results[0].value.success
+            ? (results[0].value.data as any[]).map((c) => ({
+                ...c,
+                _source: "admin" as const,
+              }))
+            : [];
+        const ownCats =
+          results[6].status === "fulfilled" && results[6].value.success
+            ? (results[6].value.data as any[]).map((c) => ({
+                ...c,
+                _source: "own" as const,
+              }))
+            : [];
+        setCategories([...adminCats, ...ownCats] as any);
 
         // Handle taxes
         if (results[1].status === "fulfilled" && results[1].value.success) {
@@ -864,9 +893,14 @@ export default function SellerAddProduct() {
           }
         }
 
-        // Handle custom subcategories if category permission is OFF
-        if (isCatPermOff && results[6].status === "fulfilled" && results[6].value.success) {
-          setSubcategories(results[6].value.data);
+        // Cache the seller's own subcategories (used when the seller picks one
+        // of their own categories).
+        if (
+          hasOwnCatPerm &&
+          results[7].status === "fulfilled" &&
+          results[7].value.success
+        ) {
+          setOwnSubcategories(results[7].value.data || []);
         }
 
         // Handle shops (optional - for Shop By Store feature)
@@ -1012,36 +1046,42 @@ export default function SellerAddProduct() {
     }
   }, [id]);
 
+  // Whenever the picked category changes, populate the subcategory dropdown
+  // from the correct source:
+  //   * admin category  -> network call to GET /categories/:id/subcategories
+  //   * seller-own cat  -> filter the already-cached `ownSubcategories`
   useEffect(() => {
-    const fetchSubs = async () => {
-      if (canCreateCategories) return;
-      if (formData.category) {
-        try {
-          const res = await getSubcategories(formData.category);
-          if (res.success) setSubcategories(res.data);
-        } catch (err) {
-          console.error("Error fetching subcategories:", err);
-        }
-      } else {
-        setSubcategories([]);
-        // Clear subcategory selection when category is cleared
-        setFormData((prev) => ({ ...prev, subcategory: "" }));
-      }
-    };
-    
-    if (canCreateCategories) {
-      if (!formData.category) {
-        setFormData((prev) => ({ ...prev, subcategory: "" }));
-      }
-    } else {
-      if (formData.category) {
-        fetchSubs();
-      } else {
-        setSubcategories([]);
-        setFormData((prev) => ({ ...prev, subcategory: "" }));
-      }
+    if (!formData.category) {
+      setSubcategories([]);
+      setFormData((prev) => ({ ...prev, subcategory: "" }));
+      return;
     }
-  }, [formData.category, canCreateCategories]);
+    const selectedCat: any = categories.find(
+      (cat: any) => (cat._id || cat.id) === formData.category
+    );
+    if (!selectedCat) return;
+
+    if (selectedCat._source === "own") {
+      const matches = ownSubcategories.filter((sub: any) => {
+        const parentId =
+          typeof sub.parentId === "object" && sub.parentId
+            ? sub.parentId._id
+            : sub.parentId;
+        return String(parentId) === String(formData.category);
+      });
+      setSubcategories(matches as any);
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await getSubcategories(formData.category);
+        if (res.success) setSubcategories(res.data);
+      } catch (err) {
+        console.error("Error fetching subcategories:", err);
+      }
+    })();
+  }, [formData.category, categories, ownSubcategories]);
 
   useEffect(() => {
     const fetchSubSubs = async () => {
@@ -1063,21 +1103,25 @@ export default function SellerAddProduct() {
     }
   }, [formData.subcategory]);
 
-  // Clear category and subcategory when header category changes
+  // Clear category and subcategory when the admin header category changes.
+  // Seller-own categories are not bound to a header so we leave them alone
+  // even when the header dropdown changes.
   useEffect(() => {
-    if (canCreateCategories) return; // Bypass if seller manages own categories
+    const currentCategory: any = categories.find(
+      (cat: any) => (cat._id || cat.id) === formData.category
+    );
+    if (currentCategory?._source === "own") {
+      // Own category is independent of the admin header — keep the selection.
+      return;
+    }
 
     if (formData.headerCategory) {
-      // Header category selected - check if current category belongs to it
-      const currentCategory = categories.find(
-        (cat: any) => (cat._id || cat.id) === formData.category
-      );
+      // Header selected — drop the current category if it doesn't belong.
       if (currentCategory) {
         const catHeaderId =
           typeof currentCategory.headerCategoryId === "string"
             ? currentCategory.headerCategoryId
             : currentCategory.headerCategoryId?._id;
-        // If current category doesn't belong to selected header category, clear it
         if (catHeaderId !== formData.headerCategory) {
           setFormData((prev) => ({
             ...prev,
@@ -1089,7 +1133,7 @@ export default function SellerAddProduct() {
         }
       }
     } else {
-      // Header category cleared - clear category and subcategory
+      // Header cleared — drop admin category & subcategory.
       setFormData((prev) => ({
         ...prev,
         category: "",
@@ -1097,7 +1141,7 @@ export default function SellerAddProduct() {
       }));
       setSubcategories([]);
     }
-  }, [formData.headerCategory, categories, canCreateCategories]);
+  }, [formData.headerCategory, categories]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -2017,7 +2061,7 @@ export default function SellerAddProduct() {
                   </div>
                 ) : (
                   <>
-                    {!canCreateCategories && shouldShowField('header_category') && (
+                    {shouldShowField('header_category') && (
                     <div>
                       <label className="block text-sm font-semibold text-neutral-700 mb-2">
                         Header Category
@@ -2026,7 +2070,9 @@ export default function SellerAddProduct() {
                         options={headerCategories.map(hc => ({ id: hc._id, label: hc.name, value: hc._id }))}
                         value={formData.headerCategory}
                         onChange={(val) => setFormData(prev => ({ ...prev, headerCategory: val }))}
-                        placeholder="Select Header Category"
+                        placeholder={canCreateCategories
+                          ? "Select Header Category (optional if using your own category)"
+                          : "Select Header Category"}
                       />
                     </div>
                     )}
@@ -2037,25 +2083,45 @@ export default function SellerAddProduct() {
                         Category
                       </label>
                       <ThemedDropdown
-                        options={canCreateCategories
-                          ? categories
-                              .filter((cat: any) => !cat.parentId)
-                              .map((cat: any) => ({ id: cat._id || cat.id, label: cat.name, value: cat._id || cat.id }))
-                          : categories
-                              .filter((cat: any) => {
-                                if (formData.headerCategory) {
-                                  const catHeaderId = typeof cat.headerCategoryId === "string"
-                                      ? cat.headerCategoryId
-                                      : cat.headerCategoryId?._id;
-                                  return catHeaderId === formData.headerCategory;
-                                }
-                                return false;
-                              })
-                              .map((cat: any) => ({ id: cat._id || cat.id, label: cat.name, value: cat._id || cat.id }))
-                        }
+                        // Build a unified options list:
+                        //   1. Admin categories under the selected header (only if a
+                        //      header is selected — admin cats are header-scoped).
+                        //   2. All top-level seller-own categories, suffixed with
+                        //      "(My)" so sellers can tell them apart.
+                        options={(() => {
+                          const adminOpts = (categories as any[])
+                            .filter((cat: any) => {
+                              if (cat._source !== "admin") return false;
+                              if (cat.parentId) return false; // top-level only
+                              if (!formData.headerCategory) return false;
+                              const catHeaderId = typeof cat.headerCategoryId === "string"
+                                ? cat.headerCategoryId
+                                : cat.headerCategoryId?._id;
+                              return catHeaderId === formData.headerCategory;
+                            })
+                            .map((cat: any) => ({
+                              id: cat._id || cat.id,
+                              label: cat.name,
+                              value: cat._id || cat.id,
+                            }));
+                          const ownOpts = (categories as any[])
+                            .filter((cat: any) => cat._source === "own" && !cat.parentId)
+                            .map((cat: any) => ({
+                              id: cat._id || cat.id,
+                              label: `${cat.name} (My)`,
+                              value: cat._id || cat.id,
+                            }));
+                          return [...adminOpts, ...ownOpts];
+                        })()}
                         value={formData.category}
                         onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
-                        placeholder={canCreateCategories ? "Select Category" : formData.headerCategory ? "Select Category" : "Select Header Category First"}
+                        placeholder={
+                          formData.headerCategory || canCreateCategories
+                            ? "Select Category"
+                            : "Select Header Category First"
+                        }
+                        // With own-cat permission the dropdown is never empty
+                        // (own cats are always available), so don't disable it.
                         disabled={!canCreateCategories && !formData.headerCategory}
                       />
                     </div>
@@ -2067,15 +2133,11 @@ export default function SellerAddProduct() {
                         SubCategory
                       </label>
                       <ThemedDropdown
-                        options={canCreateCategories
-                          ? subcategories
-                              .filter((sub: any) => {
-                                const parentId = typeof sub.parentId === "object" && sub.parentId ? sub.parentId._id : sub.parentId;
-                                return String(parentId) === String(formData.category);
-                              })
-                              .map((sub: any) => ({ id: sub._id, label: sub.subcategoryName, value: sub._id }))
-                          : subcategories.map(sub => ({ id: sub._id, label: sub.subcategoryName, value: sub._id }))
-                        }
+                        options={subcategories.map((sub: any) => ({
+                          id: sub._id,
+                          label: sub.subcategoryName,
+                          value: sub._id,
+                        }))}
                         value={formData.subcategory}
                         onChange={(val) => setFormData(prev => ({ ...prev, subcategory: val }))}
                         placeholder={formData.category ? "Select Subcategory" : "Select Category First"}

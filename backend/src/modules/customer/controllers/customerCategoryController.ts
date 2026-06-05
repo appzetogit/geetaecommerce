@@ -59,16 +59,8 @@ export const getCategoriesWithSubs = async (_req: Request, res: Response) => {
       .lean();
 
     // Build product count maps to filter categories/subcategories that actually have products
-    // Only count products from visible sellers
-    const visibleSellers = await Seller.find({
-      isEnabled: true,
-      $or: [
-        { email: /admin/i },
-        { category: "Admin" },
-        { storeName: { $regex: /Admin/i } },
-        { canCreateCategories: { $ne: true } }
-      ]
-    }).select("_id");
+    // Only count products from visible sellers (gated solely by `isEnabled`).
+    const visibleSellers = await Seller.find({ isEnabled: true }).select("_id");
     const visibleSellerIds = visibleSellers.map(s => s._id);
 
     const activeProductMatch: any = { 

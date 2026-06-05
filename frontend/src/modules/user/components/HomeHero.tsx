@@ -249,13 +249,19 @@ export default function HomeHero({ activeTab = 'all', onTabChange }: HomeHeroPro
           }));
         }
 
-        // Merge with Seller Categories from localStorage
+        // Merge with Seller Categories from localStorage. Only Active
+        // seller-own categories feed customer search suggestions — Inactive
+        // ones must stay hidden from the storefront. Missing `status` is
+        // treated as Active for back-compat.
         const sellerPermissions = JSON.parse(localStorage.getItem('seller_category_permissions') || '{}');
         const sellerCatsStorage = localStorage.getItem('seller_own_categories'); // Using simplified key for demo
         let sellerCategories: any[] = [];
 
         if (sellerCatsStorage) {
-             sellerCategories = JSON.parse(sellerCatsStorage);
+             const parsed = JSON.parse(sellerCatsStorage) as any[];
+             sellerCategories = parsed.filter(
+                 (c) => c && (c.status === undefined || c.status === 'Active')
+             );
         }
 
         // In a real scenario we would filter by permission, but for demo we just show created ones

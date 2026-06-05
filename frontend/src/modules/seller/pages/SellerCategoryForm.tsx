@@ -38,13 +38,19 @@ export default function SellerCategoryForm({
   const { showToast } = useToast();
   const isCreateSubcategory =
     mode === "create-subcategory" && !!parentCategory && !editingCategory;
+  // New seller-created categories start as "Inactive" by default. This makes
+  // category creation a two-step process: create the record (privately), then
+  // explicitly flip the "Active Status" checkbox to publish it to customers.
+  // Prevents half-finished categories (no image, no subcategories, no
+  // products) from immediately showing up in the storefront. The edit branch
+  // below preserves whatever status the seller previously saved.
   const [formData, setFormData] = useState({
     name: "",
     image: "",
     order: 0,
     parentId: null as string | null,
     headerCategoryId: null as string | null,
-    status: "Active" as "Active" | "Inactive",
+    status: "Inactive" as "Active" | "Inactive",
     isBestseller: false,
     hasWarning: false,
     groupCategory: "",
@@ -120,7 +126,9 @@ export default function SellerCategoryForm({
           order: 0,
           parentId: parentCategory._id || null,
           headerCategoryId: inheritedHeaderCategoryId,
-          status: "Active",
+          // Default new subcategories to Inactive — see the useState default
+          // above for the rationale.
+          status: "Inactive",
           isBestseller: false,
           hasWarning: false,
           groupCategory: "",
@@ -134,7 +142,9 @@ export default function SellerCategoryForm({
           order: 0,
           parentId: null,
           headerCategoryId: null,
-          status: "Active",
+          // Default new root categories to Inactive — see the useState
+          // default above for the rationale.
+          status: "Inactive",
           isBestseller: false,
           hasWarning: false,
           groupCategory: "",

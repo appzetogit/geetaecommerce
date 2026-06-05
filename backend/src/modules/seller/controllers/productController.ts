@@ -48,28 +48,16 @@ export const createProduct = asyncHandler(
       });
     }
 
-    // Category Permission Guard: if seller's category permission is OFF (canCreateCategories === true),
-    // they cannot assign admin-managed categories or header categories to products.
-    const sellerDoc = await Seller.findById(sellerId).select("canCreateCategories").lean();
-    const isCategoryPermissionOff = sellerDoc ? sellerDoc.canCreateCategories === true : false;
-    if (isCategoryPermissionOff) {
-      if (productData.headerCategoryId) {
-        return res.status(403).json({
-          success: false,
-          message: "Your account does not have permission to add products under admin-managed categories. Please contact the admin.",
-        });
-      }
-      const categoryId = productData.categoryId || productData.category;
-      if (categoryId && typeof categoryId === "string" && isValidObjectIdString(categoryId)) {
-        const isAdminCategory = await Category.exists({ _id: categoryId });
-        if (isAdminCategory) {
-          return res.status(403).json({
-            success: false,
-            message: "Your account does not have permission to add products under admin-managed categories. Please contact the admin.",
-          });
-        }
-      }
-    }
+    // NOTE: There used to be a "Category Permission Guard" here that blocked
+    // sellers with `canCreateCategories === true` from posting to any
+    // admin-managed category or header. That had inverted polarity — the
+    // flag's name describes an *additive* permission ("this seller may also
+    // maintain their own private category tree"), not a restriction from
+    // admin categories. The guard, combined with the schema default of
+    // `true`, locked every newly registered seller out of the entire admin
+    // taxonomy. Removed so sellers can freely upload to admin categories;
+    // ownership of seller-own categories is still enforced by the seller-
+    // own controllers themselves.
 
     // 2. Map fields to match Product model
     const newProductData: any = {
@@ -470,28 +458,9 @@ export const updateProduct = asyncHandler(
     // Remove sellerId from update data if present (cannot change owner)
     delete updateData.sellerId;
 
-    // Category Permission Guard: if seller's category permission is OFF (canCreateCategories === true),
-    // they cannot assign admin-managed categories or header categories.
-    const sellerDocForUpdate = await Seller.findById(sellerId).select("canCreateCategories").lean();
-    const isCategoryPermissionOffForUpdate = sellerDocForUpdate ? sellerDocForUpdate.canCreateCategories === true : false;
-    if (isCategoryPermissionOffForUpdate) {
-      if (updateData.headerCategoryId) {
-        return res.status(403).json({
-          success: false,
-          message: "Your account does not have permission to assign admin-managed categories. Please contact the admin.",
-        });
-      }
-      const categoryId = updateData.categoryId || updateData.category;
-      if (categoryId && typeof categoryId === "string" && isValidObjectIdString(categoryId)) {
-        const isAdminCategory = await Category.exists({ _id: categoryId });
-        if (isAdminCategory) {
-          return res.status(403).json({
-            success: false,
-            message: "Your account does not have permission to assign admin-managed categories. Please contact the admin.",
-          });
-        }
-      }
-    }
+    // Category Permission Guard removed — see createProduct above for the
+    // rationale. Sellers may freely re-assign their products to admin
+    // categories on update.
 
     // Map frontend field names to model field names (same as createProduct)
     if (updateData.headerCategoryId !== undefined) {

@@ -65,16 +65,11 @@ async function fetchSectionData(
       const activeCategoryIds = activeCategories.map(c => c._id);
       query.category = { $in: activeCategoryIds };
 
-      // Filter by visible sellers (Enabled and (Admin or canCreateCategories is false))
-      const visibleSellers = await Seller.find({
-        isEnabled: true,
-        $or: [
-          { email: /admin/i },
-          { category: "Admin" },
-          { storeName: { $regex: /Admin/i } },
-          { canCreateCategories: { $ne: true } }
-        ]
-      }).select("_id");
+      // Customer-side seller visibility is gated solely by `isEnabled`.
+      // `canCreateCategories` is an admin/authoring permission and must NOT
+      // be used here — its schema default is `true`, which used to silently
+      // hide every newly registered seller from customers.
+      const visibleSellers = await Seller.find({ isEnabled: true }).select("_id");
       const visibleSellerIds = visibleSellers.map(s => s._id);
 
       if (nearbySellerIds && nearbySellerIds.length > 0) {
@@ -276,16 +271,9 @@ export const getHomeContent = async (req: Request, res: Response) => {
       isActive: true,
     };
 
-    // Always filter by visible sellers
-    const visibleSellers = await Seller.find({
-      isEnabled: true,
-      $or: [
-        { email: /admin/i },
-        { category: "Admin" },
-        { storeName: { $regex: /Admin/i } },
-        { canCreateCategories: { $ne: true } }
-      ]
-    }).select("_id");
+    // Always filter by visible sellers. See customerProductController.ts for
+    // why `canCreateCategories` is intentionally not part of this gate.
+    const visibleSellers = await Seller.find({ isEnabled: true }).select("_id");
     const visibleSellerIds = visibleSellers.map(s => s._id);
 
     const lowestPricesProducts = await LowestPricesProduct.find(
@@ -747,16 +735,9 @@ export const getStoreProducts = async (req: Request, res: Response) => {
       }
     }
 
-    // Visibility filter
-    const visibleSellersQuery = {
-      isEnabled: true,
-      $or: [
-        { email: /admin/i },
-        { category: "Admin" },
-        { storeName: { $regex: /Admin/i } },
-        { canCreateCategories: { $ne: true } }
-      ]
-    };
+    // Visibility filter — see customerProductController.ts for the reason
+    // `canCreateCategories` is deliberately excluded.
+    const visibleSellersQuery = { isEnabled: true } as const;
 
     const userLat = latitude ? parseFloat(latitude as string) : null;
     const userLng = longitude ? parseFloat(longitude as string) : null;
