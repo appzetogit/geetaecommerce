@@ -962,9 +962,16 @@ export default function SellerAddProduct() {
                 "",
               subSubCategory:
                 (product as any).subSubCategory || "",
-              publish: product.publish ? "Yes" : "No",
-              popular: product.popular ? "Yes" : "No",
-              dealOfDay: product.dealOfDay ? "Yes" : "No",
+              // Strict-equality checks (vs `?` truthiness) so a stray
+              // string like "false" coming back from a legacy field — or any
+              // other non-boolean value — doesn't get coerced into "Yes" and
+              // then silently re-saved as `publish: true`. This is half of
+              // the fix for "edit Inactive product → it becomes Active"; the
+              // matching backend guard lives in
+              // `seller/productController.ts` `updateProduct`.
+              publish: (product.publish as any) === true || (product.publish as any) === "true" ? "Yes" : "No",
+              popular: (product.popular as any) === true || (product.popular as any) === "true" ? "Yes" : "No",
+              dealOfDay: (product.dealOfDay as any) === true || (product.dealOfDay as any) === "true" ? "Yes" : "No",
               brand: (product.brand as any)?._id || product.brandId || "",
               tags: product.tags.join(", "),
               smallDescription: product.smallDescription || "",
@@ -2402,6 +2409,98 @@ export default function SellerAddProduct() {
                  <>
 
                <div className="p-6 space-y-6 border-x border-b border-neutral-200 rounded-b-xl">
+                 {/*
+                   Main Product (parent) Barcode callout.
+
+                   Why this lives inside the Variations section:
+                   Sellers were missing the existing parent barcode field
+                   (further down the form in "Item Code & Multiple Barcodes"
+                   / "Barcodes (EAN/UPC)") whenever they enabled variations,
+                   because their entire attention shifts to the per-row
+                   Barcode column in the variations table below. The parent's
+                   `formData.barcode` stayed empty, and POS scanning of the
+                   printed parent label ended up matching a variant via the
+                   fallback path in `onScanSuccess` (see SellerPOSOrders.tsx
+                   lines ~917-940). Surfacing the parent barcode here, right
+                   above the variations table, makes it unmissable.
+
+                   This is purely additive UI — it binds to the same
+                   `formData.barcode` array and reuses the existing
+                   addBarcode('product', ...) / removeBarcode('product', ...)
+                   handlers, so the data model and save payload are
+                   unchanged.
+                 */}
+                 <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                   <div className="flex items-start gap-3 mb-3">
+                     <svg className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                     </svg>
+                     <div>
+                       <h3 className="text-sm font-semibold text-amber-900">Main Product Barcode</h3>
+                       <p className="text-xs text-amber-800 mt-0.5">
+                         Use this when you want POS scanning to add the <span className="font-semibold">parent product itself</span> (not a specific variant). Variant barcodes are managed per-row in the table below.
+                       </p>
+                     </div>
+                   </div>
+                   <div className="space-y-2">
+                     <div className="flex flex-wrap gap-2 min-h-[28px]">
+                       {formData.barcode && formData.barcode.length > 0 ? (
+                         formData.barcode.map((b) => (
+                           <span key={b} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-amber-800 border border-amber-300 rounded-full text-xs font-semibold shadow-sm">
+                             {b}
+                             <button type="button" onClick={() => removeBarcode('product', b)} className="hover:text-red-600 transition-colors" aria-label={`Remove barcode ${b}`}>
+                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                             </button>
+                           </span>
+                         ))
+                       ) : (
+                         <span className="text-xs text-amber-700/80 italic">No main-product barcode added yet</span>
+                       )}
+                     </div>
+                     <div className="flex flex-col md:flex-row gap-2">
+                       <input
+                         type="text"
+                         value={currentBarcode}
+                         onChange={(e) => setCurrentBarcode(e.target.value)}
+                         onKeyDown={(e) => {
+                           if (e.key === "Enter") {
+                             e.preventDefault();
+                             if (currentBarcode.trim()) {
+                               addBarcode('product', null, currentBarcode);
+                             }
+                           }
+                         }}
+                         placeholder="Scan or enter the main product barcode"
+                         className="w-full md:flex-1 px-4 py-2 border border-amber-300 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-500 transition-all text-sm"
+                       />
+                       <div className="flex gap-2 shrink-0">
+                         <button
+                           type="button"
+                           onClick={() => { if (currentBarcode.trim()) addBarcode('product', null, currentBarcode); }}
+                           className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-bold hover:bg-amber-700 transition-colors shadow-sm"
+                         >
+                           Add
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => handleAutoGenerateBarcode("product")}
+                           className="px-3 py-2 bg-white border border-amber-300 rounded-lg hover:bg-amber-100 text-amber-700 transition-colors"
+                           title="Auto-generate"
+                         >
+                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                         </button>
+                         <button
+                           type="button"
+                           onClick={() => startScanning("product")}
+                           className="px-3 py-2 bg-white border border-amber-300 rounded-lg hover:bg-amber-100 text-amber-700 transition-colors"
+                           title="Scan with camera"
+                         >
+                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
                  <div>
                    <label className="block text-sm font-semibold text-neutral-700 mb-2">
                      Variation Type

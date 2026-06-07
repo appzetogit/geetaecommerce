@@ -541,8 +541,22 @@ const SellerPOSOrders = () => {
   // Quick Add Form
   const [quickForm, setQuickForm] = useState({ barcode: '', name: '', price: '', qty: '1', mrp: '', purchasePrice: '', wholesalePrice: '', categoryId: '', brandId: '', addToInventory: false, warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
   // Edit Item Form
-  const [editForm, setEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
-  const [purchaseEditForm, setPurchaseEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '' });
+  //
+  // `hsnCode` and `gst` mirror the admin POS edit-item form (see
+  // AdminPOSOrders.tsx). They flow through the same pipeline as the price/
+  // warranty fields: seeded from the cart item, falling back to the
+  // inventory product, and optionally written back to the product on save
+  // when the "Update product details in inventory" checkbox is ticked.
+  // `gst` is stored as a string to match the controlled-input pattern of the
+  // other numeric fields; it gets parsed + clamped to a sane default (5%)
+  // at submit time.
+  const [editForm, setEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '', hsnCode: '', gst: '5' });
+  // `hsnCode` / `gst` mirror the regular POS Edit Item form (see `editForm`
+  // above) and the admin POS Edit Item form (AdminPOSOrders.tsx). They map
+  // to `PurchaseItem.hsn` and `PurchaseItem.gstPercent` on submit so the
+  // quotation/purchase line picks them up the same way as the rest of the
+  // tax/HSN fields elsewhere in this file.
+  const [purchaseEditForm, setPurchaseEditForm] = useState({ name: '', price: '', qty: '', mrp: '', purchasePrice: '', wholesalePrice: '', warrantyType: 'None' as "None" | "Warranty" | "Guarantee", warrantyDuration: '', hsnCode: '', gst: '5' });
 
   // New UI States
   const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
@@ -712,22 +726,54 @@ const SellerPOSOrders = () => {
   const [supplierSearch, setSupplierSearch] = useState('');
   const [allSuppliers, setAllSuppliers] = useState<any[]>([]);
   const [showSupplierResults, setShowSupplierResults] = useState(false);
+  // Quotation-mode customer search. We don't pre-fetch the whole customer
+  // list (it can be very large) — instead we debounce the search input and
+  // hit /seller/pos/customers as the user types. Reuses `supplierSearch`
+  // for the input value so the modal stays a single component.
+  const [customerSearchResults, setCustomerSearchResults] = useState<any[]>([]);
 
   useEffect(() => {
     if (showSupplierModal) {
       setSupplierSearch('');
       setShowSupplierResults(false);
-      const fetchSuppliers = async () => {
-        try {
-          const res = await getAllSuppliers();
-          if (res.success) setAllSuppliers(res.data);
-        } catch (e) {
-          console.error("Failed to fetch suppliers", e);
-        }
-      };
-      fetchSuppliers();
+      setCustomerSearchResults([]);
+      // Only pre-fetch the supplier ledger in Purchase mode. In Quotation
+      // mode we want customer results, which are fetched on-demand below.
+      if (purchaseMode !== 'Quotation') {
+        const fetchSuppliers = async () => {
+          try {
+            const res = await getAllSuppliers();
+            if (res.success) setAllSuppliers(res.data);
+          } catch (e) {
+            console.error("Failed to fetch suppliers", e);
+          }
+        };
+        fetchSuppliers();
+      }
     }
-  }, [showSupplierModal]);
+  }, [showSupplierModal, purchaseMode]);
+
+  // Debounced customer search for Quotation mode. Mirrors the customer
+  // search flow already used by the regular cart's Add Customer modal (see
+  // `modalCustomerSearch` effect earlier in the file).
+  useEffect(() => {
+    if (!showSupplierModal || purchaseMode !== 'Quotation') return;
+    const q = supplierSearch.trim();
+    if (!q) {
+      setCustomerSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await getAllCustomers({ search: q, limit: 10 });
+        setCustomerSearchResults(res.success && res.data ? res.data : []);
+      } catch (e) {
+        console.error('Failed to search customers', e);
+        setCustomerSearchResults([]);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [supplierSearch, showSupplierModal, purchaseMode]);
 
   useEffect(() => {
     if (showPurchaseSearch) {
@@ -929,7 +975,10 @@ const SellerPOSOrders = () => {
                              includingGST: true,
                              billDiscount: 0,
                              billDiscountType: '%',
-                             gstPercent: 18,
+                             // Default GST is 5% across the app (matches the
+                             // Edit Item modal default and the admin POS
+                             // purchase/quotation flow in AdminPOSOrders.tsx).
+                             gstPercent: 5,
                              barcode: Array.isArray(variationMatch?.barcode) ? String(variationMatch.barcode[0] || '') : String(variationMatch?.barcode || ''),
                              mfgDate: '',
                              expiry: '',
@@ -2055,7 +2104,10 @@ const SellerPOSOrders = () => {
         includingGST: true,
         billDiscount: 0,
         billDiscountType: '%',
-        gstPercent: 18,
+        // Default GST is 5% across the app (matches the Edit Item modal
+        // default and the admin POS purchase/quotation flow in
+        // AdminPOSOrders.tsx).
+        gstPercent: 5,
         barcode: Array.isArray(product.barcode) ? String(product.barcode[0] || '') : String(product.barcode || ''),
         mfgDate: '',
         expiry: '',
@@ -2141,7 +2193,10 @@ const SellerPOSOrders = () => {
         includingGST: true,
         billDiscount: 0,
         billDiscountType: '%',
-        gstPercent: 18,
+        // Default GST is 5% across the app (matches the Edit Item modal
+        // default and the admin POS purchase/quotation flow in
+        // AdminPOSOrders.tsx).
+        gstPercent: 5,
         barcode: Array.isArray(variation?.barcode) ? String(variation.barcode[0] || '') : String(variation?.barcode || ''),
         mfgDate: '',
         expiry: '',
@@ -2488,6 +2543,15 @@ const SellerPOSOrders = () => {
   const openEditModal = (item: CartItem) => {
     setEditingItem(item);
     const currentPrice = item.customPrice !== undefined ? item.customPrice : item.price;
+    // Seed HSN/GST from whatever the cart item already carries (e.g. an item
+    // restored from a quotation/draft can have its own per-line values).
+    // Missing/invalid GST falls back to 5% to keep the input controlled.
+    const existingHsn = (item as any).hsnCode || (item as any).hsn || '';
+    const existingGst = (item as any).gst ?? (item as any).gstPercent;
+    const gstStr =
+      existingGst === undefined || existingGst === null || existingGst === '' || !Number.isFinite(Number(existingGst))
+        ? '5'
+        : String(existingGst);
     setEditForm({
       name: item.productName,
       price: currentPrice.toString(),
@@ -2496,7 +2560,9 @@ const SellerPOSOrders = () => {
       purchasePrice: (item.purchasePrice || 0).toString(),
       wholesalePrice: (item.wholesalePrice || 0).toString(),
       warrantyType: (item as any).warrantyType || 'None',
-      warrantyDuration: (item as any).warrantyDuration || ''
+      warrantyDuration: (item as any).warrantyDuration || '',
+      hsnCode: existingHsn,
+      gst: gstStr,
     });
   };
 
@@ -2524,6 +2590,14 @@ const SellerPOSOrders = () => {
              }
           }
 
+          // Pull HSN/GST off the product so we can fall back to them when
+          // the cart item itself doesn't carry them (e.g. a freshly added
+          // catalogue product). We only overwrite the form values if the
+          // user hasn't already set something — typing into the field while
+          // this fetch is in flight must not get clobbered.
+          const productHsnCode: string = (product as any).hsnCode || '';
+          const productGst: any = (product as any).gst;
+
           // Update the form with the fetched values
           setEditForm(prev => ({
               ...prev,
@@ -2531,7 +2605,14 @@ const SellerPOSOrders = () => {
               purchasePrice: (purchasePrice || 0).toString(),
               wholesalePrice: (wholesalePrice || 0).toString(),
               warrantyType: product.warrantyType || 'None',
-              warrantyDuration: product.warrantyDuration || ''
+              warrantyDuration: product.warrantyDuration || '',
+              hsnCode: prev.hsnCode && prev.hsnCode.trim() ? prev.hsnCode : productHsnCode,
+              gst:
+                prev.gst && prev.gst !== ''
+                  ? prev.gst
+                  : productGst !== undefined && productGst !== null
+                    ? String(productGst)
+                    : '5',
           }));
         }
       } catch (err) {
@@ -2548,6 +2629,11 @@ const SellerPOSOrders = () => {
 
     setCart(prev => prev.map(item => {
       if (item._id === editingItem._id) {
+        // Parse + clamp GST to a sane non-negative number, defaulting to 5%
+        // when the user clears the field or types something invalid. Matches
+        // the admin POS edit-item behaviour.
+        const parsedGst = parseFloat(editForm.gst);
+        const safeGst = Number.isFinite(parsedGst) && parsedGst >= 0 ? parsedGst : 5;
         const updatedItem = {
           ...item,
           productName: editForm.name,
@@ -2558,12 +2644,23 @@ const SellerPOSOrders = () => {
           qty: parseInt(editForm.qty) || 1,
           warrantyType: editForm.warrantyType,
           warrantyDuration: editForm.warrantyDuration,
+          // Per-line HSN/GST. Other reducers (totals, invoice, save-order)
+          // already read these via `item.hsnCode` / `item.gst` (see
+          // gstPercent fallbacks throughout this file).
+          hsnCode: editForm.hsnCode.trim(),
+          gst: safeGst,
+          gstPercent: safeGst,
           updateInventory: (document.getElementById('updateInventory') as HTMLInputElement)?.checked || false
         };
 
         // If updateInventory is checked and it's not a quick-add item, update the actual product
         if (updatedItem.updateInventory && !item._id.toString().startsWith('quick-')) {
             const productId = item.originalProductId || item._id;
+            // Same payload shape as AdminPOSOrders.handleEditItemSubmit so
+            // the seller's inventory write goes through identical fields.
+            // The backend Product model defines both `hsnCode` and `gst`
+            // (see backend/src/models/Product.ts), and PUT /products/:id
+            // forwards them straight to the schema.
             updateProduct(productId, {
                 price: updatedItem.customPrice,
                 compareAtPrice: updatedItem.compareAtPrice,
@@ -2571,9 +2668,11 @@ const SellerPOSOrders = () => {
                 wholesalePrice: updatedItem.wholesalePrice,
                 warrantyType: updatedItem.warrantyType as "None" | "Warranty" | "Guarantee",
                 warrantyDuration: updatedItem.warrantyDuration,
+                hsnCode: updatedItem.hsnCode,
+                gst: updatedItem.gst,
                 // We don't update stock here as stock is handled during checkout,
                 // but we update the display info.
-            }).catch(console.error);
+            } as any).catch(console.error);
         }
 
         return updatedItem;
@@ -2585,6 +2684,14 @@ const SellerPOSOrders = () => {
 
   const openPurchaseEditModal = (item: PurchaseItem) => {
     setEditingPurchaseItem(item);
+    // Seed HSN/GST from the line item. `gstPercent` is the field name on
+    // PurchaseItem; if missing or non-numeric we fall back to 5% so the
+    // input stays controlled (same defaulting as `openEditModal` above).
+    const existingGst = item.gstPercent;
+    const gstStr =
+      existingGst === undefined || existingGst === null || !Number.isFinite(Number(existingGst))
+        ? '5'
+        : String(existingGst);
     setPurchaseEditForm({
       name: item.productName,
       price: item.retailPrice.toString(),
@@ -2593,13 +2700,21 @@ const SellerPOSOrders = () => {
       purchasePrice: item.purchasePrice.toString(),
       wholesalePrice: item.wholesalePrice.toString(),
       warrantyType: 'None',
-      warrantyDuration: ''
+      warrantyDuration: '',
+      hsnCode: item.hsn || '',
+      gst: gstStr,
     });
   };
 
   const handlePurchaseEditItemSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPurchaseItem) return;
+
+    // Parse + clamp GST to a sane non-negative number, defaulting to 5%
+    // when the user clears the field or types something invalid. Mirrors
+    // `handleEditItemSubmit` for the regular POS cart.
+    const parsedGst = parseFloat(purchaseEditForm.gst);
+    const safeGst = Number.isFinite(parsedGst) && parsedGst >= 0 ? parsedGst : 5;
 
     updatePurchaseItem(editingPurchaseItem.id, {
       productName: purchaseEditForm.name,
@@ -2608,6 +2723,8 @@ const SellerPOSOrders = () => {
       purchasePrice: parseFloat(purchaseEditForm.purchasePrice) || 0,
       wholesalePrice: parseFloat(purchaseEditForm.wholesalePrice) || 0,
       qty: parseInt(purchaseEditForm.qty) || 1,
+      hsn: purchaseEditForm.hsnCode.trim(),
+      gstPercent: safeGst,
     });
     setEditingPurchaseItem(null);
   };
@@ -4409,7 +4526,19 @@ const SellerPOSOrders = () => {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3M4 11h16M5 21h14a1 1 0 001-1V8a1 1 0 00-1-1H5a1 1 0 00-1 1v12a1 1 0 001 1z" />
                   </svg>
-                  {purchaseSupplier ? purchaseSupplier.name : 'Add Supplier'}
+                  {/*
+                    In quotation mode the supplier slot represents the
+                    customer being quoted, not a vendor. We reuse the same
+                    `purchaseSupplier` state and modal because every
+                    downstream consumer (PurchaseEntryRecord.supplier, print
+                    layout, etc.) already reads from it; only the labels
+                    swap.
+                  */}
+                  {purchaseSupplier
+                    ? purchaseSupplier.name
+                    : purchaseMode === 'Quotation'
+                      ? 'Add Customer'
+                      : 'Add Supplier'}
                 </button>
                 <div className="relative">
                   <input
@@ -4833,16 +4962,40 @@ const SellerPOSOrders = () => {
         </div>
       )}
 
-      {/* --- PURCHASE SUPPLIER MODAL --- */}
+      {/*
+        --- PURCHASE SUPPLIER / QUOTATION CUSTOMER MODAL ---
+
+        Single modal, two personalities:
+          - Purchase mode  : the contact is a supplier (vendor we buy from).
+                             We search the supplier ledger and persist back
+                             to it via `createSupplier`. Opening Balance is
+                             shown because supplier accounting needs it.
+          - Quotation mode : the contact is the customer being quoted. We
+                             search live customer records via
+                             `getAllCustomers` and persist via
+                             `createCustomer`. Opening Balance is hidden
+                             because it's not a meaningful field for a
+                             customer record.
+
+        State variable names stay supplier-flavoured (`purchaseSupplier`,
+        `purchaseSupplierForm`, `showSupplierModal`) because every
+        downstream consumer (the PurchaseEntryRecord.supplier slot, the
+        printed quotation PDF, the on-screen pill on the header) already
+        reads them. Only labels and persistence swap.
+      */}
       {showSupplierModal && (
+        (() => {
+          const isQuotation = purchaseMode === 'Quotation';
+          const contactLabel = isQuotation ? 'Customer' : 'Supplier';
+          return (
         <div className="fixed inset-0 bg-black/40 z-[80] flex items-end justify-center" onClick={() => setShowSupplierModal(false)}>
           <div className="w-full max-w-xl bg-white rounded-t-3xl p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-3"></div>
-            <h3 className="text-3xl font-semibold text-gray-800 mb-4">Add Supplier</h3>
+            <h3 className="text-3xl font-semibold text-gray-800 mb-4">Add {contactLabel}</h3>
 
-            {/* Supplier Search */}
+            {/* Search existing supplier/customer */}
             <div className="mb-4 relative">
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Search Existing Supplier</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Search Existing {contactLabel}</label>
               <div className="relative">
                 <input
                   type="text"
@@ -4862,44 +5015,67 @@ const SellerPOSOrders = () => {
 
               {showSupplierResults && supplierSearch.trim() && (
                 <div className="absolute z-[90] left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
-                  {allSuppliers.filter(s =>
-                    s.name.toLowerCase().includes(supplierSearch.toLowerCase()) ||
-                    s.phone.includes(supplierSearch)
-                  ).map(s => (
-                    <button
-                      key={s._id}
-                      onClick={() => {
-                        setPurchaseSupplierForm({
-                          name: s.name,
-                          phone: s.phone,
-                          address: s.address || '',
-                          notes: s.notes || '',
-                          gstNumber: s.gstNumber || '',
-                          openingBalance: String(s.openingBalance || '0'),
-                          openingBalanceType: s.openingBalanceType || 'Payment'
-                        });
-                        setSupplierSearch(s.name);
-                        setShowSupplierResults(false);
-                      }}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
-                    >
-                      <div className="font-semibold text-gray-800">{s.name}</div>
-                      <div className="text-xs text-gray-500">{s.phone} {s.gstNumber ? `| GST: ${s.gstNumber}` : ''}</div>
-                    </button>
-                  ))}
+                  {isQuotation
+                    ? customerSearchResults.map((c: any) => (
+                        <button
+                          key={c._id}
+                          onClick={() => {
+                            setPurchaseSupplierForm({
+                              name: c.name || '',
+                              phone: c.phone || '',
+                              address: c.address || '',
+                              notes: c.notes || '',
+                              gstNumber: (c as any).gstNumber || (c as any).gst || '',
+                              openingBalance: '0',
+                              openingBalanceType: 'Payment',
+                            });
+                            setSupplierSearch(c.name || '');
+                            setShowSupplierResults(false);
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                        >
+                          <div className="font-semibold text-gray-800">{c.name}</div>
+                          <div className="text-xs text-gray-500">{c.phone}{(c as any).gstNumber ? ` | GST: ${(c as any).gstNumber}` : ''}</div>
+                        </button>
+                      ))
+                    : allSuppliers.filter(s =>
+                        s.name.toLowerCase().includes(supplierSearch.toLowerCase()) ||
+                        s.phone.includes(supplierSearch)
+                      ).map(s => (
+                        <button
+                          key={s._id}
+                          onClick={() => {
+                            setPurchaseSupplierForm({
+                              name: s.name,
+                              phone: s.phone,
+                              address: s.address || '',
+                              notes: s.notes || '',
+                              gstNumber: s.gstNumber || '',
+                              openingBalance: String(s.openingBalance || '0'),
+                              openingBalanceType: s.openingBalanceType || 'Payment'
+                            });
+                            setSupplierSearch(s.name);
+                            setShowSupplierResults(false);
+                          }}
+                          className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                        >
+                          <div className="font-semibold text-gray-800">{s.name}</div>
+                          <div className="text-xs text-gray-500">{s.phone} {s.gstNumber ? `| GST: ${s.gstNumber}` : ''}</div>
+                        </button>
+                      ))}
                 </div>
               )}
             </div>
 
             <div className="space-y-3">
-              <label className="block text-sm font-semibold text-gray-700">Supplier Name *
-                <input value={purchaseSupplierForm.name} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, name: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all" placeholder="Enter supplier name" />
+              <label className="block text-sm font-semibold text-gray-700">{contactLabel} Name *
+                <input value={purchaseSupplierForm.name} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, name: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all" placeholder={`Enter ${contactLabel.toLowerCase()} name`} />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Phone Number *
                 <input value={purchaseSupplierForm.phone} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, phone: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all" placeholder="Enter phone number" />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Address (optional)
-                <textarea value={purchaseSupplierForm.address} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, address: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all" rows={2} placeholder="Enter supplier address" />
+                <textarea value={purchaseSupplierForm.address} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, address: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all" rows={2} placeholder={`Enter ${contactLabel.toLowerCase()} address`} />
               </label>
               <label className="block text-sm font-semibold text-gray-700">Notes (optional)
                 <textarea value={purchaseSupplierForm.notes} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, notes: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all" rows={2} placeholder="Enter notes or remarks" />
@@ -4907,15 +5083,19 @@ const SellerPOSOrders = () => {
               <label className="block text-sm font-semibold text-gray-700">GST Number (optional)
                 <input value={purchaseSupplierForm.gstNumber} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, gstNumber: e.target.value }))} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all" placeholder="Enter GST number" />
               </label>
-              <label className="block text-sm font-semibold text-gray-700">Opening Balance (optional)
-                <div className="grid grid-cols-[1fr_120px] gap-2 mt-1">
-                  <input value={purchaseSupplierForm.openingBalance} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, openingBalance: e.target.value }))} className="w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all" placeholder="0.00" />
-                  <select value={purchaseSupplierForm.openingBalanceType} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, openingBalanceType: e.target.value as "Payment" | "Receive" }))} className="rounded-xl border border-gray-300 px-2 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all">
-                    <option value="Payment">PAYMENT</option>
-                    <option value="Receive">RECEIVE</option>
-                  </select>
-                </div>
-              </label>
+              {/* Opening Balance only makes sense for supplier accounting,
+                  not for a customer being quoted. */}
+              {!isQuotation && (
+                <label className="block text-sm font-semibold text-gray-700">Opening Balance (optional)
+                  <div className="grid grid-cols-[1fr_120px] gap-2 mt-1">
+                    <input value={purchaseSupplierForm.openingBalance} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, openingBalance: e.target.value }))} className="w-full rounded-xl border border-gray-300 px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all" placeholder="0.00" />
+                    <select value={purchaseSupplierForm.openingBalanceType} onChange={(e) => setPurchaseSupplierForm((p) => ({ ...p, openingBalanceType: e.target.value as "Payment" | "Receive" }))} className="rounded-xl border border-gray-300 px-2 py-2.5 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] focus:outline-none transition-all">
+                      <option value="Payment">PAYMENT</option>
+                      <option value="Receive">RECEIVE</option>
+                    </select>
+                  </div>
+                </label>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-6">
@@ -4923,52 +5103,71 @@ const SellerPOSOrders = () => {
               <button
                 onClick={async () => {
                   if (!purchaseSupplierForm.name.trim() || !purchaseSupplierForm.phone.trim()) {
-                    showToast('Supplier name and phone are required.', 'error');
+                    showToast(`${contactLabel} name and phone are required.`, 'error');
                     return;
                   }
                   setPurchaseSupplier(purchaseSupplierForm);
                   setShowSupplierModal(false);
-                  showToast('Supplier added in purchase entry.', 'success');
+                  showToast(
+                    isQuotation
+                      ? 'Customer added in quotation entry.'
+                      : 'Supplier added in purchase entry.',
+                    'success'
+                  );
 
-                  // Additionally, try to persist supplier in Seller POS Supplier Ledger (DB).
-                  // This is best-effort only; failures won't affect current flow.
+                  // Best-effort DB persistence. Failures don't block the
+                  // in-memory entry flow.
                   try {
-                    const openingBalance = parseFloat(purchaseSupplierForm.openingBalance || '0') || 0;
-                    const openingBalanceType =
-                      purchaseSupplierForm.openingBalanceType === 'Receive' ||
-                      purchaseSupplierForm.openingBalanceType === 'Payment'
-                        ? purchaseSupplierForm.openingBalanceType
-                        : 'Receive';
+                    if (isQuotation) {
+                      const customerPayload: Partial<import('../../../services/api/admin/adminCustomerService').Customer> = {
+                        name: purchaseSupplierForm.name.trim(),
+                        phone: purchaseSupplierForm.phone.trim(),
+                        address: purchaseSupplierForm.address || undefined,
+                      };
+                      const res = await createCustomer(customerPayload);
+                      if (!res?.success) {
+                        console.warn('Failed to persist quotation customer:', res?.message);
+                      }
+                    } else {
+                      const openingBalance = parseFloat(purchaseSupplierForm.openingBalance || '0') || 0;
+                      const openingBalanceType =
+                        purchaseSupplierForm.openingBalanceType === 'Receive' ||
+                        purchaseSupplierForm.openingBalanceType === 'Payment'
+                          ? purchaseSupplierForm.openingBalanceType
+                          : 'Receive';
 
-                    const payload: Partial<import('../../../services/api/seller/supplierService').Supplier> = {
-                      name: purchaseSupplierForm.name.trim(),
-                      phone: purchaseSupplierForm.phone.trim(),
-                      address: purchaseSupplierForm.address || undefined,
-                      gstNumber: purchaseSupplierForm.gstNumber || undefined,
-                      notes: purchaseSupplierForm.notes || undefined,
-                      openingBalance,
-                      openingBalanceType,
-                    };
+                      const payload: Partial<import('../../../services/api/seller/supplierService').Supplier> = {
+                        name: purchaseSupplierForm.name.trim(),
+                        phone: purchaseSupplierForm.phone.trim(),
+                        address: purchaseSupplierForm.address || undefined,
+                        gstNumber: purchaseSupplierForm.gstNumber || undefined,
+                        notes: purchaseSupplierForm.notes || undefined,
+                        openingBalance,
+                        openingBalanceType,
+                      };
 
-                    const res = await import('../../../services/api/seller/supplierService').then(m =>
-                      m.createSupplier(payload)
-                    );
+                      const res = await import('../../../services/api/seller/supplierService').then(m =>
+                        m.createSupplier(payload)
+                      );
 
-                    if (!res?.success) {
-                      console.warn('Failed to persist supplier to ledger:', res?.message);
+                      if (!res?.success) {
+                        console.warn('Failed to persist supplier to ledger:', res?.message);
+                      }
                     }
                   } catch (err) {
                     // Silently ignore DB errors to avoid breaking existing purchase-entry flow
-                    console.error('Error creating supplier in ledger (non-blocking):', err);
+                    console.error(`Error creating ${contactLabel.toLowerCase()} in ledger (non-blocking):`, err);
                   }
                 }}
                 className="rounded-xl bg-[var(--primary-color)] hover:bg-[var(--primary-dark)] text-white py-3 font-semibold transition-all"
               >
-                Add Supplier
+                Add {contactLabel}
               </button>
             </div>
           </div>
         </div>
+          );
+        })()
       )}
 
       {/* --- PURCHASE SEARCH MODAL --- */}
@@ -5346,6 +5545,26 @@ const SellerPOSOrders = () => {
                             />
                         </div>
                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+                            <input
+                               type="text"
+                               value={editForm.hsnCode}
+                               onChange={e => setEditForm({...editForm, hsnCode: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
+                               placeholder="e.g. 9608"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">GST (%)</label>
+                            <input
+                               type="number" min="0" step="0.01"
+                               value={editForm.gst}
+                               onChange={e => setEditForm({...editForm, gst: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-900 focus:outline-none"
+                               placeholder="5"
+                            />
+                        </div>
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
                             <input
                                type="number" required min="1"
@@ -5447,6 +5666,26 @@ const SellerPOSOrders = () => {
                                value={purchaseEditForm.wholesalePrice} onChange={e => setPurchaseEditForm({...purchaseEditForm, wholesalePrice: e.target.value})}
                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--primary-color)] focus:outline-none"
                                placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">HSN Code</label>
+                            <input
+                               type="text"
+                               value={purchaseEditForm.hsnCode}
+                               onChange={e => setPurchaseEditForm({...purchaseEditForm, hsnCode: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--primary-color)] focus:outline-none"
+                               placeholder="e.g. 9608"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">GST (%)</label>
+                            <input
+                               type="number" min="0" step="0.01"
+                               value={purchaseEditForm.gst}
+                               onChange={e => setPurchaseEditForm({...purchaseEditForm, gst: e.target.value})}
+                               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[var(--primary-color)] focus:outline-none"
+                               placeholder="5"
                             />
                         </div>
                         <div>

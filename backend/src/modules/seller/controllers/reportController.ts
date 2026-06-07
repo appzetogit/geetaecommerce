@@ -292,6 +292,77 @@ export const getGSTSalesReport = asyncHandler(
             },
             { $unwind: { path: "$taxDoc", preserveNullAndEmptyArrays: true } },
 
+            // 5b. Resolve HSN and GST once, falling back through:
+            //       OrderItem.hsnCode   -> Product.hsnCode               -> "N/A"
+            //       OrderItem.gst       -> Product.gst -> Tax.percentage -> 0
+            //
+            //     The original projection used plain `$ifNull`, which only
+            //     catches null/missing. That left two real-world holes:
+            //       - `OrderItem.hsnCode` defaults to "" (empty string) on the
+            //         schema, so an empty value never reached the product
+            //         fallback and the report rendered "" / "N/A" even when
+            //         the product itself had a perfectly good HSN code.
+            //       - `OrderItem.gst` could be persisted as `0` whenever the
+            //         POS cart was built from a legacy product whose `gst`
+            //         field hadn't been populated yet. `$ifNull` happily kept
+            //         that `0`, so the GST column showed `0%` even after the
+            //         product was updated. We also skipped Product.gst as a
+            //         fallback source entirely (only Tax.percentage was
+            //         considered).
+            //
+            //     Treating `0` as "unset" for GST means tax-exempt items will
+            //     still cascade through Product/Tax — that's acceptable here
+            //     because the only way to legitimately get 0% in this app is
+            //     to set it explicitly on the Product (which is then the
+            //     fallback anyway).
+            {
+                $addFields: {
+                    _resolvedHsn: {
+                        $let: {
+                            vars: {
+                                itemHsn: {
+                                    $cond: [
+                                        { $in: [{ $ifNull: ["$hsnCode", ""] }, [null, ""]] },
+                                        null,
+                                        "$hsnCode"
+                                    ]
+                                },
+                                prodHsn: {
+                                    $cond: [
+                                        { $in: [{ $ifNull: ["$productDoc.hsnCode", ""] }, [null, ""]] },
+                                        null,
+                                        "$productDoc.hsnCode"
+                                    ]
+                                }
+                            },
+                            in: { $ifNull: ["$$itemHsn", { $ifNull: ["$$prodHsn", "N/A"] }] }
+                        }
+                    },
+                    _resolvedGst: {
+                        $let: {
+                            vars: {
+                                itemGst: { $ifNull: ["$gst", 0] },
+                                prodGst: { $ifNull: ["$productDoc.gst", 0] },
+                                taxGst: { $ifNull: ["$taxDoc.percentage", 0] }
+                            },
+                            in: {
+                                $cond: [
+                                    { $gt: ["$$itemGst", 0] },
+                                    "$$itemGst",
+                                    {
+                                        $cond: [
+                                            { $gt: ["$$prodGst", 0] },
+                                            "$$prodGst",
+                                            "$$taxGst"
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+
             // 6. Project Required Fields
             {
                 $project: {
@@ -300,46 +371,32 @@ export const getGSTSalesReport = asyncHandler(
                     customerName: "$orderDoc.customerName",
                     gstin: { $ifNull: ["$orderDoc.deliveryAddress.gstin", "N/A"] }, // Adjust if GSTIN is stored elsewhere
                     productName: "$productName",
-                    hsn: { $ifNull: ["$hsnCode", { $ifNull: ["$productDoc.hsnCode", "N/A"] }] },
+                    hsn: "$_resolvedHsn",
                     quantity: "$quantity",
                     stock: { $ifNull: ["$productDoc.stock", 0] }, // Current stock of the product
                     price: "$unitPrice", // Selling Price
-                    taxPercentage: { $ifNull: ["$gst", { $ifNull: ["$taxDoc.percentage", 0] }] },
+                    taxPercentage: "$_resolvedGst",
                     taxableAmount: {
-                        $let: {
-                            vars: {
-                                rate: { $ifNull: ["$gst", { $ifNull: ["$taxDoc.percentage", 0] }] }
-                            },
-                            in: {
-                                $cond: [
-                                    { $gt: ["$$rate", 0] },
-                                    { $divide: ["$total", { $add: [1, { $divide: ["$$rate", 100] }] }] },
-                                    "$total"
-                                ]
-                            }
-                        }
+                        $cond: [
+                            { $gt: ["$_resolvedGst", 0] },
+                            { $divide: ["$total", { $add: [1, { $divide: ["$_resolvedGst", 100] }] }] },
+                            "$total"
+                        ]
                     },
                     taxAmount: {
                         $ifNull: [
                             "$gstAmount",
                             {
-                                $let: {
-                                    vars: {
-                                        rate: { $ifNull: ["$gst", { $ifNull: ["$taxDoc.percentage", 0] }] }
-                                    },
-                                    in: {
-                                        $cond: [
-                                            { $gt: ["$$rate", 0] },
-                                            {
-                                                $divide: [
-                                                    { $multiply: ["$total", "$$rate"] },
-                                                    { $add: [100, "$$rate"] }
-                                                ]
-                                            },
-                                            0
+                                $cond: [
+                                    { $gt: ["$_resolvedGst", 0] },
+                                    {
+                                        $divide: [
+                                            { $multiply: ["$total", "$_resolvedGst"] },
+                                            { $add: [100, "$_resolvedGst"] }
                                         ]
-                                    }
-                                }
+                                    },
+                                    0
+                                ]
                             }
                         ]
                     },

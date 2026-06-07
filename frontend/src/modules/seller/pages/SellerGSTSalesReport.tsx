@@ -25,18 +25,27 @@ const SellerGSTSalesReport = () => {
     limit: 20
   });
 
+  // Display helpers mirror AdminGSTSalesReport so the two reports stay in
+  // lock-step (column set, fallbacks, and formatting). `quantity` is the
+  // primary source of truth; `stock` is only a defensive fallback for
+  // historic rows that lacked the projected `quantity` field.
   const getDisplayHsn = (item: GSTSalesData) => item.hsnCode ?? item.hsn ?? "";
+  const getDisplayQuantity = (item: GSTSalesData) => item.quantity ?? item.stock ?? 0;
   const getDisplayGstRate = (item: GSTSalesData) => item.taxPercentage ?? item.gst ?? 0;
-  const getDisplayTaxableAmount = (item: GSTSalesData) =>
-    item.taxableAmount ??
-    (() => {
-      const totalAmount = item.totalAmount ?? ((item.price ?? 0) * (item.quantity ?? item.stock ?? 0));
-      const gstRate = getDisplayGstRate(item);
-      if (!gstRate) return totalAmount;
-      return totalAmount / (1 + gstRate / 100);
-    })();
+  // Total is the source of truth on the server (it's what the customer
+  // actually paid). We deliberately compute GST and Taxable Amount as a
+  // forward percentage of Total here on the client so the row reads the
+  // way users intuitively expect: "5% of ₹400 is ₹20". This is a display
+  // override — we ignore `item.taxAmount` / `item.taxableAmount` from the
+  // server (which use the GST-inclusive backward formula
+  // `total ÷ (1 + r/100)`) because the user-visible math should always
+  // satisfy `Taxable + GST = Total` with `GST = Total × rate ÷ 100`.
   const getDisplayTotalAmount = (item: GSTSalesData) =>
-    item.totalAmount ?? ((getDisplayTaxableAmount(item) * (100 + getDisplayGstRate(item))) / 100);
+    item.totalAmount ?? ((item.price ?? 0) * getDisplayQuantity(item));
+  const getDisplayGstAmount = (item: GSTSalesData) =>
+    (getDisplayTotalAmount(item) * getDisplayGstRate(item)) / 100;
+  const getDisplayTaxableAmount = (item: GSTSalesData) =>
+    getDisplayTotalAmount(item) - getDisplayGstAmount(item);
   const averageGstRate = data.length
     ? data.reduce((sum, item) => sum + getDisplayGstRate(item), 0) / data.length
     : 0;
@@ -147,9 +156,10 @@ const SellerGSTSalesReport = () => {
       "Customer Name": item.customerName || "",
       "Product Name": item.productName,
       "HSN Code": getDisplayHsn(item),
-      "Quantity": item.quantity ?? 0,
+      "Quantity": getDisplayQuantity(item),
       "Taxable Amount": getDisplayTaxableAmount(item),
       "GST %": getDisplayGstRate(item),
+      "GST Amount": getDisplayGstAmount(item),
       "Total Amount": getDisplayTotalAmount(item)
     })));
 
@@ -171,14 +181,15 @@ const SellerGSTSalesReport = () => {
       item.customerName || "",
       item.productName,
       getDisplayHsn(item),
-      (item.quantity ?? 0).toString(),
+      getDisplayQuantity(item).toString(),
       `₹${getDisplayTaxableAmount(item)}`,
       `${getDisplayGstRate(item)}%`,
+      `₹${getDisplayGstAmount(item).toFixed(2)}`,
       `₹${getDisplayTotalAmount(item)}`
     ]);
 
     autoTable(doc, {
-      head: [['Date', 'Invoice', 'Customer', 'Product', 'HSN', 'Qty', 'Taxable', 'GST %', 'Total']],
+      head: [['Date', 'Invoice', 'Customer', 'Product', 'HSN', 'Qty', 'Taxable', 'GST %', 'GST Amt', 'Total']],
       body: tableData,
       startY: 28,
       styles: { fontSize: 8 },
@@ -349,6 +360,14 @@ const SellerGSTSalesReport = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gradient-to-r from-green-50 to-emerald-50 border-b-2 border-green-200">
+                  {/*
+                    Column set mirrors AdminGSTSalesReport.tsx 1:1 so the two
+                    reports stay visually identical:
+                      [☑] Date · Invoice No · Customer · Product Name · HSN
+                          Code · Qty · Taxable Amount · GST % · Total Amount
+                    Only Product Name is inline-editable (matches admin),
+                    everything else is read-only.
+                  */}
                   <th className="px-3 py-3 text-left sticky left-0 bg-[var(--primary-alpha-10)] z-20 w-10">
                     <input
                       type="checkbox"
@@ -357,24 +376,28 @@ const SellerGSTSalesReport = () => {
                       className="w-4 h-4 text-pink-600 rounded border-gray-300 focus:ring-pink-500"
                     />
                   </th>
-                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider sticky left-10 bg-[var(--primary-alpha-10)] z-10">Product Name</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider sticky left-10 bg-[var(--primary-alpha-10)] z-10">Date</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Invoice No</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Customer</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Product Name</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">HSN Code</th>
-                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Stock</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Qty</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Taxable Amount</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-[var(--primary-alpha-10)]">GST %</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-[var(--primary-alpha-10)]">GST Amount</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-[var(--primary-alpha-20)]">Total Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 text-sm italic">
+                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500 text-sm italic">
                       Fetching report data...
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-400 text-sm">
+                    <td colSpan={11} className="px-6 py-12 text-center text-gray-400 text-sm">
                       No GST sales data found
                     </td>
                   </tr>
@@ -390,6 +413,15 @@ const SellerGSTSalesReport = () => {
                         />
                       </td>
                       <td className="px-3 py-3 sticky left-10 bg-white z-10">
+                        <span className="text-sm text-gray-900">{item.date || "N/A"}</span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className="text-sm text-gray-900">{item.invoiceNo || "N/A"}</span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className="text-sm text-gray-900">{item.customerName || "N/A"}</span>
+                      </td>
+                      <td className="px-3 py-3">
                         {editMode ? (
                           <input
                             type="text"
@@ -402,64 +434,22 @@ const SellerGSTSalesReport = () => {
                         )}
                       </td>
                       <td className="px-3 py-3">
-                        {editMode ? (
-                          <input
-                            type="text"
-                            value={getDisplayHsn(item)}
-                            onChange={(e) => handleCellEdit(item._id, 'hsnCode', e.target.value)}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                          />
-                        ) : (
-                          <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">{getDisplayHsn(item) || "N/A"}</span>
-                        )}
+                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full font-medium">{getDisplayHsn(item) || "N/A"}</span>
                       </td>
                       <td className="px-3 py-3">
-                        {editMode ? (
-                          <input
-                            type="number"
-                            value={item.stock ?? 0}
-                            onChange={(e) => handleCellEdit(item._id, 'stock', parseInt(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none"
-                          />
-                        ) : (
-                          <span className="text-sm text-gray-900">{item.stock}</span>
-                        )}
+                        <span className="text-sm text-gray-900">{getDisplayQuantity(item)}</span>
                       </td>
                       <td className="px-3 py-3">
-                        {editMode ? (
-                          <input
-                            type="number"
-                            value={getDisplayTaxableAmount(item)}
-                            onChange={(e) => handleCellEdit(item._id, 'price', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold"
-                          />
-                        ) : (
-                          <span className="text-sm font-semibold text-gray-900">₹{getDisplayTaxableAmount(item).toFixed(2)}</span>
-                        )}
+                        <span className="text-sm font-semibold text-gray-900">₹{getDisplayTaxableAmount(item).toFixed(2)}</span>
                       </td>
                       <td className="px-3 py-3 bg-[var(--primary-alpha-10)]">
-                        {editMode ? (
-                          <input
-                            type="number"
-                            value={item.taxPercentage ?? 0}
-                            onChange={(e) => handleCellEdit(item._id, 'taxPercentage', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold text-[var(--primary-darker)]"
-                          />
-                        ) : (
-                          <span className="text-sm font-semibold text-[var(--primary-darker)]">{item.taxPercentage}%</span>
-                        )}
+                        <span className="text-sm font-semibold text-[var(--primary-darker)]">{getDisplayGstRate(item).toFixed(2)}%</span>
                       </td>
                       <td className="px-3 py-3 bg-[var(--primary-alpha-10)]">
-                        {editMode ? (
-                          <input
-                            type="number"
-                            value={getDisplayTotalAmount(item)}
-                            onChange={(e) => handleCellEdit(item._id, 'taxAmount', parseFloat(e.target.value))}
-                            className="w-20 px-2 py-1 text-sm border border-gray-200 rounded focus:border-pink-500 focus:ring-1 focus:ring-pink-500 outline-none font-semibold text-[var(--primary-darker)]"
-                          />
-                        ) : (
-                          <span className="text-sm font-semibold text-[var(--primary-darker)]">₹{getDisplayTotalAmount(item).toFixed(2)}</span>
-                        )}
+                        <span className="text-sm font-semibold text-[var(--primary-darker)]">₹{getDisplayGstAmount(item).toFixed(2)}</span>
+                      </td>
+                      <td className="px-3 py-3 bg-[var(--primary-alpha-20)]">
+                        <span className="text-sm font-semibold text-[var(--primary-darker)]">₹{getDisplayTotalAmount(item).toFixed(2)}</span>
                       </td>
                     </tr>
                   ))

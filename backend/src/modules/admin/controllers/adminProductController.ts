@@ -473,7 +473,7 @@ export const toggleCategoryStatus = asyncHandler(
         { parentId: id },
         { status, updatedAt: new Date() }
       );
-      
+
       // If cascading, we also need to sync products for each child
       // Actually, our helper already handles all descendants!
     }
@@ -1270,7 +1270,7 @@ export const updateProduct = asyncHandler(
     const { id } = req.params;
     const updateData = req.body;
     stripInvalidProductObjectIds(updateData);
-    
+
     // Map frontend field names to model field names (standardization)
     if (updateData.categoryId) {
       updateData.category = updateData.categoryId;

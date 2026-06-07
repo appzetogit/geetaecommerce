@@ -558,6 +558,39 @@ export const updateProduct = asyncHandler(
       updateData.shopId = null;
     }
 
+    // Coerce the three boolean status flags to strict booleans before they
+    // hit Object.assign below. If any of them isn't explicitly provided as a
+    // truthy/falsy value, drop the key so the existing product field is
+    // preserved instead of being silently flipped.
+    //
+    // Why this matters: the Product schema declares
+    //     publish: { type: Boolean, default: true }
+    // (and the legacy default for `popular`/`dealOfDay` is `false`). If
+    // `updateData.publish` arrives as `undefined` (e.g. the field is
+    // missing from the payload, or a stale JSON serialisation dropped it
+    // because the value was `undefined` client-side), the naive
+    // `Object.assign(product, updateData)` further down assigns `undefined`
+    // to `product.publish`. On `product.save()` Mongoose then re-applies
+    // the schema default `true`, which flips an *Inactive* product to
+    // *Active* without the seller ever touching that toggle — exactly the
+    // bug sellers reported ("I edited the price of an Inactive product,
+    // hit Save, and it became Active").
+    //
+    // Same shape used by `isShopByStoreOnly` above; keeping a single
+    // consistent style makes the intent obvious.
+    (["publish", "popular", "dealOfDay"] as const).forEach((flag) => {
+      const raw = (updateData as any)[flag];
+      if (raw === true || raw === "true") {
+        (updateData as any)[flag] = true;
+      } else if (raw === false || raw === "false") {
+        (updateData as any)[flag] = false;
+      } else {
+        // Anything else (undefined, null, missing) -> don't touch the
+        // existing value on the product document.
+        delete (updateData as any)[flag];
+      }
+    });
+
     // Use findOne and then save to trigger pre-save hooks
     const product = await Product.findOne({ _id: id, seller: sellerId });
 

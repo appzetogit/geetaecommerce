@@ -29,18 +29,18 @@ const AdminGSTSalesReport = () => {
   const getDisplayQuantity = (item: GSTSalesData) => item.quantity ?? item.stock ?? 0;
   const getDisplayGstRate = (item: GSTSalesData) =>
     item.taxPercentage ?? ((item.cgst ?? 0) + (item.sgst ?? 0) + (item.igst ?? 0));
-  const getDisplayTaxableAmount = (item: GSTSalesData) =>
-    item.taxableAmount ??
-    (() => {
-      const totalAmount = item.totalAmount ?? item.price ?? 0;
-      const gstRate = getDisplayGstRate(item);
-      if (!gstRate) return totalAmount;
-      return totalAmount / (1 + gstRate / 100);
-    })();
-  const getDisplayGstAmount = (item: GSTSalesData) =>
-    (item.totalAmount ?? 0) - getDisplayTaxableAmount(item);
+  // Display override: GST = Total × rate / 100 (forward percentage), so the
+  // row reads the way users intuitively expect — "5% of ₹400 is ₹20" — and
+  // `Taxable + GST = Total` always holds. We deliberately ignore the
+  // server-projected `taxAmount` / `taxableAmount` (which use the
+  // GST-inclusive backward formula `total ÷ (1 + r/100)`); the backend
+  // behaviour itself is left untouched.
   const getDisplayTotalAmount = (item: GSTSalesData) =>
-    item.totalAmount ?? ((getDisplayTaxableAmount(item) * (100 + getDisplayGstRate(item))) / 100);
+    item.totalAmount ?? item.price ?? 0;
+  const getDisplayGstAmount = (item: GSTSalesData) =>
+    (getDisplayTotalAmount(item) * getDisplayGstRate(item)) / 100;
+  const getDisplayTaxableAmount = (item: GSTSalesData) =>
+    getDisplayTotalAmount(item) - getDisplayGstAmount(item);
   const averageGstRate = data.length
     ? data.reduce((sum, item) => sum + getDisplayGstRate(item), 0) / data.length
     : 0;
@@ -155,6 +155,7 @@ const AdminGSTSalesReport = () => {
       "Quantity": getDisplayQuantity(item),
       "Taxable Amount": getDisplayTaxableAmount(item),
       "GST %": getDisplayGstRate(item),
+      "GST Amount": getDisplayGstAmount(item),
       "Total Amount": getDisplayTotalAmount(item)
     })));
 
@@ -179,11 +180,12 @@ const AdminGSTSalesReport = () => {
       getDisplayQuantity(item).toString(),
       `₹${getDisplayTaxableAmount(item)}`,
       `${getDisplayGstRate(item)}%`,
+      `₹${getDisplayGstAmount(item).toFixed(2)}`,
       `₹${getDisplayTotalAmount(item)}`
     ]);
 
     autoTable(doc, {
-      head: [['Date', 'Invoice', 'Customer', 'Product', 'HSN', 'Qty', 'Taxable', 'GST %', 'Total']],
+      head: [['Date', 'Invoice', 'Customer', 'Product', 'HSN', 'Qty', 'Taxable', 'GST %', 'GST Amt', 'Total']],
       body: tableData,
       startY: 28,
       styles: { fontSize: 8 },
@@ -370,19 +372,20 @@ const AdminGSTSalesReport = () => {
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Qty</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Taxable Amount</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-[var(--primary-alpha-10)]">GST %</th>
+                  <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-[var(--primary-alpha-10)]">GST Amount</th>
                   <th className="px-3 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider bg-[var(--primary-alpha-20)]">Total Amount</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-gray-500 text-sm italic">
+                    <td colSpan={11} className="px-6 py-12 text-center text-gray-500 text-sm italic">
                       Fetching report data...
                     </td>
                   </tr>
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-gray-400 text-sm">
+                    <td colSpan={11} className="px-6 py-12 text-center text-gray-400 text-sm">
                       No GST sales data found
                     </td>
                   </tr>
@@ -429,6 +432,9 @@ const AdminGSTSalesReport = () => {
                       </td>
                       <td className="px-3 py-3 bg-[var(--primary-alpha-10)]">
                         <span className="text-sm font-semibold text-[var(--primary-darker)]">{getDisplayGstRate(item).toFixed(2)}%</span>
+                      </td>
+                      <td className="px-3 py-3 bg-[var(--primary-alpha-10)]">
+                        <span className="text-sm font-semibold text-[var(--primary-darker)]">₹{getDisplayGstAmount(item).toFixed(2)}</span>
                       </td>
                       <td className="px-3 py-3 bg-[var(--primary-alpha-20)]">
                         <span className="text-sm font-semibold text-[var(--primary-darker)]">₹{getDisplayTotalAmount(item).toFixed(2)}</span>
