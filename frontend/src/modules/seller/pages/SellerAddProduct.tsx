@@ -496,7 +496,10 @@ export default function SellerAddProduct() {
       category: "",
       subcategory: "",
       subSubCategory: "",
-      publish: "Yes",
+      // Default to Inactive on Clear, matching the initial form state and
+      // the backend's "new products land as Inactive" rule. Sellers can
+      // flip the toggle once they've finished filling in details.
+      publish: "No",
       popular: "No",
       dealOfDay: "No",
       brand: "",

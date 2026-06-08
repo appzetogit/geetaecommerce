@@ -206,8 +206,28 @@ export const createProduct = asyncHandler(
       }
     }
 
-    // 6. Set product status - All products are published automatically without approval
-    newProductData.publish = true;
+    // 6. Set product status.
+    //
+    // Sellers asked for new products to land as *Inactive* by default —
+    // they want to set up pricing/variants/inventory first and then flip
+    // the toggle when they're ready to make the product visible. So:
+    //   - respect an explicit `publish` from the payload (true/false/"true"/
+    //     "false"), the seller form sends this as a real boolean derived
+    //     from the "Publish Product?" dropdown
+    //   - if nothing was sent (e.g. legacy clients, bulk import scripts),
+    //     default to `false` instead of the previous `true`
+    //
+    // `status` and `requiresApproval` keep the same behaviour as before —
+    // there's no approval workflow in this app, so the row goes straight
+    // to "Active" status with no approval gate.
+    const rawPublish = (newProductData as any).publish;
+    if (rawPublish === true || rawPublish === "true") {
+      newProductData.publish = true;
+    } else if (rawPublish === false || rawPublish === "false") {
+      newProductData.publish = false;
+    } else {
+      newProductData.publish = false;
+    }
     newProductData.status = "Active";
     newProductData.requiresApproval = false;
 
