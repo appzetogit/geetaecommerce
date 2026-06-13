@@ -123,10 +123,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const { name, mobile, email, dateOfBirth } = req.body;
 
   // Validation
-  if (!name || !mobile || !email) {
+  if (!name || !mobile) {
     return res.status(400).json({
       success: false,
-      message: "Name, mobile, and email are required",
+      message: "Name and mobile are required",
     });
   }
 
@@ -138,8 +138,11 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   }
 
   // Check if customer already exists - Only check within Global customers
+  const orQuery: any[] = [{ phone: mobile }];
+  if (email) orQuery.push({ email });
+
   const existingCustomer = await Customer.findOne({
-    $or: [{ phone: mobile }, { email }],
+    $or: orQuery,
     sellerId: null,
   });
 

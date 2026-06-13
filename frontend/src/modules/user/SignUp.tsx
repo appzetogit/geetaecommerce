@@ -41,8 +41,8 @@ export default function SignUp() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.mobile || !formData.email) {
-      setError('Name, mobile, and email are required');
+    if (!formData.name || !formData.mobile) {
+      setError('Name and mobile are required');
       return;
     }
 
@@ -280,34 +280,7 @@ export default function SignUp() {
               </div>
             </div>
 
-            {/* Email Input */}
-            <div className="mb-2">
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="Email Address"
-                required
-                className="w-full px-3 py-2 sm:py-2.5 text-sm border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-[var(--customer-primary)] bg-white"
-                style={{ color: '#9ca3af', backgroundColor: '#ffffff' }}
-                disabled={loading}
-              />
-            </div>
 
-            {/* Date of Birth Input */}
-            <div className="mb-2">
-              <input
-                type="date"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleInputChange}
-                placeholder="Date of Birth (Optional)"
-                className="w-full px-3 py-2 sm:py-2.5 text-sm border border-neutral-300 rounded-lg placeholder:text-neutral-400 focus:outline-none focus:border-[var(--customer-primary)] bg-white"
-                style={{ color: '#9ca3af', backgroundColor: '#ffffff' }}
-                disabled={loading}
-              />
-            </div>
 
             {error && (
               <div className="text-xs text-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] p-2 rounded text-center">

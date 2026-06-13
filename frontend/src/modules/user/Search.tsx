@@ -61,7 +61,12 @@ export default function Search() {
   const debouncedMaxPrice = useDebouncedValue(maxPrice, 300);
   const activeQuery = selectedQuery || debouncedQuery;
   const suggestionBoxRef = useRef<HTMLDivElement>(null);
+  const inputValueRef = useRef(inputValue);
   const limit = 20;
+
+  useEffect(() => {
+    inputValueRef.current = inputValue;
+  }, [inputValue]);
 
   useEffect(() => {
     const query = searchParams.get("q") || "";
@@ -144,11 +149,19 @@ export default function Search() {
   useEffect(() => {
     const query = activeQuery.trim();
 
-    if (!query) {
+    if (!query || !inputValueRef.current.trim()) {
       setResults([]);
       setTotalPages(0);
       setTotalResults(0);
       setError(null);
+      setSearchParams(prev => {
+        if (prev.has("q")) {
+          const next = new URLSearchParams(prev);
+          next.delete("q");
+          return next;
+        }
+        return prev;
+      }, { replace: true });
       return;
     }
 

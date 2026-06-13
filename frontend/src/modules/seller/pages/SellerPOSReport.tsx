@@ -199,12 +199,12 @@ const SellerPOSReport = () => {
             return;
         }
 
-        if (window.confirm("Are you sure you want to delete this POS order? This will restore the stock.")) {
+        if (window.confirm("Are you sure you want to delete this POS order?")) {
             try {
                 setLoading(true);
                 const response = await deleteSellerPOSOrder(order._id);
                 if (response.success) {
-                    showToast("Order deleted and stock restored", "success");
+                    showToast("Order deleted successfully", "success");
                     fetchData(dateRange.start || undefined, dateRange.end || undefined);
                 } else {
                     showToast(response.message || "Failed to delete order", "error");
@@ -270,7 +270,7 @@ const SellerPOSReport = () => {
             fetchData(dateRange.start || undefined, dateRange.end || undefined);
 
             if (failed.length > 0) showToast(`Failed to delete ${failed.length} item(s)`, "error");
-            else showToast("Selected orders deleted and stock restored", "success");
+            else showToast("Selected orders deleted successfully", "success");
         } finally {
             setLoading(false);
         }

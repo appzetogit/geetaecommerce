@@ -1002,6 +1002,7 @@ export const getGSTSalesReport = asyncHandler(
       { $unwind: { path: "$taxDetails", preserveNullAndEmptyArrays: true } },
       {
         $project: {
+          _id: "$itemDetails._id",
           date: { $dateToString: { format: "%Y-%m-%d", date: "$orderDate" } },
           invoiceNo: "$orderNumber",
           customerName: "$customerName",
