@@ -58,7 +58,7 @@ export default function SignUp() {
       const response = await register({
         name: formData.name,
         mobile: formData.mobile,
-        email: formData.email,
+        email: formData.email || undefined,
         dateOfBirth: formData.dateOfBirth || undefined,
       });
 
@@ -291,8 +291,8 @@ export default function SignUp() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || !formData.name || formData.mobile.length !== 10 || !formData.email}
-              className={`w-full py-2 sm:py-2.5 rounded-lg font-semibold text-sm transition-colors border px-3 ${formData.name && formData.mobile.length === 10 && formData.email && !loading
+              disabled={loading || !formData.name || formData.mobile.length !== 10}
+              className={`w-full py-2 sm:py-2.5 rounded-lg font-semibold text-sm transition-colors border px-3 ${formData.name && formData.mobile.length === 10 && !loading
                 ? 'bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)] border-[var(--customer-primary)] hover:bg-[var(--customer-primary-alpha-20)]'
                 : 'bg-neutral-300 text-neutral-500 cursor-not-allowed border-neutral-300'
                 }`}
