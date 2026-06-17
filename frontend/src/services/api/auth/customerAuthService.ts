@@ -27,7 +27,7 @@ export interface VerifyOTPResponse {
 export interface RegisterData {
   name: string;
   mobile: string;
-  email: string;
+  email?: string;
   dateOfBirth?: string;
 }
 

@@ -157,7 +157,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   const customer = await Customer.create({
     name,
     phone: mobile,
-    email,
+    email: email || undefined,
     dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
     status: "Active",
     walletAmount: 0,
