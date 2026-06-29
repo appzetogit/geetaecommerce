@@ -185,6 +185,7 @@ router.get("/inventory/low-stock", inventoryController.getLowStockSummary);
 router.get("/inventory/out-of-stock", inventoryController.getOutOfStockSummary);
 router.get("/inventory/loss-summary", inventoryController.getLossSummary);
 router.get("/inventory/gst-sales", inventoryController.getGSTSalesReport);
+router.delete("/inventory/gst-sales", inventoryController.deleteGSTSalesReportEntries);
 router.get("/inventory/payment-report", inventoryController.getPaymentReport);
 router.get("/inventory/sales-summary-report", inventoryController.getSalesSummaryReport);
 router.get("/inventory/return-exchange-report", inventoryController.getReturnExchangeReport);

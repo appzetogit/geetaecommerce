@@ -152,6 +152,7 @@ export const deleteLossRecord = async (id: string): Promise<ApiResponse<any>> =>
 
 export interface GSTSalesData {
   _id: string;
+  type?: "order" | "quotation";
   date?: string;
   invoiceNo?: string;
   customerName?: string;
@@ -176,6 +177,16 @@ export interface GSTSalesData {
  */
 export const getGSTSalesReport = async (params?: GetStockSummaryParams): Promise<ApiResponse<GSTSalesData[]>> => {
   const response = await api.get<ApiResponse<GSTSalesData[]>>("/admin/inventory/gst-sales", { params });
+  return response.data;
+};
+
+export const deleteGSTSalesReportEntries = async (
+  ids: string[]
+): Promise<ApiResponse<{ deletedCount: number; failed: { id: string; message: string }[] }>> => {
+  const response = await api.delete<ApiResponse<{ deletedCount: number; failed: { id: string; message: string }[] }>>(
+    "/admin/inventory/gst-sales",
+    { data: { ids } }
+  );
   return response.data;
 };
 

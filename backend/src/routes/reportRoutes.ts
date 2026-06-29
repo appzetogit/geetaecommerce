@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   getSalesReport,
   getGSTSalesReport,
+  deleteGSTSalesReportEntries,
   getPaymentReport,
   getSalesSummaryReport,
   getReturnExchangeReport,
@@ -25,6 +26,7 @@ router.use(checkEnabled);
 // Get seller's sales report
 router.get("/sales", getSalesReport);
 router.get("/gst-sales", getGSTSalesReport);
+router.delete("/gst-sales", deleteGSTSalesReportEntries);
 router.get("/payment", getPaymentReport);
 router.get("/sales-summary", getSalesSummaryReport);
 router.get("/return-exchange", getReturnExchangeReport);

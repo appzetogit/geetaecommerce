@@ -11,6 +11,104 @@ const escapeRegex = (string: string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
+const parseQuotationRowId = (
+    rowId: string
+): { entryId: string; itemIndex: number } | null => {
+    const lastDash = rowId.lastIndexOf("-");
+    if (lastDash <= 0) return null;
+
+    const itemIndex = Number(rowId.slice(lastDash + 1));
+    if (!Number.isInteger(itemIndex) || itemIndex < 0) return null;
+
+    const entryId = rowId.slice(0, lastDash);
+    return entryId ? { entryId, itemIndex } : null;
+};
+
+const deleteSellerQuotationRow = async (
+    rowId: string,
+    sellerId: mongoose.Types.ObjectId
+): Promise<boolean> => {
+    const parsed = parseQuotationRowId(rowId);
+    if (!parsed) return false;
+
+    const entryQuery: any = { seller: sellerId, type: "quotation" };
+    if (mongoose.Types.ObjectId.isValid(parsed.entryId)) {
+        entryQuery.$or = [{ entryId: parsed.entryId }, { _id: parsed.entryId }];
+    } else {
+        entryQuery.entryId = parsed.entryId;
+    }
+
+    const entry = await SellerPurchaseEntry.findOne(entryQuery);
+    if (!entry) return false;
+
+    const items = Array.isArray(entry.data?.items) ? [...entry.data.items] : [];
+    if (parsed.itemIndex >= items.length) return false;
+
+    items.splice(parsed.itemIndex, 1);
+
+    if (items.length === 0) {
+        await SellerPurchaseEntry.findByIdAndDelete(entry._id);
+    } else {
+        entry.data = { ...(entry.data || {}), items };
+        entry.markModified("data");
+        await entry.save();
+    }
+
+    return true;
+};
+
+const deleteSellerOrderItemRow = async (
+    orderItemId: string,
+    sellerId: mongoose.Types.ObjectId,
+    posOrderIds: mongoose.Types.ObjectId[]
+): Promise<boolean> => {
+    if (!mongoose.Types.ObjectId.isValid(orderItemId)) return false;
+
+    const orderItem = await OrderItem.findById(orderItemId);
+    if (!orderItem) return false;
+
+    const belongsToSeller =
+        orderItem.seller?.toString() === sellerId.toString() ||
+        posOrderIds.some((orderId) => orderId.toString() === orderItem.order?.toString());
+
+    if (!belongsToSeller) {
+        throw new Error("Order item does not belong to this seller");
+    }
+
+    const order = await Order.findById(orderItem.order);
+    if (!order) {
+        await OrderItem.findByIdAndDelete(orderItemId);
+        return true;
+    }
+
+    const remainingItemIds = order.items.filter(
+        (itemId) => itemId.toString() !== orderItemId
+    );
+
+    if (remainingItemIds.length === 0) {
+        await OrderItem.deleteMany({ order: order._id });
+        await Order.findByIdAndDelete(order._id);
+        return true;
+    }
+
+    await OrderItem.findByIdAndDelete(orderItemId);
+
+    const remainingItems = await OrderItem.find({ _id: { $in: remainingItemIds } });
+    const subtotal = remainingItems.reduce((sum, item) => sum + (item.total || 0), 0);
+    const tax = remainingItems.reduce((sum, item) => sum + (item.gstAmount || 0), 0);
+
+    order.items = remainingItemIds as mongoose.Types.ObjectId[];
+    order.subtotal = subtotal;
+    order.tax = tax;
+    order.total = Math.max(
+        subtotal + (order.shipping || 0) + (order.platformFee || 0) - (order.discount || 0),
+        0
+    );
+    await order.save();
+
+    return true;
+};
+
 /**
  * Get seller's sales report with filters, sorting, and pagination
  */
@@ -366,6 +464,8 @@ export const getGSTSalesReport = asyncHandler(
             // 6. Project Required Fields
             {
                 $project: {
+                    _id: 1,
+                    type: "order",
                     date: { $dateToString: { format: "%Y-%m-%d", date: "$orderDoc.orderDate" } },
                     invoiceNo: "$orderDoc.orderNumber",
                     customerName: "$orderDoc.customerName",
@@ -452,6 +552,61 @@ export const getGSTSalesReport = asyncHandler(
                 total: combinedTotal,
                 pages: Math.ceil(combinedTotal / limitNum),
             },
+        });
+    }
+);
+
+export const deleteGSTSalesReportEntries = asyncHandler(
+    async (req: Request, res: Response) => {
+        const sellerId = new mongoose.Types.ObjectId((req as any).user.userId);
+        const { ids } = req.body as { ids?: string[] };
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "ids array is required",
+            });
+        }
+
+        const posOrders = await Order.find({
+            adminNotes: { $regex: `POS Order - Seller: ${sellerId.toString()}`, $options: "i" },
+        })
+            .select("_id")
+            .lean();
+        const posOrderIds = posOrders.map((order: any) => order._id);
+
+        const failed: { id: string; message: string }[] = [];
+        let deletedCount = 0;
+
+        for (const rawId of ids) {
+            const id = String(rawId);
+            try {
+                let deleted = false;
+
+                if (parseQuotationRowId(id)) {
+                    deleted = await deleteSellerQuotationRow(id, sellerId);
+                } else if (mongoose.Types.ObjectId.isValid(id)) {
+                    deleted = await deleteSellerOrderItemRow(id, sellerId, posOrderIds);
+                }
+
+                if (deleted) {
+                    deletedCount += 1;
+                } else {
+                    failed.push({ id, message: "Record not found" });
+                }
+            } catch (error: any) {
+                failed.push({ id, message: error?.message || "Delete failed" });
+            }
+        }
+
+        return res.status(200).json({
+            success: failed.length === 0,
+            message:
+                failed.length === 0
+                    ? "Selected GST sales records deleted successfully"
+                    : `Deleted ${deletedCount} record(s); ${failed.length} failed`,
+            deletedCount,
+            failed,
         });
     }
 );

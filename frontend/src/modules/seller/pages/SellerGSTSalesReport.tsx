@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getGSTSalesReport, GSTSalesData } from "../../../services/api/seller/sellerReportService";
+import { getGSTSalesReport, deleteGSTSalesReportEntries, GSTSalesData } from "../../../services/api/seller/sellerReportService";
 import { toast } from "react-hot-toast";
 
 type DateFilterType = 'today' | 'tomorrow' | 'last7days' | 'last30days' | 'alltime' | 'custom';
@@ -132,15 +132,28 @@ const SellerGSTSalesReport = () => {
     setSelectedRows(newSelected);
   };
 
-  const handleDeleteSelected = () => {
+  const handleDeleteSelected = async () => {
     if (selectedRows.size === 0) return;
     const ok = window.confirm(`Delete ${selectedRows.size} selected item(s)?`);
     if (!ok) return;
 
-    const idSet = new Set(selectedRows);
-    setData((prev) => prev.filter((row) => !idSet.has(row._id)));
-    setSelectedRows(new Set());
-    toast.success("Selected items deleted");
+    const ids = Array.from(selectedRows);
+
+    try {
+      const response = await deleteGSTSalesReportEntries(ids);
+
+      if (response.failed?.length) {
+        toast.error(response.message || `Failed to delete ${response.failed.length} item(s)`);
+      } else {
+        toast.success("Selected items deleted");
+      }
+
+      setSelectedRows(new Set());
+      await fetchData();
+    } catch (error: any) {
+      console.error("Error deleting GST sales records:", error);
+      toast.error(error?.response?.data?.message || "Failed to delete selected items");
+    }
   };
 
   const handleDateFilterChange = (type: DateFilterType) => {

@@ -3,6 +3,7 @@ import { ApiResponse } from "./types";
 
 export interface GSTSalesData {
   _id: string; // Order Item ID
+  type?: "order" | "quotation";
   date?: string;
   invoiceNo?: string;
   customerName?: string;
@@ -42,6 +43,16 @@ export interface GetReportParams {
 
 export const getGSTSalesReport = async (params?: GetReportParams): Promise<ApiResponse<GSTSalesData[]>> => {
   const response = await api.get<ApiResponse<GSTSalesData[]>>("/seller/reports/gst-sales", { params });
+  return response.data;
+};
+
+export const deleteGSTSalesReportEntries = async (
+  ids: string[]
+): Promise<ApiResponse<{ deletedCount: number; failed: { id: string; message: string }[] }>> => {
+  const response = await api.delete<ApiResponse<{ deletedCount: number; failed: { id: string; message: string }[] }>>(
+    "/seller/reports/gst-sales",
+    { data: { ids } }
+  );
   return response.data;
 };
 
