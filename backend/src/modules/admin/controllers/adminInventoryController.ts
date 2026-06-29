@@ -1066,10 +1066,9 @@ export const getGSTSalesReport = asyncHandler(
           }
         }
       ] : []),
-      { $sort: { date: -1, invoiceNo: -1 } }
     ];
 
-    const results = await Order.aggregate(pipeline);
+    const results = await Order.aggregate(pipeline).allowDiskUse(true);
     const orderRows = results || [];
     const quotationEntries = await AdminPurchaseEntry.find({
       admin: new mongoose.Types.ObjectId((req as any).user.userId),

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, useEffect, useCallback } from "react";
+import { useLayoutEffect, useRef, useState, useEffect, useMemo } from "react";
 import { gsap } from "gsap";
 import { Link, useNavigate } from "react-router-dom";
 import { getTheme } from "../../../utils/themes";
@@ -42,6 +42,8 @@ interface PromoStripProps {
   activeTab?: string;
 }
 
+const VISIBLE_PROMO_CARD_LIMIT = 4;
+
 export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
   const { location } = useLocation();
   const { currentTheme: theme } = useThemeContext();
@@ -70,49 +72,80 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
   const [loading, setLoading] = useState(true);
   const [hasData, setHasData] = useState(false);
 
-  // Fetch subcategory images for category cards - DEFERRED for faster initial load
-  const fetchSubcategoryImages = useCallback(async (cards: PromoCard[]) => {
-    // Defer subcategory image fetching to not block initial render
-    // Load them after a short delay to prioritize main content
-    setTimeout(async () => {
-    const imagesMap: Record<string, string[]> = {};
+  const visibleCategoryCards = useMemo(
+    () => categoryCards.slice(0, VISIBLE_PROMO_CARD_LIMIT),
+    [categoryCards]
+  );
 
-      // Fetch images in batches to avoid overwhelming the network
+  const subcategoryFetchKey = useMemo(
+    () =>
+      visibleCategoryCards
+        .map((card) => `${card.id}:${card.categoryId ?? ""}`)
+        .join("|"),
+    [visibleCategoryCards]
+  );
+
+  // Fetch subcategory images only for visible promo cards, with cancellation on re-run/unmount
+  useEffect(() => {
+    if (!subcategoryFetchKey) {
+      setSubcategoryImagesMap({});
+      return;
+    }
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(async () => {
+      const imagesMap: Record<string, string[]> = {};
       const batchSize = 2;
-      for (let i = 0; i < cards.length; i += batchSize) {
-        const batch = cards.slice(i, i + batchSize);
-    await Promise.all(
+
+      for (let i = 0; i < visibleCategoryCards.length; i += batchSize) {
+        if (cancelled) return;
+
+        const batch = visibleCategoryCards.slice(i, i + batchSize);
+        await Promise.all(
           batch.map(async (card) => {
-        const categoryId = card.categoryId;
-        if (!categoryId) return;
+            const categoryId = card.categoryId;
+            if (!categoryId || cancelled) return;
 
-        try {
-          const response = await getSubcategories(categoryId, { limit: 4 });
-          if (response.success && response.data) {
-            const images = response.data
-              .filter((subcat) => subcat.subcategoryImage)
-              .map((subcat) => subcat.subcategoryImage!)
-              .slice(0, 4);
+            try {
+              const response = await getSubcategories(categoryId, { limit: 4 });
+              if (cancelled) return;
 
-            if (images.length > 0) {
-              imagesMap[card.id] = images;
+              if (response.success && response.data) {
+                const images = response.data
+                  .filter((subcat) => subcat.subcategoryImage)
+                  .map((subcat) => subcat.subcategoryImage!)
+                  .slice(0, 4);
+
+                if (images.length > 0) {
+                  imagesMap[card.id] = images;
+                }
+              }
+            } catch (error) {
+              if (!cancelled) {
+                console.error(
+                  `Error fetching subcategories for category ${categoryId}:`,
+                  error
+                );
+              }
             }
-          }
-        } catch (error) {
-              // Silently fail - emoji fallback will be used
-          console.error(`Error fetching subcategories for category ${categoryId}:`, error);
-        }
-      })
-    );
-        // Small delay between batches to prevent network congestion
-        if (i + batchSize < cards.length) {
-          await new Promise(resolve => setTimeout(resolve, 50));
+          })
+        );
+
+        if (i + batchSize < visibleCategoryCards.length && !cancelled) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
         }
       }
 
-    setSubcategoryImagesMap(imagesMap);
-    }, 300); // 300ms delay - allows main content to render first
-  }, []);
+      if (!cancelled) {
+        setSubcategoryImagesMap(imagesMap);
+      }
+    }, 300);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [subcategoryFetchKey, visibleCategoryCards]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -298,12 +331,6 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
           setCrazyDealsTitle("CRAZY DEALS");
         }
         setHasData(fetchedCards.length > 0 || fetchedProducts.length > 0);
-
-        // Fetch subcategory images AFTER setting hasData to true
-        // This allows the main content to render immediately
-        if (fetchedCards.length > 0) {
-          fetchSubcategoryImages(fetchedCards);
-        }
       } catch (error) {
         console.error("Error fetching home content for PromoStrip:", error);
         setCategoryCards([]);
@@ -315,12 +342,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
     };
     fetchData();
 
-    // REMOVED: Polling every 30 seconds causes unnecessary re-renders and API calls
-    // If real-time updates are needed, consider using WebSockets or Server-Sent Events
-    // For now, data will only refresh when activeTab changes
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, theme.bannerText, theme.saleText]);
+  }, [activeTab]);
 
   // Reset product index when activeTab changes or featuredProducts change
   useEffect(() => {
@@ -869,7 +891,7 @@ export default function PromoStrip({ activeTab = "all" }: PromoStripProps) {
           {/* Cap visible category cards at 4 so the strip stays compact even when
               the PromoStrip admin config has more than 4 entries. */}
           <div className="flex-1 grid grid-cols-2 gap-2">
-            {categoryCards.slice(0, 4).map((card) => {
+            {visibleCategoryCards.map((card) => {
               // Use subcategory images from the map if available, otherwise check card.subcategoryImages, then fallback to emoji icons
               const subcategoryImages = subcategoryImagesMap[card.id] || card.subcategoryImages || [];
               const hasSubcategoryImages = subcategoryImages.length > 0;

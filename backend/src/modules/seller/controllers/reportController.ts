@@ -417,13 +417,10 @@ export const getGSTSalesReport = asyncHandler(
                 }
             ] : []),
 
-            // 8. Sort
-            { $sort: { date: -1, invoiceNo: -1 } },
-
-            // 9. Keep the full ordered result set; pagination is applied after quotations are merged.
+            // Sort is applied in JS after merging quotation rows (see below).
         ];
 
-        const results = await OrderItem.aggregate(pipeline);
+        const results = await OrderItem.aggregate(pipeline).allowDiskUse(true);
         const orderRows = results || [];
         const quotationEntries = await SellerPurchaseEntry.find({
             seller: new mongoose.Types.ObjectId(sellerId),
