@@ -9,13 +9,20 @@ import {
   isAppleMobile,
 } from "../utils/scannerPlatform";
 import {
+  applyIosStreamEnhancements,
+  isIosTorchSupported,
+  readIosZoomRange,
+  requestIosCameraStream,
+  setIosTorch,
+  setIosZoom,
+  startIosVideoPreview,
+  stopMediaStream,
+} from "../utils/iosLiveCameraScanner";
+import {
   decodeBarcodeFromFileWithWasm,
   ensureIosVideoPlayback,
-  findScannerVideoElement,
-  patchIosVideoElement,
   prepareIosBarcodeWasm,
   startIosWasmVideoScan,
-  waitForScannerVideo,
 } from "../utils/iosWasmBarcodeScanner";
 
 interface QRScannerModalProps {
@@ -63,10 +70,15 @@ export default function QRScannerModal({
   }
   const readerId = readerIdRef.current;
 
+  // Android: html5-qrcode
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const beginLiveScanRef = useRef<(() => Promise<void>) | null>(null);
-  const afterCameraReadyRef = useRef<(() => Promise<void>) | null>(null);
+
+  // iOS: native camera + WASM
+  const iosVideoRef = useRef<HTMLVideoElement | null>(null);
+  const iosStreamRef = useRef<MediaStream | null>(null);
   const stopWasmScanRef = useRef<(() => void) | null>(null);
+
   const handledRef = useRef(false);
   const onScanSuccessRef = useRef(onScanSuccess);
   const onScanFailureRef = useRef(onScanFailure);
@@ -85,241 +97,183 @@ export default function QRScannerModal({
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioBufferRef = useRef<AudioBuffer | null>(null);
 
-  useEffect(() => {
-    const loadSound = async () => {
-      try {
-        const AudioContextClass =
-          window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-        if (!AudioContextClass) return;
-
-        const ctx = new AudioContextClass();
-        audioContextRef.current = ctx;
-
-        const response = await fetch("/assets/sound/beep.mp3");
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
-        audioBufferRef.current = audioBuffer;
-      } catch (err) {
-        console.warn("Failed to load beep sound:", err);
-      }
-    };
-
-    void loadSound();
-
-    return () => {
-      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-        audioContextRef.current.close().catch(() => {});
-      }
-    };
+  const stopIosCamera = useCallback(() => {
+    stopWasmScanRef.current?.();
+    stopWasmScanRef.current = null;
+    stopMediaStream(iosStreamRef.current);
+    iosStreamRef.current = null;
+    const video = iosVideoRef.current;
+    if (video) {
+      video.srcObject = null;
+    }
   }, []);
 
   const playBeep = useCallback(() => {
     const ctx = audioContextRef.current;
     const buffer = audioBufferRef.current;
     if (!ctx || !buffer) return;
-
-    if (ctx.state === "suspended") {
-      ctx.resume().catch(() => {});
-    }
-
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
     try {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(ctx.destination);
       source.start(0);
-    } catch (e) {
-      console.warn("Failed to play beep:", e);
+    } catch {
+      /* ignore */
     }
   }, []);
 
+  const finishScan = useCallback(
+    (decodedText: string) => {
+      if (handledRef.current) return;
+      handledRef.current = true;
+
+      if (navigator.vibrate) navigator.vibrate(60);
+      playBeep();
+
+      if (isIosProfile) {
+        stopIosCamera();
+      } else {
+        stopWasmScanRef.current = null;
+        const s = scannerRef.current;
+        scannerRef.current = null;
+        if (s) {
+          s.stop()
+            .then(() => s.clear())
+            .catch(() => {
+              try {
+                s.clear();
+              } catch {
+                /* ignore */
+              }
+            });
+        }
+      }
+
+      onScanSuccessRef.current(decodedText);
+    },
+    [isIosProfile, stopIosCamera, playBeep]
+  );
+
   const unlockAudio = useCallback(() => {
-    if (audioContextRef.current && audioContextRef.current.state === "suspended") {
+    if (audioContextRef.current?.state === "suspended") {
       audioContextRef.current.resume().catch(() => {});
     }
   }, []);
 
-  const startIosWasmLoop = useCallback(
-    (onDecoded: (text: string) => void) => {
-      if (!scannerProfile.useWasmDecoder) return;
-
-      const tryAttach = (attempt = 0) => {
-        if (handledRef.current || attempt > 30) return;
-
-        const video = findScannerVideoElement(readerId);
-        if (!video?.srcObject || !video.videoWidth) {
-          window.setTimeout(() => tryAttach(attempt + 1), 200);
-          return;
-        }
-
-        patchIosVideoElement(video);
-        stopWasmScanRef.current = startIosWasmVideoScan(video, onDecoded);
-      };
-
-      tryAttach();
-    },
-    [readerId, scannerProfile.useWasmDecoder]
-  );
-
-  const finalizeIosPreview = useCallback(async () => {
-    const video = await waitForScannerVideo(readerId);
-    if (!video) {
-      setIosPreviewStalled(true);
-      setIosAwaitingTap(true);
-      return false;
-    }
-
-    patchIosVideoElement(video);
-    const playing = await ensureIosVideoPlayback(video);
-
-    if (!playing) {
-      setIosPreviewStalled(true);
-      setIosAwaitingTap(true);
-      return false;
-    }
-
-    setIosPreviewStalled(false);
-    setIosAwaitingTap(false);
-    return true;
-  }, [readerId]);
-
-  const resumeCameraPreview = useCallback(async () => {
-    const video = findScannerVideoElement(readerId);
-    if (!video) return;
-
-    patchIosVideoElement(video);
-    const playing = await ensureIosVideoPlayback(video);
-    if (playing) {
-      setIosPreviewStalled(false);
-      setIosAwaitingTap(false);
-    }
-  }, [readerId]);
+  useEffect(() => {
+    const loadSound = async () => {
+      try {
+        const AudioContextClass =
+          window.AudioContext ||
+          (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!AudioContextClass) return;
+        const ctx = new AudioContextClass();
+        audioContextRef.current = ctx;
+        const response = await fetch("/assets/sound/beep.mp3");
+        const arrayBuffer = await response.arrayBuffer();
+        audioBufferRef.current = await ctx.decodeAudioData(arrayBuffer);
+      } catch (err) {
+        console.warn("Failed to load beep sound:", err);
+      }
+    };
+    void loadSound();
+    return () => {
+      audioContextRef.current?.close().catch(() => {});
+    };
+  }, []);
 
   useEffect(() => {
     onScanSuccessRef.current = onScanSuccess;
     onScanFailureRef.current = onScanFailure;
   });
 
+  // ─── iOS: WASM preload only (no html5-qrcode camera) ───
   useEffect(() => {
+    if (!isIosProfile) return;
+
     handledRef.current = false;
     setCameraReady(false);
-    setIosAwaitingTap(isIosProfile);
+    setIosAwaitingTap(true);
     setIosStarting(false);
     setIosPreviewStalled(false);
     setTorchOn(false);
     setTorchSupported(false);
     setZoom(1);
 
-    if (scannerProfile.useWasmDecoder) {
-      void prepareIosBarcodeWasm().catch((err) => {
-        console.warn("QRScannerModal: WASM decoder preload failed", err);
-      });
-    }
+    void prepareIosBarcodeWasm().catch((err) => {
+      console.warn("QRScannerModal: WASM preload failed", err);
+    });
+
+    return () => {
+      stopIosCamera();
+      setCameraReady(false);
+    };
+  }, [isIosProfile, stopIosCamera]);
+
+  // ─── Android: unchanged html5-qrcode path ───
+  useEffect(() => {
+    if (isIosProfile) return;
+
+    handledRef.current = false;
+    setCameraReady(false);
+    setTorchOn(false);
+    setTorchSupported(false);
+    setZoom(1);
 
     const scanner = new Html5Qrcode(readerId, {
       verbose: false,
-      useBarCodeDetectorIfSupported: !scannerProfile.useWasmDecoder,
+      useBarCodeDetectorIfSupported: true,
       formatsToSupport: BILLING_BARCODE_FORMATS,
     });
     scannerRef.current = scanner;
 
-    const onDecoded = (decodedText: string) => {
-      if (handledRef.current) return;
-
-      if (navigator.vibrate) navigator.vibrate(60);
-      playBeep();
-
-      handledRef.current = true;
-      stopWasmScanRef.current?.();
-      stopWasmScanRef.current = null;
-
-      const s = scannerRef.current;
-      scannerRef.current = null;
-      if (!s) {
-        onScanSuccessRef.current(decodedText);
-        return;
-      }
-
-      s.stop()
-        .then(() => {
-          s.clear();
-          onScanSuccessRef.current(decodedText);
-        })
-        .catch(() => {
-          try {
-            s.clear();
-          } catch {
-            /* ignore */
-          }
-          onScanSuccessRef.current(decodedText);
-        });
-    };
-
-    const afterCameraReady = async () => {
-      setCameraReady(true);
-
-      try {
-        const caps = scanner.getRunningTrackCameraCapabilities();
-        if (caps.torchFeature()?.isSupported()) {
-          setTorchSupported(true);
-        }
-
-        const zoomFeature = caps.zoomFeature();
-        if (zoomFeature?.isSupported()) {
-          setZoomRange({
-            min: zoomFeature.min(),
-            max: zoomFeature.max(),
-            step: zoomFeature.step(),
-          });
-          setZoom(zoomFeature.min());
-        }
-      } catch {
-        setTorchSupported(false);
-      }
-
-      if (isIosProfile) {
-        const previewOk = await finalizeIosPreview();
-        if (!previewOk) return;
-      }
-
-      void applyPostStartCameraEnhancements(scanner, isIosProfile);
-      startIosWasmLoop(onDecoded);
-    };
-
-    afterCameraReadyRef.current = afterCameraReady;
+    const onDecoded = (decodedText: string) => finishScan(decodedText);
 
     const beginLiveScan = () =>
       scanner
         .start(
           { facingMode: "environment" },
           scannerProfile.scanConfig,
-          (decodedText: string) => onDecoded(decodedText),
+          onDecoded,
           (errorMessage: string, error: unknown) => {
             if (onScanFailureRef.current && !errorMessage?.includes("No barcode detected")) {
               onScanFailureRef.current(errorMessage ?? error);
             }
           }
         )
-        .then(() => afterCameraReady());
+        .then(async () => {
+          setCameraReady(true);
+          try {
+            const caps = scanner.getRunningTrackCameraCapabilities();
+            if (caps.torchFeature()?.isSupported()) setTorchSupported(true);
+            const zoomFeature = caps.zoomFeature();
+            if (zoomFeature?.isSupported()) {
+              setZoomRange({
+                min: zoomFeature.min(),
+                max: zoomFeature.max(),
+                step: zoomFeature.step(),
+              });
+              setZoom(zoomFeature.min());
+            }
+          } catch {
+            setTorchSupported(false);
+          }
+          await applyPostStartCameraEnhancements(scanner, false);
+        });
 
     beginLiveScanRef.current = beginLiveScan;
 
-    if (!isIosProfile) {
-      beginLiveScan().catch((err: unknown) => {
-        console.error("QRScannerModal: camera failed to start", err);
-        setCameraReady(false);
-      });
-    }
+    beginLiveScan().catch((err: unknown) => {
+      console.error("QRScannerModal: camera failed to start", err);
+      setCameraReady(false);
+    });
 
     return () => {
       setCameraReady(false);
-      stopWasmScanRef.current?.();
-      stopWasmScanRef.current = null;
-
       const s = scannerRef.current;
       scannerRef.current = null;
       beginLiveScanRef.current = null;
-      afterCameraReadyRef.current = null;
-
       if (!s) return;
       if (s.isScanning) {
         s.stop()
@@ -339,50 +293,86 @@ export default function QRScannerModal({
         }
       }
     };
-  }, [
-    readerId,
-    isIosProfile,
-    playBeep,
-    finalizeIosPreview,
-    startIosWasmLoop,
-    scannerProfile,
-  ]);
+  }, [readerId, isIosProfile, finishScan, scannerProfile]);
 
   const handleIosStartCamera = () => {
     unlockAudio();
+    if (iosStarting) return;
+
+    const video = iosVideoRef.current;
+    if (!video) return;
+
+    setIosStarting(true);
     setIosAwaitingTap(false);
     setIosPreviewStalled(false);
-    setIosStarting(true);
 
-    const start = beginLiveScanRef.current;
-    if (!start) {
-      setIosStarting(false);
-      setIosAwaitingTap(true);
-      return;
-    }
+    // getUserMedia must be requested in the same synchronous turn as the tap.
+    const streamPromise = requestIosCameraStream();
 
-    // Must invoke scanner.start() synchronously inside the tap handler for iOS Safari.
-    void start()
+    void streamPromise
+      .then(async (stream) => {
+        iosStreamRef.current = stream;
+        await startIosVideoPreview(video, stream);
+
+        setTorchSupported(isIosTorchSupported(stream));
+        const zr = readIosZoomRange(stream);
+        if (zr && zr.max > zr.min) {
+          setZoomRange(zr);
+          setZoom(zr.min);
+        }
+
+        void applyIosStreamEnhancements(stream);
+
+        stopWasmScanRef.current = startIosWasmVideoScan(video, (text) => finishScan(text));
+        setCameraReady(true);
+        setIosPreviewStalled(false);
+      })
       .catch((err: unknown) => {
-        console.error("QRScannerModal: iOS camera failed to start", err);
+        console.error("QRScannerModal: iOS camera failed", err);
+        stopIosCamera();
         setCameraReady(false);
         setIosAwaitingTap(true);
+        onScanFailureRef.current?.(err);
       })
       .finally(() => {
         setIosStarting(false);
       });
   };
 
+  const resumeIosPreview = useCallback(async () => {
+    const video = iosVideoRef.current;
+    if (!video?.srcObject) return;
+    const playing = await ensureIosVideoPlayback(video);
+    if (playing) {
+      setIosPreviewStalled(false);
+      setIosAwaitingTap(false);
+    } else {
+      setIosPreviewStalled(true);
+    }
+  }, []);
+
   const handlePreviewTap = () => {
     unlockAudio();
-    if (iosAwaitingTap && !cameraReady) {
-      handleIosStartCamera();
-      return;
+    if (isIosProfile) {
+      if (iosAwaitingTap || !cameraReady) {
+        handleIosStartCamera();
+        return;
+      }
+      void resumeIosPreview();
     }
-    void resumeCameraPreview();
   };
 
   const handleZoomChange = async (newZoom: number) => {
+    if (isIosProfile) {
+      try {
+        await setIosZoom(iosStreamRef.current, newZoom);
+        setZoom(newZoom);
+      } catch (err) {
+        console.error("Failed to apply iOS zoom", err);
+      }
+      return;
+    }
+
     const scanner = scannerRef.current;
     if (!scanner?.isScanning) return;
     try {
@@ -398,52 +388,71 @@ export default function QRScannerModal({
   const handleGalleryPick = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    const scanner = scannerRef.current;
-    if (!file || !scanner) return;
+    if (!file) return;
 
     try {
-      if (scanner.isScanning) {
-        await scanner.stop();
+      if (isIosProfile) {
+        stopIosCamera();
+        setCameraReady(false);
+      } else {
+        const scanner = scannerRef.current;
+        if (!scanner) return;
+        if (scanner.isScanning) await scanner.stop();
       }
-      stopWasmScanRef.current?.();
-      stopWasmScanRef.current = null;
 
       let text: string | null = null;
-      if (scannerProfile.useWasmDecoder) {
+      if (isIosProfile) {
         text = await decodeBarcodeFromFileWithWasm(file);
-      }
-      if (!text) {
-        text = await scanner.scanFile(file, false);
+      } else {
+        const scanner = scannerRef.current;
+        if (scanner) text = await scanner.scanFile(file, false);
       }
 
+      if (!text) throw new Error("No barcode found in image");
       if (handledRef.current) return;
-      handledRef.current = true;
-      try {
-        scanner.clear();
-      } catch {
-        /* ignore */
+
+      if (!isIosProfile) {
+        const scanner = scannerRef.current;
+        scannerRef.current = null;
+        try {
+          scanner?.clear();
+        } catch {
+          /* ignore */
+        }
       }
-      scannerRef.current = null;
+
+      handledRef.current = true;
       playBeep();
       onScanSuccessRef.current(text);
-    } catch {
+    } catch (err) {
       handledRef.current = false;
-      try {
-        if (isIosProfile) {
-          setIosAwaitingTap(true);
-        } else {
+      if (isIosProfile) {
+        setIosAwaitingTap(true);
+      } else {
+        try {
           await beginLiveScanRef.current?.();
+        } catch (resumeErr) {
+          console.error("QRScannerModal: could not resume camera", resumeErr);
         }
-      } catch (err) {
-        console.error("QRScannerModal: could not resume camera after file scan", err);
       }
+      onScanFailureRef.current?.(err);
     }
   };
 
   const toggleTorch = async () => {
+    const next = !torchOn;
+    if (isIosProfile) {
+      try {
+        await setIosTorch(iosStreamRef.current, next);
+        setTorchOn(next);
+      } catch {
+        /* not supported */
+      }
+      return;
+    }
+
     const scanner = scannerRef.current;
     if (!scanner?.isScanning || !torchSupported) return;
-    const next = !torchOn;
     try {
       await scanner.applyVideoConstraints({
         advanced: [{ torch: next } as MediaTrackConstraintSet],
@@ -454,17 +463,20 @@ export default function QRScannerModal({
         await scanner.applyVideoConstraints({ torch: next } as MediaTrackConstraints);
         setTorchOn(next);
       } catch {
-        /* device may not support torch */
+        /* ignore */
       }
     }
   };
 
   const showIosStartOverlay = isIosProfile && (iosAwaitingTap || iosStarting);
-  const showIosResumeOverlay = isIosProfile && cameraReady && iosPreviewStalled && !iosStarting;
+  const showIosResumeOverlay =
+    isIosProfile && cameraReady && iosPreviewStalled && !iosStarting;
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4"
+      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-75 p-4 ${
+        isIosProfile ? "" : "backdrop-blur-sm"
+      }`}
       onClick={unlockAudio}
       onTouchStart={unlockAudio}
     >
@@ -475,20 +487,16 @@ export default function QRScannerModal({
           unlockAudio();
         }}
       >
-        <style>{`
-          #${readerId} {
-            position: relative !important;
-            min-height: 300px;
-          }
-          #${readerId} video {
-            width: 100% !important;
-            height: 100% !important;
-            min-height: 300px !important;
-            object-fit: cover !important;
-            display: block !important;
-            background: #000 !important;
-          }
-        `}</style>
+        {!isIosProfile && (
+          <style>{`
+            #${readerId} video {
+              width: 100% !important;
+              height: 100% !important;
+              min-height: 300px !important;
+              object-fit: cover !important;
+            }
+          `}</style>
+        )}
 
         <div className="flex justify-between items-center py-2.5 px-4 border-b border-gray-100 shrink-0">
           <div>
@@ -503,18 +511,9 @@ export default function QRScannerModal({
             className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
             aria-label="Close scanner"
           >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
@@ -523,13 +522,12 @@ export default function QRScannerModal({
           {isIosProfile && (
             <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-[11px] text-blue-800 leading-relaxed">
               {iosAwaitingTap
-                ? "Tap Start Camera below — iPhone requires a direct tap to show the live preview."
+                ? "Tap Start Camera — iPhone needs a direct tap to show the live preview."
                 : "Hold steady 15–30 cm from the barcode. Tap the preview if it freezes."}
             </div>
           )}
 
-          <div className="flex justify-between items-center gap-2">
-            <div className="flex-1" />
+          <div className="flex justify-end">
             <button
               type="button"
               onClick={() => setIsHighContrast(!isHighContrast)}
@@ -546,7 +544,7 @@ export default function QRScannerModal({
           {zoomRange.max > zoomRange.min && (
             <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm space-y-1.5">
               <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
-                <span>Zoom Control</span>
+                <span>Zoom</span>
                 <span className="text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-full">
                   {zoom.toFixed(1)}x
                 </span>
@@ -563,20 +561,26 @@ export default function QRScannerModal({
             </div>
           )}
 
-          <div className="relative group">
-            <div
-              id={readerId}
-              role="button"
-              tabIndex={0}
-              onClick={handlePreviewTap}
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                handlePreviewTap();
-              }}
-              className={`w-full h-[300px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black transition-all ${
-                isHighContrast ? "contrast-150 brightness-110 saturate-0" : ""
-              }`}
-            />
+          <div className="relative">
+            {isIosProfile ? (
+              <video
+                ref={iosVideoRef}
+                playsInline
+                muted
+                autoPlay
+                onClick={handlePreviewTap}
+                className={`w-full h-[300px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black object-cover ${
+                  isHighContrast ? "contrast-150 brightness-110 saturate-0" : ""
+                }`}
+              />
+            ) : (
+              <div
+                id={readerId}
+                className={`w-full h-[300px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black ${
+                  isHighContrast ? "contrast-150 brightness-110 saturate-0" : ""
+                }`}
+              />
+            )}
 
             {(showIosStartOverlay || showIosResumeOverlay) && (
               <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/70 p-4">
@@ -584,11 +588,8 @@ export default function QRScannerModal({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (showIosStartOverlay) {
-                      handleIosStartCamera();
-                    } else {
-                      void resumeCameraPreview();
-                    }
+                    if (showIosStartOverlay) handleIosStartCamera();
+                    else void resumeIosPreview();
                   }}
                   disabled={iosStarting}
                   className="rounded-2xl bg-white px-6 py-4 text-center shadow-xl active:scale-95 transition-transform disabled:opacity-60"
@@ -600,9 +601,6 @@ export default function QRScannerModal({
                       : showIosResumeOverlay
                         ? "Tap to resume preview"
                         : "Start Camera"}
-                  </div>
-                  <div className="mt-1 text-[11px] text-gray-500">
-                    Required on iPhone Safari
                   </div>
                 </button>
               </div>
@@ -635,7 +633,7 @@ export default function QRScannerModal({
                 type="button"
                 onClick={handleIosStartCamera}
                 disabled={iosStarting}
-                className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60 shadow-sm transition-all"
+                className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60 shadow-sm"
               >
                 {iosStarting ? "Starting..." : "Start Camera"}
               </button>
@@ -644,7 +642,7 @@ export default function QRScannerModal({
               type="button"
               disabled={!cameraReady && !isIosProfile}
               onClick={() => fileInputRef.current?.click()}
-              className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 shadow-sm transition-all"
+              className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 shadow-sm"
             >
               {isIosProfile ? "Photo of Barcode" : "Upload Image"}
             </button>
@@ -652,7 +650,7 @@ export default function QRScannerModal({
               <button
                 type="button"
                 onClick={() => void toggleTorch()}
-                className={`px-4 py-2.5 text-sm font-bold rounded-xl border transition-all shadow-sm ${
+                className={`px-4 py-2.5 text-sm font-bold rounded-xl border shadow-sm ${
                   torchOn
                     ? "bg-yellow-50 border-yellow-200 text-yellow-700"
                     : "bg-white border-gray-200 text-gray-700"
