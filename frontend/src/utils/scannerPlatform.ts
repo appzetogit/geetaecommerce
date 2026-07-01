@@ -1,4 +1,11 @@
 import type { Html5QrcodeCameraScanConfig } from "html5-qrcode";
+import { primeIosCameraFromUserGesture } from "./iosLiveCameraScanner";
+
+/** Call from Scan button handlers before opening {@link QRScannerModal}. */
+export function openBarcodeScanner(open: () => void): void {
+  primeIosCameraFromUserGesture();
+  open();
+}
 
 /** iPhone, iPod, iPad, and iPadOS desktop-mode Safari. */
 export function isAppleMobile(): boolean {
@@ -57,7 +64,7 @@ export function getScannerProfile(): ScannerProfile {
       id: "ios",
       label: "iOS Enhanced",
       useWasmDecoder: true,
-      hint: "Hold the phone 15–30 cm from the barcode. Tap the preview if the camera looks frozen.",
+      hint: "Hold the phone 15–30 cm from the barcode. Tap the preview if it freezes.",
       scanConfig: {
         fps: 10,
         disableFlip: false,

@@ -22,6 +22,7 @@ import AdminStockBulkImport from "./AdminStockBulkImport";
 import { getAppSettings } from "../../../services/api/admin/adminSettingsService";
 import VariationDropdown from "../../../components/VariationDropdown";
 import QRScannerModal from "../../../components/QRScannerModal";
+import { openBarcodeScanner } from '../../../utils/scannerPlatform';
 
 function fixLikelyMojibake(input: unknown): string {
   let s = String(input ?? "");
@@ -1434,7 +1435,7 @@ export default function AdminStockManagement() {
                       />
                       <button
                         onClick={() => {
-                          setShowScanner(true);
+                          openBarcodeScanner(() => setShowScanner(true));
                         }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-[var(--primary-color)] transition-colors"
                         title="Scan Barcode"

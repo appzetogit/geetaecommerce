@@ -1,5 +1,35 @@
 import { patchIosVideoElement } from "./iosWasmBarcodeScanner";
 
+function detectAppleMobile(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  return (
+    /iPad|iPhone|iPod/i.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+let primedStreamPromise: Promise<MediaStream> | null = null;
+
+/** Call synchronously inside the Scan button click handler, before opening the modal. */
+export function primeIosCameraFromUserGesture(): void {
+  if (!detectAppleMobile()) return;
+  cancelPrimedIosCamera();
+  primedStreamPromise = requestIosCameraStream();
+}
+
+export function takePrimedIosCameraStream(): Promise<MediaStream> | null {
+  const promise = primedStreamPromise;
+  primedStreamPromise = null;
+  return promise;
+}
+
+export function cancelPrimedIosCamera(): void {
+  if (!primedStreamPromise) return;
+  void primedStreamPromise.then(stopMediaStream).catch(() => {});
+  primedStreamPromise = null;
+}
+
 export function stopMediaStream(stream: MediaStream | null | undefined): void {
   if (!stream) return;
   stream.getTracks().forEach((track) => track.stop());

@@ -4,6 +4,7 @@ import { getOrderDetails, updateOrderStatus, getSellerLocationsForOrder, sendDel
 import deliveryIcon from '@assets/deliveryboy/deliveryIcon.png';
 import GoogleMapsTracking from '../../../components/GoogleMapsTracking';
 import QRScannerModal from '../../../components/QRScannerModal';
+import { openBarcodeScanner } from '../../../utils/scannerPlatform';
 
 // Helper to get delivery icon URL (works in both dev and production)
 const getDeliveryIconUrl = () => {
@@ -768,7 +769,7 @@ export default function DeliveryOrderDetail() {
                     {/* Scan Button (Visible when Out for Delivery or Ready for Pickup) */}
                    {(order.status === 'Out for Delivery' || order.status === 'Ready for pickup') && (
                         <button
-                            onClick={() => setShowScanner(true)}
+                            onClick={() => openBarcodeScanner(() => setShowScanner(true))}
                             className="w-16 h-full rounded-2xl bg-neutral-900 text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform"
                             title="Scan QR Code"
                         >

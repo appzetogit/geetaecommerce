@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import QRScannerModal from "./QRScannerModal";
+import { openBarcodeScanner } from '../utils/scannerPlatform';
 import { getVariationTypes } from "../services/api/admin/adminVariationTypeService";
 
 export interface Variation {
@@ -52,8 +53,8 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
   const [scanIndex, setScanIndex] = useState<number | null>(null);
 
   const startScanning = (index: number) => {
-    setIsScanning(true);
     setScanIndex(index);
+    openBarcodeScanner(() => setIsScanning(true));
   };
 
   const onScanSuccess = (decodedText: string) => {

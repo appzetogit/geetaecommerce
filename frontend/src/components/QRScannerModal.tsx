@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, type ChangeEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, type ChangeEvent } from "react";
 import {
   Html5Qrcode,
   Html5QrcodeSupportedFormats,
@@ -17,6 +17,7 @@ import {
   setIosZoom,
   startIosVideoPreview,
   stopMediaStream,
+  takePrimedIosCameraStream,
 } from "../utils/iosLiveCameraScanner";
 import {
   decodeBarcodeFromFileWithWasm,
@@ -85,7 +86,6 @@ export default function QRScannerModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [cameraReady, setCameraReady] = useState(false);
-  const [iosAwaitingTap, setIosAwaitingTap] = useState(isIosProfile);
   const [iosStarting, setIosStarting] = useState(false);
   const [iosPreviewStalled, setIosPreviewStalled] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
@@ -188,13 +188,49 @@ export default function QRScannerModal({
     onScanFailureRef.current = onScanFailure;
   });
 
-  // ─── iOS: WASM preload only (no html5-qrcode camera) ───
+  // ─── iOS: WASM preload + auto-start from Scan-button gesture ───
+  const attachIosStream = useCallback(
+    async (streamPromise: Promise<MediaStream>) => {
+      const video = iosVideoRef.current;
+      if (!video) return;
+
+      setIosStarting(true);
+      setIosPreviewStalled(false);
+
+      try {
+        const stream = await streamPromise;
+        iosStreamRef.current = stream;
+        await startIosVideoPreview(video, stream);
+
+        setTorchSupported(isIosTorchSupported(stream));
+        const zr = readIosZoomRange(stream);
+        if (zr && zr.max > zr.min) {
+          setZoomRange(zr);
+          setZoom(zr.min);
+        }
+
+        void applyIosStreamEnhancements(stream);
+        stopWasmScanRef.current = startIosWasmVideoScan(video, (text) => finishScan(text));
+        setCameraReady(true);
+        setIosPreviewStalled(false);
+      } catch (err: unknown) {
+        console.error("QRScannerModal: iOS camera failed", err);
+        stopIosCamera();
+        setCameraReady(false);
+        setIosPreviewStalled(true);
+        onScanFailureRef.current?.(err);
+      } finally {
+        setIosStarting(false);
+      }
+    },
+    [finishScan, stopIosCamera]
+  );
+
   useEffect(() => {
     if (!isIosProfile) return;
 
     handledRef.current = false;
     setCameraReady(false);
-    setIosAwaitingTap(true);
     setIosStarting(false);
     setIosPreviewStalled(false);
     setTorchOn(false);
@@ -210,6 +246,19 @@ export default function QRScannerModal({
       setCameraReady(false);
     };
   }, [isIosProfile, stopIosCamera]);
+
+  useLayoutEffect(() => {
+    if (!isIosProfile) return;
+
+    const primed = takePrimedIosCameraStream();
+    if (primed) {
+      void attachIosStream(primed);
+      return;
+    }
+
+    // Scan opened without priming — request on mount (may fail on some iOS versions).
+    void attachIosStream(requestIosCameraStream());
+  }, [isIosProfile, attachIosStream]);
 
   // ─── Android: unchanged html5-qrcode path ───
   useEffect(() => {
@@ -295,69 +344,19 @@ export default function QRScannerModal({
     };
   }, [readerId, isIosProfile, finishScan, scannerProfile]);
 
-  const handleIosStartCamera = () => {
-    unlockAudio();
-    if (iosStarting) return;
-
-    const video = iosVideoRef.current;
-    if (!video) return;
-
-    setIosStarting(true);
-    setIosAwaitingTap(false);
-    setIosPreviewStalled(false);
-
-    // getUserMedia must be requested in the same synchronous turn as the tap.
-    const streamPromise = requestIosCameraStream();
-
-    void streamPromise
-      .then(async (stream) => {
-        iosStreamRef.current = stream;
-        await startIosVideoPreview(video, stream);
-
-        setTorchSupported(isIosTorchSupported(stream));
-        const zr = readIosZoomRange(stream);
-        if (zr && zr.max > zr.min) {
-          setZoomRange(zr);
-          setZoom(zr.min);
-        }
-
-        void applyIosStreamEnhancements(stream);
-
-        stopWasmScanRef.current = startIosWasmVideoScan(video, (text) => finishScan(text));
-        setCameraReady(true);
-        setIosPreviewStalled(false);
-      })
-      .catch((err: unknown) => {
-        console.error("QRScannerModal: iOS camera failed", err);
-        stopIosCamera();
-        setCameraReady(false);
-        setIosAwaitingTap(true);
-        onScanFailureRef.current?.(err);
-      })
-      .finally(() => {
-        setIosStarting(false);
-      });
-  };
-
   const resumeIosPreview = useCallback(async () => {
     const video = iosVideoRef.current;
-    if (!video?.srcObject) return;
-    const playing = await ensureIosVideoPlayback(video);
-    if (playing) {
-      setIosPreviewStalled(false);
-      setIosAwaitingTap(false);
-    } else {
-      setIosPreviewStalled(true);
+    if (!video?.srcObject) {
+      void attachIosStream(requestIosCameraStream());
+      return;
     }
-  }, []);
+    const playing = await ensureIosVideoPlayback(video);
+    setIosPreviewStalled(!playing);
+  }, [attachIosStream]);
 
   const handlePreviewTap = () => {
     unlockAudio();
-    if (isIosProfile) {
-      if (iosAwaitingTap || !cameraReady) {
-        handleIosStartCamera();
-        return;
-      }
+    if (isIosProfile && (iosPreviewStalled || !cameraReady)) {
       void resumeIosPreview();
     }
   };
@@ -427,7 +426,7 @@ export default function QRScannerModal({
     } catch (err) {
       handledRef.current = false;
       if (isIosProfile) {
-        setIosAwaitingTap(true);
+        void attachIosStream(requestIosCameraStream());
       } else {
         try {
           await beginLiveScanRef.current?.();
@@ -468,9 +467,8 @@ export default function QRScannerModal({
     }
   };
 
-  const showIosStartOverlay = isIosProfile && (iosAwaitingTap || iosStarting);
-  const showIosResumeOverlay =
-    isIosProfile && cameraReady && iosPreviewStalled && !iosStarting;
+  const showIosLoading = isIosProfile && iosStarting;
+  const showViewfinder = cameraReady && !showIosLoading;
 
   return (
     <div
@@ -519,11 +517,9 @@ export default function QRScannerModal({
         </div>
 
         <div className="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-3">
-          {isIosProfile && (
-            <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-[11px] text-blue-800 leading-relaxed">
-              {iosAwaitingTap
-                ? "Tap Start Camera — iPhone needs a direct tap to show the live preview."
-                : "Hold steady 15–30 cm from the barcode. Tap the preview if it freezes."}
+          {isIosProfile && iosPreviewStalled && !iosStarting && (
+            <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-[11px] text-amber-800 leading-relaxed">
+              Camera paused — tap the preview to resume.
             </div>
           )}
 
@@ -582,31 +578,13 @@ export default function QRScannerModal({
               />
             )}
 
-            {(showIosStartOverlay || showIosResumeOverlay) && (
-              <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/70 p-4">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (showIosStartOverlay) handleIosStartCamera();
-                    else void resumeIosPreview();
-                  }}
-                  disabled={iosStarting}
-                  className="rounded-2xl bg-white px-6 py-4 text-center shadow-xl active:scale-95 transition-transform disabled:opacity-60"
-                >
-                  <div className="text-3xl mb-2">📷</div>
-                  <div className="text-sm font-bold text-gray-900">
-                    {iosStarting
-                      ? "Starting camera..."
-                      : showIosResumeOverlay
-                        ? "Tap to resume preview"
-                        : "Start Camera"}
-                  </div>
-                </button>
+            {showIosLoading && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/50">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
               </div>
             )}
 
-            {cameraReady && !showIosStartOverlay && !showIosResumeOverlay && (
+            {showViewfinder && (
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                 <div className="w-[85%] h-[70%] border-2 border-pink-500 rounded-lg relative">
                   <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl" />
@@ -628,16 +606,6 @@ export default function QRScannerModal({
               className="hidden"
               onChange={handleGalleryPick}
             />
-            {isIosProfile && iosAwaitingTap && (
-              <button
-                type="button"
-                onClick={handleIosStartCamera}
-                disabled={iosStarting}
-                className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60 shadow-sm"
-              >
-                {iosStarting ? "Starting..." : "Start Camera"}
-              </button>
-            )}
             <button
               type="button"
               disabled={!cameraReady && !isIosProfile}

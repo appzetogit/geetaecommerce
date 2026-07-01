@@ -14,6 +14,7 @@ import { getSellerProfile } from "../../../services/api/auth/sellerAuthService";
 import { getSellerOwnCategories } from "../../../services/api/seller/sellerPurchaseService";
 import { useToast } from "../../../context/ToastContext";
 import QRScannerModal from "../../../components/QRScannerModal";
+import { openBarcodeScanner } from '../../../utils/scannerPlatform';
 import { useAuth } from "../../../context/AuthContext";
 import SellerStockBulkEdit from "./SellerStockBulkEdit";
 
@@ -203,7 +204,7 @@ export default function SellerProductList() {
   };
 
   const startScanner = () => {
-    setShowScanner(true);
+    openBarcodeScanner(() => setShowScanner(true));
   };
 
   const stopScanner = () => {
@@ -1042,7 +1043,7 @@ export default function SellerProductList() {
                       />
                       <button
                         onClick={() => {
-                          setShowScanner(true);
+                          openBarcodeScanner(() => setShowScanner(true));
                         }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-[var(--primary-color)] transition-colors"
                         title="Scan Barcode"

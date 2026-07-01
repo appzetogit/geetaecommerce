@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import QRScannerModal from "../../../components/QRScannerModal";
+import { openBarcodeScanner } from '../../../utils/scannerPlatform';
 import {
   Product,
   Category,
@@ -400,8 +401,8 @@ export default function AdminStockBulkEdit({
   });
 
   const startScanning = (index: number) => {
-    setIsScanning(true);
     setScanIndex(index);
+    openBarcodeScanner(() => setIsScanning(true));
   };
 
   const onInlineScanSuccess = (decodedText: string) => {

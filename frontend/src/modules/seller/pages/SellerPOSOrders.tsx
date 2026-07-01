@@ -14,6 +14,7 @@ import { jsPDF } from "jspdf";
 import autoTable from 'jspdf-autotable';
 import { Html5QrcodeSupportedFormats } from "html5-qrcode";
 import QRScannerModal from '../../../components/QRScannerModal';
+import { openBarcodeScanner } from '../../../utils/scannerPlatform';
 import ConfirmModal from '../../../components/ConfirmModal';
 import { useAppContext } from '../../../context/AppContext';
 import { formatAmount } from '../../../utils/priceUtils';
@@ -3618,7 +3619,7 @@ const SellerPOSOrders = () => {
                          </button>
                      )}
                      <button
-                        onClick={() => setShowScanner(true)}
+                        onClick={() => openBarcodeScanner(() => setShowScanner(true))}
                         className="p-2.5 text-gray-500 hover:text-[var(--primary-color)] rounded-xl hover:bg-[var(--primary-color)]/10 transition-colors group"
                         title="Scan Barcode"
                      >
@@ -3877,7 +3878,7 @@ const SellerPOSOrders = () => {
                   </button>
 
                   <button
-                    onClick={() => setShowScanner(true)}
+                    onClick={() => openBarcodeScanner(() => setShowScanner(true))}
                     className="bg-[var(--primary-color)] text-white px-2.5 rounded hover:bg-[var(--primary-dark)] transition-colors flex items-center justify-center shadow-sm active:scale-95 transform transition-transform"
                     title="Scan Product"
                   >
@@ -4424,7 +4425,7 @@ const SellerPOSOrders = () => {
                           <span className="font-semibold text-sm">Search Items</span>
                         </button>
                         <button
-                          onClick={() => { setScanTarget('inventory'); setShowScanner(true); }}
+                          onClick={() => { setScanTarget('inventory'); openBarcodeScanner(() => setShowScanner(true)); }}
                           className="rounded-xl border border-[var(--primary-alpha-20)] px-3 py-2.5 font-semibold text-gray-700 bg-white flex items-center justify-center gap-2"
                         >
                           <span className="font-semibold text-sm">Scan</span>
@@ -4609,7 +4610,7 @@ const SellerPOSOrders = () => {
                 <span className="text-[15px]">Search products by name, barcode...</span>
               </button>
               <button
-                onClick={() => { setScanTarget('purchase'); setShowScanner(true); }}
+                onClick={() => { setScanTarget('purchase'); openBarcodeScanner(() => setShowScanner(true)); }}
                 className="w-12 h-10 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[var(--primary-color)] hover:border-[var(--primary-color)]/40 transition-colors flex items-center justify-center"
                 title="Scan"
               >
@@ -4836,7 +4837,7 @@ const SellerPOSOrders = () => {
                               onClick={() => {
                                 setPurchaseBarcodeScanItemId(item.id);
                                 setScanTarget('purchase-barcode');
-                                setShowScanner(true);
+                                openBarcodeScanner(() => setShowScanner(true));
                                 setScannerKey((k) => k + 1);
                               }}
                               className="mt-1 px-3 py-2 bg-pink-50 border border-pink-200 rounded-xl hover:bg-pink-100 text-[var(--primary-color)] flex items-center justify-center gap-1 text-xs font-semibold"
@@ -4949,7 +4950,7 @@ const SellerPOSOrders = () => {
                 <span className="font-semibold text-sm">Search Items</span>
               </button>
               <button
-                onClick={() => { setScanTarget('purchase'); setShowScanner(true); }}
+                onClick={() => { setScanTarget('purchase'); openBarcodeScanner(() => setShowScanner(true)); }}
                 className="rounded-xl border border-[var(--primary-alpha-20)] px-3 py-3 font-semibold text-gray-700 bg-white flex items-center justify-center gap-2"
               >
                 <span className="font-semibold text-sm">Scan</span>
@@ -5369,7 +5370,7 @@ const SellerPOSOrders = () => {
                                 type="button"
                                 onClick={() => {
                                     setScanTarget('quick-add');
-                                    setShowScanner(true);
+                                    openBarcodeScanner(() => setShowScanner(true));
                                 }}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[var(--primary-color)]"
                                 title="Scan Barcode"
@@ -6381,7 +6382,7 @@ const SellerPOSOrders = () => {
             <button
                 onClick={() => {
                     setScanTarget('inventory');
-                    setShowScanner(true);
+                    openBarcodeScanner(() => setShowScanner(true));
                 }}
                 className="text-white p-1"
             >

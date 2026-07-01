@@ -36,6 +36,7 @@ import { getAppSettings } from "../../../services/api/admin/adminSettingsService
 
 import ThemedDropdown from "../components/ThemedDropdown";
 import QRScannerModal from "../../../components/QRScannerModal";
+import { openBarcodeScanner } from '../../../utils/scannerPlatform';
 
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../context/ToastContext";
@@ -415,7 +416,7 @@ export default function SellerAddProduct() {
   const startScanning = (target: "product" | "variation" | "table-variation" | "sku" | "check-exists" = "product", index: number | null = null) => {
       setScanTarget(target);
       setScanTargetIndex(index);
-      setIsScanning(true);
+      openBarcodeScanner(() => setIsScanning(true));
       setUploadError("");
   };
 

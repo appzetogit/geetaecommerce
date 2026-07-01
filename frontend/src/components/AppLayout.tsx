@@ -6,6 +6,7 @@ import { useLocation as useLocationContext } from '../hooks/useLocation';
 import LocationPermissionRequest from './LocationPermissionRequest';
 import { useThemeContext } from '../context/ThemeContext';
 import QRScannerModal from './QRScannerModal';
+import { openBarcodeScanner } from '../utils/scannerPlatform';
 import { useAppContext } from '../context/AppContext';
 
 interface AppLayoutProps {
@@ -686,7 +687,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
                     {/* Scanner Button */}
                     <button
-                        onClick={() => setShowScanner(true)}
+                        onClick={() => openBarcodeScanner(() => setShowScanner(true))}
                         className="bg-neutral-100 hover:bg-neutral-200 text-neutral-600 p-2.5 rounded-lg border border-neutral-200 transition-colors flex items-center justify-center"
                         title="Scan Barcode"
                     >
