@@ -1,5 +1,8 @@
 import type { Html5QrcodeCameraScanConfig } from "html5-qrcode";
 import { primeIosCameraFromUserGesture } from "./iosLiveCameraScanner";
+import { IOS_WASM_READER_FORMATS } from "./scannerFormats";
+
+export { IOS_WASM_READER_FORMATS };
 
 /** Call from Scan button handlers before opening {@link QRScannerModal}. */
 export function openBarcodeScanner(open: () => void): void {
@@ -18,22 +21,6 @@ export function isAppleMobile(): boolean {
 
   return isClassicIOS || isIPadDesktopMode;
 }
-
-export const IOS_WASM_READER_FORMATS = [
-  "EAN13",
-  "EAN8",
-  "Code128",
-  "Code39",
-  "Code93",
-  "UPCA",
-  "UPCE",
-  "ITF",
-  "Codabar",
-  "DataBar",
-  "QRCode",
-  "DataMatrix",
-  "PDF417",
-] as const;
 
 type ScannerProfile = {
   id: "ios" | "default";

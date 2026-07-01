@@ -1,5 +1,3 @@
-import { patchIosVideoElement } from "./iosWasmBarcodeScanner";
-
 function detectAppleMobile(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
@@ -33,6 +31,23 @@ export function cancelPrimedIosCamera(): void {
 export function stopMediaStream(stream: MediaStream | null | undefined): void {
   if (!stream) return;
   stream.getTracks().forEach((track) => track.stop());
+}
+
+/** iOS Safari requires these attributes for inline camera preview. */
+export function patchIosVideoElement(video: HTMLVideoElement): void {
+  video.setAttribute("playsinline", "true");
+  video.setAttribute("webkit-playsinline", "true");
+  video.setAttribute("muted", "true");
+  video.setAttribute("autoplay", "true");
+  video.muted = true;
+  video.playsInline = true;
+  video.autoplay = true;
+  video.style.width = "100%";
+  video.style.height = "100%";
+  video.style.minHeight = "100%";
+  video.style.objectFit = "cover";
+  video.style.display = "block";
+  video.style.backgroundColor = "transparent";
 }
 
 export function getCameraVideoTrack(

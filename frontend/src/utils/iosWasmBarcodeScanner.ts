@@ -3,7 +3,8 @@ import {
   readBarcodes,
   type ReaderOptions,
 } from "zxing-wasm/reader";
-import { IOS_WASM_READER_FORMATS } from "./scannerPlatform";
+import { IOS_WASM_READER_FORMATS } from "./scannerFormats";
+import { patchIosVideoElement } from "./iosLiveCameraScanner";
 
 let wasmReadyPromise: Promise<void> | null = null;
 
@@ -102,23 +103,6 @@ export function findScannerVideoElement(containerId: string): HTMLVideoElement |
   const container = document.getElementById(containerId);
   if (!container) return null;
   return container.querySelector("video");
-}
-
-/** iOS Safari requires these attributes for inline camera preview. */
-export function patchIosVideoElement(video: HTMLVideoElement): void {
-  video.setAttribute("playsinline", "true");
-  video.setAttribute("webkit-playsinline", "true");
-  video.setAttribute("muted", "true");
-  video.setAttribute("autoplay", "true");
-  video.muted = true;
-  video.playsInline = true;
-  video.autoplay = true;
-  video.style.width = "100%";
-  video.style.height = "100%";
-  video.style.minHeight = "100%";
-  video.style.objectFit = "cover";
-  video.style.display = "block";
-  video.style.backgroundColor = "transparent";
 }
 
 export async function ensureIosVideoPlayback(video: HTMLVideoElement): Promise<boolean> {
