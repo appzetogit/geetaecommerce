@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, useCallback, type ChangeEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo, type ChangeEvent } from "react";
 import {
   Html5Qrcode,
   Html5QrcodeSupportedFormats,
@@ -62,7 +62,7 @@ export default function QRScannerModal({
   onScanFailure,
   onClose,
 }: QRScannerModalProps) {
-  const scannerProfile = getScannerProfile();
+  const scannerProfile = useMemo(() => getScannerProfile(), []);
   const isIosProfile = scannerProfile.id === "ios";
 
   const readerIdRef = useRef<string | null>(null);
