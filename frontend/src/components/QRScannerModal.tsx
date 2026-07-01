@@ -10,9 +10,12 @@ import {
 } from "../utils/scannerPlatform";
 import {
   decodeBarcodeFromFileWithWasm,
+  ensureIosVideoPlayback,
   findScannerVideoElement,
+  patchIosVideoElement,
   prepareIosBarcodeWasm,
   startIosWasmVideoScan,
+  waitForScannerVideo,
 } from "../utils/iosWasmBarcodeScanner";
 
 interface QRScannerModalProps {
@@ -62,6 +65,7 @@ export default function QRScannerModal({
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const beginLiveScanRef = useRef<(() => Promise<void>) | null>(null);
+  const afterCameraReadyRef = useRef<(() => Promise<void>) | null>(null);
   const stopWasmScanRef = useRef<(() => void) | null>(null);
   const handledRef = useRef(false);
   const onScanSuccessRef = useRef(onScanSuccess);
@@ -69,6 +73,9 @@ export default function QRScannerModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [cameraReady, setCameraReady] = useState(false);
+  const [iosAwaitingTap, setIosAwaitingTap] = useState(isIosProfile);
+  const [iosStarting, setIosStarting] = useState(false);
+  const [iosPreviewStalled, setIosPreviewStalled] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
   const [zoom, setZoom] = useState(1);
@@ -131,10 +138,60 @@ export default function QRScannerModal({
     }
   }, []);
 
-  const resumeCameraPreview = useCallback(() => {
+  const startIosWasmLoop = useCallback(
+    (onDecoded: (text: string) => void) => {
+      if (!scannerProfile.useWasmDecoder) return;
+
+      const tryAttach = (attempt = 0) => {
+        if (handledRef.current || attempt > 30) return;
+
+        const video = findScannerVideoElement(readerId);
+        if (!video?.srcObject || !video.videoWidth) {
+          window.setTimeout(() => tryAttach(attempt + 1), 200);
+          return;
+        }
+
+        patchIosVideoElement(video);
+        stopWasmScanRef.current = startIosWasmVideoScan(video, onDecoded);
+      };
+
+      tryAttach();
+    },
+    [readerId, scannerProfile.useWasmDecoder]
+  );
+
+  const finalizeIosPreview = useCallback(async () => {
+    const video = await waitForScannerVideo(readerId);
+    if (!video) {
+      setIosPreviewStalled(true);
+      setIosAwaitingTap(true);
+      return false;
+    }
+
+    patchIosVideoElement(video);
+    const playing = await ensureIosVideoPlayback(video);
+
+    if (!playing) {
+      setIosPreviewStalled(true);
+      setIosAwaitingTap(true);
+      return false;
+    }
+
+    setIosPreviewStalled(false);
+    setIosAwaitingTap(false);
+    return true;
+  }, [readerId]);
+
+  const resumeCameraPreview = useCallback(async () => {
     const video = findScannerVideoElement(readerId);
     if (!video) return;
-    video.play().catch(() => {});
+
+    patchIosVideoElement(video);
+    const playing = await ensureIosVideoPlayback(video);
+    if (playing) {
+      setIosPreviewStalled(false);
+      setIosAwaitingTap(false);
+    }
   }, [readerId]);
 
   useEffect(() => {
@@ -145,6 +202,9 @@ export default function QRScannerModal({
   useEffect(() => {
     handledRef.current = false;
     setCameraReady(false);
+    setIosAwaitingTap(isIosProfile);
+    setIosStarting(false);
+    setIosPreviewStalled(false);
     setTorchOn(false);
     setTorchSupported(false);
     setZoom(1);
@@ -194,24 +254,38 @@ export default function QRScannerModal({
         });
     };
 
-    const startIosWasmLoop = () => {
-      if (!scannerProfile.useWasmDecoder) return;
+    const afterCameraReady = async () => {
+      setCameraReady(true);
 
-      const tryAttach = (attempt = 0) => {
-        if (handledRef.current || attempt > 20) return;
-
-        const video = findScannerVideoElement(readerId);
-        if (!video || !video.videoWidth) {
-          window.setTimeout(() => tryAttach(attempt + 1), 200);
-          return;
+      try {
+        const caps = scanner.getRunningTrackCameraCapabilities();
+        if (caps.torchFeature()?.isSupported()) {
+          setTorchSupported(true);
         }
 
-        video.play().catch(() => {});
-        stopWasmScanRef.current = startIosWasmVideoScan(video, onDecoded);
-      };
+        const zoomFeature = caps.zoomFeature();
+        if (zoomFeature?.isSupported()) {
+          setZoomRange({
+            min: zoomFeature.min(),
+            max: zoomFeature.max(),
+            step: zoomFeature.step(),
+          });
+          setZoom(zoomFeature.min());
+        }
+      } catch {
+        setTorchSupported(false);
+      }
 
-      tryAttach();
+      if (isIosProfile) {
+        const previewOk = await finalizeIosPreview();
+        if (!previewOk) return;
+      }
+
+      void applyPostStartCameraEnhancements(scanner, isIosProfile);
+      startIosWasmLoop(onDecoded);
     };
+
+    afterCameraReadyRef.current = afterCameraReady;
 
     const beginLiveScan = () =>
       scanner
@@ -225,39 +299,16 @@ export default function QRScannerModal({
             }
           }
         )
-        .then(async () => {
-          setCameraReady(true);
-
-          try {
-            const caps = scanner.getRunningTrackCameraCapabilities();
-            if (caps.torchFeature()?.isSupported()) {
-              setTorchSupported(true);
-            }
-
-            const zoomFeature = caps.zoomFeature();
-            if (zoomFeature?.isSupported()) {
-              setZoomRange({
-                min: zoomFeature.min(),
-                max: zoomFeature.max(),
-                step: zoomFeature.step(),
-              });
-              setZoom(zoomFeature.min());
-            }
-          } catch {
-            setTorchSupported(false);
-          }
-
-          await applyPostStartCameraEnhancements(scanner, isIosProfile);
-          resumeCameraPreview();
-          startIosWasmLoop();
-        });
+        .then(() => afterCameraReady());
 
     beginLiveScanRef.current = beginLiveScan;
 
-    beginLiveScan().catch((err: unknown) => {
-      console.error("QRScannerModal: camera failed to start", err);
-      setCameraReady(false);
-    });
+    if (!isIosProfile) {
+      beginLiveScan().catch((err: unknown) => {
+        console.error("QRScannerModal: camera failed to start", err);
+        setCameraReady(false);
+      });
+    }
 
     return () => {
       setCameraReady(false);
@@ -267,6 +318,7 @@ export default function QRScannerModal({
       const s = scannerRef.current;
       scannerRef.current = null;
       beginLiveScanRef.current = null;
+      afterCameraReadyRef.current = null;
 
       if (!s) return;
       if (s.isScanning) {
@@ -287,7 +339,48 @@ export default function QRScannerModal({
         }
       }
     };
-  }, [readerId, isIosProfile, playBeep, resumeCameraPreview, scannerProfile]);
+  }, [
+    readerId,
+    isIosProfile,
+    playBeep,
+    finalizeIosPreview,
+    startIosWasmLoop,
+    scannerProfile,
+  ]);
+
+  const handleIosStartCamera = () => {
+    unlockAudio();
+    setIosAwaitingTap(false);
+    setIosPreviewStalled(false);
+    setIosStarting(true);
+
+    const start = beginLiveScanRef.current;
+    if (!start) {
+      setIosStarting(false);
+      setIosAwaitingTap(true);
+      return;
+    }
+
+    // Must invoke scanner.start() synchronously inside the tap handler for iOS Safari.
+    void start()
+      .catch((err: unknown) => {
+        console.error("QRScannerModal: iOS camera failed to start", err);
+        setCameraReady(false);
+        setIosAwaitingTap(true);
+      })
+      .finally(() => {
+        setIosStarting(false);
+      });
+  };
+
+  const handlePreviewTap = () => {
+    unlockAudio();
+    if (iosAwaitingTap && !cameraReady) {
+      handleIosStartCamera();
+      return;
+    }
+    void resumeCameraPreview();
+  };
 
   const handleZoomChange = async (newZoom: number) => {
     const scanner = scannerRef.current;
@@ -336,7 +429,11 @@ export default function QRScannerModal({
     } catch {
       handledRef.current = false;
       try {
-        await beginLiveScanRef.current?.();
+        if (isIosProfile) {
+          setIosAwaitingTap(true);
+        } else {
+          await beginLiveScanRef.current?.();
+        }
       } catch (err) {
         console.error("QRScannerModal: could not resume camera after file scan", err);
       }
@@ -362,6 +459,9 @@ export default function QRScannerModal({
     }
   };
 
+  const showIosStartOverlay = isIosProfile && (iosAwaitingTap || iosStarting);
+  const showIosResumeOverlay = isIosProfile && cameraReady && iosPreviewStalled && !iosStarting;
+
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4"
@@ -375,6 +475,21 @@ export default function QRScannerModal({
           unlockAudio();
         }}
       >
+        <style>{`
+          #${readerId} {
+            position: relative !important;
+            min-height: 300px;
+          }
+          #${readerId} video {
+            width: 100% !important;
+            height: 100% !important;
+            min-height: 300px !important;
+            object-fit: cover !important;
+            display: block !important;
+            background: #000 !important;
+          }
+        `}</style>
+
         <div className="flex justify-between items-center py-2.5 px-4 border-b border-gray-100 shrink-0">
           <div>
             <h3 className="text-base font-bold text-gray-800 leading-tight">Scan barcode</h3>
@@ -407,8 +522,9 @@ export default function QRScannerModal({
         <div className="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-3">
           {isIosProfile && (
             <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-[11px] text-blue-800 leading-relaxed">
-              iPhone mode uses a WASM decoder for retail barcodes. Hold steady 15–30 cm away. Tap the
-              preview if it looks frozen.
+              {iosAwaitingTap
+                ? "Tap Start Camera below — iPhone requires a direct tap to show the live preview."
+                : "Hold steady 15–30 cm from the barcode. Tap the preview if it freezes."}
             </div>
           )}
 
@@ -430,24 +546,7 @@ export default function QRScannerModal({
           {zoomRange.max > zoomRange.min && (
             <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm space-y-1.5">
               <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
-                <span className="flex items-center gap-1">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    <line x1="11" y1="8" x2="11" y2="14"></line>
-                    <line x1="8" y1="11" x2="14" y2="11"></line>
-                  </svg>
-                  Zoom Control
-                </span>
+                <span>Zoom Control</span>
                 <span className="text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-full">
                   {zoom.toFixed(1)}x
                 </span>
@@ -469,22 +568,57 @@ export default function QRScannerModal({
               id={readerId}
               role="button"
               tabIndex={0}
-              onClick={resumeCameraPreview}
-              onTouchStart={resumeCameraPreview}
+              onClick={handlePreviewTap}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                handlePreviewTap();
+              }}
               className={`w-full h-[300px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black transition-all ${
                 isHighContrast ? "contrast-150 brightness-110 saturate-0" : ""
               }`}
             />
 
-            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-              <div className="w-[85%] h-[70%] border-2 border-pink-500 rounded-lg shadow-[0_0_0_2000px_rgba(0,0,0,0.4)] relative">
-                <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl" />
-                <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr" />
-                <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-white rounded-bl" />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-white rounded-br" />
-                <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-pink-500/50 shadow-[0_0_8px_rgba(236,72,153,0.8)] animate-pulse" />
+            {(showIosStartOverlay || showIosResumeOverlay) && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-black/70 p-4">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (showIosStartOverlay) {
+                      handleIosStartCamera();
+                    } else {
+                      void resumeCameraPreview();
+                    }
+                  }}
+                  disabled={iosStarting}
+                  className="rounded-2xl bg-white px-6 py-4 text-center shadow-xl active:scale-95 transition-transform disabled:opacity-60"
+                >
+                  <div className="text-3xl mb-2">📷</div>
+                  <div className="text-sm font-bold text-gray-900">
+                    {iosStarting
+                      ? "Starting camera..."
+                      : showIosResumeOverlay
+                        ? "Tap to resume preview"
+                        : "Start Camera"}
+                  </div>
+                  <div className="mt-1 text-[11px] text-gray-500">
+                    Required on iPhone Safari
+                  </div>
+                </button>
               </div>
-            </div>
+            )}
+
+            {cameraReady && !showIosStartOverlay && !showIosResumeOverlay && (
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div className="w-[85%] h-[70%] border-2 border-pink-500 rounded-lg relative">
+                  <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl" />
+                  <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr" />
+                  <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-white rounded-bl" />
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-white rounded-br" />
+                  <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-pink-500/50 animate-pulse" />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-2 justify-center shrink-0">
@@ -496,9 +630,19 @@ export default function QRScannerModal({
               className="hidden"
               onChange={handleGalleryPick}
             />
+            {isIosProfile && iosAwaitingTap && (
+              <button
+                type="button"
+                onClick={handleIosStartCamera}
+                disabled={iosStarting}
+                className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-pink-600 text-white hover:bg-pink-700 disabled:opacity-60 shadow-sm transition-all"
+              >
+                {iosStarting ? "Starting..." : "Start Camera"}
+              </button>
+            )}
             <button
               type="button"
-              disabled={!cameraReady}
+              disabled={!cameraReady && !isIosProfile}
               onClick={() => fileInputRef.current?.click()}
               className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 shadow-sm transition-all"
             >
@@ -528,5 +672,4 @@ export default function QRScannerModal({
   );
 }
 
-// Re-export for tests or feature flags elsewhere
 export { isAppleMobile };

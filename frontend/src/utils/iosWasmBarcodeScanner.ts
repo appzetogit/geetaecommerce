@@ -103,3 +103,64 @@ export function findScannerVideoElement(containerId: string): HTMLVideoElement |
   if (!container) return null;
   return container.querySelector("video");
 }
+
+/** iOS Safari requires these attributes for inline camera preview. */
+export function patchIosVideoElement(video: HTMLVideoElement): void {
+  video.setAttribute("playsinline", "true");
+  video.setAttribute("webkit-playsinline", "true");
+  video.setAttribute("muted", "true");
+  video.setAttribute("autoplay", "true");
+  video.muted = true;
+  video.playsInline = true;
+  video.autoplay = true;
+  video.style.width = "100%";
+  video.style.height = "100%";
+  video.style.minHeight = "100%";
+  video.style.objectFit = "cover";
+  video.style.display = "block";
+  video.style.backgroundColor = "transparent";
+}
+
+export async function ensureIosVideoPlayback(video: HTMLVideoElement): Promise<boolean> {
+  patchIosVideoElement(video);
+
+  if (!video.srcObject && video.paused) {
+    return false;
+  }
+
+  try {
+    await video.play();
+  } catch {
+    return false;
+  }
+
+  return (
+    !video.paused &&
+    video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
+    video.videoWidth > 0
+  );
+}
+
+export function waitForScannerVideo(
+  containerId: string,
+  timeoutMs = 4000
+): Promise<HTMLVideoElement | null> {
+  return new Promise((resolve) => {
+    const started = Date.now();
+
+    const poll = () => {
+      const video = findScannerVideoElement(containerId);
+      if (video?.srcObject) {
+        resolve(video);
+        return;
+      }
+      if (Date.now() - started >= timeoutMs) {
+        resolve(video);
+        return;
+      }
+      window.setTimeout(poll, 100);
+    };
+
+    poll();
+  });
+}

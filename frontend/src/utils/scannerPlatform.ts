@@ -60,14 +60,9 @@ export function getScannerProfile(): ScannerProfile {
       hint: "Hold the phone 15–30 cm from the barcode. Tap the preview if the camera looks frozen.",
       scanConfig: {
         fps: 10,
-        aspectRatio: 1,
         disableFlip: false,
-        // Only safe constraints at init — focus/zoom applied after camera starts.
-        videoConstraints: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
+        // No aspectRatio or videoConstraints here — iOS Safari black-screens when
+        // those are applied before the user gesture that starts playback.
         qrbox: (viewfinderWidth, viewfinderHeight) =>
           buildQrBox(viewfinderWidth, viewfinderHeight, true),
       },
