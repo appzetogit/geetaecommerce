@@ -1,111 +1,19 @@
-// import { useEffect, useRef } from "react";
-// import { Html5QrcodeScanner } from "html5-qrcode";
-
-// interface QRScannerModalProps {
-//   onScanSuccess: (decodedText: string) => void;
-//   onScanFailure?: (error: any) => void;
-//   onClose: () => void;
-// }
-
-// export default function QRScannerModal({
-//   onScanSuccess,
-//   onScanFailure,
-//   onClose,
-// }: QRScannerModalProps) {
-//   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-
-//   useEffect(() => {
-//     // Initialize scanner with slightly delayed start to ensure DOM is ready
-//     const timer = setTimeout(() => {
-//         scannerRef.current = new Html5QrcodeScanner(
-//             "reader",
-//             {
-//               fps: 10,
-//               qrbox: { width: 250, height: 250 },
-//               aspectRatio: 1.0,
-//               showTorchButtonIfSupported: true,
-//               // Ideally prefer back camera
-//               videoConstraints: {
-//                   facingMode: "environment"
-//               }
-//             },
-//             /* verbose= */ false
-//         );
-
-//         scannerRef.current.render(
-//             (decodedText) => {
-//                 // Success callback
-//                 onScanSuccess(decodedText);
-//                 // Auto-stop scanning on success
-//                 if (scannerRef.current) {
-//                     scannerRef.current.clear().catch(console.error);
-//                 }
-//             },
-//             (errorMessage) => {
-//                 // Failure callback (optional logging)
-//                 if (onScanFailure) onScanFailure(errorMessage);
-//             }
-//         );
-//     }, 100);
-
-//     return () => {
-//       clearTimeout(timer);
-//       if (scannerRef.current) {
-//         scannerRef.current.clear().catch(console.error);
-//       }
-//     };
-//   }, []); // Run once on mount
-
-//   return (
-//     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4">
-//       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden relative shadow-2xl">
-//         {/* Header */}
-//         <div className="flex justify-between items-center p-4 border-b border-gray-100">
-//           <h3 className="text-lg font-bold text-gray-800">Scan QR / Barcode</h3>
-//           <button
-//             onClick={onClose}
-//             className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
-//           >
-//             <svg
-//               width="24"
-//               height="24"
-//               viewBox="0 0 24 24"
-//               fill="none"
-//               stroke="currentColor"
-//               strokeWidth="2"
-//               strokeLinecap="round"
-//               strokeLinejoin="round"
-//             >
-//               <line x1="18" y1="6" x2="6" y2="18"></line>
-//               <line x1="6" y1="6" x2="18" y2="18"></line>
-//             </svg>
-//           </button>
-//         </div>
-
-//         {/* Scanner Area */}
-//         <div className="p-4 bg-gray-50">
-//             <style>{`
-//                 #reader__status_span,
-//                 #reader__header_message {
-//                     display: none !important;
-//                 }
-//             `}</style>
-//             <div id="reader" className="w-full rounded-lg overflow-hidden border-2 border-dashed border-gray-300"></div>
-//             <p className="text-center text-xs text-gray-500 mt-3">
-//                 Point your camera at a QR code or Barcode
-//             </p>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-
 import { useEffect, useRef, useState, useCallback, type ChangeEvent } from "react";
 import {
   Html5Qrcode,
   Html5QrcodeSupportedFormats,
 } from "html5-qrcode";
+import {
+  applyPostStartCameraEnhancements,
+  getScannerProfile,
+  isAppleMobile,
+} from "../utils/scannerPlatform";
+import {
+  decodeBarcodeFromFileWithWasm,
+  findScannerVideoElement,
+  prepareIosBarcodeWasm,
+  startIosWasmVideoScan,
+} from "../utils/iosWasmBarcodeScanner";
 
 interface QRScannerModalProps {
   onScanSuccess: (decodedText: string) => void;
@@ -113,10 +21,6 @@ interface QRScannerModalProps {
   onClose: () => void;
 }
 
-/**
- * Formats common on retail / billing labels (1D linear + occasional QR / 2D on receipts).
- * Explicit list helps the decoder prioritize real product codes over noise.
- */
 const BILLING_BARCODE_FORMATS = [
   Html5QrcodeSupportedFormats.EAN_13,
   Html5QrcodeSupportedFormats.EAN_8,
@@ -147,6 +51,9 @@ export default function QRScannerModal({
   onScanFailure,
   onClose,
 }: QRScannerModalProps) {
+  const scannerProfile = getScannerProfile();
+  const isIosProfile = scannerProfile.id === "ios";
+
   const readerIdRef = useRef<string | null>(null);
   if (!readerIdRef.current) {
     readerIdRef.current = createReaderElementId();
@@ -155,19 +62,15 @@ export default function QRScannerModal({
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const beginLiveScanRef = useRef<(() => Promise<void>) | null>(null);
+  const stopWasmScanRef = useRef<(() => void) | null>(null);
   const handledRef = useRef(false);
   const onScanSuccessRef = useRef(onScanSuccess);
   const onScanFailureRef = useRef(onScanFailure);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // High-accuracy buffer: tracks the last detected code to ensure consistency
-  const lastDetectedCodeRef = useRef<{ code: string; count: number }>({ code: "", count: 0 });
 
   const [cameraReady, setCameraReady] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
   const [torchSupported, setTorchSupported] = useState(false);
-  
-  // Advanced Features State
   const [zoom, setZoom] = useState(1);
   const [zoomRange, setZoomRange] = useState({ min: 1, max: 1, step: 0.1 });
   const [isHighContrast, setIsHighContrast] = useState(false);
@@ -178,13 +81,14 @@ export default function QRScannerModal({
   useEffect(() => {
     const loadSound = async () => {
       try {
-        const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+        const AudioContextClass =
+          window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
         if (!AudioContextClass) return;
-        
+
         const ctx = new AudioContextClass();
         audioContextRef.current = ctx;
 
-        const response = await fetch('/assets/sound/beep.mp3');
+        const response = await fetch("/assets/sound/beep.mp3");
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
         audioBufferRef.current = audioBuffer;
@@ -193,10 +97,10 @@ export default function QRScannerModal({
       }
     };
 
-    loadSound();
-    
+    void loadSound();
+
     return () => {
-      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
         audioContextRef.current.close().catch(() => {});
       }
     };
@@ -205,11 +109,9 @@ export default function QRScannerModal({
   const playBeep = useCallback(() => {
     const ctx = audioContextRef.current;
     const buffer = audioBufferRef.current;
-    
     if (!ctx || !buffer) return;
 
-    // Resume context if it was suspended (common browser policy)
-    if (ctx.state === 'suspended') {
+    if (ctx.state === "suspended") {
       ctx.resume().catch(() => {});
     }
 
@@ -223,12 +125,17 @@ export default function QRScannerModal({
     }
   }, []);
 
-  // Helper to 'unlock' audio on first user interaction (required for mobile browsers)
   const unlockAudio = useCallback(() => {
-    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+    if (audioContextRef.current && audioContextRef.current.state === "suspended") {
       audioContextRef.current.resume().catch(() => {});
     }
   }, []);
+
+  const resumeCameraPreview = useCallback(() => {
+    const video = findScannerVideoElement(readerId);
+    if (!video) return;
+    video.play().catch(() => {});
+  }, [readerId]);
 
   useEffect(() => {
     onScanSuccessRef.current = onScanSuccess;
@@ -237,50 +144,41 @@ export default function QRScannerModal({
 
   useEffect(() => {
     handledRef.current = false;
-    lastDetectedCodeRef.current = { code: "", count: 0 };
     setCameraReady(false);
     setTorchOn(false);
     setTorchSupported(false);
     setZoom(1);
 
+    if (scannerProfile.useWasmDecoder) {
+      void prepareIosBarcodeWasm().catch((err) => {
+        console.warn("QRScannerModal: WASM decoder preload failed", err);
+      });
+    }
+
     const scanner = new Html5Qrcode(readerId, {
       verbose: false,
-      useBarCodeDetectorIfSupported: true,
+      useBarCodeDetectorIfSupported: !scannerProfile.useWasmDecoder,
       formatsToSupport: BILLING_BARCODE_FORMATS,
     });
     scannerRef.current = scanner;
 
-    const scanConfig = {
-      fps: 40,
-      aspectRatio: 1.2,
-      disableFlip: false,
-      videoConstraints: {
-        facingMode: "environment" as const,
-        focusMode: "continuous" as const,
-        whiteBalanceMode: "continuous" as const,
-        exposureMode: "continuous" as const
-      },
-      qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-        const width = Math.floor(Math.min(viewfinderWidth * 0.9, 500));
-        const height = Math.floor(Math.max(120, Math.min(viewfinderHeight * 0.7, width * 0.8)));
-        return { width, height };
-      },
-    };
-
     const onDecoded = (decodedText: string) => {
       if (handledRef.current) return;
 
-      // Instant Feedback
       if (navigator.vibrate) navigator.vibrate(60);
       playBeep();
 
       handledRef.current = true;
+      stopWasmScanRef.current?.();
+      stopWasmScanRef.current = null;
+
       const s = scannerRef.current;
       scannerRef.current = null;
       if (!s) {
         onScanSuccessRef.current(decodedText);
         return;
       }
+
       s.stop()
         .then(() => {
           s.clear();
@@ -296,43 +194,63 @@ export default function QRScannerModal({
         });
     };
 
-    const beginLiveScan = () => {
-      return scanner
+    const startIosWasmLoop = () => {
+      if (!scannerProfile.useWasmDecoder) return;
+
+      const tryAttach = (attempt = 0) => {
+        if (handledRef.current || attempt > 20) return;
+
+        const video = findScannerVideoElement(readerId);
+        if (!video || !video.videoWidth) {
+          window.setTimeout(() => tryAttach(attempt + 1), 200);
+          return;
+        }
+
+        video.play().catch(() => {});
+        stopWasmScanRef.current = startIosWasmVideoScan(video, onDecoded);
+      };
+
+      tryAttach();
+    };
+
+    const beginLiveScan = () =>
+      scanner
         .start(
           { facingMode: "environment" },
-          scanConfig,
+          scannerProfile.scanConfig,
           (decodedText: string) => onDecoded(decodedText),
           (errorMessage: string, error: unknown) => {
-            if (onScanFailureRef.current) {
-              if (!errorMessage?.includes("No barcode detected")) {
-                onScanFailureRef.current(errorMessage ?? error);
-              }
+            if (onScanFailureRef.current && !errorMessage?.includes("No barcode detected")) {
+              onScanFailureRef.current(errorMessage ?? error);
             }
           }
         )
-        .then(() => {
+        .then(async () => {
           setCameraReady(true);
+
           try {
             const caps = scanner.getRunningTrackCameraCapabilities();
             if (caps.torchFeature()?.isSupported()) {
               setTorchSupported(true);
             }
-            
-            // Detect Zoom Capabilities
+
             const zoomFeature = caps.zoomFeature();
             if (zoomFeature?.isSupported()) {
               setZoomRange({
                 min: zoomFeature.min(),
                 max: zoomFeature.max(),
-                step: zoomFeature.step()
+                step: zoomFeature.step(),
               });
               setZoom(zoomFeature.min());
             }
           } catch {
             setTorchSupported(false);
           }
+
+          await applyPostStartCameraEnhancements(scanner, isIosProfile);
+          resumeCameraPreview();
+          startIosWasmLoop();
         });
-    };
 
     beginLiveScanRef.current = beginLiveScan;
 
@@ -343,10 +261,13 @@ export default function QRScannerModal({
 
     return () => {
       setCameraReady(false);
-      lastDetectedCodeRef.current = { code: "", count: 0 };
+      stopWasmScanRef.current?.();
+      stopWasmScanRef.current = null;
+
       const s = scannerRef.current;
       scannerRef.current = null;
       beginLiveScanRef.current = null;
+
       if (!s) return;
       if (s.isScanning) {
         s.stop()
@@ -366,15 +287,15 @@ export default function QRScannerModal({
         }
       }
     };
-  }, [readerId]); // Re-start if readerId changes
+  }, [readerId, isIosProfile, playBeep, resumeCameraPreview, scannerProfile]);
 
   const handleZoomChange = async (newZoom: number) => {
     const scanner = scannerRef.current;
     if (!scanner?.isScanning) return;
     try {
       await scanner.applyVideoConstraints({
-        advanced: [{ zoom: newZoom } as any],
-      } as any);
+        advanced: [{ zoom: newZoom } as MediaTrackConstraintSet],
+      } as MediaTrackConstraints);
       setZoom(newZoom);
     } catch (err) {
       console.error("Failed to apply zoom", err);
@@ -391,7 +312,17 @@ export default function QRScannerModal({
       if (scanner.isScanning) {
         await scanner.stop();
       }
-      const text = await scanner.scanFile(file, false);
+      stopWasmScanRef.current?.();
+      stopWasmScanRef.current = null;
+
+      let text: string | null = null;
+      if (scannerProfile.useWasmDecoder) {
+        text = await decodeBarcodeFromFileWithWasm(file);
+      }
+      if (!text) {
+        text = await scanner.scanFile(file, false);
+      }
+
       if (handledRef.current) return;
       handledRef.current = true;
       try {
@@ -432,12 +363,12 @@ export default function QRScannerModal({
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm p-4"
       onClick={unlockAudio}
       onTouchStart={unlockAudio}
     >
-      <div 
+      <div
         className="bg-white rounded-2xl w-full max-w-md overflow-hidden relative shadow-2xl flex flex-col max-h-[90vh]"
         onClick={(e) => {
           e.stopPropagation();
@@ -447,7 +378,9 @@ export default function QRScannerModal({
         <div className="flex justify-between items-center py-2.5 px-4 border-b border-gray-100 shrink-0">
           <div>
             <h3 className="text-base font-bold text-gray-800 leading-tight">Scan barcode</h3>
-            <p className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold">Enterprise Scanner v2.0</p>
+            <p className="text-[9px] text-gray-500 uppercase tracking-wider font-semibold">
+              {scannerProfile.label}
+            </p>
           </div>
           <button
             type="button"
@@ -472,38 +405,52 @@ export default function QRScannerModal({
         </div>
 
         <div className="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-3">
-          {/* Top Controls */}
+          {isIosProfile && (
+            <div className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-[11px] text-blue-800 leading-relaxed">
+              iPhone mode uses a WASM decoder for retail barcodes. Hold steady 15–30 cm away. Tap the
+              preview if it looks frozen.
+            </div>
+          )}
+
           <div className="flex justify-between items-center gap-2">
-             <div className="flex-1">
-                {/* Space for symmetry or other controls */}
-             </div>
-             <button
-                type="button"
-                onClick={() => setIsHighContrast(!isHighContrast)}
-                className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
-                  isHighContrast 
-                  ? "bg-indigo-600 text-white shadow-md" 
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setIsHighContrast(!isHighContrast)}
+              className={`py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                isHighContrast
+                  ? "bg-indigo-600 text-white shadow-md"
                   : "bg-white text-gray-600 border border-gray-200"
-                }`}
-             >
-                {isHighContrast ? "🌓 High Contrast" : "🌓 Normal"}
-             </button>
+              }`}
+            >
+              {isHighContrast ? "🌓 High Contrast" : "🌓 Normal"}
+            </button>
           </div>
 
-          {/* Zoom Control */}
           {zoomRange.max > zoomRange.min && (
             <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm space-y-1.5">
               <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase">
-                 <span className="flex items-center gap-1">
-                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                     <circle cx="11" cy="11" r="8"></circle>
-                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                     <line x1="11" y1="8" x2="11" y2="14"></line>
-                     <line x1="8" y1="11" x2="14" y2="11"></line>
-                   </svg>
-                   Zoom Control
-                 </span>
-                 <span className="text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-full">{zoom.toFixed(1)}x</span>
+                <span className="flex items-center gap-1">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <line x1="11" y1="8" x2="11" y2="14"></line>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                  </svg>
+                  Zoom Control
+                </span>
+                <span className="text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded-full">
+                  {zoom.toFixed(1)}x
+                </span>
               </div>
               <input
                 type="range"
@@ -517,37 +464,35 @@ export default function QRScannerModal({
             </div>
           )}
 
-          {/* Scanner Viewport */}
           <div className="relative group">
             <div
               id={readerId}
+              role="button"
+              tabIndex={0}
+              onClick={resumeCameraPreview}
+              onTouchStart={resumeCameraPreview}
               className={`w-full h-[300px] rounded-xl overflow-hidden border-2 border-gray-200 bg-black transition-all ${
                 isHighContrast ? "contrast-150 brightness-110 saturate-0" : ""
               }`}
             />
-            
-            {/* Viewfinder Overlay */}
+
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-               <div className="w-[85%] h-[70%] border-2 border-pink-500 rounded-lg shadow-[0_0_0_2000px_rgba(0,0,0,0.4)] relative">
-                  <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl"></div>
-                  <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr"></div>
-                  <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-white rounded-bl"></div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-white rounded-br"></div>
-                  
-                  {/* Scanning Line */}
-                  <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-pink-500/50 shadow-[0_0_8px_rgba(236,72,153,0.8)] animate-pulse"></div>
-               </div>
+              <div className="w-[85%] h-[70%] border-2 border-pink-500 rounded-lg shadow-[0_0_0_2000px_rgba(0,0,0,0.4)] relative">
+                <div className="absolute -top-1 -left-1 w-4 h-4 border-t-4 border-l-4 border-white rounded-tl" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 border-t-4 border-r-4 border-white rounded-tr" />
+                <div className="absolute -bottom-1 -left-1 w-4 h-4 border-b-4 border-l-4 border-white rounded-bl" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 border-b-4 border-r-4 border-white rounded-br" />
+                <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-pink-500/50 shadow-[0_0_8px_rgba(236,72,153,0.8)] animate-pulse" />
+              </div>
             </div>
           </div>
 
-
-
-          {/* Bottom Actions */}
           <div className="flex flex-wrap gap-2 justify-center shrink-0">
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              capture="environment"
               className="hidden"
               onChange={handleGalleryPick}
             />
@@ -557,16 +502,16 @@ export default function QRScannerModal({
               onClick={() => fileInputRef.current?.click()}
               className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 shadow-sm transition-all"
             >
-              Upload Image
+              {isIosProfile ? "Photo of Barcode" : "Upload Image"}
             </button>
             {torchSupported && (
               <button
                 type="button"
                 onClick={() => void toggleTorch()}
                 className={`px-4 py-2.5 text-sm font-bold rounded-xl border transition-all shadow-sm ${
-                  torchOn 
-                  ? "bg-yellow-50 border-yellow-200 text-yellow-700" 
-                  : "bg-white border-gray-200 text-gray-700"
+                  torchOn
+                    ? "bg-yellow-50 border-yellow-200 text-yellow-700"
+                    : "bg-white border-gray-200 text-gray-700"
                 }`}
               >
                 {torchOn ? "🔦 Flash ON" : "🔦 Flash OFF"}
@@ -576,11 +521,12 @@ export default function QRScannerModal({
         </div>
 
         <div className="p-4 border-t border-gray-100 bg-white shrink-0">
-          <p className="text-center text-[11px] text-gray-400 italic">
-            Center the barcode inside the pink frame for best results.
-          </p>
+          <p className="text-center text-[11px] text-gray-400 italic">{scannerProfile.hint}</p>
         </div>
       </div>
     </div>
   );
 }
+
+// Re-export for tests or feature flags elsewhere
+export { isAppleMobile };
