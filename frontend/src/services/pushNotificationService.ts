@@ -1,5 +1,6 @@
 import { messaging, getToken, onMessage } from '../firebase';
 import axios from 'axios';
+import { getApiBaseURL } from './api/config';
 
 const VAPID_KEY = "BBIaDZbFoNRN0wCbCsg9zDgfSIbH94G77houhAZawsYOZxCzkLhMa-hPTzUDbAHIRPaf2o92d1uUa8ZwNtZQu7w";
 
@@ -50,7 +51,7 @@ export const requestNotificationPermission = async (userType: 'customer' | 'deli
 const saveTokenToBackend = async (token: string, userType: string, authTokenOverride?: string) => {
   console.log(`[FCM-DEBUG] 📤 STEP 7: Preparing to save token to backend for ${userType}...`);
   try {
-    const API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://api.geeta.today/api/v1';
+    const API_URL = getApiBaseURL();
 
     // Auth Token detection logic
     const authToken = authTokenOverride ||
