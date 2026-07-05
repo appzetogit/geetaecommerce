@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import Button from '../../components/ui/button';
 import { appConfig } from '../../services/configService';
-import { calculateProductPrice, getApplicableUnitPrice } from '../../utils/priceUtils';
+import { calculateProductPrice, getCartItemVariantSelector, getCartLineUnitPrice } from '../../utils/priceUtils';
 
 export default function Cart() {
   const { cart, updateQuantity, removeFromCart, clearCart, freeGiftRules: activeRules, loading } = useCart();
@@ -129,16 +129,18 @@ export default function Cart() {
           if (!prod) return null;
 
           const qty = item.quantity ?? 0;
-          const { displayPrice, mrp, hasDiscount } = calculateProductPrice(prod, item.variant);
-          const applicableUnitPrice = getApplicableUnitPrice(prod, item.variant, qty || 1);
+          const variantSelector = getCartItemVariantSelector(item);
+          const applicableUnitPrice = getCartLineUnitPrice(item);
+          const { displayPrice, mrp, hasDiscount } = calculateProductPrice(prod, variantSelector);
           const isTieredApplied = applicableUnitPrice < displayPrice;
           const isFreeGift = item.isFreeGift;
 
           const prodId = prod.id || prod._id || '';
+          const lineKey = item.id || `${prodId}-${item.variantId || item.variation || item.variant || 'default'}`;
 
           return (
             <div
-              key={prodId}
+              key={lineKey}
               className="bg-white rounded-lg border border-neutral-200 p-4 md:p-6 hover:shadow-md transition-shadow"
             >
               <div className="flex gap-4 md:gap-6">
@@ -163,7 +165,7 @@ export default function Cart() {
                     {prod.name}
                   </h3>
                   <div className="text-sm text-neutral-500 mb-2 md:mb-3">
-                    {item.variant ? `Variant: ${item.variant}` : (prod.pack || '')}
+                    {item.variation || item.variant ? `Variant: ${item.variation || item.variant}` : (prod.pack || '')}
                   </div>
 
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -194,8 +196,8 @@ export default function Cart() {
                     <div className="flex items-center gap-3 bg-neutral-100 rounded-lg p-1">
                       <button
                         onClick={() => {
-                           const vId = (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
-                           const vTitle = (prod as any).variantTitle || (prod as any).pack;
+                           const vId = item.variantId || (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
+                           const vTitle = item.variation || (prod as any).variantTitle || (prod as any).pack;
                            updateQuantity(prodId, qty - 1, vId, vTitle);
                         }}
                         className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-neutral-600 hover:text-[var(--customer-primary)] disabled:opacity-50 transition-colors"
@@ -206,8 +208,8 @@ export default function Cart() {
                       <span className="w-6 md:w-8 text-center font-medium text-sm md:text-base">{qty}</span>
                       <button
                         onClick={() => {
-                           const vId = (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
-                           const vTitle = (prod as any).variantTitle || (prod as any).pack;
+                           const vId = item.variantId || (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
+                           const vTitle = item.variation || (prod as any).variantTitle || (prod as any).pack;
                            updateQuantity(prodId, qty + 1, vId, vTitle);
                         }}
                         className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-md shadow-sm text-neutral-600 hover:text-[var(--customer-primary-dark)] disabled:opacity-50 transition-colors"

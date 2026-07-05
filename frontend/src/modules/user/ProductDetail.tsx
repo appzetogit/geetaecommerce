@@ -21,6 +21,18 @@ import DealOfTheDay from "./components/banners/DealOfTheDay";
 import FeaturedDeal from "./components/banners/FeaturedDeal";
 import FlashDealSection from "./components/banners/FlashDealSection";
 import { calculateProductPrice, getApplicableUnitPrice } from '../../utils/priceUtils';
+import {
+  findCartItemForPrimaryVariant,
+  getVariantGallery,
+  getVariantChipLabel,
+  getVariantDisplayLabel,
+  getVariantId,
+  getVariantLabel,
+  matchesCartVariant,
+  normalizeCustomerVariations,
+  hasRealVariants,
+} from '../../utils/customerVariantUtils';
+import { resolveProductGallery } from '../../utils/productLegacyUtils';
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -83,29 +95,10 @@ export default function ProductDetail() {
         );
         if (response.success && response.data) {
           const productData = response.data as any;
-          const rawVariations = Array.isArray(productData.variations) ? productData.variations : [];
-          const hasExplicitVariationSetup =
-            Boolean(productData.variationType?.trim()) ||
-            Boolean(productData.variationName?.trim());
-          const normalizedVariations = !hasExplicitVariationSetup &&
-            rawVariations.length === 1 &&
-            String(rawVariations[0]?.title || rawVariations[0]?.value || "").trim().toLowerCase() === "default"
-              ? []
-              : rawVariations;
+          const normalizedVariations = normalizeCustomerVariations(productData);
 
           // Set location availability flag
           setIsAvailableAtLocation(productData.isAvailableAtLocation !== false);
-
-          // Get all images (main + gallery + variations)
-          const variationImages = normalizedVariations
-            .map((v: any) => v.image)
-            .filter(Boolean);
-
-          const allImages = [
-            productData.mainImage || productData.imageUrl || "",
-            ...(productData.galleryImages || productData.galleryImageUrls || []),
-            ...variationImages
-          ].filter((value, index, self) => value && self.indexOf(value) === index);
 
           setProduct({
             ...productData,
@@ -114,17 +107,17 @@ export default function ProductDetail() {
             id: productData._id || productData.id,
             name: productData.productName || productData.name || "Product",
             imageUrl: productData.mainImage || productData.imageUrl || "",
-            allImages: allImages,
             price: productData.price || 0,
             mrp: productData.mrp || productData.price || 0,
             pack:
               productData.pack ||
               productData.smallDescription ||
+              getVariantLabel(normalizedVariations[0]) ||
               "Standard",
           });
 
-          // Reset selected variant and image when product changes
-          setSelectedVariantIndex(null);
+          // Default to first created variant when variants exist
+          setSelectedVariantIndex(normalizedVariations.length > 0 ? 0 : null);
           setSelectedImageIndex(0);
           const similar = response.data.similarProducts || [];
           setSimilarProducts(similar);
@@ -158,7 +151,11 @@ export default function ProductDetail() {
       } catch (error: any) {
         console.error("Failed to fetch product", error);
         setProduct(null);
-        setError(error.message || "Something went wrong while fetching product details");
+        setError(
+          error.response?.data?.message ||
+            error.message ||
+            "Something went wrong while fetching product details"
+        );
       } finally {
         setLoading(false);
         stopLoading();
@@ -236,45 +233,66 @@ export default function ProductDetail() {
     }
   };
 
-  // Update selected image when variant changes if the variant has a specific image
-  useEffect(() => {
-    if (selectedVariantIndex === null) return;
-    if (product?.variations?.[selectedVariantIndex]?.image) {
-      const variantImageUrl = product.variations[selectedVariantIndex].image;
-      const imageIndex = product.allImages.indexOf(variantImageUrl);
-      if (imageIndex !== -1) {
-        setSelectedImageIndex(imageIndex);
-      }
+  const hasVariations = hasRealVariants(product);
+  const customerVariations = useMemo(
+    () => (product ? normalizeCustomerVariations(product) : []),
+    [product]
+  );
+  const effectiveVariantIndex = hasVariations ? (selectedVariantIndex ?? 0) : null;
+
+  const allImages = useMemo(() => {
+    if (!product) return [];
+    if (customerVariations.length > 0 && effectiveVariantIndex !== null) {
+      const variant = customerVariations[effectiveVariantIndex];
+      const gallery = getVariantGallery(variant);
+      if (gallery.length > 0) return gallery;
     }
-  }, [selectedVariantIndex, product]);
+    return resolveProductGallery(product);
+  }, [product, customerVariations, effectiveVariantIndex]);
+
+  // Reset gallery position when variant changes
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [effectiveVariantIndex]);
 
   // Get selected variant
-  const selectedVariant = selectedVariantIndex !== null && product?.variations?.length
-    ? product.variations[selectedVariantIndex] || null
-    : null;
-  const activeVariationSelector = selectedVariantIndex ?? undefined;
+  const selectedVariant =
+    hasVariations && effectiveVariantIndex !== null
+      ? customerVariations[effectiveVariantIndex] || null
+      : null;
+  const activeVariationSelector =
+    hasVariations && effectiveVariantIndex !== null ? effectiveVariantIndex : undefined;
+  const variantTitle = selectedVariant
+    ? getVariantDisplayLabel(selectedVariant, product) || product?.pack || "Standard"
+    : product?.pack || "Standard";
+
+  const cartItem = useMemo(() => {
+    if (!product) return null;
+    const productId = String(product.id || product._id);
+
+    if (!hasVariations) {
+      return findCartItemForPrimaryVariant(cart.items, product) ?? null;
+    }
+
+    return (
+      cart.items.find((item) => {
+        if (!item?.product) return false;
+        const itemProductId = String(item.product.id || item.product._id);
+        if (itemProductId !== productId) return false;
+        if (!selectedVariant) return false;
+        return matchesCartVariant(
+          item.product,
+          getVariantId(selectedVariant),
+          variantTitle
+        );
+      }) ?? null
+    );
+  }, [cart.items, product, hasVariations, selectedVariant, variantTitle]);
+
   const { displayPrice: baseVariantPrice, mrp: variantMrp, discount: baseDiscount, hasDiscount: baseHasDiscount } = calculateProductPrice(product, activeVariationSelector);
 
   // Calculate dynamic price based on cart quantity
-  const inCartQtyForCalc = Math.max(1, product
-    ? (cart.items.find(item => {
-        if (!item?.product) return false;
-         const product = item.product;
-         const itemProductId = product.id || product._id;
-         const productId = product.id || product._id;
-         if (itemProductId !== productId) return false;
-         // Match variant
-         if (selectedVariant) {
-            const itemVariantId = (product as any).variantId || (product as any).selectedVariant?._id;
-            const itemVariantTitle = (product as any).variantTitle || (product as any).pack;
-            const currentVariantTitle = selectedVariant.title || selectedVariant.value || product.pack;
-            return itemVariantId === selectedVariant._id || itemVariantTitle === currentVariantTitle;
-         }
-         const itemVariantId = (product as any).variantId || (product as any).selectedVariant?._id;
-         const itemVariantTitle = (product as any).variantTitle;
-         return !itemVariantId && !itemVariantTitle;
-    })?.quantity || 0)
-    : 0);
+  const inCartQtyForCalc = Math.max(1, cartItem?.quantity || 0);
 
   const variantPrice = getApplicableUnitPrice(product, activeVariationSelector, inCartQtyForCalc);
 
@@ -283,58 +301,42 @@ export default function ProductDetail() {
   const discount = hasDiscount ? Math.round(((variantMrp - variantPrice) / variantMrp) * 100) : 0;
 
   const variantStock = selectedVariant?.stock !== undefined ? selectedVariant.stock : (product?.stock || 0);
-  const rootVariantTitle = product?.pack || "Main";
-  const variantTitle = selectedVariant?.title || selectedVariant?.value || rootVariantTitle;
   const isVariantAvailable = selectedVariant?.status !== "Sold out" && (variantStock > 0 || variantStock === 0); // 0 means unlimited
-  const variantOptions = product?.variations?.length
-    ? [
-        {
-          key: "root",
-          index: null as number | null,
-          title: rootVariantTitle,
-          image: product?.imageUrl || "",
-          status: "Available",
-          stock: product?.stock,
-        },
-        ...product.variations.map((variant: any, index: number) => ({
-          key: variant._id || variant.id || `variant-${index}`,
-          index,
-          title: variant.title || variant.value || `Variant ${index + 1}`,
-          image: variant.image || "",
-          status: variant.status,
-          stock: variant.stock,
-        })),
-      ]
+  const variantOptions = customerVariations.length
+    ? customerVariations.map((variant: any, index: number) => ({
+        key: variant._id || variant.id || `variant-${index}`,
+        index,
+        title: getVariantChipLabel(variant, product) || `Variant ${index + 1}`,
+        status: variant.status,
+        stock: variant.stock,
+      }))
     : [];
 
-  // Get all images for gallery
-  const allImages = product?.allImages || [product?.imageUrl || ""].filter(Boolean);
   const currentImage = allImages[selectedImageIndex] || product?.imageUrl || "";
 
   const variationImageMatches = useMemo(() => {
     const map = new Map<string, number[]>();
-    const variants = product?.variations || [];
-    for (let i = 0; i < variants.length; i += 1) {
-      const img = variants[i]?.image;
-      if (!img) continue;
-      const existing = map.get(img) || [];
-      existing.push(i);
-      map.set(img, existing);
+    for (let i = 0; i < customerVariations.length; i += 1) {
+      for (const img of getVariantGallery(customerVariations[i])) {
+        const existing = map.get(img) || [];
+        existing.push(i);
+        map.set(img, existing);
+      }
     }
     return map;
-  }, [product?.variations]);
+  }, [customerVariations]);
 
   // If user changes the main image gallery (click/swipe), sync selected variant when the image uniquely matches a variant image.
   useEffect(() => {
     if (!currentImage) return;
-    if (!product?.variations || product.variations.length <= 1) return;
+    if (!product?.variations || !hasRealVariants(product)) return;
     const matches = variationImageMatches.get(currentImage);
     if (!matches || matches.length !== 1) return;
     const matchIndex = matches[0];
-    if (matchIndex !== selectedVariantIndex) {
+    if (matchIndex !== effectiveVariantIndex) {
       setSelectedVariantIndex(matchIndex);
     }
-  }, [currentImage, product?.variations, selectedVariantIndex, variationImageMatches]);
+  }, [currentImage, product?.variations, effectiveVariantIndex, variationImageMatches]);
 
   // Minimum swipe distance (in pixels)
   const minSwipeDistance = 50;
@@ -371,31 +373,6 @@ export default function ProductDetail() {
     }
   };
 
-  // Get quantity in cart - check by product ID and variant if available
-  const cartItem = product
-    ? cart.items.find(
-        (item) => {
-          if (!item?.product) return false;
-          const productCartItem = item.product;
-          const itemProductId = productCartItem.id || productCartItem._id;
-          const productId = product.id || product._id;
-
-          if (itemProductId !== productId) return false;
-
-          // If variant exists, match by variant
-          if (selectedVariant) {
-            const itemVariantId = (productCartItem as any).variantId || (productCartItem as any).selectedVariant?._id;
-            const itemVariantTitle = (productCartItem as any).variantTitle || (productCartItem as any).pack;
-            return itemVariantId === selectedVariant._id || itemVariantTitle === variantTitle;
-          }
-
-          // If no variant, check that item also has no variant
-          const itemVariantId = (productCartItem as any).variantId || (productCartItem as any).selectedVariant?._id;
-          const itemVariantTitle = (productCartItem as any).variantTitle;
-          return !itemVariantId && !itemVariantTitle;
-        }
-      )
-    : null;
   const inCartQty = cartItem?.quantity || 0;
 
   if (loading && !product) {
@@ -458,7 +435,7 @@ export default function ProductDetail() {
       mrp: variantMrp,
       pack: variantTitle,
       selectedVariant: selectedVariant,
-      variantId: selectedVariant?._id,
+      variantId: getVariantId(selectedVariant),
       variantTitle: variantTitle,
     };
     addToCart(productWithVariant, addButtonRef.current);
@@ -839,62 +816,50 @@ export default function ProductDetail() {
           </h2>
 
           {/* Variant Selection */}
-          {product.variations && product.variations.length > 0 && (
+          {hasVariations && (
             <div className="mb-4">
               <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-2">
-                {product.variationName || product.variationType || "Variant"}: <span className="font-bold text-neutral-900 ml-1">{variantTitle}</span>
+                Select {product.variationName || product.variationType || "variant"}
               </label>
-              <div className="flex flex-wrap gap-3">
-                {variantOptions.map((variantOption) => {
+              <div className="flex flex-wrap gap-2">
+                {variantOptions.map((variantOption: {
+                  key: string;
+                  index: number;
+                  title: string;
+                  status?: string;
+                  stock?: number;
+                }) => {
                   const vTitle = variantOption.title;
                   const isOutOfStock = variantOption.status === "Sold out";
-                  const isSelected = variantOption.index === selectedVariantIndex;
+                  const isSelected = variantOption.index === effectiveVariantIndex;
 
                   return (
                     <button
                       key={variantOption.key}
+                      type="button"
                       onClick={() => {
                         setSelectedVariantIndex(variantOption.index);
-                        if (variantOption.image) {
-                          const imageIndex = allImages.indexOf(variantOption.image);
-                          if (imageIndex !== -1) {
-                            setSelectedImageIndex(imageIndex);
-                          }
-                        } else if (variantOption.index === null) {
-                          setSelectedImageIndex(0);
-                        }
+                        setSelectedImageIndex(0);
                       }}
                       disabled={isOutOfStock}
-                      className={`relative group transition-all duration-200 ${
-                        variantOption.image ? "w-20 md:w-24" : "min-w-[70px]"
-                      }`}
+                      className={`relative min-w-[70px] transition-all duration-200`}
                     >
-                      <div className={`
-                        relative rounded-xl border-2 overflow-hidden bg-neutral-50 flex flex-col items-center justify-center transition-all
-                        ${isSelected ? "border-[var(--customer-primary-dark)] bg-white ring-4 ring-blue-50 shadow-sm" : "border-neutral-100"}
-                        ${isOutOfStock ? "grayscale opacity-50" : "hover:border-neutral-200"}
-                        ${variantOption.image ? "aspect-[1/1]" : "py-2 px-3 h-11"}
-                      `}>
-                        {variantOption.image ? (
-                          <>
-                            <img
-                              src={variantOption.image}
-                              alt={vTitle}
-                              className="w-full h-full object-cover"
-                              referrerPolicy="no-referrer"
-                            />
-                            <div className={`
-                              absolute bottom-0 left-0 right-0 py-1 px-1 text-center backdrop-blur-[2px]
-                              ${isSelected ? "bg-[var(--customer-primary-dark)] text-white" : "bg-white/90 text-neutral-800"}
-                            `}>
-                              <span className="text-[10px] font-bold truncate block tracking-tight">{vTitle}</span>
-                            </div>
-                          </>
-                        ) : (
-                          <span className={`text-xs font-bold leading-tight ${isSelected ? "text-blue-700" : "text-neutral-700"}`}>
-                            {vTitle}
-                          </span>
-                        )}
+                      <div
+                        className={`
+                          rounded-xl border-2 px-4 py-2.5 flex items-center justify-center transition-all
+                          ${isSelected
+                            ? "border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] shadow-sm"
+                            : "border-neutral-200 bg-neutral-50 hover:border-neutral-300"}
+                          ${isOutOfStock ? "opacity-50 cursor-not-allowed" : ""}
+                        `}
+                      >
+                        <span
+                          className={`text-xs md:text-sm font-bold leading-tight whitespace-nowrap ${
+                            isSelected ? "text-[var(--customer-primary-dark)]" : "text-neutral-700"
+                          }`}
+                        >
+                          {vTitle}
+                        </span>
                       </div>
                       {isOutOfStock && (
                         <div className="absolute -top-1 -right-1 bg-[var(--customer-primary)] text-white text-[8px] px-1.5 py-0.5 rounded-full uppercase font-bold shadow-sm z-10">

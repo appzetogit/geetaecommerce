@@ -10,7 +10,7 @@ import {
   removeFromCart as apiRemoveFromCart,
   clearCart as apiClearCart
 } from '../services/api/customerCartService';
-import { calculateProductPrice, getApplicableUnitPrice } from '../utils/priceUtils';
+import { getApplicableUnitPrice, getCartItemVariantSelector, getCartLineUnitPrice } from '../utils/priceUtils';
 import { getCustomerFreeGiftRules } from '../services/api/customerFreeGiftService';
 import { FreeGiftRule } from '../hooks/useFreeGiftRules';
 
@@ -140,10 +140,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // optimistic-add path in `addToCart` below), so extract it the same
         // way that path packs it for authenticated users.
         const variation: string | undefined =
-          prod?.variantId ||
-          prod?.selectedVariant?._id ||
           prod?.variantTitle ||
           prod?.pack ||
+          undefined;
+        const variantId: string | undefined =
+          prod?.variantId ||
+          prod?.selectedVariant?._id ||
           undefined;
         const qty = Math.max(1, item.quantity || 1);
         try {
@@ -152,7 +154,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
             qty,
             variation,
             location?.latitude,
-            location?.longitude
+            location?.longitude,
+            variantId ? String(variantId) : undefined
           );
         } catch (err) {
           console.error("Guest cart merge: failed to push item", productId, err);
@@ -187,10 +190,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
               ...item.product,
               id: item.product._id,
               name: item.product.productName || item.product.name,
-              imageUrl: item.product.mainImage || item.product.imageUrl
+              imageUrl: item.product.mainImage || item.product.imageUrl,
+              variantId: item.variantId || item.product?.selectedVariantId,
+              variantTitle: item.variation,
+              pack: item.variation || item.product?.pack,
+              price: item.unitPrice ?? item.product?.price,
+              discPrice: item.unitPrice ?? item.product?.discPrice,
           },
           quantity: item.quantity,
-          variant: item.variation,
+          variant: item.variantId || item.variation,
+          variantId: item.variantId,
+          unitPrice: item.unitPrice,
+          variation: item.variation,
           isFreeGift: item.isFreeGift || false
       }));
   };
@@ -208,8 +219,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const validItems = items.filter(item => item?.product);
     const paidItems = validItems.filter(i => !i.isFreeGift);
     const currentTotal = paidItems.reduce((sum, item) => {
-       const unitPrice = getApplicableUnitPrice(item.product, item.variant, item.quantity || 0);
-       return sum + unitPrice * (item.quantity || 0);
+       return sum + getCartLineUnitPrice(item) * (item.quantity || 0);
     }, 0);
 
     let newItems = [...items];
@@ -289,11 +299,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const validItems = items.filter(item => item?.product);
     const total = validItems.reduce((sum, item) => {
       if (item.isFreeGift) return sum;
-      const prod = item.product;
-      const variant = item.variant;
-      const qty = item.quantity || 0;
-      const unitPrice = getApplicableUnitPrice(prod, variant, qty);
-      return sum + unitPrice * qty;
+      return sum + getCartLineUnitPrice(item) * (item.quantity || 0);
     }, 0);
     const itemCount = validItems.reduce((sum, item) => sum + (item.quantity || 0), 0);
     return { items: validItems, total, itemCount };
@@ -344,15 +350,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const prod = item.product;
         if (!prod) return false;
         const itemProductId = prod.id || prod._id;
-        const itemVariantId = (prod as any).variantId || (prod as any).selectedVariant?._id;
-        const itemVariantTitle = (prod as any).variantTitle || (prod as any).pack;
+        const itemVariantId = item.variantId || (prod as any).variantId || (prod as any).selectedVariant?._id;
+        const itemVariantTitle = item.variation || (prod as any).variantTitle || (prod as any).pack;
 
-        // If both have variants, match by variant ID or title
         if (variantId || variantTitle) {
           return itemProductId === productId &&
                  (itemVariantId === variantId || itemVariantTitle === variantTitle);
         }
-        // If no variant, match by product ID only
         return itemProductId === productId && !itemVariantId && !itemVariantTitle;
       });
 
@@ -369,6 +373,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return [...validItems, {
           product: normalizedProduct,
           quantity: 1,
+          variant: variantId || variantTitle,
+          variantId,
+          variation: variantTitle,
           source: options?.source,
           sourceId: options?.sourceId
       }];
@@ -376,13 +383,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     if (isAuthenticated && (user as any)?.userType === 'Customer') {
       try {
-        const variation = (product as any).variantId || (product as any).selectedVariant?._id || (product as any).variantTitle || (product as any).pack;
+        const variation = (product as any).variantTitle || (product as any).pack;
         const response = await apiAddToCart(
           productId,
           1,
           variation,
           location?.latitude,
-          location?.longitude
+          location?.longitude,
+          variantId ? String(variantId) : undefined
         );
         if (response && response.data && response.data.items) {
           setItems(mapApiItemsToState(response.data.items));
@@ -466,14 +474,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       // If variant info provided, match by variant
       if (variantId || variantTitle) {
-        const itemVariantId = (prod as any).variantId || (prod as any).selectedVariant?._id;
-        const itemVariantTitle = (prod as any).variantTitle || (prod as any).pack;
+        const itemVariantId = item.variantId || (prod as any).variantId || (prod as any).selectedVariant?._id;
+        const itemVariantTitle = item.variation || (prod as any).variantTitle || (prod as any).pack;
         return itemVariantId === variantId || itemVariantTitle === variantTitle;
       }
 
       // If no variant info, match items without variants
-      const itemVariantId = (prod as any).variantId || (prod as any).selectedVariant?._id;
-      const itemVariantTitle = (prod as any).variantTitle;
+      const itemVariantId = item.variantId || (prod as any).variantId || (prod as any).selectedVariant?._id;
+      const itemVariantTitle = item.variation || (prod as any).variantTitle;
       return !itemVariantId && !itemVariantTitle;
     });
 
@@ -488,15 +496,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
         // If variant info provided, match by variant
         if (variantId || variantTitle) {
-          const itemVariantId = (prod as any).variantId || (prod as any).selectedVariant?._id;
-          const itemVariantTitle = (prod as any).variantTitle || (prod as any).pack;
+          const itemVariantId = item.variantId || (prod as any).variantId || (prod as any).selectedVariant?._id;
+          const itemVariantTitle = item.variation || (prod as any).variantTitle || (prod as any).pack;
           if (itemVariantId === variantId || itemVariantTitle === variantTitle) {
             return { ...item, quantity };
           }
         } else {
           // If no variant info, match items without variants
-          const itemVariantId = (prod as any).variantId || (prod as any).selectedVariant?._id;
-          const itemVariantTitle = (prod as any).variantTitle;
+          const itemVariantId = item.variantId || (prod as any).variantId || (prod as any).selectedVariant?._id;
+          const itemVariantTitle = item.variation || (prod as any).variantTitle;
           if (!itemVariantId && !itemVariantTitle) {
             return { ...item, quantity };
           }

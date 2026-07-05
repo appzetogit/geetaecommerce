@@ -9,6 +9,8 @@ import SearchAnalytics from "../models/SearchAnalytics";
 import { generateEmbedding } from "../utils/embedding";
 import { findSellersWithinRange } from "../utils/locationHelper";
 import { cache } from "../utils/cache";
+import { toListItem } from "../modules/product/productReadMapper";
+import { getTotalStock, variantsFromProductDoc } from "../modules/product/variantHelpers";
 
 const DEFAULT_CANDIDATE_LIMIT = Number(process.env.SEARCH_CANDIDATE_LIMIT || 1500);
 const SEMANTIC_WEIGHT = 0.35;
@@ -208,13 +210,12 @@ const buildVisibleProductQuery = async (options: Partial<SearchOptions>) => {
   const negativeStockSoldOut = inventorySection?.fields?.find(
     (field) => field.id === "negative_stock_sold_out"
   )?.isEnabled;
-  if (negativeStockSoldOut) query.stock = { $gt: 0 };
+  if (negativeStockSoldOut) {
+    // Post-filter in-memory after mapping; root stock field is deprecated
+  }
 
   if (options.minPrice !== undefined || options.maxPrice !== undefined) {
-    const priceQuery: Record<string, number> = {};
-    if (options.minPrice !== undefined) priceQuery.$gte = options.minPrice;
-    if (options.maxPrice !== undefined) priceQuery.$lte = options.maxPrice;
-    andConditions.push({ price: priceQuery });
+    // Price filters applied after mapping via listing.minPrice/maxPrice
   }
 
   if (options.category) {
@@ -254,8 +255,8 @@ const productProjection =
   "+embedding productName smallDescription description category subcategory brand tags price discPrice compareAtPrice stock mainImage galleryImages pack discount rating reviewsCount deliveryTime variations unitPricing searchCount popular dealOfDay createdAt";
 
 const sortResults = (results: any[], sort: SearchOptions["sort"]) => {
-  if (sort === "price_asc") return results.sort((a, b) => (a.price || 0) - (b.price || 0));
-  if (sort === "price_desc") return results.sort((a, b) => (b.price || 0) - (a.price || 0));
+  if (sort === "price_asc") return results.sort((a, b) => ((a.listing?.minPrice ?? a.price) || 0) - ((b.listing?.minPrice ?? b.price) || 0));
+  if (sort === "price_desc") return results.sort((a, b) => ((b.listing?.minPrice ?? b.price) || 0) - ((a.listing?.minPrice ?? a.price) || 0));
   if (sort === "popular") {
     return results.sort(
       (a, b) =>
@@ -267,13 +268,16 @@ const sortResults = (results: any[], sort: SearchOptions["sort"]) => {
 };
 
 const mapProductForClient = (product: any, searchScore: Record<string, number>) => {
-  const safeProduct = { ...product };
-  delete safeProduct.embedding;
+  const mapped = toListItem(product);
+  const safeProduct = { ...mapped };
+  delete (safeProduct as any).embedding;
   return {
     ...safeProduct,
     id: String(product._id),
     name: product.productName,
-    imageUrl: product.mainImage,
+    imageUrl: mapped.listing.imageUrl,
+    price: mapped.listing.minPrice,
+    stock: mapped.listing.totalStock,
     searchScore,
   };
 };

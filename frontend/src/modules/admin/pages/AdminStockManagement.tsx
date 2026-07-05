@@ -888,84 +888,48 @@ export default function AdminStockManagement() {
         allVariations: product.variations || [],
       };
 
-      const hasExplicitVariationSetup =
-        Boolean(String((product as any).variationType || "").trim()) ||
-        Boolean(String((product as any).variationName || "").trim());
-      const hasRealVariations =
-        Array.isArray(product.variations) &&
-        product.variations.length > 0 &&
-        (
-          hasExplicitVariationSetup ||
-          product.variations.some((v: any) => String(v?.title || v?.value || "").trim().toLowerCase() !== "default")
-        );
+      const variationsList = Array.isArray(product.variations)
+        ? product.variations
+        : [];
 
-      if (hasRealVariations) {
-        const rootStock = Number(product.stock) || 0;
-        variations.push({
-          ...baseVariation,
-          id: product._id,
-          variation: p.pack || "Main Product",
-          stock: rootStock,
-          offerPrice: Number(p.discPrice) || 0,
-          status: product.publish ? "Published" : "Unpublished",
-          sizeName: "-",
-          colorName: "-",
-          attributeName: "-",
-          valueMrp: (Number(baseVariation.compareAtPrice) || 0) * rootStock,
-          valuePurchase: (Number(baseVariation.purchasePrice) || 0) * rootStock,
-        });
-
-        (product.variations || []).forEach((v: any, index) => {
-          const currentStock = Number(v.stock ?? product.stock) || 0;
-           // Detect Size/Color
-          const isSize = (v.name || "").toLowerCase().includes("size");
-          const isColor = (v.name || "").toLowerCase().includes("color");
+      if (variationsList.length > 0) {
+        variationsList.forEach((v: any, index: number) => {
+          const variationType = v.variationType || v.name || "Standard";
+          const variationValue = v.value || v.title || "Default";
+          const currentStock = Number(v.stock) || 0;
+          const isSize = String(variationType).toLowerCase().includes("size");
+          const isColor = String(variationType).toLowerCase().includes("color");
+          const variantBarcodes = Array.isArray(v.barcode)
+            ? v.barcode
+            : v.barcode
+              ? [v.barcode]
+              : [];
 
           variations.push({
             ...baseVariation,
-            id: `${product._id}-${index}`,
-            variation: `${v.name}: ${v.value}`,
+            id: `${product._id}-${v._id || index}`,
+            variation: `${variationType}: ${variationValue}`,
             stock: currentStock,
             price: Number(v.price) || baseVariation.price,
-            compareAtPrice: Number(v.compareAtPrice) || baseVariation.compareAtPrice,
-            offerPrice: Number(v.discPrice) || Number((p as any).discPrice) || 0,
+            compareAtPrice:
+              Number(v.compareAtPrice) || baseVariation.compareAtPrice,
+            offerPrice:
+              Number(v.discPrice) || Number((p as any).discPrice) || 0,
             status: product.publish ? "Published" : "Unpublished",
-            // Variation specific overrides
             sku: v.sku || baseVariation.sku,
-            image: v.image || baseVariation.image,
-            barcode: Array.isArray(v.barcode) ? v.barcode.join(', ') : (v.barcode || baseVariation.barcode),
-            sizeName: isSize ? v.value : "-",
-            colorName: isColor ? v.value : "-",
-            attributeName: v.name, // 13
-            valueMrp: (Number(v.compareAtPrice) || Number(baseVariation.compareAtPrice) || 0) * currentStock,
-            valuePurchase: (Number(baseVariation.purchasePrice) || 0) * currentStock,
-          });
-        });
-      } else if (product.variations && product.variations.length > 0) {
-        product.variations.forEach((v: any, index) => {
-          const currentStock = Number(v.stock ?? product.stock) || 0;
-           // Detect Size/Color
-          const isSize = (v.name || "").toLowerCase().includes("size");
-          const isColor = (v.name || "").toLowerCase().includes("color");
-
-          variations.push({
-            ...baseVariation,
-            id: `${product._id}-${index}`,
-            variation: `${v.name}: ${v.value}`,
-            stock: currentStock,
-            price: Number(v.price) || baseVariation.price,
-            compareAtPrice: Number(v.compareAtPrice) || baseVariation.compareAtPrice,
-            offerPrice: Number(v.discPrice) || Number((p as any).discPrice) || 0,
-            status: product.publish ? "Published" : "Unpublished",
-            // Variation specific overrides
-            sku: v.sku || baseVariation.sku,
-            image: v.image || baseVariation.image,
-            barcode: Array.isArray(v.barcode) ? v.barcode.join(', ') : (v.barcode || baseVariation.barcode),
-            sizeName: isSize ? v.value : "-",
-            colorName: isColor ? v.value : "-",
-            attributeName: v.name, // 13
-            valueMrp: (Number(v.compareAtPrice) || Number(baseVariation.compareAtPrice) || 0) * currentStock,
-            valuePurchase: (Number(baseVariation.purchasePrice) || 0) * currentStock,
+            image: v.mainImage || v.image || baseVariation.image,
+            barcode: variantBarcodes.length
+              ? variantBarcodes.join(", ")
+              : "-",
+            sizeName: isSize ? variationValue : "-",
+            colorName: isColor ? variationValue : "-",
+            attributeName: variationType,
+            valueMrp:
+              (Number(v.compareAtPrice) ||
+                Number(baseVariation.compareAtPrice) ||
+                0) * currentStock,
+            valuePurchase:
+              (Number(baseVariation.purchasePrice) || 0) * currentStock,
           });
         });
       } else {

@@ -7,6 +7,35 @@ export interface Category {
   imageUrl?: string; // optional imported image path
 }
 
+export interface ProductListing {
+  minPrice: number;
+  maxPrice: number;
+  totalStock: number;
+  imageUrl: string | null;
+  inStock: boolean;
+}
+
+export interface ProductVariant {
+  _id?: string | { $oid: string };
+  id?: string;
+  title?: string;
+  name?: string;
+  value?: string;
+  variationType?: string;
+  price: number;
+  discPrice?: number;
+  compareAtPrice?: number;
+  mrp?: number;
+  stock?: number;
+  status?: string;
+  mainImage?: string;
+  image?: string;
+  galleryImages?: string[];
+  sku?: string;
+  barcode?: string[];
+  tieredPrices?: { minQty: number; price: number }[];
+}
+
 export interface Product {
   id: string;
   _id: string;
@@ -21,17 +50,9 @@ export interface Product {
   compareAtPrice?: number;
   sku?: string;
   isVariation?: boolean;
-  variations?: Array<{
-    title?: string;
-    name?: string;
-    value?: string;
-    price: number;
-    discPrice?: number;
-    stock?: number;
-    status?: string;
-    _id?: { $oid: string } | string;
-    tieredPrices?: { minQty: number; price: number }[];
-  }>;
+  variations?: ProductVariant[];
+  variants?: ProductVariant[];
+  listing?: ProductListing;
   imageUrl?: string;
   mainImage?: string;
   categoryId: string;
@@ -53,4 +74,3 @@ export interface Product {
   warrantyType?: 'None' | 'Warranty' | 'Guarantee';
   warrantyDuration?: string;
 }
-

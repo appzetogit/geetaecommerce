@@ -5,17 +5,19 @@ import Product from '../../../models/Product';
 import AppSettings from '../../../models/AppSettings';
 import { findSellersWithinRange } from '../../../utils/locationHelper';
 import mongoose from 'mongoose';
+import {
+  CART_PRODUCT_SELECT,
+  enrichCartItemProduct,
+  resolveCartLinePricing,
+} from '../../product/cartProductHelper';
+import { getTotalStock, variantsFromProductDoc } from '../../product/variantHelpers';
 
-// Helper to calculate cart total with location filtering
 const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.ObjectId[] = []) => {
     const items = await CartItem.find({ cart: cartId }).populate({
         path: 'product',
-        select: 'price seller status publish storeName category'
+        select: CART_PRODUCT_SELECT,
     });
 
-    // Fetch visible sellers — only `isEnabled` matters on the customer side.
-    // (The legacy `canCreateCategories`/admin-name OR-block was removed
-    // because its default-true value silently hid normal sellers.)
     let visibleSellerIds: string[] = [];
     try {
         const Seller = (await import("../../../models/Seller")).default;
@@ -31,36 +33,33 @@ const calculateCartTotal = async (cartId: any, nearbySellerIds: mongoose.Types.O
     for (const item of items) {
         const product = item.product as any;
         if (product && product.status === 'Active' && product.publish) {
-            // Check stock if setting is enabled
-            if (negativeStockSoldOut && product.stock <= 0) {
+            const pricing = resolveCartLinePricing(product, {
+              variantId: item.variantId ? String(item.variantId) : undefined,
+              variation: item.variation,
+            });
+            if (negativeStockSoldOut && pricing.stock <= 0) {
                 continue;
             }
 
-            // Check if seller is in range OR is Admin
             const sellerId = product.seller.toString();
             const isAvailable = nearbySellerIds.some(id => id.toString() === sellerId) || visibleSellerIds.includes(sellerId);
 
             if (isAvailable) {
-                total += product.price * item.quantity;
+                total += pricing.unitPrice * item.quantity;
             }
         }
     }
     return total;
 };
 
-// Get current user's cart
 export const getCart = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.userId;
         const { latitude, longitude } = req.query;
 
-        // Parse location
         const userLat = latitude ? parseFloat(latitude as string) : null;
         const userLng = longitude ? parseFloat(longitude as string) : null;
 
-        // If no location provided, we still want to return the cart!
-        // We just can't verify "nearby" availability, so we assume valid or let the frontend handle "unavailable" warnings if needed.
-        // But for the "just show me the cart" request, we skip filtering.
         let nearbySellerIds: mongoose.Types.ObjectId[] = [];
         let locationProvided = false;
 
@@ -69,15 +68,12 @@ export const getCart = async (req: Request, res: Response) => {
              locationProvided = true;
         }
 
-        // Fetch visible sellers — gated only by `isEnabled` (see notes in
-        // customerProductController.ts).
         let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
             const visibleSellers = await Seller.find({ isEnabled: true }).select("_id");
             visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
-
 
         const settings = await AppSettings.findOne().lean();
         const inventorySection = settings?.productDisplaySettings?.find(s => s.id === 'inventory');
@@ -87,7 +83,7 @@ export const getCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: CART_PRODUCT_SELECT,
             }
         });
 
@@ -96,40 +92,36 @@ export const getCart = async (req: Request, res: Response) => {
             return res.status(200).json({ success: true, data: cart });
         }
 
-        // Filter items based on location availability (ONLY IF location was provided)
-        // If NO location provided, return ALL items.
         const filteredItems = [];
         let total = 0;
 
         for (const item of (cart.items as any)) {
             const product = item.product;
             if (product && product.status === 'Active' && product.publish) {
-                // Check stock if setting is enabled
-                if (negativeStockSoldOut && product.stock <= 0) {
-                    continue; // Skip items with no stock if setting is on
+                const pricing = resolveCartLinePricing(product, {
+              variantId: item.variantId ? String(item.variantId) : undefined,
+              variation: item.variation,
+            });
+                if (negativeStockSoldOut && pricing.stock <= 0) {
+                    continue;
                 }
 
-                let isAvailable = true; // Default to true if no location
+                let isAvailable = true;
 
                 if (locationProvided) {
                     const sellerId = product.seller.toString();
-                    // Check if Visible (Admin or enabled with permissions) or Nearby
                     const isVisible = visibleSellerIds.includes(sellerId);
                     const isNearby = nearbySellerIds.some(id => id.toString() === sellerId);
-
                     isAvailable = isVisible || isNearby;
                 }
 
                 if (isAvailable) {
-                    filteredItems.push(item);
-                    total += product.price * item.quantity;
+                    filteredItems.push(enrichCartItemProduct(product, item));
+                    total += pricing.unitPrice * item.quantity;
                 }
             }
         }
 
-        // Update cart total in DB
-        // NOTE: We only update the DB total if we have "definitive" visibility.
-        // If we are showing all items because location is missing, we calculate total for all.
         if (cart.total !== total) {
             cart.total = total;
             await cart.save();
@@ -152,93 +144,75 @@ export const getCart = async (req: Request, res: Response) => {
     }
 };
 
-// Add item to cart
 export const addToCart = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.userId;
-        const { productId, quantity = 1, variation } = req.body;
+        const { productId, quantity = 1, variation, variantId } = req.body;
         const { latitude, longitude } = req.query;
 
         if (!productId) {
             return res.status(400).json({ success: false, message: 'Product ID is required' });
         }
 
-        // Parse location
         const userLat = latitude ? parseFloat(latitude as string) : null;
         const userLng = longitude ? parseFloat(longitude as string) : null;
         const locationProvided = userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng);
 
-        // Verify product exists and is available at location
         const product = await Product.findOne({ _id: productId, status: 'Active', publish: true });
         if (!product) {
             return res.status(404).json({ success: false, message: 'Product not found or unavailable' });
         }
 
-        // Check Negative Stock Setting
+        const variants = variantsFromProductDoc(product);
+        const resolved = resolveCartLinePricing(product, { variantId, variation });
+        if (!resolved.variant && variants.length > 1) {
+            return res.status(400).json({
+                success: false,
+                message: 'variantId is required for products with multiple variants',
+            });
+        }
+
         const settings = await AppSettings.findOne().lean();
         const inventorySection = settings?.productDisplaySettings?.find(s => s.id === 'inventory');
         const negativeStockSoldOut = inventorySection?.fields?.find(f => f.id === 'negative_stock_sold_out')?.isEnabled;
 
-        if (negativeStockSoldOut && product.stock <= 0) {
+        if (negativeStockSoldOut && resolved.stock <= 0) {
             return res.status(400).json({
                 success: false,
                 message: 'This product is currently sold out and cannot be added to cart'
             });
         }
 
-        // Only check location if location is provided
-        if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
-             const nearbySellerIds = await findSellersWithinRange(userLat, userLng);
-
-             // Check if Visible Seller — only `isEnabled` matters.
-            let isVisibleSeller = false;
-            try {
-                 const Seller = (await import("../../../models/Seller")).default;
-                 const seller = await Seller.findById(product.seller);
-                 if (seller && seller.isEnabled === true) {
-                     isVisibleSeller = true;
-                 }
-            } catch(e) {}
-
-            const isAvailable = nearbySellerIds.some(id => id.toString() === product.seller.toString()) || isVisibleSeller;
-
-            if (!isAvailable) {
-                console.warn(`WARNING: Product ${productId} not available at given location, but adding anyway per user request.`);
-                // OPTIONAL: Enforce it? For now, we allow it.
-            }
-        }
-
-        // Get or create cart
         let cart = await Cart.findOne({ customer: userId });
         if (!cart) {
             cart = await Cart.create({ customer: userId, items: [], total: 0 });
         }
 
-        // Check if item already exists in cart
+        const resolvedVariantId = resolved.variantId;
+        const variationLabel = resolved.variationLabel;
+
         let cartItem = await CartItem.findOne({
             cart: cart._id,
             product: productId,
-            variation: variation || null
+            ...(resolvedVariantId
+              ? { variantId: resolvedVariantId }
+              : { variation: variationLabel || null }),
         });
 
         if (cartItem) {
-            // Update quantity
             cartItem.quantity += quantity;
             await cartItem.save();
         } else {
-            // Create new cart item
             cartItem = await CartItem.create({
                 cart: cart._id,
                 product: productId,
                 quantity,
-                variation
+                variation: variationLabel,
+                variantId: resolvedVariantId,
             });
             cart.items.push(cartItem._id as any);
         }
 
-        // Update total with location filtering
-        // We handle total calculation logic inside calculateCartTotal now
-        // But we need to define nearbySellerIds for response filtering
         let nearbySellerIds: mongoose.Types.ObjectId[] = [];
         if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
              nearbySellerIds = await findSellersWithinRange(userLat, userLng);
@@ -247,16 +221,14 @@ export const addToCart = async (req: Request, res: Response) => {
         cart.total = await calculateCartTotal(cart._id, nearbySellerIds);
         await cart.save();
 
-        // Return updated cart with filtering
         const updatedCart = await Cart.findById(cart._id).populate({
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: CART_PRODUCT_SELECT,
             }
         });
 
-        // Fetch Visible Sellers again for filtering response — only `isEnabled`.
         let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
@@ -264,15 +236,16 @@ export const addToCart = async (req: Request, res: Response) => {
             visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
 
-        const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
+        const filteredItems = (updatedCart?.items as any[] || [])
+          .filter(item => {
             const prod = item.product;
             const sellerId = prod?.seller?.toString();
-            // If no location provided, show all items
             if (nearbySellerIds.length === 0 && !locationProvided) {
                 return true;
             }
             return prod && (nearbySellerIds.some(id => id.toString() === sellerId) || visibleSellerIds.includes(sellerId));
-        });
+          })
+          .map((item) => enrichCartItemProduct(item.product, item));
 
         return res.status(200).json({
             success: true,
@@ -293,7 +266,6 @@ export const addToCart = async (req: Request, res: Response) => {
     }
 };
 
-// Update item quantity
 export const updateCartItem = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.userId;
@@ -305,7 +277,6 @@ export const updateCartItem = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: 'Quantity must be at least 1' });
         }
 
-        // Parse location
         const userLat = latitude ? parseFloat(latitude as string) : null;
         const userLng = longitude ? parseFloat(longitude as string) : null;
         const locationProvided = userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng);
@@ -325,28 +296,6 @@ export const updateCartItem = async (req: Request, res: Response) => {
             return res.status(404).json({ success: false, message: 'Item not found in cart' });
         }
 
-        // Verify item is still available at location (only if location provided)
-        const product = cartItem.product as any;
-
-        let isVisibleSeller = false;
-        try {
-             const Seller = (await import("../../../models/Seller")).default;
-             const seller = await Seller.findById(product.seller);
-             if (seller && seller.isEnabled === true) {
-                 isVisibleSeller = true;
-             }
-        } catch(e) {}
-
-        const isAvailable = product && (
-            !locationProvided || // Allow if no location
-            nearbySellerIds.some(id => id.toString() === product.seller.toString()) ||
-            isVisibleSeller
-        );
-
-        if (!isAvailable) {
-             console.warn(`WARNING: Item ${itemId} update allowed despite location check failure.`);
-        }
-
         cartItem.quantity = quantity;
         await cartItem.save();
 
@@ -357,11 +306,10 @@ export const updateCartItem = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: CART_PRODUCT_SELECT,
             }
         });
 
-        // Fetch Visible Sellers to whitelist again for filtering — only `isEnabled`.
         let visibleSellerIds: string[] = [];
         try {
             const Seller = (await import("../../../models/Seller")).default;
@@ -369,14 +317,14 @@ export const updateCartItem = async (req: Request, res: Response) => {
             visibleSellerIds = visibleSellers.map(s => s._id.toString());
         } catch (e) { }
 
-        const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
+        const filteredItems = (updatedCart?.items as any[] || [])
+          .filter(item => {
             const prod = item.product;
             const sellerId = prod?.seller?.toString();
-
-            if (!locationProvided) return true; // Show all if no location
-
+            if (!locationProvided) return true;
             return prod && (nearbySellerIds.some(id => id.toString() === sellerId) || visibleSellerIds.includes(sellerId));
-        });
+          })
+          .map((item) => enrichCartItemProduct(item.product, item));
 
         return res.status(200).json({
             success: true,
@@ -396,14 +344,12 @@ export const updateCartItem = async (req: Request, res: Response) => {
     }
 };
 
-// Remove item from cart
 export const removeFromCart = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.userId;
         const { itemId } = req.params;
         const { latitude, longitude } = req.query;
 
-        // Parse location
         const userLat = latitude ? parseFloat(latitude as string) : null;
         const userLng = longitude ? parseFloat(longitude as string) : null;
 
@@ -413,11 +359,8 @@ export const removeFromCart = async (req: Request, res: Response) => {
         }
 
         await CartItem.findOneAndDelete({ _id: itemId, cart: cart._id });
-
-        // Remove from cart array
         cart.items = cart.items.filter(id => id.toString() !== itemId);
 
-        // Calculate total with location if provided
         let nearbySellerIds: mongoose.Types.ObjectId[] = [];
         if (userLat !== null && userLng !== null && !isNaN(userLat) && !isNaN(userLng)) {
             nearbySellerIds = await findSellersWithinRange(userLat, userLng);
@@ -430,17 +373,19 @@ export const removeFromCart = async (req: Request, res: Response) => {
             path: 'items',
             populate: {
                 path: 'product',
-                select: 'productName price mainImage stock pack mrp category seller status publish discPrice variations'
+                select: CART_PRODUCT_SELECT,
             }
         });
 
-        const filteredItems = (updatedCart?.items as any[] || []).filter(item => {
+        const filteredItems = (updatedCart?.items as any[] || [])
+          .filter(item => {
             const prod = item.product;
             if (nearbySellerIds.length > 0) {
                 return prod && nearbySellerIds.some(id => id.toString() === prod.seller.toString());
             }
-            return true; // If no location provided for removal, just return all (though getCart will filter)
-        });
+            return true;
+          })
+          .map((item) => enrichCartItemProduct(item.product, item));
 
         return res.status(200).json({
             success: true,
@@ -460,7 +405,6 @@ export const removeFromCart = async (req: Request, res: Response) => {
     }
 };
 
-// Clear cart
 export const clearCart = async (req: Request, res: Response) => {
     try {
         const userId = req.user?.userId;

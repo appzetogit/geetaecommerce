@@ -12,6 +12,7 @@ import Seller from "../../../models/Seller";
 import mongoose from "mongoose";
 import { cache } from "../../../utils/cache";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
+import { toListItem } from "../../product/productReadMapper";
 
 // Helper function to fetch data for a home section based on its configuration
 async function fetchSectionData(
@@ -108,7 +109,7 @@ async function fetchSectionData(
         .lean();
 
       return products.map((p: any) => {
-        // Check if the product's seller is within range
+        const mapped = toListItem(p);
         const isAvailable = nearbySellerIds && nearbySellerIds.length > 0 && p.seller
           ? nearbySellerIds.some(id => id.toString() === p.seller.toString())
           : false;
@@ -118,19 +119,16 @@ async function fetchSectionData(
           productId: p._id.toString(),
           name: p.productName,
           productName: p.productName,
-          image: p.mainImage,
-          mainImage: p.mainImage,
-          price: p.price,
-          discPrice: p.discPrice,
-          variations: p.variations || [],
-          unitPricing: p.unitPricing || [],
-          mrp: p.mrp || p.price,
-          discount:
-            p.discount ||
-            (p.mrp && p.price
-              ? Math.round(((p.mrp - p.price) / p.mrp) * 100)
-              : 0),
-          productImages: p.mainImage ? [p.mainImage] : [],
+          image: mapped.listing.imageUrl,
+          mainImage: mapped.listing.imageUrl,
+          price: mapped.listing.minPrice,
+          discPrice: mapped.listing.minPrice,
+          variations: mapped.variations,
+          variants: mapped.variants,
+          listing: mapped.listing,
+          mrp: mapped.compareAtPrice || mapped.listing.minPrice,
+          discount: mapped.discount,
+          productImages: mapped.listing.imageUrl ? [mapped.listing.imageUrl] : [],
           rating: p.rating || 0,
           reviewsCount: p.reviewsCount || 0,
           reviews: p.reviewsCount || 0,
@@ -401,14 +399,17 @@ export const getHomeContent = async (req: Request, res: Response) => {
 
     const foodProducts = await Product.find(foodProductsQuery)
       .limit(3)
-      .select("productName mainImage");
+      .select("productName variations");
 
-    const cookingIdeas = foodProducts.map((p) => ({
-      id: p._id,
-      title: p.productName,
-      image: p.mainImage,
-      productId: p._id,
-    }));
+    const cookingIdeas = foodProducts.map((p) => {
+      const mapped = toListItem(p);
+      return {
+        id: p._id,
+        title: p.productName,
+        image: mapped.listing.imageUrl,
+        productId: p._id,
+      };
+    });
 
     // 8. Promo Cards (Dynamic - Categories with headerCategoryId)
     // Fetch root categories (parentId: null) that have a headerCategoryId assigned and are Active

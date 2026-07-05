@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProductById } from '../../../../services/api/customerProductService';
 import { Product } from '../../../../types/domain';
-import { calculateProductPrice } from '../../../../utils/priceUtils';
+import { calculateCardPrice } from '../../../../utils/priceUtils';
+import { mapApiProductForCustomerDisplay } from '../../../../utils/customerVariantUtils';
 import { bannerService } from '../../../../services/bannerService';
 
 // Admin-managed Customer App Theme tokens. We avoid the per-header-category
@@ -40,16 +41,7 @@ export default function FeaturedDeal() {
 
              results.forEach(res => {
                  if (res && res.success && res.data) {
-                     products.push({
-                        ...res.data,
-                        id: (res.data as any)._id || (res.data as any).id,
-                        imageUrl: (res.data as any).mainImage || (res.data as any).imageUrl,
-                        name: (typeof (res.data as any).productName === 'string' ? (res.data as any).productName : null) ||
-                              (typeof (res.data as any).name === 'string' ? (res.data as any).name : null) || 'Product',
-                        price: (res.data as any).salePrice || (res.data as any).price,
-                        mrp: (res.data as any).mrp,
-                         // Only needed props
-                     } as any);
+                     products.push(mapApiProductForCustomerDisplay(res.data));
                  }
              });
         }
@@ -122,7 +114,7 @@ export default function FeaturedDeal() {
              style={{ scrollBehavior: 'smooth' }}
           >
               {featuredProducts.map(product => {
-                  const { displayPrice, mrp, discount } = calculateProductPrice(product);
+                  const { displayPrice, mrp, discount } = calculateCardPrice(product);
                   return (
                       <div
                          key={product.id}

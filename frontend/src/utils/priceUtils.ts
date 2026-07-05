@@ -1,4 +1,5 @@
 import { Product } from '../types/domain';
+import { hasRealVariants, resolveRootDisplayPrice, resolveRootMrp } from './productLegacyUtils';
 
 export interface CalculatedPrice {
   displayPrice: number;
@@ -17,57 +18,60 @@ export const calculateProductPrice = (product: any, variationSelector?: number |
     };
   }
 
-  let variation;
-  if (typeof variationSelector === 'number') {
-    variation = product.variations?.[variationSelector];
-  } else if (typeof variationSelector === 'string') {
-    variation = product.variations?.find((v: any) => (v._id === variationSelector || v.id === variationSelector));
+  if (product.listing && variationSelector === undefined) {
+    const minPrice = product.listing.minPrice ?? 0;
+    const maxMrp = product.listing.maxPrice ?? minPrice;
+    const hasDiscount = maxMrp > minPrice;
+    return {
+      displayPrice: minPrice,
+      mrp: maxMrp,
+      discount: hasDiscount ? Math.round(((maxMrp - minPrice) / maxMrp) * 100) : 0,
+      hasDiscount,
+    };
   }
 
-  // Only fall back to the first variation when the root product has no usable pricing at all.
-  if (
-    !variation &&
-    product.variations?.length > 0 &&
-    variationSelector === undefined &&
-    !parseFloat(product.discPrice || 0) &&
-    !parseFloat(product.price || 0) &&
-    !parseFloat(product.compareAtPrice || product.mrp || 0)
-  ) {
-    variation = product.variations[0];
+  const variants = product.variations ?? product.variants ?? [];
+  let variation;
+  if (typeof variationSelector === 'number') {
+    variation = variants[variationSelector];
+  } else if (typeof variationSelector === 'string') {
+    const sel = variationSelector.trim();
+    variation = variants.find(
+      (v: any) => String(v._id) === sel || String(v.id) === sel
+    );
+    if (!variation) {
+      const label = sel.toLowerCase();
+      variation = variants.find((v: any) => {
+        const value = String(v.value || v.title || v.name || '').trim().toLowerCase();
+        const type = String(v.variationType || '').trim().toLowerCase();
+        const composed = type && type !== 'standard' ? `${type}: ${value}` : value;
+        return (
+          value === label ||
+          composed === label ||
+          label.endsWith(`: ${value}`) ||
+          `${type}: ${value}` === label
+        );
+      });
+    }
+  }
+
+  if (!variation && variants.length > 0 && variationSelector === undefined) {
+    variation = variants[0];
   }
 
   const vPrice = parseFloat(variation?.price || 0);
   const vDiscPrice = parseFloat(variation?.discPrice || 0);
-  const pPrice = parseFloat(product.price || 0);
-  const pDiscPrice = parseFloat(product.discPrice || 0);
 
-  const hasSelectedVariation = Boolean(variation);
+  let displayPrice = vDiscPrice > 0 ? vDiscPrice : vPrice;
+  let mrp = parseFloat(variation?.compareAtPrice || variation?.mrp || variation?.price || 0);
 
-  let displayPrice = hasSelectedVariation
-    ? (vDiscPrice > 0)
-      ? vDiscPrice
-      : (vPrice > 0)
-      ? vPrice
-      : (pDiscPrice > 0)
-      ? pDiscPrice
-      : (pPrice > 0)
-      ? pPrice
-      : 0
-    : (pDiscPrice > 0)
-    ? pDiscPrice
-    : (pPrice > 0)
-    ? pPrice
-    : (vDiscPrice > 0)
-    ? vDiscPrice
-    : (vPrice > 0)
-    ? vPrice
-    : 0;
+  if (displayPrice <= 0) {
+    displayPrice = resolveRootDisplayPrice(product);
+  }
+  if (mrp <= 0) {
+    mrp = resolveRootMrp(product);
+  }
 
-  let mrp = hasSelectedVariation
-    ? parseFloat(variation?.compareAtPrice || variation?.mrp || variation?.price || product.compareAtPrice || product.mrp || product.price || 0)
-    : parseFloat(product.compareAtPrice || product.mrp || product.price || variation?.compareAtPrice || variation?.mrp || variation?.price || 0);
-
-  // Safety layer: Never show 0 price if MRP exists
   if (displayPrice <= 0 && mrp > 0) {
     displayPrice = mrp;
   }
@@ -90,6 +94,42 @@ export const calculateProductPrice = (product: any, variationSelector?: number |
  * @param quantity The quantity to check against tiers
  * @returns The calculated price per unit
  */
+/** Card/listing display: first variant when variants exist, else listing min price. */
+export const calculateCardPrice = (product: any): CalculatedPrice => {
+  if (hasRealVariants(product)) {
+    const variantPrice = calculateProductPrice(product, 0);
+    if (variantPrice.displayPrice > 0) {
+      return variantPrice;
+    }
+  }
+
+  if (product?.listing) {
+    const minPrice = product.listing.minPrice ?? 0;
+    const maxMrp = product.listing.maxPrice ?? minPrice;
+    const rootPrice = resolveRootDisplayPrice(product);
+    const rootMrp = resolveRootMrp(product);
+    const displayPrice = minPrice > 0 ? minPrice : rootPrice;
+    const mrp = maxMrp > displayPrice ? maxMrp : rootMrp > displayPrice ? rootMrp : displayPrice;
+    const hasDiscount = mrp > displayPrice;
+    return {
+      displayPrice,
+      mrp,
+      discount: hasDiscount ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0,
+      hasDiscount,
+    };
+  }
+
+  const displayPrice = resolveRootDisplayPrice(product);
+  const mrp = resolveRootMrp(product);
+  const hasDiscount = mrp > displayPrice;
+  return {
+    displayPrice,
+    mrp,
+    discount: hasDiscount ? Math.round(((mrp - displayPrice) / mrp) * 100) : 0,
+    hasDiscount,
+  };
+};
+
 export const getApplicableUnitPrice = (product: any, variationSelector?: number | string | any, quantity: number = 1): number => {
   if (!product) return 0;
 
@@ -99,7 +139,19 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
       if (typeof variationSelector === 'number') {
         variation = product.variations?.[variationSelector];
       } else if (typeof variationSelector === 'string') {
-        variation = product.variations?.find((v: any) => (v._id === variationSelector || v.id === variationSelector));
+        const sel = variationSelector.trim();
+        variation = product.variations?.find(
+          (v: any) => String(v._id) === sel || String(v.id) === sel
+        );
+        if (!variation) {
+          const label = sel.toLowerCase();
+          variation = product.variations?.find((v: any) => {
+            const value = String(v.value || v.title || v.name || '').trim().toLowerCase();
+            const type = String(v.variationType || '').trim().toLowerCase();
+            const composed = type && type !== 'standard' ? `${type}: ${value}` : value;
+            return value === label || composed === label || label.endsWith(`: ${value}`);
+          });
+        }
       }
   }
 
@@ -164,6 +216,32 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
 
   return finalPrice;
 };
+
+/** Unit price for a cart line — prefers server snapshot, then variant-aware catalog price. */
+export const getCartLineUnitPrice = (item: any): number => {
+  const snap = Number(item?.unitPrice);
+  if (Number.isFinite(snap) && snap > 0) return snap;
+
+  const prod = item?.product;
+  if (!prod) return 0;
+
+  const selector =
+    item?.variantId ||
+    prod?.variantId ||
+    prod?.selectedVariantId ||
+    item?.variant ||
+    item?.variation;
+
+  return getApplicableUnitPrice(prod, selector, item?.quantity || 1);
+};
+
+export const getCartItemVariantSelector = (item: any): number | string | undefined =>
+  item?.variantId ||
+  item?.product?.variantId ||
+  item?.product?.selectedVariantId ||
+  item?.variant ||
+  item?.variation ||
+  undefined;
 
 /**
  * Formats a number to remove trailing zeros after the decimal point.
