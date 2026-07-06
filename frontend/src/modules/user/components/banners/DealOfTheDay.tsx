@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProductById } from '../../../../services/api/customerProductService';
 import { Product } from '../../../../types/domain';
-import { calculateProductPrice } from '../../../../utils/priceUtils';
+import { calculateCardPrice } from '../../../../utils/priceUtils';
+import { mapApiProductForCustomerDisplay } from '../../../../utils/customerVariantUtils';
 import { bannerService } from '../../../../services/bannerService';
 
 // Admin-managed Customer App Theme tokens. Replaces the previously hardcoded
@@ -41,15 +42,7 @@ export default function DealOfTheDay() {
 
              results.forEach(res => {
                  if (res && res.success && res.data) {
-                     products.push({
-                        ...res.data,
-                        id: (res.data as any)._id || (res.data as any).id,
-                        imageUrl: (res.data as any).mainImage || (res.data as any).imageUrl,
-                        name: (typeof (res.data as any).productName === 'string' ? (res.data as any).productName : null) ||
-                              (typeof (res.data as any).name === 'string' ? (res.data as any).name : null) || 'Product',
-                        price: (res.data as any).salePrice || (res.data as any).price,
-                        mrp: (res.data as any).mrp,
-                     } as any);
+                     products.push(mapApiProductForCustomerDisplay(res.data));
                  }
              });
         }
@@ -57,12 +50,7 @@ export default function DealOfTheDay() {
         else if ((config as any).dealOfTheDayProductId) {
              const res = await getProductById((config as any).dealOfTheDayProductId);
              if (res.success && res.data) {
-                 products.push({
-                    ...res.data,
-                    id: (res.data as any)._id || (res.data as any).id,
-                    imageUrl: (res.data as any).mainImage || (res.data as any).imageUrl,
-                    name: (res.data as any).productName || (res.data as any).name
-                 } as any);
+                 products.push(mapApiProductForCustomerDisplay(res.data));
              }
         }
 
@@ -135,7 +123,7 @@ export default function DealOfTheDay() {
              style={{ scrollBehavior: 'smooth' }}
           >
               {dealProducts.map(product => {
-                  const { displayPrice, mrp, discount } = calculateProductPrice(product);
+                  const { displayPrice, mrp, discount } = calculateCardPrice(product);
                   return (
                       <div
                          key={product.id}

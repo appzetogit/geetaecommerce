@@ -9,6 +9,12 @@ import Inventory from "../../../models/Inventory";
 import Seller from "../../../models/Seller";
 import HeaderCategory from "../../../models/HeaderCategory";
 import { cache } from "../../../utils/cache";
+import {
+  ProductWriteService,
+  ProductWriteError,
+} from "../../product/productWriteService";
+import { adminProductPolicy } from "../../product/productPolicies";
+import { toDetail, toListItem, toListItems } from "../../product/productReadMapper";
 
 // ==================== Category Controllers ====================
 
@@ -881,170 +887,23 @@ function stripInvalidProductObjectIds(body: Record<string, unknown>): void {
 export const createProduct = asyncHandler(
   async (req: Request, res: Response) => {
     try {
-      const productData = req.body;
-      stripInvalidProductObjectIds(productData);
-
-      // If seller is not provided, use/create default Admin Store
-      if (!productData.seller) {
-        try {
-          // Check for existing admin seller by email OR mobile to avoid duplicate key errors
-          let adminSeller = await Seller.findOne({
-            $or: [
-              { email: "admin-store@geetastores.com" },
-              { mobile: "9999999999" },
-            ],
-          });
-
-          if (!adminSeller) {
-            // Create default admin seller
-            adminSeller = await Seller.create({
-              sellerName: "Geeta Stores Admin",
-              storeName: "Geeta Stores Admin Store",
-              email: "admin-store@geetastores.com",
-              mobile: "9999999999",
-              password: "AdminStore@123", // Should be hashed by pre-save hook
-              address: "Geeta Stores HQ",
-              city: "Admin City",
-              category: "Admin",
-              commission: 0,
-              status: "Approved",
-              requireProductApproval: false,
-              location: {
-                type: "Point",
-                coordinates: [0, 0],
-              },
-            });
-          }
-          productData.seller = adminSeller._id;
-        } catch (sellerError: any) {
-          console.error("Error handling default admin seller:", sellerError);
-          throw new Error(
-            "Failed to assign default seller: " + sellerError.message
-          );
-        }
-      }
-
-      // Normalize optional ObjectId fields that might come as empty strings from POS quick-add
-      if (!productData.brand) {
-        delete productData.brand;
-      }
-      if (!productData.subcategory) {
-        delete productData.subcategory;
-      }
-      if (!productData.tax) {
-        delete productData.tax;
-      }
-      if (!productData.headerCategoryId) {
-        delete productData.headerCategoryId;
-      }
-
-      // Map frontend field names to model field names (standardization)
-      if (productData.categoryId) {
-        productData.category = productData.categoryId;
-        delete productData.categoryId;
-      }
-      if (productData.subcategoryId) {
-        productData.subcategory = productData.subcategoryId;
-        delete productData.subcategoryId;
-      }
-      if (productData.brandId) {
-        productData.brand = productData.brandId;
-        delete productData.brandId;
-      }
-      if (productData.taxId) {
-        productData.tax = productData.taxId;
-        delete productData.taxId;
-      }
-
-      // Fallback: if category is missing (e.g. quick-add from POS), assign first active category
-      if (!productData.category) {
-        const defaultCategory = await Category.findOne({ status: "Active" })
-          .sort({ createdAt: 1 })
-          .select("_id");
-        if (defaultCategory) {
-          productData.category = defaultCategory._id.toString();
-        }
-      }
-
-      // Category status verification removed to allow POS billing for inactive category products
-      /*
-      if (productData.category) {
-        const category = await Category.findById(productData.category);
-        if (category && category.status === "Inactive") {
-          productData.status = "Inactive";
-          productData.inactiveReason = "CategoryDeactivated";
-        }
-      }
-      */
-
-      if (
-        !productData.productName ||
-        !productData.category ||
-        !productData.price
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Product name, category, and price are required",
-        });
-      }
-
-      // Verify seller exists (if passed explicitly or set above)
-      const seller = await Seller.findById(productData.seller);
-      if (!seller) {
-        return res.status(404).json({
-          success: false,
-          message: "Seller not found",
-        });
-      }
-
-      // Use provided status/publish or default to Active/true
-      productData.status = productData.status || "Active";
-      if (productData.publish === undefined) {
-        productData.publish = true;
-      }
-      productData.requiresApproval = false;
-
-      // Auto-inherit headerCategoryId from the selected Category when missing,
-      // so the product shows up on the matching header-category tab even if
-      // the admin/seller form didn't explicitly set it.
-      if (!productData.headerCategoryId && productData.category) {
-        try {
-          const catDoc = await Category.findById(productData.category)
-            .select("headerCategoryId")
-            .lean();
-          if (catDoc?.headerCategoryId) {
-            productData.headerCategoryId = catDoc.headerCategoryId;
-          }
-        } catch {
-          // Non-fatal: continue without inherited headerCategoryId.
-        }
-      }
-
-      const product = await Product.create(productData);
-
-      // Create inventory record
-      try {
-        await Inventory.create({
-          product: product._id,
-          seller: productData.seller,
-          currentStock: Number(productData.stock) || 0,
-          availableStock: Number(productData.stock) || 0,
-        });
-      } catch (invError) {
-        // If inventory creation fails, delete the product to maintain consistency
-        await Product.findByIdAndDelete(product._id);
-        throw new Error(
-          "Failed to create inventory: " + (invError as Error).message
-        );
-      }
-
+      stripInvalidProductObjectIds(req.body);
+      const product = await ProductWriteService.createProduct(
+        req.body,
+        adminProductPolicy
+      );
       return res.status(201).json({
         success: true,
         message: "Product created successfully",
         data: product,
       });
     } catch (error: any) {
-      // Handle Mongoose validation errors
+      if (error instanceof ProductWriteError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
       if (error.name === "ValidationError") {
         const messages = Object.values(error.errors).map(
           (val: any) => val.message
@@ -1054,16 +913,12 @@ export const createProduct = asyncHandler(
           message: messages.join(", "),
         });
       }
-      // Handle CastError (invalid ObjectId, etc)
       if (error.name === "CastError") {
         return res.status(400).json({
           success: false,
           message: `Invalid value for ${error.path}: ${error.value}`,
         });
       }
-
-      // Re-throw other errors to be handled by global error handler (will result in 500)
-      // But we can return 400 if we suspect bad data
       return res.status(500).json({
         success: false,
         message: "Error creating product: " + error.message,
@@ -1204,7 +1059,7 @@ export const getProducts = asyncHandler(async (req: Request, res: Response) => {
         obj.subcategory = subMap.get(subIdStr);
       }
     }
-    return obj;
+    return toListItem(obj);
   });
 
   return res.status(200).json({
@@ -1257,7 +1112,7 @@ export const getProductById = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Product fetched successfully",
-      data: product,
+      data: toDetail(product),
     });
   }
 );
@@ -1268,141 +1123,30 @@ export const getProductById = asyncHandler(
 export const updateProduct = asyncHandler(
   async (req: Request, res: Response) => {
     const { id } = req.params;
-    const updateData = req.body;
-    stripInvalidProductObjectIds(updateData);
-
-    // Map frontend field names to model field names (standardization)
-    if (updateData.categoryId) {
-      updateData.category = updateData.categoryId;
-      delete updateData.categoryId;
-    }
-    if (updateData.subcategoryId) {
-      updateData.subcategory = updateData.subcategoryId;
-      delete updateData.subcategoryId;
-    }
-    if (updateData.brandId) {
-      updateData.brand = updateData.brandId;
-      delete updateData.brandId;
-    }
-    if (updateData.taxId) {
-      updateData.tax = updateData.taxId;
-      delete updateData.taxId;
-    }
-
-    // Handle sparse unique fields (like SKU) - if empty/null, unset them to avoid duplicate null/empty string errors
-    const unsetFields: any = {};
-    if (updateData.sku === "" || updateData.sku === null) {
-      unsetFields.sku = 1;
-      delete updateData.sku;
-    }
-    if (!updateData.subcategory) unsetFields.subcategory = 1;
-    if (!updateData.brand) unsetFields.brand = 1;
-    if (!updateData.tax) unsetFields.tax = 1;
-
-    const updateOperation: any = { $set: updateData };
-    if (Object.keys(unsetFields).length > 0) {
-        updateOperation.$unset = unsetFields;
-    }
-
-    let product = await Product.findById(id);
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
-
-    // Auto-inherit headerCategoryId from the (possibly newly-set) category if the
-    // payload didn't explicitly set one. Mirrors createProduct so the product
-    // stays in sync with its category's header on edits.
-    if (
-      updateData.headerCategoryId === undefined &&
-      updateData.category &&
-      String(updateData.category) !== String(product.category)
-    ) {
-      try {
-        const catDoc = await Category.findById(updateData.category)
-          .select("headerCategoryId")
-          .lean();
-        if (catDoc?.headerCategoryId) {
-          updateData.headerCategoryId = catDoc.headerCategoryId;
-        }
-      } catch {
-        // Non-fatal.
-      }
-    }
-
-    // Category status verification removed to allow POS billing for inactive category products
-    /*
-    if (updateData.category) {
-      const category = await Category.findById(updateData.category);
-      if (category && category.status === "Inactive") {
-        updateData.status = "Inactive";
-        updateData.inactiveReason = "CategoryDeactivated";
-      } else if (category && category.status === "Active" && product.inactiveReason === "CategoryDeactivated") {
-        updateData.status = "Active";
-        updateData.inactiveReason = null;
-        unsetFields.inactiveReason = 1;
-      }
-    }
-    */
-
-    // Apply updates
-    Object.keys(updateData).forEach((key) => {
-      (product as any)[key] = updateData[key];
-    });
-
-    // Handle unsets manually
-    Object.keys(unsetFields).forEach((key) => {
-      (product as any)[key] = undefined;
-    });
-
-    await product.save();
-
-    // Update inventory if stock changed
-    if (updateData.stock !== undefined) {
-      await Inventory.findOneAndUpdate(
-        { product: id },
-        {
-          currentStock: updateData.stock,
-          availableStock: updateData.stock,
-        }
+    try {
+      stripInvalidProductObjectIds(req.body);
+      const product = await ProductWriteService.updateProduct(
+        id,
+        req.body,
+        adminProductPolicy
       );
-    }
-
-    // Re-fetch with populations
-    const updatedRaw = await Product.findById(id)
-      .populate("category", "name")
-      .populate("brand", "name")
-      .populate("seller", "sellerName storeName");
-
-    if (!updatedRaw) {
-      return res.status(404).json({
+      return res.status(200).json({
+        success: true,
+        message: "Product updated successfully",
+        data: product,
+      });
+    } catch (error: any) {
+      if (error instanceof ProductWriteError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+      return res.status(500).json({
         success: false,
-        message: "Product not found",
+        message: error.message || "Error updating product",
       });
     }
-
-    const subId = updatedRaw.subcategory;
-    let populatedSub = null;
-    if (subId) {
-      populatedSub = await SubCategory.findById(subId).select("name").lean();
-      if (!populatedSub) {
-        populatedSub = await Category.findById(subId).select("name").lean();
-      }
-    }
-
-    const finalProduct: any = updatedRaw.toObject();
-    if (populatedSub) {
-      finalProduct.subcategory = populatedSub;
-    }
-
-    return res.status(200).json({
-      success: true,
-      message: "Product updated successfully",
-      data: finalProduct,
-    });
   }
 );
 
@@ -1488,7 +1232,7 @@ export const approveProductRequest = asyncHandler(
  */
 export const bulkImportProducts = asyncHandler(
   async (req: Request, res: Response) => {
-    const { products } = req.body; // Array of product objects
+    const { products } = req.body;
 
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({
@@ -1497,66 +1241,10 @@ export const bulkImportProducts = asyncHandler(
       });
     }
 
-    const results = {
-      success: 0,
-      failed: 0,
-      errors: [] as any[],
-    };
-
-    for (let i = 0; i < products.length; i++) {
-      try {
-        const productData = products[i];
-
-        // Validate required fields
-        if (
-          !productData.productName ||
-          !productData.category ||
-          !productData.seller ||
-          !productData.price
-        ) {
-          results.failed++;
-          results.errors.push({
-            index: i,
-            error: "Missing required fields",
-          });
-          continue;
-        }
-
-        // Verify seller exists
-        const seller = await Seller.findById(productData.seller);
-        if (!seller) {
-          results.failed++;
-          results.errors.push({
-            index: i,
-            error: "Seller not found",
-          });
-          continue;
-        }
-
-        // All products are published automatically without approval
-        productData.status = "Active";
-        productData.publish = true;
-        productData.requiresApproval = false;
-
-        const product = await Product.create(productData);
-
-        // Create inventory record
-        await Inventory.create({
-          product: product._id,
-          seller: productData.seller,
-          currentStock: productData.stock || 0,
-          availableStock: productData.stock || 0,
-        });
-
-        results.success++;
-      } catch (error: any) {
-        results.failed++;
-        results.errors.push({
-          index: i,
-          error: error.message,
-        });
-      }
-    }
+    const results = await ProductWriteService.bulkImportProducts(
+      products,
+      adminProductPolicy
+    );
 
     return res.status(200).json({
       success: true,
@@ -1766,7 +1454,7 @@ export const getPOSProducts = asyncHandler(
     }
 
     const products = await Product.find(query)
-      .select("productName mainImage price compareAtPrice wholesalePrice purchasePrice discPrice stock sku variations category barcode itemCode")
+      .select("productName mainImage price compareAtPrice wholesalePrice purchasePrice discPrice stock sku variations category barcode itemCode hsnCode gst")
       .populate("category", "name")
       .sort({ productName: 1 });
 

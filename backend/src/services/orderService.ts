@@ -1,10 +1,13 @@
 import Order from "../models/Order";
 import { IOrderItem } from "../models/OrderItem";
-import Inventory from "../models/Inventory";
 import Commission from "../models/Commission";
 import Seller from "../models/Seller";
 import WalletTransaction from "../models/WalletTransaction";
 import { clearOrderCache } from "../socket/socketService";
+import {
+  decrementVariantStock,
+  incrementVariantStock,
+} from "../modules/product/variantStockService";
 
 /**
  * Process order status transition
@@ -53,33 +56,27 @@ export const processOrderStatusTransition = async (
  */
 const reserveInventory = async (items: IOrderItem[]) => {
   for (const item of items) {
-    const inventory = await Inventory.findOne({ product: item.product });
-    if (inventory) {
-      inventory.reservedStock += item.quantity;
-      inventory.availableStock = Math.max(
-        0,
-        inventory.currentStock - inventory.reservedStock
-      );
-      await inventory.save();
-    }
+    const variantId = (item as any).variantId
+      ? String((item as any).variantId)
+      : undefined;
+    await decrementVariantStock(
+      String(item.product),
+      variantId,
+      item.quantity
+    );
   }
 };
 
-/**
- * Restore inventory when order is cancelled
- */
 const restoreInventory = async (items: IOrderItem[]) => {
   for (const item of items) {
-    const inventory = await Inventory.findOne({ product: item.product });
-    if (inventory) {
-      inventory.reservedStock = Math.max(
-        0,
-        inventory.reservedStock - item.quantity
-      );
-      inventory.availableStock =
-        inventory.currentStock - inventory.reservedStock;
-      await inventory.save();
-    }
+    const variantId = (item as any).variantId
+      ? String((item as any).variantId)
+      : undefined;
+    await incrementVariantStock(
+      String(item.product),
+      variantId,
+      item.quantity
+    );
   }
 };
 

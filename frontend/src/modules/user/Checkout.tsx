@@ -17,7 +17,7 @@ import { getAppConfig, AppConfig, appConfig as defaultAppConfig } from '../../se
 import { getAddresses } from '../../services/api/customerAddressService';
 import { getProducts } from '../../services/api/customerProductService';
 import { addToWishlist } from '../../services/api/customerWishlistService';
-import { calculateProductPrice, getApplicableUnitPrice } from '../../utils/priceUtils';
+import { calculateProductPrice, getCartItemVariantSelector, getCartLineUnitPrice } from '../../utils/priceUtils';
 import { initiateOnlineOrder, verifyOnlinePayment } from '../../services/api/customerOrderService';
 
 // const STORAGE_KEY = 'saved_address'; // Removed
@@ -265,12 +265,9 @@ export default function Checkout() {
     itemCount: displayItems.reduce((sum, item) => sum + (item.quantity || 0), 0),
     total: displayItems.reduce((sum: number, item: any) => {
       if (item.isFreeGift) return sum;
-      const p = item.product;
-      if (!p) return sum;
-      const v = item.variant;
+      if (!item?.product) return sum;
       const q = item.quantity || 0;
-      const unitPrice = getApplicableUnitPrice(p, v, q);
-      return sum + unitPrice * q;
+      return sum + getCartLineUnitPrice(item) * q;
     }, 0)
   };
 
@@ -281,7 +278,7 @@ export default function Checkout() {
     const p = item?.product;
     if (!p || item.isFreeGift) return sum;
     // For MRp calculation in savings, we still compare MRP vs Tier Price
-    const { mrp } = calculateProductPrice(p, item.variant);
+    const { mrp } = calculateProductPrice(p, getCartItemVariantSelector(item));
     // Determine the effective price we are selling at (this is 'discountedTotal' effectively, but 'Items total' in UI usually means MRP total in Indian e-commerce to show savings, OR it means Selling Price total.
     // Usually:
     // Items Total (MRP): ₹200
@@ -627,8 +624,7 @@ export default function Checkout() {
           const activeRule = getActiveFreeGiftRule();
           const isFreeGiftItem = item.isFreeGift;
           const qty = item.quantity ?? 0;
-          const variant = item.variant;
-          const price = isFreeGiftItem ? 0 : item.price || getApplicableUnitPrice(product, variant, qty);
+          const price = isFreeGiftItem ? 0 : getCartLineUnitPrice(item);
 
           return {
               ...item,
@@ -1050,7 +1046,7 @@ export default function Checkout() {
                     {prod?.name}
                     {isFreeGift && <span className="ml-1 text-[var(--customer-primary-dark)] font-bold">(Free Gift)</span>}
                   </h3>
-                  <p className="text-[10px] text-neutral-600 mb-0.5">{item.quantity} × {prod?.pack}</p>
+                  <p className="text-[10px] text-neutral-600 mb-0.5">{item.quantity} × {item.variation || prod?.pack}</p>
 
                   {!isFreeGift && (
                   <button
@@ -1078,8 +1074,8 @@ export default function Checkout() {
                           e.preventDefault();
                           e.stopPropagation();
                           if (!prod) return;
-                          const vId = (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
-                          const vTitle = (prod as any).variantTitle || (prod as any).pack;
+                          const vId = item.variantId || (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
+                          const vTitle = item.variation || (prod as any).variantTitle || (prod as any).pack;
                           const pId = prod.id || prod._id || '';
                           updateQuantity(pId as string, (item.quantity || 1) - 1, vId, vTitle);
                         }}
@@ -1096,8 +1092,8 @@ export default function Checkout() {
                           e.preventDefault();
                           e.stopPropagation();
                           if (!prod) return;
-                           const vId = (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
-                           const vTitle = (prod as any).variantTitle || (prod as any).pack;
+                           const vId = item.variantId || (prod as any).variantId || (prod as any).selectedVariant?._id || item.variant;
+                           const vTitle = item.variation || (prod as any).variantTitle || (prod as any).pack;
                            const pId = prod.id || prod._id || '';
                            updateQuantity(pId as string, (item.quantity || 1) + 1, vId, vTitle);
                         }}
@@ -1114,10 +1110,10 @@ export default function Checkout() {
                       ) : (
                           <div className="flex flex-col items-end">
                             <span className="text-xs font-bold text-neutral-900">
-                                ₹{(getApplicableUnitPrice(prod, item.variant, item.quantity) * (item.quantity || 0)).toFixed(2)}
+                                ₹{(getCartLineUnitPrice(item) * (item.quantity || 0)).toFixed(2)}
                             </span>
                              {/* Show tier info if active */}
-                             {getApplicableUnitPrice(prod, item.variant, item.quantity) < calculateProductPrice(prod, item.variant).displayPrice && (
+                             {getCartLineUnitPrice(item) < calculateProductPrice(prod, getCartItemVariantSelector(item)).displayPrice && (
                                 <span className="text-[9px] text-[var(--customer-primary-dark)] font-medium">
                                     Bulk Applied
                                 </span>

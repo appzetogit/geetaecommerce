@@ -3,7 +3,10 @@ import { Product } from './domain';
 export interface CartItem {
   product?: Product;
   quantity?: number;
-  variant?: any;
+  variantId?: string;
+  unitPrice?: number;
+  variation?: string;
+  variant?: string | number;
   isFreeGift?: boolean;
   id?: string; // Add id as it's used in context and makes life easier
   source?: string;

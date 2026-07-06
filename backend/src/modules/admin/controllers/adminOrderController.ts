@@ -13,6 +13,17 @@ import Customer from "../../../models/Customer";
 import { Server as SocketIOServer } from "socket.io";
 import StockLedger from "../../../models/StockLedger";
 import CreditTransaction from "../../../models/CreditTransaction";
+import {
+  decrementVariantStock,
+  getVariantStock,
+  incrementVariantStock,
+} from "../../product/variantStockService";
+import {
+  findVariantById,
+  resolveLedgerSku,
+  resolveOrderItemVariantId,
+  variantsFromProductDoc,
+} from "../../product/variantHelpers";
 
 /**
  * Get all orders with filters
@@ -396,85 +407,51 @@ export const updateOrderItems = asyncHandler(
       // 1. Restore stock for existing items
       const existingItems = await OrderItem.find({ order: order._id }).session(session);
       for (const item of existingItems) {
-        if (item.product) {
-          const product = await Product.findById(item.product).session(session);
-          if (product) {
-             const qty = Number(item.quantity) || 0;
-             let restored = false;
+        if (!item.product) continue;
 
-             let vIndex = -1;
-             if (product.variations && product.variations.length > 0) {
-                if (item.sku && item.sku !== "NO-SKU") {
-                   vIndex = product.variations.findIndex((v: any) => v.sku === item.sku);
-                }
-                
-                if (vIndex === -1 && item.variation) {
-                   const variationLabel = item.variation.toLowerCase();
-                   vIndex = product.variations.findIndex((v: any) => {
-                       const vName = typeof v.name === 'string' ? v.name : '';
-                       const vTitle = typeof v.title === 'string' ? v.title : '';
-                       const vValue = typeof v.value === 'string' ? v.value : '';
-                       const composedName = `${vName}: ${vValue}`.toLowerCase();
-                       const composedTitle = `${vTitle}: ${vValue}`.toLowerCase();
-                       
-                       return (
-                           vValue.toLowerCase() === variationLabel ||
-                           vName.toLowerCase() === variationLabel ||
-                           vTitle.toLowerCase() === variationLabel ||
-                           composedName === variationLabel ||
-                           composedTitle === variationLabel
-                       );
-                   });
-                }
-             }
+        const productId = String(item.product);
+        const qty = Number(item.quantity) || 0;
+        if (qty <= 0) continue;
 
-             if (vIndex > -1) {
-                const prevVarStock = Number(product.variations![vIndex].stock) || 0;
-                const newVarStock = prevVarStock + qty;
+        const product = await Product.findById(productId).lean().session(session);
+        if (!product) continue;
 
-                const prevParentStock = Number(product.stock) || 0;
-                const newParentStock = prevParentStock + qty;
+        const variantId = resolveOrderItemVariantId(product, {
+          variantId: (item as any).variantId,
+          sku: item.sku,
+          variation: item.variation,
+          productName: item.productName,
+          unitPrice: item.unitPrice,
+        });
 
-                product.variations![vIndex].stock = newVarStock;
-                product.stock = newParentStock;
+        if (!variantId) {
+          console.warn(`Order edit restore skip: no variant for product ${productId}`);
+          continue;
+        }
 
-                await product.save({ session });
+        const prevStock = await getVariantStock(productId, variantId);
+        const restored = await incrementVariantStock(productId, variantId, qty, {
+          session,
+        });
 
-                await StockLedger.create([{
-                    product: product._id,
-                    variationId: product.variations![vIndex]._id,
-                    sku: item.sku,
-                    quantity: qty,
-                    type: "IN",
-                    source: "ORDER_EDIT_RESTORE",
-                    referenceId: order._id,
-                    previousStock: prevVarStock,
-                    newStock: newVarStock,
-                    [stockModifierField]: userId
-                }], { session });
-                restored = true;
-             }
-
-             if (!restored) {
-                const prevStock = Number(product.stock) || 0;
-                const newStockVal = prevStock + qty;
-
-                product.stock = newStockVal;
-                await product.save({ session });
-
-                await StockLedger.create([{
-                    product: product._id,
-                    sku: item.sku || product.sku || "NO-SKU",
-                    quantity: qty,
-                    type: "IN",
-                    source: "ORDER_EDIT_RESTORE",
-                    referenceId: order._id,
-                    previousStock: prevStock,
-                    newStock: newStockVal,
-                    [stockModifierField]: userId
-                }], { session });
-             }
-          }
+        if (restored) {
+          await StockLedger.create(
+            [
+              {
+                product: productId,
+                variationId: variantId,
+                sku: resolveLedgerSku(item.sku),
+                quantity: qty,
+                type: "IN",
+                source: "ORDER_EDIT_RESTORE",
+                referenceId: order._id,
+                previousStock: prevStock,
+                newStock: prevStock + qty,
+                [stockModifierField]: userId,
+              },
+            ],
+            { session }
+          );
         }
       }
 
@@ -567,64 +544,72 @@ export const updateOrderItems = asyncHandler(
           continue;
         }
 
-        let unitPrice = Number(itemData.unitPrice) || product.price; // Force number
-        let mrp = Number(itemData.mrp) || Number(product.compareAtPrice) || 0;
+        let unitPrice = Number(itemData.unitPrice) || (product as any).price || 0;
+        let mrp = Number(itemData.mrp) || Number((product as any).compareAtPrice) || 0;
         let variationName = "";
-        let sku = itemData.sku || product.sku || "NO-SKU";
-        let variationId = null;
+        let sku = normalizedSku || (product as any).sku || "NO-SKU";
+        let resolvedVariantId: string | undefined;
 
-        let foundVariation: any = null;
+        const variants = variantsFromProductDoc(product);
+        resolvedVariantId = resolveOrderItemVariantId(product, {
+          variationId: normalizedVariationId,
+          sku: normalizedSku,
+          variation:
+            typeof itemData.variation === "string" ? itemData.variation : undefined,
+          productName: snapshotProductName || product.productName,
+          unitPrice: Number(itemData.unitPrice),
+        });
 
-        if ((normalizedVariationId || normalizedSku) && product.variations && product.variations.length > 0) {
-          const variationLabel = normalizedVariationId.toLowerCase();
-          const variation = product.variations.find((v: any) => {
-            const variationName = typeof v.name === "string" ? v.name : "";
-            const variationTitle = typeof v.title === "string" ? v.title : "";
-            const variationValue = typeof v.value === "string" ? v.value : "";
-            const composedName = `${variationName}: ${variationValue}`.toLowerCase();
-            const composedTitle = `${variationTitle}: ${variationValue}`.toLowerCase();
+        const foundVariation = resolvedVariantId
+          ? findVariantById(variants, resolvedVariantId)
+          : undefined;
 
-            if (normalizedVariationId && mongoose.Types.ObjectId.isValid(normalizedVariationId) && v._id.toString() === normalizedVariationId) {
-              return true;
-            }
-
-            if (normalizedSku && v.sku === normalizedSku) {
-              return true;
-            }
-
-            if (!normalizedVariationId) {
-              return false;
-            }
-
-            return (
-              variationValue.toLowerCase() === variationLabel ||
-              variationName.toLowerCase() === variationLabel ||
-              variationTitle.toLowerCase() === variationLabel ||
-              composedName === variationLabel ||
-              composedTitle === variationLabel
-            );
-          });
-
-          if (variation) {
-            foundVariation = variation;
-            unitPrice = Number(itemData.unitPrice) || variation.price || unitPrice;
-            mrp = Number(itemData.mrp) || Number(variation.compareAtPrice) || Number(product.compareAtPrice) || mrp;
-            variationName = (variation as any).title || variation.name ? `${variation.name}: ${variation.value}` : 'Variation';
-            sku = variation.sku || sku;
-            variationId = variation._id;
-
-            const prevVarStock = variation.stock || 0;
-            // Stock deduction from variation
-            variation.stock = Math.max(0, prevVarStock - quantity);
-          }
+        if (foundVariation) {
+          unitPrice =
+            Number(itemData.unitPrice) ||
+            Number(foundVariation.discPrice ?? foundVariation.price) ||
+            unitPrice;
+          mrp =
+            Number(itemData.mrp) ||
+            Number(foundVariation.compareAtPrice) ||
+            Number((product as any).compareAtPrice) ||
+            mrp;
+          variationName = `${foundVariation.name || foundVariation.variationType || "Variant"}: ${foundVariation.value}`;
+          sku = foundVariation.sku || sku;
         }
-
-        const prevStock = product.stock || 0;
-        product.stock = Math.max(0, prevStock - quantity);
-        await product.save({ session });
 
         const total = unitPrice * quantity;
         newSubtotal += total;
+
+        if (resolvedVariantId && quantity > 0) {
+          const prevStock = await getVariantStock(String(product._id), resolvedVariantId);
+          const decremented = await decrementVariantStock(
+            String(product._id),
+            resolvedVariantId,
+            quantity,
+            { session }
+          );
+
+          if (decremented) {
+            await StockLedger.create(
+              [
+                {
+                  product: product._id,
+                  variationId: resolvedVariantId,
+                  sku: resolveLedgerSku(sku, foundVariation?.sku, normalizedSku),
+                  quantity,
+                  type: "OUT",
+                  source: "ORDER_EDIT_DEDUCT",
+                  referenceId: order._id,
+                  previousStock: prevStock,
+                  newStock: Math.max(0, prevStock - quantity),
+                  [stockModifierField]: userId,
+                },
+              ],
+              { session }
+            );
+          }
+        }
 
         // Resolve GST rate: explicit payload value > product default > 5%
         const payloadGstProvided =
@@ -656,7 +641,7 @@ export const updateOrderItems = asyncHandler(
           product: product._id,
           seller: (product.seller as any)?._id || product.seller,
           productName: snapshotProductName || product.productName,
-          productImage: snapshotProductImage || product.mainImage,
+          productImage: snapshotProductImage || (product as any).mainImage,
           sku: sku,
           mrp: mrp,
           unitPrice: unitPrice,
@@ -668,25 +653,12 @@ export const updateOrderItems = asyncHandler(
           variation: variationName,
           status: "Pending",
           warrantyType: itemData.warrantyType || product.warrantyType || "None",
-          warrantyDuration: itemData.warrantyDuration || product.warrantyDuration || ""
+          warrantyDuration: itemData.warrantyDuration || product.warrantyDuration || "",
+          ...(resolvedVariantId ? { variantId: resolvedVariantId } : {}),
         });
 
         await newOrderItem.save({ session });
         newItemIds.push(newOrderItem._id);
-
-        // Stock Ledger for deduction
-        await StockLedger.create([{
-            product: product._id,
-            variationId: variationId,
-            sku: sku,
-            quantity: quantity,
-            type: "OUT",
-            source: "ORDER_EDIT_DEDUCT",
-            referenceId: order._id,
-            previousStock: foundVariation ? (foundVariation.stock + quantity) : (product.stock + quantity),
-            newStock: foundVariation ? foundVariation.stock : product.stock,
-            [stockModifierField]: userId
-        }], { session });
       }
 
       // 4. Update Order
@@ -1306,15 +1278,22 @@ export const createPOSOrder = asyncHandler(
            };
            let productId = null;
            let product: any = null;
+           let resolvedVariant: ReturnType<typeof findVariantById> = undefined;
 
            if (mongoose.Types.ObjectId.isValid(item.productId)) {
                product = await Product.findById(item.productId).populate('seller');
                if (product) {
                    productId = product._id;
+                   const variants = variantsFromProductDoc(product);
+                   resolvedVariant = item.variationId
+                     ? findVariantById(variants, item.variationId)
+                     : variants.length === 1
+                       ? variants[0]
+                       : undefined;
                    productData = {
-                       productName: product.productName,
-                       mainImage: product.mainImage,
-                       sku: product.sku,
+                       productName: item.name || product.productName,
+                       mainImage: resolvedVariant?.mainImage || (product as any).listing?.imageUrl || "",
+                       sku: resolvedVariant?.sku || "",
                        seller: (product.seller as any)?._id || product.seller
                    };
                }
@@ -1371,6 +1350,10 @@ export const createPOSOrder = asyncHandler(
 
            if (productId) orderItemPayload.product = productId;
            if (productData.seller) orderItemPayload.seller = productData.seller;
+           if (resolvedVariant) {
+             orderItemPayload.variantId = resolvedVariant._id;
+             orderItemPayload.variation = `${resolvedVariant.name || resolvedVariant.variationType || "Variant"}: ${resolvedVariant.value}`;
+           }
 
            const orderItem = await OrderItem.create(orderItemPayload);
            orderItemsIds.push(orderItem._id);
@@ -1412,54 +1395,56 @@ export const createPOSOrder = asyncHandler(
 
         // --- STOCK MANAGEMENT ---
         for (const item of items) {
-           if (mongoose.Types.ObjectId.isValid(item.productId)) {
-               const product = await Product.findById(item.productId);
-               if (product) {
-                   const prevStock = product.stock;
-                   const soldQty = Number(item.quantity) || 0;
+           if (!mongoose.Types.ObjectId.isValid(item.productId)) continue;
 
-                   if (item.variationId && product.variations) {
-                       const variationIndex = product.variations.findIndex((v: any) => v._id?.toString() === item.variationId.toString());
-                       if (variationIndex > -1) {
-                           const prevVarStock = product.variations[variationIndex].stock || 0;
-                           product.variations[variationIndex].stock = Math.max(0, prevVarStock - soldQty);
-                           product.stock = Math.max(0, prevStock - soldQty);
-                           await product.save();
+           const productId = String(item.productId);
+           const soldQty = Number(item.quantity) || 0;
+           if (soldQty <= 0) continue;
 
-                           try {
-                               await StockLedger.create({
-                                   product: product._id,
-                                   variationId: item.variationId,
-                                   sku: product.variations[variationIndex].sku || product.sku,
-                                   quantity: soldQty,
-                                   type: "OUT",
-                                   source: "POS",
-                                   referenceId: order._id,
-                                   previousStock: prevVarStock,
-                                   newStock: product.variations[variationIndex].stock,
-                                   admin: adminId
-                               });
-                           } catch (err) { console.error("StockLedger Error (Var)", err); }
-                       }
-                   } else {
-                       product.stock = Math.max(0, prevStock - soldQty);
-                       await product.save();
+           try {
+               const product = await Product.findById(productId).lean();
+               if (!product) continue;
 
-                       try {
-                           await StockLedger.create({
-                               product: product._id,
-                               sku: product.sku,
-                               quantity: soldQty,
-                               type: "OUT",
-                               source: "POS",
-                               referenceId: order._id,
-                               previousStock: prevStock,
-                               newStock: product.stock,
-                               admin: adminId
-                           });
-                       } catch (err) { console.error("StockLedger Error (Main)", err); }
-                   }
+               const variants = variantsFromProductDoc(product);
+               if (!variants.length) {
+                   console.warn(`POS stock skip: product ${productId} has no variants`);
+                   continue;
                }
+
+               let variantId = item.variationId ? String(item.variationId) : undefined;
+               if (variantId && !findVariantById(variants, variantId)) {
+                   variantId = undefined;
+               }
+               if (!variantId && variants.length === 1) {
+                   variantId = String(variants[0]._id);
+               }
+               if (!variantId) {
+                   console.warn(`POS stock skip: could not resolve variant for product ${productId}`);
+                   continue;
+               }
+
+               const variant = findVariantById(variants, variantId)!;
+               const prevStock = await getVariantStock(productId, variantId);
+               const decremented = await decrementVariantStock(productId, variantId, soldQty);
+               if (!decremented) {
+                   console.warn(`POS stock decrement failed for ${productId}/${variantId}`);
+                   continue;
+               }
+
+               await StockLedger.create({
+                   product: productId,
+                   variationId: variantId,
+                   sku: resolveLedgerSku(variant.sku),
+                   quantity: soldQty,
+                   type: "OUT",
+                   source: "POS",
+                   referenceId: order._id,
+                   previousStock: prevStock,
+                   newStock: Math.max(0, prevStock - soldQty),
+                   admin: adminId
+               });
+           } catch (err) {
+               console.error("POS stock update error", err);
            }
         }
 

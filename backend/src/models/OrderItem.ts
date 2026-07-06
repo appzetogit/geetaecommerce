@@ -25,6 +25,7 @@ export interface IOrderItem extends Document {
 
   // Variation
   variation?: string;
+  variantId?: mongoose.Types.ObjectId;
 
   // Status
   status: "Pending" | "Shipped" | "Delivered" | "Cancelled" | "Returned";
@@ -113,6 +114,9 @@ const OrderItemSchema = new Schema<IOrderItem>(
     variation: {
       type: String,
       trim: true,
+    },
+    variantId: {
+      type: Schema.Types.ObjectId,
     },
 
     // Status

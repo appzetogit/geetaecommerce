@@ -8,6 +8,7 @@ import Seller from "../../../models/Seller"; // Import Seller model
 import Brand from "../../../models/Brand";
 import AppSettings from "../../../models/AppSettings";
 import { findSellersWithinRange } from "../../../utils/locationHelper";
+import { toListItem, toListItems, toDetail } from "../../product/productReadMapper";
 
 const escapeRegex = (value: string): string => {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -282,7 +283,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
     console.log("DEBUG: Final search query:", JSON.stringify(query));
 
-    const products = await Product.find(query)
+    let products = await Product.find(query)
       .populate("category", "name icon image")
       .populate("subcategory", "name")
       .populate("brand", "name")
@@ -291,11 +292,29 @@ export const getProducts = async (req: Request, res: Response) => {
       .skip(skip)
       .limit(Number(limit));
 
+    let mapped = toListItems(products, { allowNegativeStock: !negativeStockSoldOut });
+
+    if (negativeStockSoldOut) {
+      mapped = mapped.filter((p) => p.listing.inStock);
+    }
+    if (minPrice) {
+      mapped = mapped.filter((p) => p.listing.maxPrice >= Number(minPrice));
+    }
+    if (maxPrice) {
+      mapped = mapped.filter((p) => p.listing.minPrice <= Number(maxPrice));
+    }
+    if (sort === "price_asc") {
+      mapped.sort((a, b) => a.listing.minPrice - b.listing.minPrice);
+    }
+    if (sort === "price_desc") {
+      mapped.sort((a, b) => b.listing.minPrice - a.listing.minPrice);
+    }
+
     const total = await Product.countDocuments(query);
 
     return res.status(200).json({
       success: true,
-      data: products,
+      data: mapped,
       pagination: {
         page: Number(page),
         limit: Number(limit),
@@ -443,12 +462,9 @@ export const getProductById = async (req: Request, res: Response) => {
     const inventorySection = settings?.productDisplaySettings?.find(s => s.id === 'inventory');
     const negativeStockSoldOut = inventorySection?.fields?.find(f => f.id === 'negative_stock_sold_out')?.isEnabled;
 
-    if (negativeStockSoldOut && product.stock <= 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Product is currently sold out",
-      });
-    }
+    // Do not hard-404 sold-out products on the detail page — the storefront list
+    // already gates on legacy root `stock` while variant stock may still be 0 on
+    // unmigrated products. Let the PDP render with inStock from the read mapper.
 
     // Hide the product if the owning seller has been disabled by the admin.
     // (The legacy `canCreateCategories === true` block was removed — that
@@ -596,16 +612,14 @@ export const getProductById = async (req: Request, res: Response) => {
     }
     const similarProducts = await Product.find(similarProductsQuery)
       .limit(6)
-      .select(
-        "productName price discPrice variations unitPricing mrp mainImage pack discount _id rating reviewsCount deliveryTime"
-      );
+      .select("productName variations pack discount _id rating reviewsCount deliveryTime");
 
     return res.status(200).json({
       success: true,
       data: {
-        ...product.toObject(),
-        similarProducts,
-        isAvailableAtLocation, // Add availability flag to response
+        ...toDetail(product, { allowNegativeStock: !negativeStockSoldOut }),
+        similarProducts: toListItems(similarProducts, { allowNegativeStock: !negativeStockSoldOut }),
+        isAvailableAtLocation,
       },
     });
   } catch (error: any) {

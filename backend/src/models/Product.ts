@@ -17,41 +17,31 @@ export interface IProduct extends Document {
   // Seller Info
   seller: mongoose.Types.ObjectId;
 
-  // Images
-  mainImage?: string;
-  galleryImages: string[];
-
-  // Pricing & Inventory
-  unitPricing?: { minQty: number; price: number }[];
-  price: number;
-  wholesalePrice?: number;
-  discPrice?: number;
-  compareAtPrice?: number;
-  stock: number;
-  sku?: string;
-  barcode?: string[];
-  rackNumber?: string;
+  // Tax & compliance (product-level)
   hsnCode?: string;
-  // GST percentage (e.g. 5 for 5%). Defaults to 5 if not provided.
   gst?: number;
-  purchasePrice?: number;
   lowStockQuantity?: number;
   deliveryTime?: string;
 
-  // Variations
-  variationType?: string; // e.g., 'Size', 'Color', 'Weight'
-  variations?: Array<{
+  // Variations (canonical sellable SKUs — min 1 required on create)
+  variationType?: string; // legacy product-level; prefer per-variant variationType
+  variations: Array<{
     _id?: any;
-    name: string;
+    variationType?: string;
+    name?: string;
     value: string;
-    price?: number;
+    price: number;
     wholesalePrice?: number;
     discPrice?: number;
     compareAtPrice?: number;
-    stock?: number;
+    purchasePrice?: number;
+    stock: number;
     sku?: string;
     status?: string;
     barcode?: string[];
+    rackNumber?: string;
+    mainImage?: string;
+    galleryImages?: string[];
     image?: string;
     tieredPrices?: { minQty: number; price: number }[];
   }>;
@@ -180,60 +170,6 @@ export interface IProduct extends Document {
       required: [true, "Seller is required"],
     },
 
-    // Images
-    mainImage: {
-      type: String,
-      trim: true,
-    },
-    galleryImages: {
-      type: [String],
-      default: [],
-    },
-
-    // Pricing & Inventory
-    unitPricing: {
-      type: [{ minQty: Number, price: Number }],
-      default: [],
-    },
-    price: {
-      type: Number,
-      required: [true, "Price is required"],
-      min: [0, "Price cannot be negative"],
-    },
-    wholesalePrice: {
-      type: Number,
-      default: 0,
-      min: [0, "Wholesale price cannot be negative"],
-    },
-    discPrice: {
-      type: Number,
-      default: 0,
-      min: [0, "Discounted price cannot be negative"],
-    },
-    compareAtPrice: {
-      type: Number,
-      min: [0, "Compare at price cannot be negative"],
-    },
-    stock: {
-      type: Number,
-      required: [true, "Stock is required"],
-      default: 0,
-      min: [0, "Stock cannot be negative"],
-    },
-    sku: {
-      type: String,
-      trim: true,
-      unique: true,
-      sparse: true,
-    },
-    barcode: {
-      type: [String],
-      default: [],
-    },
-    rackNumber: {
-      type: String,
-      trim: true,
-    },
     hsnCode: {
       type: String,
       trim: true,
@@ -242,10 +178,6 @@ export interface IProduct extends Document {
       type: Number,
       min: [0, "GST cannot be negative"],
       default: 5,
-    },
-    purchasePrice: {
-      type: Number,
-      min: [0, "Purchase price cannot be negative"],
     },
     lowStockQuantity: {
       type: Number,
@@ -257,21 +189,19 @@ export interface IProduct extends Document {
       trim: true,
     },
 
-    // Variations
-    variationType: {
-      type: String,
-      trim: true,
-    },
+    // Variations (required sellable SKUs)
     variations: {
       type: [
         {
+          variationType: { type: String, trim: true, default: "Standard" },
           name: String,
-          value: String,
-          price: Number,
+          value: { type: String, required: true },
+          price: { type: Number, required: true, min: 0 },
           wholesalePrice: { type: Number, default: 0 },
           discPrice: { type: Number, default: 0 },
           compareAtPrice: { type: Number },
-          stock: Number,
+          purchasePrice: { type: Number },
+          stock: { type: Number, default: 0, min: 0 },
           status: {
             type: String,
             enum: ["Available", "Sold out", "In stock"],
@@ -279,14 +209,22 @@ export interface IProduct extends Document {
           },
           sku: String,
           barcode: { type: [String], default: [] },
+          rackNumber: { type: String, trim: true },
+          mainImage: { type: String, trim: true },
+          galleryImages: { type: [String], default: [] },
           image: { type: String, trim: true },
           tieredPrices: {
-             type: [{ minQty: Number, price: Number }],
-             default: []
-          }
+            type: [{ minQty: Number, price: Number }],
+            default: [],
+          },
         },
       ],
-      default: [],
+      validate: {
+        validator: function (v: unknown[]) {
+          return Array.isArray(v) && v.length >= 1;
+        },
+        message: "At least one variant is required",
+      },
     },
 
     // Status Flags
@@ -446,9 +384,10 @@ export interface IProduct extends Document {
   }
 );
 
-// Virtual for mrp (alias for compareAtPrice to match frontend)
+// Virtual for mrp — computed from variants at read time via productReadMapper
 ProductSchema.virtual("mrp").get(function () {
-  return this.compareAtPrice;
+  const v = this.variations?.[0];
+  return v?.compareAtPrice ?? v?.price ?? 0;
 });
 
 const SEARCHABLE_PRODUCT_FIELDS = [
@@ -523,90 +462,38 @@ const hasSearchableChanges = (doc: IProduct): boolean => {
   return doc.isNew || SEARCHABLE_PRODUCT_FIELDS.some((field) => doc.isModified(field));
 };
 
-// Calculate discount and sync stock/price from variations before saving
+// Normalize variant subdocs before save
 ProductSchema.pre("save", function (next) {
-  // Sync price and stock from variations if they exist
-  if (this.variations && this.variations.length > 0) {
-    const firstVariation = this.variations[0];
-    const isDefaultLikeVariation =
-      String((firstVariation as any)?.title || firstVariation?.value || "")
-        .trim()
-        .toLowerCase() === "default";
-    const hasExplicitVariationSetup =
-      Boolean(String(this.variationType || "").trim()) ||
-      Boolean(String((this as any).variationName || "").trim()) ||
-      !isDefaultLikeVariation;
-    const shouldMirrorRootFromVariation = !hasExplicitVariationSetup || isDefaultLikeVariation;
+  if (!this.variations || this.variations.length < 1) {
+    return next(new Error("At least one variant is required"));
+  }
 
-    if (shouldMirrorRootFromVariation) {
-      if (firstVariation.price !== undefined) {
-        this.price = firstVariation.price;
-      }
-      if (firstVariation.compareAtPrice !== undefined) {
-        this.compareAtPrice = firstVariation.compareAtPrice;
-      }
-      this.discPrice = (firstVariation.discPrice && firstVariation.discPrice !== 0)
-        ? firstVariation.discPrice
-        : firstVariation.price || this.price;
-
-      this.stock = this.variations.reduce(
-        (acc: number, curr: any) => acc + (Number(curr.stock) || 0),
-        0
-      );
-    } else {
-      // For real named variations, preserve root product fields.
-      // Only backfill missing values instead of overwriting with the first variant.
-      if ((!this.price || this.price === 0) && firstVariation.price !== undefined) {
-        this.price = firstVariation.price;
-      }
-      if ((!this.compareAtPrice || this.compareAtPrice === 0) && firstVariation.compareAtPrice !== undefined) {
-        this.compareAtPrice = firstVariation.compareAtPrice;
-      }
-      if (!this.discPrice || this.discPrice === 0) {
-        this.discPrice = (firstVariation.discPrice && firstVariation.discPrice !== 0)
-          ? firstVariation.discPrice
-          : firstVariation.price || this.price;
-      }
+  this.variations.forEach((v: any) => {
+    if (!v.variationType) {
+      v.variationType = v.name || "Standard";
     }
-
-    // Sync unitPricing from first variation only when root unitPricing is empty
-    if ((!this.unitPricing || this.unitPricing.length === 0) && firstVariation.tieredPrices && firstVariation.tieredPrices.length > 0) {
-      this.unitPricing = firstVariation.tieredPrices;
+    if (!v.name) v.name = v.variationType;
+    if (v.mainImage && !v.image) v.image = v.mainImage;
+    if (!v.mainImage && v.image) v.mainImage = v.image;
+    if (!v.discPrice || v.discPrice === 0) v.discPrice = v.price;
+    if (!v.compareAtPrice || v.compareAtPrice === 0) {
+      v.compareAtPrice = v.compareAtPrice ?? v.price;
     }
-  }
+  });
 
-  // FINAL PRICE SANITY CHECK: Never allow price or discPrice to stay 0 if we have an MRP
-  // This is a safety layer for the "₹0 / 100% OFF" bug
-  if ((!this.price || this.price === 0) && this.compareAtPrice && this.compareAtPrice > 0) {
-    this.price = this.compareAtPrice;
-  }
-  if (!this.discPrice || this.discPrice === 0) {
-    this.discPrice = (this.variations && this.variations.length > 0 && this.variations[0].price) 
-      ? this.variations[0].price 
-      : (this.price || this.compareAtPrice || 0);
-  }
-
-  // Ensure variations also don't have 0 prices if root has one
-  if (this.variations && this.variations.length > 0) {
-    this.variations.forEach(v => {
-      if (!v.price || v.price === 0) v.price = this.price || this.compareAtPrice;
-      if (!v.discPrice || v.discPrice === 0) v.discPrice = v.price;
-      if (!v.compareAtPrice || v.compareAtPrice === 0) v.compareAtPrice = this.compareAtPrice;
-    });
-  }
-
-  // Calculate discount
-  if (this.compareAtPrice && this.compareAtPrice > this.price) {
-    this.discount = Math.round(
-      ((this.compareAtPrice - this.price) / this.compareAtPrice) * 100
-    );
-  } else if (this.compareAtPrice && this.compareAtPrice > (this.discPrice || 0)) {
-     this.discount = Math.round(
-      ((this.compareAtPrice - (this.discPrice || 0)) / this.compareAtPrice) * 100
-    );
+  const first = this.variations[0];
+  const minDisc = Math.min(
+    ...this.variations.map((v: any) => Number(v.discPrice ?? v.price) || 0)
+  );
+  const maxMrp = Math.max(
+    ...this.variations.map((v: any) => Number(v.compareAtPrice) || Number(v.price) || 0)
+  );
+  if (maxMrp > minDisc) {
+    this.discount = Math.round(((maxMrp - minDisc) / maxMrp) * 100);
   } else {
     this.discount = 0;
   }
+
   next();
 });
 

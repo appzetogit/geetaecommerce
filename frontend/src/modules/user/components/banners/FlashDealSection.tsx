@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../../../context/ThemeContext';
 import { bannerService } from '../../../../services/bannerService';
 import { getProductById } from '../../../../services/api/customerProductService';
-import { calculateProductPrice } from '../../../../utils/priceUtils';
+import { calculateCardPrice } from '../../../../utils/priceUtils';
+import { mapApiProductForCustomerDisplay } from '../../../../utils/customerVariantUtils';
 import { useLocation } from '../../../../hooks/useLocation';
 
 // Admin-managed Customer App Theme tokens. We intentionally read these instead
@@ -55,9 +56,8 @@ export default function FlashDealSection() {
                 fetchedProducts = results
                     .filter(res => res && res.success && res.data)
                     .map(res => ({
-                        ...res!.data,
-                        id: (res!.data as any)._id || (res!.data as any).id,
-                        isAvailable: (res!.data as any).isAvailableAtLocation !== false
+                        ...mapApiProductForCustomerDisplay(res!.data),
+                        isAvailable: (res!.data as any).isAvailableAtLocation !== false,
                     }));
             }
 
@@ -217,7 +217,7 @@ export default function FlashDealSection() {
                     className="flex overflow-x-auto gap-4 scrollbar-hide pb-2 md:pb-0 md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-4 md:overflow-visible h-full content-start"
                 >
                     {products.map(product => {
-                        const { displayPrice, mrp, discount } = calculateProductPrice(product);
+                        const { displayPrice, mrp, discount } = calculateCardPrice(product);
                         return (
                             <div
                                 key={product.id}
@@ -234,7 +234,7 @@ export default function FlashDealSection() {
                                         </div>
                                     )}
                                     <img
-                                        src={product.mainImage || product.imageUrl}
+                                        src={product.imageUrl || product.mainImage}
                                         alt={product.name}
                                         className="w-full h-full object-contain p-1"
                                     />

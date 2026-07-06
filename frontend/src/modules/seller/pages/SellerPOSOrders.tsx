@@ -113,37 +113,25 @@ export interface PurchaseEntryRecord {
   billAttachment?: string;
 }
 
-/** Same expansion as billing POS grid — seller's Product List catalog only (not global POS catalog). */
+import { expandProductsForPOS } from '../../../utils/posProductExpansion';
+import {
+  formatGstPercent,
+  resolveGstForBillLine,
+  resolveGstFromProduct,
+  resolveGstPercent,
+} from '../../../utils/gstUtils';
+import {
+  buildPosCartLineId,
+  getCartLineId,
+  getParentProductIdFromLineId,
+  normalizePosCartItem,
+  resolveVariantFromOrderLine,
+  resolveVariantId,
+} from '../../../utils/posCartLineId';
+
+/** @deprecated use expandProductsForPOS from utils */
 function expandSellerCatalogProductsForPOS(products: any[]): any[] {
-  const expandedProducts: any[] = [];
-  products.forEach((product: any) => {
-    if (product.variations && product.variations.length > 0) {
-      product.variations.forEach((variation: any) => {
-        expandedProducts.push({
-          ...product,
-          _id: `${product._id}-${variation._id}`,
-          originalProductId: product._id,
-          productName: `${product.productName} - ${variation.title || variation.name || variation.variationName || 'Variation'}`,
-          price: variation.price,
-          compareAtPrice: variation.compareAtPrice || product.compareAtPrice,
-          purchasePrice: variation.purchasePrice || product.purchasePrice,
-          stock: variation.stock,
-          sku: variation.sku || product.sku,
-          barcode: variation.barcode || product.barcode,
-          isVariation: true,
-          variationId: variation._id,
-          wholesalePrice: Number(product.wholesalePrice || 0)
-        });
-      });
-    } else {
-      expandedProducts.push({
-        ...product,
-        originalProductId: product._id,
-        wholesalePrice: product.wholesalePrice || 0
-      });
-    }
-  });
-  return expandedProducts;
+  return expandProductsForPOS(products);
 }
 
 const SellerPOSOrders = () => {
@@ -182,11 +170,16 @@ const SellerPOSOrders = () => {
       if (savedBills) {
         const parsed = JSON.parse(savedBills);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          if (parsed.length === 1) {
-             // Normalize single remaining bill's name to "Bill 1"
-             parsed[0] = { ...parsed[0], name: 'Bill 1' };
+          const normalized = parsed.map((bill: Bill) => ({
+            ...bill,
+            cart: Array.isArray(bill.cart)
+              ? bill.cart.map((item) => normalizePosCartItem(item as CartItem))
+              : [],
+          }));
+          if (normalized.length === 1) {
+             normalized[0] = { ...normalized[0], name: 'Bill 1' };
           }
-          return parsed;
+          return normalized;
         }
       }
     } catch (e) {
@@ -424,6 +417,22 @@ const SellerPOSOrders = () => {
 
       if (existingBill) {
         setActiveBillId(billId);
+        const normalizedCart = existingBill.cart.map((item) =>
+          normalizePosCartItem(item as CartItem)
+        );
+        const needsNormalize = normalizedCart.some(
+          (item, index) =>
+            getCartLineId(item) !== getCartLineId(existingBill.cart[index] as CartItem)
+        );
+        if (needsNormalize) {
+          setBills((prev) => {
+            const updated = prev.map((b) =>
+              b.id === billId ? { ...b, cart: normalizedCart } : b
+            );
+            localStorage.setItem('seller_pos_bills', JSON.stringify(updated));
+            return updated;
+          });
+        }
         return;
       }
 
@@ -441,22 +450,22 @@ const SellerPOSOrders = () => {
                item.product?.id ||
                (typeof item.product === 'string' && /^[a-f\d]{24}$/i.test(item.product) ? item.product : '') ||
                '';
-             let resolvedVariationId = item.variationId;
-             if (!resolvedVariationId && item.variation && Array.isArray(item.product?.variations)) {
-                 const match = item.product.variations.find((v: any) => {
-                     const vName = v.title || v.name ? `${v.name}: ${v.value}` : 'Variation';
-                     return vName === item.variation || v.name === item.variation || v.sku === item.sku;
-                 });
-                 if (match) {
-                     resolvedVariationId = match._id;
-                 }
-             }
-             if (!resolvedVariationId) {
-                 resolvedVariationId = item.variation;
-             }
+             const resolvedVariationId = resolveVariantFromOrderLine({
+               variationId: item.variationId || item.variantId,
+               variation: item.variation,
+               sku: item.sku,
+               productName: item.productName || item.product?.productName,
+               unitPrice: item.unitPrice,
+               product: item.product,
+             });
 
-             return {
-               _id: resolvedVariationId ? `${resolvedProductId}-${resolvedVariationId}` : (resolvedProductId || item._id),
+             const lineGst = (item as any).gst;
+             const productGst = item.product?.gst;
+             const resolvedHsn =
+               (item as any).hsnCode || item.product?.hsnCode || '';
+
+             return normalizePosCartItem({
+               _id: resolvedProductId || item._id,
                productName: item.productName || item.product?.productName || item.product || 'Unknown Product',
                // If we have custom unitPrice, use it as customPrice
                price: item.unitPrice,
@@ -473,6 +482,9 @@ const SellerPOSOrders = () => {
                compareAtPrice: item.unitPrice * 1.2, // Mock if missing
                purchasePrice: 0,
                wholesalePrice: 0,
+               hsnCode: resolvedHsn,
+               gst: resolveGstForBillLine(lineGst, productGst),
+               gstPercent: resolveGstForBillLine(lineGst, productGst),
                category: 'uncategorized', // Mock
                seller: '', // Mock
                galleryImages: [],
@@ -486,7 +498,7 @@ const SellerPOSOrders = () => {
                totalAllowedQuantity: 0,
                galleryImageUrls: [],
                variations: []
-             };
+             } as any);
           });
 
           const newBill: Bill = {
@@ -1004,18 +1016,21 @@ const SellerPOSOrders = () => {
              itemToAdd.gstPercent = Number(itemToAdd.gstPercent ?? itemToAdd.gst ?? itemToAdd.taxPercentage ?? 0);
 
              if (variationMatch) {
-                // Formatting variation as CartItem
-                 itemToAdd = {
+                const variantId = resolveVariantId(variationMatch);
+                 itemToAdd = normalizePosCartItem({
                      ...itemToAdd,
-                     variationId: variationMatch._id,
-                     _id: `${itemToAdd._id}-${variationMatch._id}`, // Consistent variation ID
+                     variationId: variantId,
+                     _id: buildPosCartLineId(String(itemToAdd._id), variantId),
                      isVariation: true,
                      stock: variationMatch.stock, // Use variation stock
                      price: Number(variationMatch.price) || itemToAdd.price,
                      compareAtPrice: Number(variationMatch.compareAtPrice) || itemToAdd.compareAtPrice,
-                 };
+                 } as CartItem);
              } else {
-                 itemToAdd.originalProductId = itemToAdd._id;
+                 itemToAdd = normalizePosCartItem({
+                   ...itemToAdd,
+                   originalProductId: itemToAdd._id,
+                 } as CartItem);
              }
 
              // Check Stock before adding
@@ -1627,41 +1642,39 @@ const SellerPOSOrders = () => {
 
   // --- Cart Logic ---
   const addToCart = (product: Product | CartItem) => {
-    // Check Stock
-    if (product.stock <= 0) {
-        showToast(`Item "${product.productName}" is Out of Stock!`, "error");
+    const normalized = normalizePosCartItem(product as CartItem);
+    const lineId = getCartLineId(normalized);
+
+    if (normalized.stock <= 0) {
+        showToast(`Item "${normalized.productName}" is Out of Stock!`, "error");
         return;
     }
 
     setCart(prev => {
-      const existing = prev.find(item => {
-           if (item._id === product._id) return true;
-           // Try to match based on base product ID and variation ID/string
-           const baseId1 = (item as any).originalProductId || String(item._id).split('-')[0];
-           const baseId2 = (product as any).originalProductId || String(product._id).split('-')[0];
-           
-           if (baseId1 === baseId2) {
-               const var1 = (item as any).variationId || (item as any).variation || item.productName;
-               const var2 = (product as any).variationId || (product as any).variation || product.productName;
-               if (String(var1) === String(var2)) return true;
-               if (typeof var1 === 'string' && typeof var2 === 'string' && (var1.includes(var2) || var2.includes(var1))) return true;
-           }
-           return false;
-      });
-
+      const existing = prev.find(item => getCartLineId(item) === lineId);
       if (existing) {
-        if (existing.qty >= product.stock) {
+        if (existing.qty >= normalized.stock) {
             showToast("Cannot add more than available stock", "error");
             return prev;
         }
-        return prev.map(item => item === existing ? { ...item, qty: item.qty + 1 } : item);
+        return prev.map(item => getCartLineId(item) === lineId ? { ...item, qty: item.qty + 1 } : item);
       }
 
-      const newItem = { ...(product as CartItem), qty: 1 };
+      const newItem: CartItem = {
+        ...normalized,
+        qty: 1,
+        gst: resolveGstFromProduct((product as any).gst ?? (normalized as any).gst),
+        hsnCode:
+          (product as any).hsnCode ??
+          (normalized as any).hsnCode ??
+          "",
+      };
       newItem.hsn = newItem.hsn || (product as any).hsnCode || "";
-      newItem.gstPercent = Number(newItem.gstPercent ?? (product as any).gst ?? (product as any).taxPercentage ?? 0);
-      if (orderType === 'Wholesale' && product.wholesalePrice) {
-          newItem.customPrice = product.wholesalePrice;
+      newItem.gstPercent = resolveGstFromProduct(
+        (product as any).gst ?? newItem.gst ?? (product as any).taxPercentage
+      );
+      if (orderType === 'Wholesale' && normalized.wholesalePrice) {
+          newItem.customPrice = normalized.wholesalePrice;
       }
 
        return [newItem, ...prev];
@@ -1669,12 +1682,12 @@ const SellerPOSOrders = () => {
    };
 
   const removeFromCart = (id: string) => {
-    setCart(prev => prev.filter(item => item._id !== id));
+    setCart(prev => prev.filter(item => getCartLineId(item) !== id));
   };
 
   const updateQuantity = (id: string, diff: number) => {
     setCart(prev => prev.map(item => {
-      if (item._id === id) {
+      if (getCartLineId(item) === id) {
         const newQty = Math.max(1, item.qty + diff);
         return { ...item, qty: newQty };
       }
@@ -1684,7 +1697,7 @@ const SellerPOSOrders = () => {
 
   const updateItemDetails = (id: string, updates: any) => {
     setCart(prev => prev.map(item => {
-        if (item._id === id) {
+        if (getCartLineId(item) === id) {
             return { ...item, ...updates };
         }
         return item;
@@ -2549,10 +2562,7 @@ const SellerPOSOrders = () => {
     // Missing/invalid GST falls back to 5% to keep the input controlled.
     const existingHsn = (item as any).hsnCode || (item as any).hsn || '';
     const existingGst = (item as any).gst ?? (item as any).gstPercent;
-    const gstStr =
-      existingGst === undefined || existingGst === null || existingGst === '' || !Number.isFinite(Number(existingGst))
-        ? '5'
-        : String(existingGst);
+    const isBillEditMode = activeBillId.startsWith('edit_');
     setEditForm({
       name: item.productName,
       price: currentPrice.toString(),
@@ -2563,15 +2573,18 @@ const SellerPOSOrders = () => {
       warrantyType: (item as any).warrantyType || 'None',
       warrantyDuration: (item as any).warrantyDuration || '',
       hsnCode: existingHsn,
-      gst: gstStr,
+      gst: isBillEditMode
+        ? formatGstPercent(resolveGstForBillLine(existingGst))
+        : formatGstPercent(existingGst),
     });
   };
 
   // Fetch fresh product details when editing an item
   useEffect(() => {
     const fetchProductDetails = async () => {
-      // Ensure we have a valid item and it's not a temporary quick-add item (unless added to inventory)
       if (!editingItem || !editingItem.originalProductId) return;
+
+      const isEditMode = activeBillId.startsWith('edit_');
 
       try {
         const res = await getProductById(editingItem.originalProductId);
@@ -2581,7 +2594,6 @@ const SellerPOSOrders = () => {
           let purchasePrice = product.purchasePrice || 0;
           let wholesalePrice = product.wholesalePrice || 0;
 
-          // If it's a variation, try to find the specific variation's details
           if (editingItem.isVariation && editingItem.variationId) {
              const variation = product.variations?.find((v: any) => v._id === editingItem.variationId) as any;
              if (variation) {
@@ -2591,30 +2603,28 @@ const SellerPOSOrders = () => {
              }
           }
 
-          // Pull HSN/GST off the product so we can fall back to them when
-          // the cart item itself doesn't carry them (e.g. a freshly added
-          // catalogue product). We only overwrite the form values if the
-          // user hasn't already set something — typing into the field while
-          // this fetch is in flight must not get clobbered.
           const productHsnCode: string = (product as any).hsnCode || '';
-          const productGst: any = (product as any).gst;
+          const productGst: unknown = (product as any).gst;
 
-          // Update the form with the fetched values
-          setEditForm(prev => ({
+          if (isEditMode) {
+            setEditForm(prev => ({
               ...prev,
-              mrp: (mrp || 0).toString(),
               purchasePrice: (purchasePrice || 0).toString(),
               wholesalePrice: (wholesalePrice || 0).toString(),
-              warrantyType: product.warrantyType || 'None',
-              warrantyDuration: product.warrantyDuration || '',
               hsnCode: prev.hsnCode && prev.hsnCode.trim() ? prev.hsnCode : productHsnCode,
-              gst:
-                prev.gst && prev.gst !== ''
-                  ? prev.gst
-                  : productGst !== undefined && productGst !== null
-                    ? String(productGst)
-                    : '5',
-          }));
+            }));
+          } else {
+            setEditForm(prev => ({
+                ...prev,
+                mrp: (mrp || 0).toString(),
+                purchasePrice: (purchasePrice || 0).toString(),
+                wholesalePrice: (wholesalePrice || 0).toString(),
+                warrantyType: product.warrantyType || 'None',
+                warrantyDuration: product.warrantyDuration || '',
+                hsnCode: prev.hsnCode && prev.hsnCode.trim() ? prev.hsnCode : productHsnCode,
+                gst: formatGstPercent(resolveGstFromProduct(productGst)),
+            }));
+          }
         }
       } catch (err) {
         console.error("Failed to fetch product details", err);
@@ -2622,19 +2632,18 @@ const SellerPOSOrders = () => {
     };
 
     fetchProductDetails();
-  }, [editingItem]);
+  }, [editingItem, activeBillId]);
 
   const handleEditItemSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingItem) return;
 
     setCart(prev => prev.map(item => {
-      if (item._id === editingItem._id) {
+      if (getCartLineId(item) === getCartLineId(editingItem)) {
         // Parse + clamp GST to a sane non-negative number, defaulting to 5%
         // when the user clears the field or types something invalid. Matches
         // the admin POS edit-item behaviour.
-        const parsedGst = parseFloat(editForm.gst);
-        const safeGst = Number.isFinite(parsedGst) && parsedGst >= 0 ? parsedGst : 5;
+        const safeGst = resolveGstPercent(parseFloat(editForm.gst));
         const updatedItem = {
           ...item,
           productName: editForm.name,
@@ -2715,7 +2724,7 @@ const SellerPOSOrders = () => {
     // when the user clears the field or types something invalid. Mirrors
     // `handleEditItemSubmit` for the regular POS cart.
     const parsedGst = parseFloat(purchaseEditForm.gst);
-    const safeGst = Number.isFinite(parsedGst) && parsedGst >= 0 ? parsedGst : 5;
+    const safeGst = resolveGstPercent(parsedGst);
 
     updatePurchaseItem(editingPurchaseItem.id, {
       productName: purchaseEditForm.name,
@@ -3638,7 +3647,8 @@ const SellerPOSOrders = () => {
                         ) : products.length > 0 ? (
                              <div className="flex flex-col gap-1">
                                  {products.map((product) => {
-                                     const cartItem = cart.find(c => c._id === product._id);
+                                     const lineId = getCartLineId(product as CartItem);
+                                     const cartItem = cart.find(c => getCartLineId(c) === lineId);
                                      const qtyInCart = cartItem ? cartItem.qty : 0;
                                      return (
                                      <div
@@ -3973,7 +3983,7 @@ const SellerPOSOrders = () => {
                                               <div className="flex items-center justify-between">
                                                   <div className="flex items-center gap-10">
                                                       <button
-                                                         onClick={() => removeFromCart(item._id)}
+                                                         onClick={() => removeFromCart(getCartLineId(item))}
                                                          className="w-6 h-6 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
                                                       >
                                                          <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -3990,14 +4000,14 @@ const SellerPOSOrders = () => {
                                                   {/* Quantity Control */}
                                                   <div className="flex items-center bg-gray-50 rounded-lg p-0 border border-gray-200 mr-2">
                                                        <button
-                                                         onClick={() => updateQuantity(item._id, -1)}
+                                                         onClick={() => updateQuantity(getCartLineId(item), -1)}
                                                          className="w-7 h-7 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-base"
                                                        >−</button>
                                                        <div className="w-7 flex items-center justify-center text-[11px] font-bold text-gray-800">
                                                            {item.qty}
                                                        </div>
                                                        <button
-                                                         onClick={() => updateQuantity(item._id, 1)}
+                                                         onClick={() => updateQuantity(getCartLineId(item), 1)}
                                                          className="w-7 h-7 flex items-center justify-center text-[var(--primary-color)] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-base"
                                                        >+</button>
                                                   </div>
@@ -4024,21 +4034,21 @@ const SellerPOSOrders = () => {
 
                                                   <div className="flex items-center justify-between gap-1.5">
                                                       <button
-                                                        onClick={() => removeFromCart(item._id)}
+                                                        onClick={() => removeFromCart(getCartLineId(item))}
                                                         className="w-7 h-7 flex items-center justify-center bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors border border-red-100"
                                                       >
                                                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                       </button>
                                                       <div className="flex items-center bg-gray-50 rounded-lg p-0.5 border border-gray-200">
                                                           <button
-                                                            onClick={() => updateQuantity(item._id, -1)}
+                                                            onClick={() => updateQuantity(getCartLineId(item), -1)}
                                                             className="w-6 h-6 flex items-center justify-center text-gray-600 hover:bg-white hover:shadow-sm rounded transition-all font-bold text-base"
                                                           >−</button>
                                                           <div className="w-6 flex items-center justify-center text-xs font-bold text-gray-800">
                                                               {item.qty}
                                                           </div>
                                                           <button
-                                                            onClick={() => updateQuantity(item._id, 1)}
+                                                            onClick={() => updateQuantity(getCartLineId(item), 1)}
                                                             className="w-6 h-6 flex items-center justify-center text-[var(--primary-color)] hover:bg-white hover:shadow-sm rounded transition-all font-bold text-base"
                                                           >+</button>
                                                       </div>
@@ -4100,7 +4110,7 @@ const SellerPOSOrders = () => {
                                                      <input
                                                          type="number"
                                                          value={mrp}
-                                                         onChange={(e) => updateItemDetails(item._id, { compareAtPrice: parseFloat(e.target.value) || 0 })}
+                                                         onChange={(e) => updateItemDetails(getCartLineId(item), { compareAtPrice: parseFloat(e.target.value) || 0 })}
                                                          className="w-full text-center text-base border border-transparent hover:border-gray-200 focus:border-[var(--primary-color)] bg-transparent focus:bg-white rounded px-1 py-1 outline-none transition-all"
                                                      />
                                                 </div>
@@ -4109,14 +4119,14 @@ const SellerPOSOrders = () => {
                                                <div className="col-span-2 flex justify-center">
                                                    <div className="flex items-center bg-white border border-gray-200 rounded-lg h-9 w-28 shadow-sm">
                                                         <button
-                                                          onClick={() => updateQuantity(item._id, -1)}
+                                                          onClick={() => updateQuantity(getCartLineId(item), -1)}
                                                           className="w-8 h-full flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-gray-50 rounded-l transition-colors text-xl font-bold"
                                                         >−</button>
                                                         <div className="flex-1 h-full flex items-center justify-center text-base font-bold text-gray-700 border-x border-gray-100 bg-gray-50/50">
                                                             {item.qty}
                                                         </div>
                                                         <button
-                                                          onClick={() => updateQuantity(item._id, 1)}
+                                                          onClick={() => updateQuantity(getCartLineId(item), 1)}
                                                           className="w-8 h-full flex items-center justify-center text-[var(--primary-color)] hover:bg-gray-50 rounded-r transition-colors font-bold text-xl"
                                                         >+</button>
                                                    </div>
@@ -4127,7 +4137,7 @@ const SellerPOSOrders = () => {
                                                     <input
                                                          type="number"
                                                          value={sp}
-                                                         onChange={(e) => updateItemDetails(item._id, { customPrice: parseFloat(e.target.value) || 0 })}
+                                                         onChange={(e) => updateItemDetails(getCartLineId(item), { customPrice: parseFloat(e.target.value) || 0 })}
                                                          className="w-full text-center text-base font-bold text-gray-900 border border-green-200 bg-[var(--primary-alpha-10)]/30 focus:bg-white focus:border-[var(--primary-color)] rounded px-1 py-1 outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                      />
                                                 </div>
@@ -4140,7 +4150,7 @@ const SellerPOSOrders = () => {
                                                {/* Delete */}
                                                <div className="col-span-1 text-center">
                                                    <button
-                                                      onClick={() => removeFromCart(item._id)}
+                                                      onClick={() => removeFromCart(getCartLineId(item))}
                                                       className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-flex"
                                                       title="Remove Item"
                                                    >
@@ -6411,7 +6421,8 @@ const SellerPOSOrders = () => {
                   })
                   .slice(0, 20)
                   .map(product => {
-                    const cartItem = cart.find(item => item._id === product._id);
+                    const lineId = getCartLineId(product as CartItem);
+                    const cartItem = cart.find(item => getCartLineId(item) === lineId);
                     const inCart = !!cartItem;
 
                     return (
@@ -6458,7 +6469,7 @@ const SellerPOSOrders = () => {
                             {inCart ? (
                               <div className="flex items-center gap-2 bg-[var(--primary-color)]/10 rounded-lg px-2 py-1">
                                 <button
-                                  onClick={() => updateQuantity(product._id, -1)}
+                                  onClick={() => updateQuantity(getCartLineId(product as CartItem), -1)}
                                   className="w-7 h-7 flex items-center justify-center bg-white text-[var(--primary-color)] rounded hover:bg-[var(--primary-color)] hover:text-white transition-colors border border-[var(--primary-color)]"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -6469,7 +6480,7 @@ const SellerPOSOrders = () => {
                                   {cartItem?.qty || 0}
                                 </span>
                                 <button
-                                  onClick={() => updateQuantity(product._id, 1)}
+                                  onClick={() => updateQuantity(getCartLineId(product as CartItem), 1)}
                                   className="w-7 h-7 flex items-center justify-center bg-[var(--primary-color)] text-white rounded hover:bg-[var(--primary-dark)] transition-colors"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

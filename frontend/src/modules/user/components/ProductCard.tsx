@@ -10,7 +10,17 @@ import { addToWishlist, removeFromWishlist, getWishlist } from '../../../service
 import Button from '../../../components/ui/button';
 import Badge from '../../../components/ui/badge';
 import StarRating from '../../../components/ui/StarRating';
-import { calculateProductPrice, getApplicableUnitPrice } from '../../../utils/priceUtils';
+import { calculateCardPrice, getApplicableUnitPrice } from '../../../utils/priceUtils';
+import {
+  buildProductWithPrimaryVariant,
+  findCartItemForPrimaryVariant,
+  getPrimaryVariant,
+  getProductCardImage,
+  getVariantId,
+  getVariantLabel,
+  getVariants,
+  hasRealVariants,
+} from '../../../utils/customerVariantUtils';
 import { useThemeContext } from '../../../context/ThemeContext';
 
 interface ProductCardProps {
@@ -121,19 +131,26 @@ export default function ProductCard({
     }
   };
 
-  const cartItem = cart.items.find((item) => item?.product && (item.product.id === (product as any).id || item.product._id === (product as any).id || item.product.id === product._id));
+  const primaryVariant = getPrimaryVariant(product);
+  const primaryVariantId = getVariantId(primaryVariant);
+  const primaryVariantLabel = getVariantLabel(primaryVariant) || product.pack;
+  const variantCount = getVariants(product).length;
+  const cardImageUrl = getProductCardImage(product);
+
+  const cartItem = findCartItemForPrimaryVariant(cart.items, product);
   const inCartQty = cartItem?.quantity || 0;
 
-  // Get Price and MRP using utility
-  const { displayPrice, mrp, discount } = calculateProductPrice(product);
+  // Get Price and MRP using primary variant (first created) with legacy fallbacks
+  const { displayPrice, mrp, discount } = calculateCardPrice(product);
 
   // Get real tiered pricing from root or first variation
   const tieredPrices = ((product as any).unitPricing && (product as any).unitPricing.length > 0)
       ? (product as any).unitPricing
-      : (product.variations?.[0]?.tieredPrices || []);
+      : (primaryVariant?.tieredPrices || []);
 
+  const variationSelector = hasRealVariants(product) ? 0 : undefined;
   // Calculate dynamic unit price based on cart quantity
-  const currentUnitPrice = getApplicableUnitPrice(product, undefined, Math.max(1, inCartQty));
+  const currentUnitPrice = getApplicableUnitPrice(product, variationSelector, Math.max(1, inCartQty));
 
   const deliveryTimeText = (() => {
     const raw = (product as any)?.deliveryTime;
@@ -192,7 +209,7 @@ export default function ProductCard({
     isOperationPendingRef.current = true;
 
     try {
-      await addToCart(product, addButtonRef.current);
+      await addToCart(buildProductWithPrimaryVariant(product), addButtonRef.current);
     } finally {
       // Reset the flag after the operation truly completes
       isOperationPendingRef.current = false;
@@ -211,7 +228,12 @@ export default function ProductCard({
     isOperationPendingRef.current = true;
 
     try {
-      await updateQuantity(((product as any).id || product._id) as string, inCartQty - 1);
+      await updateQuantity(
+        ((product as any).id || product._id) as string,
+        inCartQty - 1,
+        primaryVariantId,
+        primaryVariantLabel
+      );
     } finally {
       // Reset the flag after the operation truly completes
       isOperationPendingRef.current = false;
@@ -236,9 +258,14 @@ export default function ProductCard({
 
     try {
       if (inCartQty > 0) {
-        await updateQuantity(((product as any).id || product._id) as string, inCartQty + 1);
+        await updateQuantity(
+          ((product as any).id || product._id) as string,
+          inCartQty + 1,
+          primaryVariantId,
+          primaryVariantLabel
+        );
       } else {
-        await addToCart(product, addButtonRef.current);
+        await addToCart(buildProductWithPrimaryVariant(product), addButtonRef.current);
       }
     } finally {
       // Reset the flag after the operation truly completes
@@ -264,10 +291,10 @@ export default function ProductCard({
         className="cursor-pointer flex-1 flex flex-col"
       >
         <div className={`w-full ${compact ? 'h-48 md:h-56' : categoryStyle ? 'h-56 md:h-64' : 'h-64 md:h-80'} bg-neutral-100 flex items-center justify-center overflow-hidden relative`}>
-          {product.imageUrl || product.mainImage ? (
+          {cardImageUrl ? (
             <img
               ref={imageRef}
-              src={product.imageUrl || product.mainImage}
+              src={cardImageUrl}
               alt={product.name || product.productName || 'Product'}
               className="w-full h-full object-contain"
               referrerPolicy="no-referrer"
@@ -321,7 +348,7 @@ export default function ProductCard({
               variant="outline"
               className="absolute top-2 right-2 z-10 text-xs px-2 py-1 font-medium"
             >
-              {product.variations?.[0]?.value || product.pack}
+              {primaryVariantLabel || product.pack}
             </Badge>
           )}
 
@@ -354,10 +381,10 @@ export default function ProductCard({
             </button>
           )}
 
-          {(product.variations?.length || 0) >= 2 && (
+          {variantCount >= 2 && (
             <div className="absolute bottom-2 left-2 z-10">
               <span className="text-[10px] font-bold text-neutral-700 bg-white/95 backdrop-blur-sm px-2 py-1 rounded shadow-sm border border-neutral-200">
-                {product.variations?.length} Options
+                {variantCount} Options
               </span>
             </div>
           )}
@@ -451,9 +478,9 @@ export default function ProductCard({
             // Category Style Layout: Quantity, Name, Time, % off, Price
             <>
               {/* 1. Quantity */}
-              {!showPackBadge && (product.pack || product.variations?.[0]?.value) && (
+              {!showPackBadge && (product.pack || primaryVariantLabel) && (
                 <p className="text-[10px] text-neutral-500 mb-0.5 leading-tight font-medium">
-                  {product.variations?.[0]?.value || product.pack}
+                  {primaryVariantLabel || product.pack}
                 </p>
               )}
 
@@ -533,7 +560,7 @@ export default function ProductCard({
             <>
               {!showPackBadge && (
                 <p className={`${compact ? 'text-[10px] md:text-xs' : 'text-xs md:text-sm'} text-neutral-500 mb-1`}>
-                    {product.variations?.[0]?.value || product.pack}
+                    {primaryVariantLabel || product.pack}
                 </p>
               )}
 

@@ -13,7 +13,15 @@ import Seller from "../../../models/Seller";
 import SellerPOSState from "../../../models/SellerPOSState";
 import SellerOwnedCategory from "../../../models/SellerOwnedCategory";
 import SellerOwnedSubCategory from "../../../models/SellerOwnedSubCategory";
-// import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
+import {
+  decrementVariantStock,
+  getVariantStock,
+} from "../../product/variantStockService";
+import {
+  findVariantById,
+  resolveLedgerSku,
+  variantsFromProductDoc,
+} from "../../product/variantHelpers";
 
 // ... existing code ...
 
@@ -156,9 +164,23 @@ export const createPOSOrder = asyncHandler(
 
            let productData = {
                productName: item.name || (product?.productName) || "Quick Add Item",
-               mainImage: product?.mainImage || "",
-               sku: (product?.sku && String(product.sku).trim()) || (item.sku) || "NO-SKU",
+               mainImage: "",
+               sku: (item.sku && String(item.sku).trim()) || "NO-SKU",
            };
+
+           if (product) {
+               const variants = variantsFromProductDoc(product);
+               const variant = item.variationId
+                 ? findVariantById(variants, item.variationId)
+                 : variants.length === 1
+                   ? variants[0]
+                   : undefined;
+               productData = {
+                   productName: item.name || product.productName,
+                   mainImage: variant?.mainImage || (product as any).listing?.imageUrl || "",
+                   sku: variant?.sku || productData.sku,
+               };
+           }
 
            const payloadHsnCode =
              typeof item.hsnCode === "string" && item.hsnCode.trim()
@@ -186,25 +208,33 @@ export const createPOSOrder = asyncHandler(
              : 0;
 
            let sku = productData.sku;
-           let varId = null;
+           let varId: string | null = null;
 
-           // Deduct Stock only if product exists in DB
+           // Deduct stock only if product exists in DB and has resolvable variant
            if (product) {
-               const prevStock = product.stock;
-               sku = (product.sku && String(product.sku).trim()) ||
-                     ((product as any).itemCode && String((product as any).itemCode).trim()) ||
-                     sku;
+               const variants = variantsFromProductDoc(product);
+               let variantId = item.variationId ? String(item.variationId) : undefined;
+               if (variantId && !findVariantById(variants, variantId)) {
+                   variantId = undefined;
+               }
+               if (!variantId && variants.length === 1) {
+                   variantId = String(variants[0]._id);
+               }
 
-               if (item.variationId && product.variations) {
-                   const variationIndex = product.variations.findIndex((v: any) => v._id?.toString() === item.variationId.toString());
-                   if (variationIndex > -1) {
-                       const prevVarStock = product.variations[variationIndex].stock || 0;
-                       product.variations[variationIndex].stock = Math.max(0, prevVarStock - soldQty);
-                       product.stock = Math.max(0, prevStock - soldQty);
-                       const vSku = product.variations[variationIndex].sku;
-                       sku = (vSku && String(vSku).trim()) || sku;
-                       varId = product.variations[variationIndex]._id;
+               if (variantId && variants.length) {
+                   const variant = findVariantById(variants, variantId)!;
+                   sku = (variant.sku && String(variant.sku).trim()) || sku;
+                   varId = variantId;
 
+                   const prevStock = await getVariantStock(String(product._id), variantId);
+                   const decremented = await decrementVariantStock(
+                       String(product._id),
+                       variantId,
+                       soldQty,
+                       { session }
+                   );
+
+                   if (decremented) {
                        await StockLedger.create([{
                            product: product._id,
                            variationId: varId,
@@ -213,26 +243,16 @@ export const createPOSOrder = asyncHandler(
                            type: "OUT",
                            source: "POS",
                            referenceId: order._id,
-                           previousStock: prevVarStock,
-                           newStock: product.variations[variationIndex].stock,
+                           previousStock: prevStock,
+                           newStock: Math.max(0, prevStock - soldQty),
                            seller: sellerId
                        }], { session });
+                   } else {
+                       console.warn(`Seller POS stock decrement failed for ${product._id}/${variantId}`);
                    }
-               } else {
-                   product.stock = Math.max(0, prevStock - soldQty);
-                   await StockLedger.create([{
-                       product: product._id,
-                       sku: sku || "NO-SKU",
-                       quantity: soldQty,
-                       type: "OUT",
-                       source: "POS",
-                       referenceId: order._id,
-                       previousStock: prevStock,
-                       newStock: product.stock,
-                       seller: sellerId
-                   }], { session });
+               } else if (variants.length === 0) {
+                   console.warn(`Seller POS stock skip: product ${product._id} has no variants`);
                }
-               await product.save({ session });
            }
 
            const orderItem = new OrderItem({
@@ -253,9 +273,13 @@ export const createPOSOrder = asyncHandler(
              warrantyDuration: item.warrantyDuration || product?.warrantyDuration || ""
            });
 
-           if (varId && product && product.variations) {
-                const v = product.variations.find((v:any) => v._id.toString() === varId.toString());
-                if (v) orderItem.variation = `${v.name || 'Variation'}: ${v.value}`;
+           if (varId && product) {
+                const variants = variantsFromProductDoc(product);
+                const v = findVariantById(variants, varId);
+                if (v) {
+                  orderItem.variation = `${v.name || v.variationType || "Variation"}: ${v.value}`;
+                  orderItem.variantId = v._id as any;
+                }
            } else if (item.variationName) {
                 orderItem.variation = item.variationName;
            }
