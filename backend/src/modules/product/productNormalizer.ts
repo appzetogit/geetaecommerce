@@ -81,35 +81,28 @@ export function extractVariantsFromBody(body: Record<string, unknown>): ProductV
     return normalizeVariantArray(raw);
   }
 
-  // Legacy: build single variant from root-level price/stock/images
-  const hasRootPricing =
-    body.price != null ||
-    body.stock != null ||
-    body.mainImage != null ||
-    body.mainImageUrl != null;
-
-  if (hasRootPricing) {
-    return [
-      normalizeVariant({
-        variationType: body.variationType || "Standard",
-        value: "Default",
-        price: body.price ?? 1,
-        discPrice: body.discPrice ?? body.offerPrice ?? body.price,
-        compareAtPrice: body.compareAtPrice ?? body.mrp,
-        wholesalePrice: body.wholesalePrice,
-        purchasePrice: body.purchasePrice,
-        stock: body.stock ?? 0,
-        sku: body.sku ?? body.itemCode,
-        barcode: body.barcode,
-        rackNumber: body.rackNumber,
-        mainImage: body.mainImage ?? body.mainImageUrl,
-        galleryImages: body.galleryImages ?? body.galleryImageUrls,
-        tieredPrices: body.tieredPrices ?? body.unitPricing,
-      }),
-    ];
-  }
-
-  return [];
+  // Auto-generate a single default variant from root-level product fields.
+  // This covers Bulk Edit creation without manual variants as well as legacy products.
+  // Fields like price=0, stock=0, or no images are all acceptable — normalizeVariant
+  // handles safe defaults for each field.
+  return [
+    normalizeVariant({
+      variationType: body.variationType || "Standard",
+      value: "Default",
+      price: body.price ?? 0,
+      discPrice: body.discPrice ?? body.offerPrice ?? body.price ?? 0,
+      compareAtPrice: body.compareAtPrice ?? body.mrp,
+      wholesalePrice: body.wholesalePrice,
+      purchasePrice: body.purchasePrice,
+      stock: body.stock ?? 0,
+      sku: body.sku ?? body.itemCode,
+      barcode: body.barcode,
+      rackNumber: body.rackNumber,
+      mainImage: body.mainImage ?? body.mainImageUrl,
+      galleryImages: body.galleryImages ?? body.galleryImageUrls,
+      tieredPrices: body.tieredPrices ?? body.unitPricing,
+    }),
+  ];
 }
 
 export function normalizeCreatePayload(
@@ -119,9 +112,8 @@ export function normalizeCreatePayload(
   const parsed = body as CreateProductInput & Record<string, unknown>;
   const variations = extractVariantsFromBody(body);
 
-  if (variations.length < 1) {
-    throw new Error("At least one variant is required");
-  }
+  // variations will always have at least one entry after extractVariantsFromBody.
+  // No need to throw here — the Mongoose schema validates the array on save.
 
   const category = pickObjectId(parsed.categoryId, parsed.category);
   const subcategory = pickObjectId(parsed.subcategoryId, parsed.subcategory);

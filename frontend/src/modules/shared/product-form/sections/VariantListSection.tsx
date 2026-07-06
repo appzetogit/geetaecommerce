@@ -5,9 +5,11 @@ import VariantCard from "./VariantCard";
 interface Props {
   variants: ProductVariantForm[];
   onChange: (variants: ProductVariantForm[]) => void;
+  isFieldEnabled: (sectionId: string, fieldId: string) => boolean;
+  productName: string;
 }
 
-export default function VariantListSection({ variants, onChange }: Props) {
+export default function VariantListSection({ variants, onChange, isFieldEnabled, productName }: Props) {
   const addVariant = () => {
     onChange([...variants, defaultVariant()]);
   };
@@ -50,6 +52,8 @@ export default function VariantListSection({ variants, onChange }: Props) {
             canRemove={variants.length > 1}
             onChange={(v) => updateVariant(index, v)}
             onRemove={() => removeVariant(index)}
+            isFieldEnabled={isFieldEnabled}
+            productName={productName}
           />
         ))}
       </div>
