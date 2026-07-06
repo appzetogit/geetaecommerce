@@ -12,6 +12,7 @@ interface Props {
     category?: string;
     subcategory?: string;
   }) => void;
+  isFieldEnabled: (sectionId: string, fieldId: string) => boolean;
 }
 
 export default function CategoryCascadeFields({
@@ -20,6 +21,7 @@ export default function CategoryCascadeFields({
   categoryId,
   subcategoryId,
   onChange,
+  isFieldEnabled,
 }: Props) {
   const {
     headerCategories,
@@ -55,71 +57,77 @@ export default function CategoryCascadeFields({
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-      <FormField label="Header Category" required>
-        <select
-          className={selectClass}
-          value={headerCategoryId || effectiveHeaderId}
-          onChange={(e) => handleHeaderChange(e.target.value)}
-          disabled={loadingHeaders}
-        >
-          <option value="">
-            {loadingHeaders ? "Loading..." : "Select header category"}
-          </option>
-          {headerCategories.map((hc) => (
-            <option key={hc._id} value={hc._id}>
-              {hc.name}
+      {isFieldEnabled("basic", "header_category") && (
+        <FormField label="Header Category" required>
+          <select
+            className={selectClass}
+            value={headerCategoryId || effectiveHeaderId}
+            onChange={(e) => handleHeaderChange(e.target.value)}
+            disabled={loadingHeaders}
+          >
+            <option value="">
+              {loadingHeaders ? "Loading..." : "Select header category"}
             </option>
-          ))}
-        </select>
-      </FormField>
+            {headerCategories.map((hc) => (
+              <option key={hc._id} value={hc._id}>
+                {hc.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      )}
 
-      <FormField label="Category" required>
-        <select
-          className={selectClass}
-          value={categoryId}
-          onChange={(e) => handleCategoryChange(e.target.value)}
-          disabled={!effectiveHeaderId || loadingCategories}
-        >
-          <option value="">
-            {!effectiveHeaderId
-              ? "Select header category first"
-              : loadingCategories
-                ? "Loading..."
-                : categories.length === 0
-                  ? "No categories found"
-                  : "Select category"}
-          </option>
-          {categories.map((cat) => (
-            <option key={cat._id} value={cat._id}>
-              {cat.name}
+      {isFieldEnabled("basic", "category") && (
+        <FormField label="Category" required>
+          <select
+            className={selectClass}
+            value={categoryId}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            disabled={!effectiveHeaderId || loadingCategories}
+          >
+            <option value="">
+              {!effectiveHeaderId
+                ? "Select header category first"
+                : loadingCategories
+                  ? "Loading..."
+                  : categories.length === 0
+                    ? "No categories found"
+                    : "Select category"}
             </option>
-          ))}
-        </select>
-      </FormField>
+            {categories.map((cat) => (
+              <option key={cat._id} value={cat._id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      )}
 
-      <FormField label="Sub Category">
-        <select
-          className={selectClass}
-          value={subcategoryId}
-          onChange={(e) => onChange({ subcategory: e.target.value })}
-          disabled={!categoryId || loadingSubcategories}
-        >
-          <option value="">
-            {!categoryId
-              ? "Select category first"
-              : loadingSubcategories
-                ? "Loading..."
-                : subcategories.length === 0
-                  ? "No sub categories (optional)"
-                  : "Select sub category"}
-          </option>
-          {subcategories.map((sub) => (
-            <option key={sub._id} value={sub._id}>
-              {subCategoryLabel(sub)}
+      {isFieldEnabled("basic", "subcategory") && (
+        <FormField label="Sub Category">
+          <select
+            className={selectClass}
+            value={subcategoryId}
+            onChange={(e) => onChange({ subcategory: e.target.value })}
+            disabled={!categoryId || loadingSubcategories}
+          >
+            <option value="">
+              {!categoryId
+                ? "Select category first"
+                : loadingSubcategories
+                  ? "Loading..."
+                  : subcategories.length === 0
+                    ? "No sub categories (optional)"
+                    : "Select sub category"}
             </option>
-          ))}
-        </select>
-      </FormField>
+            {subcategories.map((sub) => (
+              <option key={sub._id} value={sub._id}>
+                {subCategoryLabel(sub)}
+              </option>
+            ))}
+          </select>
+        </FormField>
+      )}
     </div>
   );
 }

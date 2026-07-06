@@ -8,6 +8,7 @@ import {
   isBarcodeUsedByOtherVariant,
   normalizeBarcode,
 } from "../utils/variantBarcodeUtils";
+import api from "../../../../services/api/config";
 
 interface Props {
   index: number;
@@ -16,6 +17,8 @@ interface Props {
   canRemove: boolean;
   onChange: (variant: ProductVariantForm) => void;
   onRemove: () => void;
+  isFieldEnabled: (sectionId: string, fieldId: string) => boolean;
+  productName: string;
 }
 
 const variantColors = [
@@ -33,6 +36,8 @@ export default function VariantCard({
   canRemove,
   onChange,
   onRemove,
+  isFieldEnabled,
+  productName,
 }: Props) {
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
@@ -42,6 +47,256 @@ export default function VariantCard({
 
   const patch = (p: Partial<ProductVariantForm>) =>
     onChange({ ...variant, ...p });
+
+  const [generatingBarcode, setGeneratingBarcode] = useState(false);
+
+  const handleGenerateBarcode = async () => {
+    if (!productName.trim()) {
+      alert("Please enter a product name first");
+      return;
+    }
+    setGeneratingBarcode(true);
+    try {
+      const isAdmin = window.location.pathname.includes("/admin");
+      const endpoint = isAdmin ? "/admin/products/generate-barcode" : "/products/generate-barcode";
+      
+      const response = await api.get(endpoint, {
+        params: {
+          productName: productName.trim(),
+          variationValue: variant.value.trim(),
+        }
+      });
+      if (response.data.success && response.data.barcode) {
+        addBarcode(response.data.barcode);
+      } else {
+        alert(response.data.message || "Failed to generate barcode");
+      }
+    } catch (err: any) {
+      console.error("Error generating barcode:", err);
+      alert(err.response?.data?.message || err.message || "Failed to generate barcode");
+    } finally {
+      setGeneratingBarcode(false);
+    }
+  };
+
+  const handlePrintBarcode = () => {
+    const value = variant.barcode?.[0]; // Print the first barcode
+    if (!value) {
+      alert("No barcode found to print");
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Please allow popups to print barcodes");
+      return;
+    }
+
+    const savedSize = localStorage.getItem('barcode_print_size') || 'medium';
+    const customSettingsRaw = localStorage.getItem('barcode_printer_settings');
+    const customSettings = customSettingsRaw ? JSON.parse(customSettingsRaw) : null;
+
+    let containerWidth = 250;
+    let barcodeHeight = 55;
+    let fontSize = 14;
+    let productNameSize = 14;
+    let barcodeTextSize = 12;
+    let barcodeModuleWidth = 2;
+    let pageWidthMm = 50;
+    let pageHeightMm = 30;
+    let showName = true;
+    let showPrice = true;
+    let isCustom = false;
+
+    if (customSettings) {
+      isCustom = true;
+      barcodeHeight = customSettings.barcodeHeight;
+      fontSize = customSettings.fontSize;
+      productNameSize = customSettings.productNameSize;
+      if (typeof customSettings.barcodeWidth === 'number') {
+        barcodeModuleWidth = customSettings.barcodeWidth;
+      }
+      showName = customSettings.showName ?? true;
+      showPrice = customSettings.showPrice ?? true;
+      pageWidthMm = customSettings.width;
+      pageHeightMm = customSettings.height;
+    }
+
+    if (!isCustom) {
+      if (savedSize === 'small') {
+        containerWidth = 200;
+        pageWidthMm = 45;
+        pageHeightMm = 25;
+        barcodeHeight = 32;
+        fontSize = 10;
+        productNameSize = 10;
+        barcodeModuleWidth = 1.5;
+      } else if (savedSize === 'large') {
+        containerWidth = 320;
+        pageWidthMm = 60;
+        pageHeightMm = 35;
+        barcodeHeight = 42;
+        fontSize = 11;
+        productNameSize = 12;
+        barcodeModuleWidth = 2;
+      } else {
+        pageWidthMm = 50;
+        pageHeightMm = 30;
+        barcodeHeight = 36;
+        fontSize = 10;
+        productNameSize = 11;
+        barcodeModuleWidth = 1.7;
+      }
+    }
+
+    barcodeTextSize = Math.max(9, Math.min(12, Math.round(fontSize * 1.0)));
+    if (isCustom) {
+      if (typeof customSettings?.barcodeWidth === 'number') {
+        barcodeModuleWidth = customSettings.barcodeWidth;
+      } else if (customSettings?.width) {
+        barcodeModuleWidth = customSettings.width <= 50 ? 1.7 : 2;
+      }
+    }
+
+    let styleContent = '';
+    if (isCustom && customSettings) {
+      styleContent = `
+        @page {
+          size: ${customSettings.width}mm ${customSettings.height}mm;
+          margin: 0;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+          width: ${customSettings.width}mm;
+        }
+        .barcode-container {
+          width: ${customSettings.width}mm;
+          height: ${customSettings.height}mm;
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: flex-start;
+          text-align: left;
+          overflow: hidden;
+          page-break-after: always;
+          box-sizing: border-box;
+          padding: 2mm;
+          gap: 1px;
+        }
+      `;
+    } else {
+      styleContent = `
+        @page { size: ${pageWidthMm}mm ${pageHeightMm}mm; margin: 0; }
+        body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; width: ${pageWidthMm}mm; }
+        .barcode-grid { display: block; }
+        .barcode-container {
+          text-align: left;
+          border: 0;
+          padding: 2mm;
+          page-break-inside: avoid;
+          page-break-after: always;
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: flex-start;
+          width: ${pageWidthMm}mm;
+          height: ${pageHeightMm}mm;
+          background: white;
+          box-sizing: border-box;
+          border-radius: 0;
+          overflow: hidden;
+          gap: 1px;
+        }
+      `;
+    }
+
+    const safeName = productName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeBarcode = value.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const mrp = Number(variant.price || 0);
+    const sp = Number(variant.discPrice || 0);
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Print Barcode</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+            body { font-family: 'Inter', sans-serif; }
+            ${styleContent}
+            .product-name {
+              font-size: ${productNameSize}px;
+              font-weight: 600;
+              margin: 0 0 1px 0;
+              color: #000;
+              line-height: 1.05;
+              text-transform: none;
+              max-width: 100%;
+              word-wrap: break-word;
+              display: ${showName ? 'block' : 'none'};
+            }
+            .price-row {
+              display: ${showPrice ? 'flex' : 'none'};
+              gap: 6px;
+              margin-top: 1px;
+              font-size: ${fontSize}px;
+              font-weight: 700;
+              color: #000;
+              justify-content: space-between;
+              align-items: baseline;
+              white-space: nowrap;
+              width: 100%;
+            }
+            .price-item { white-space: nowrap; }
+            svg.barcode {
+              width: auto;
+              height: ${barcodeHeight}px;
+              max-width: 100%;
+              display: block;
+              align-self: center;
+              margin: 0 auto;
+              shape-rendering: crispEdges;
+            }
+            svg.barcode * { shape-rendering: crispEdges; }
+          </style>
+          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+        </head>
+        <body>
+          <div class="${isCustom ? '' : 'barcode-grid'}">
+            <div class="barcode-container">
+              <div class="product-name">${safeName}</div>
+              <svg class="barcode"
+                jsbarcode-format="CODE128"
+                jsbarcode-value="${safeBarcode}"
+                jsbarcode-width="${barcodeModuleWidth}"
+                jsbarcode-height="${barcodeHeight}"
+                jsbarcode-textmargin="1"
+                jsbarcode-fontoptions="bold"
+                jsbarcode-displayValue="true"
+                jsbarcode-fontSize="${barcodeTextSize}"
+                jsbarcode-margin="0"
+                jsbarcode-marginBottom="0"
+                jsbarcode-marginTop="0">
+              </svg>
+              <div class="price-row">
+                ${customSettings?.mrpLabel ? `<div class="price-item">${customSettings.mrpLabel}:${mrp}</div>` : mrp ? `<div class="price-item">MRP:${mrp}</div>` : ''}
+                ${customSettings?.spLabel ? `<div class="price-item">${customSettings.spLabel}:${sp}</div>` : sp ? `<div class="price-item">SP:${sp}</div>` : ''}
+              </div>
+            </div>
+          </div>
+          <script>
+            JsBarcode(".barcode").init();
+            setTimeout(() => {
+              window.print();
+              window.close();
+            }, 800);
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+  };
 
   const handleMainImage = async (file: File) => {
     setUploadingMain(true);
@@ -167,15 +422,17 @@ export default function VariantCard({
               placeholder="0"
             />
           </FormField>
-          <FormField label="Offer Price">
-            <input
-              type="number"
-              className={inputClass}
-              value={variant.discPrice}
-              onChange={(e) => patch({ discPrice: e.target.value })}
-              placeholder="0"
-            />
-          </FormField>
+          {isFieldEnabled("variants", "online_offer_price") && (
+            <FormField label="Offer Price">
+              <input
+                type="number"
+                className={inputClass}
+                value={variant.discPrice}
+                onChange={(e) => patch({ discPrice: e.target.value })}
+                placeholder="0"
+              />
+            </FormField>
+          )}
           <FormField label="Wholesale">
             <input
               type="number"
@@ -184,14 +441,16 @@ export default function VariantCard({
               onChange={(e) => patch({ wholesalePrice: e.target.value })}
             />
           </FormField>
-          <FormField label="Purchase">
-            <input
-              type="number"
-              className={inputClass}
-              value={variant.purchasePrice}
-              onChange={(e) => patch({ purchasePrice: e.target.value })}
-            />
-          </FormField>
+          {isFieldEnabled("pricing", "purchase_price") && (
+            <FormField label="Purchase">
+              <input
+                type="number"
+                className={inputClass}
+                value={variant.purchasePrice}
+                onChange={(e) => patch({ purchasePrice: e.target.value })}
+              />
+            </FormField>
+          )}
           <FormField label="Stock" required>
             <input
               type="number"
@@ -203,13 +462,26 @@ export default function VariantCard({
           </FormField>
         </div>
 
-        <FormField label="SKU / Item Code">
-          <input
-            className={inputClass}
-            value={variant.sku}
-            onChange={(e) => patch({ sku: e.target.value })}
-          />
-        </FormField>
+        {isFieldEnabled("basic", "item_code") && (
+          <FormField label="SKU / Item Code">
+            <input
+              className={inputClass}
+              value={variant.sku}
+              onChange={(e) => patch({ sku: e.target.value })}
+            />
+          </FormField>
+        )}
+
+        {isFieldEnabled("basic", "rack_number") && (
+          <FormField label="Rack Number">
+            <input
+              className={inputClass}
+              value={variant.rackNumber}
+              onChange={(e) => patch({ rackNumber: e.target.value })}
+              placeholder="e.g. A1, Shelf 3"
+            />
+          </FormField>
+        )}
 
         <FormField label="Barcode" required hint="Each variant must have a unique barcode — scan or type to add">
           <div className="space-y-3">
@@ -266,6 +538,26 @@ export default function VariantCard({
             ) : (
               <p className="text-xs text-rose-500">At least one barcode is required</p>
             )}
+
+            {/* Generate & Print Buttons */}
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleGenerateBarcode}
+                disabled={generatingBarcode}
+                className="inline-flex items-center justify-center rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-violet-700 transition disabled:opacity-50"
+              >
+                {generatingBarcode ? "Generating..." : "Generate Barcode"}
+              </button>
+              <button
+                type="button"
+                onClick={handlePrintBarcode}
+                disabled={(variant.barcode || []).length === 0}
+                className="inline-flex items-center justify-center rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-700 shadow-sm hover:bg-violet-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Print Barcode
+              </button>
+            </div>
           </div>
         </FormField>
 

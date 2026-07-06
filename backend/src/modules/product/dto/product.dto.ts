@@ -115,8 +115,11 @@ function refineVariants(
 const productPayloadSchema = z.object(productPayloadShape);
 
 export const createProductSchema = productPayloadSchema.superRefine((data, ctx) => {
-  refineVariants(data, ctx, true);
+  // Variants are not required at the DTO level — the normalizer will auto-generate
+  // a default variant from root-level pricing (price, stock, images) if none are provided.
+  refineVariants(data, ctx, false);
 });
+
 
 export const updateProductSchema = productPayloadSchema.partial().superRefine((data, ctx) => {
   if (data.variants !== undefined || data.variations !== undefined) {

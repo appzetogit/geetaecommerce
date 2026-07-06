@@ -12,6 +12,7 @@ import ProductMainInfoSection from "./sections/ProductMainInfoSection";
 import VariantListSection from "./sections/VariantListSection";
 import ProductPoliciesSection from "./sections/ProductPoliciesSection";
 import { findDuplicateBarcodeMessage } from "./utils/variantBarcodeUtils";
+import { getAppSettings } from "../../../services/api/admin/adminSettingsService";
 
 export interface ProductFormConfig {
   role: "admin" | "seller";
@@ -41,16 +42,56 @@ export default function ProductFormPage({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [displaySettings, setDisplaySettings] = useState<any[]>([]);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [loadingProduct, setLoadingProduct] = useState(!!productId);
+
+  useEffect(() => {
+    let active = true;
+    const fetchSettings = async () => {
+      try {
+        const res = await getAppSettings();
+        if (active && res.success && res.data.productDisplaySettings) {
+          setDisplaySettings(res.data.productDisplaySettings);
+        }
+      } catch (err) {
+        console.error("Error fetching product display settings:", err);
+      } finally {
+        if (active) {
+          setLoadingSettings(false);
+        }
+      }
+    };
+    fetchSettings();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (productId && config.getProduct) {
-      config.getProduct(productId).then((res) => {
-        if (res?.data) {
-          setFormState(fromProductDetail(res.data));
-        }
-      });
+      setLoadingProduct(true);
+      config.getProduct(productId)
+        .then((res) => {
+          if (res?.data) {
+            setFormState(fromProductDetail(res.data));
+          }
+        })
+        .finally(() => {
+          setLoadingProduct(false);
+        });
+    } else {
+      setLoadingProduct(false);
     }
   }, [productId, config]);
+
+  const isFieldEnabled = (sectionId: string, fieldId: string) => {
+    if (loadingSettings) return true;
+    const section = displaySettings.find((s) => s.id === sectionId);
+    if (!section) return true;
+    const field = section.fields.find((f: any) => f.id === fieldId);
+    return field ? field.isEnabled : true;
+  };
 
   const updateMainInfo = (patch: Partial<ProductMainInfoForm>) => {
     setFormState((prev) => ({
@@ -72,11 +113,11 @@ export default function ProductFormPage({
       setError("Product name is required");
       return;
     }
-    if (!formState.mainInfo.headerCategory) {
+    if (isFieldEnabled("basic", "header_category") && !formState.mainInfo.headerCategory) {
       setError("Header category is required");
       return;
     }
-    if (!formState.mainInfo.category) {
+    if (isFieldEnabled("basic", "category") && !formState.mainInfo.category) {
       setError("Category is required");
       return;
     }
@@ -131,6 +172,14 @@ export default function ProductFormPage({
     }
   };
 
+  if (loadingSettings || loadingProduct) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-violet-600 border-t-transparent"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-amber-50/40 pb-28">
       <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 px-4 py-8 text-white shadow-lg md:px-8">
@@ -165,16 +214,20 @@ export default function ProductFormPage({
             mainInfo={formState.mainInfo}
             onChange={updateMainInfo}
             showSellerPicker={config.showSellerPicker}
+            isFieldEnabled={isFieldEnabled}
           />
 
           <VariantListSection
             variants={formState.variants}
             onChange={setVariants}
+            isFieldEnabled={isFieldEnabled}
+            productName={formState.mainInfo.productName}
           />
 
           <ProductPoliciesSection
             mainInfo={formState.mainInfo}
             onChange={updateMainInfo}
+            isFieldEnabled={isFieldEnabled}
           />
 
           <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/80 bg-white/90 px-4 py-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-md md:px-8">
