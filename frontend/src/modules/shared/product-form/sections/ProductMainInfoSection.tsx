@@ -89,9 +89,11 @@ export default function ProductMainInfoSection({
   const showTax = isFieldEnabled("pricing", "tax");
   const showHsn = isFieldEnabled("pricing", "hsn_code");
   const showDeliveryTime = isFieldEnabled("pricing", "delivery_time");
+  const showMfgDate = isFieldEnabled("pricing", "mfg_date");
+  const showExpiryDate = isFieldEnabled("pricing", "expiry_date");
 
   const showCategoryBrandSection = showHeaderCategory || showCategory || showSubcategory || showBrand;
-  const showTaxSection = showTax || showHsn || showDeliveryTime;
+  const showTaxSection = showTax || showHsn || showDeliveryTime || showMfgDate || showExpiryDate;
 
   const showVisibilitySection = isFieldEnabled("visibility", "shop_by_store_only") || isFieldEnabled("visibility", "select_store");
 
@@ -231,14 +233,24 @@ export default function ProductMainInfoSection({
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {showTax && (
-              <FormField label="GST %">
-                <input
-                  type="number"
-                  className={inputClass}
-                  value={mainInfo.gst}
-                  onChange={(e) => onChange({ gst: e.target.value })}
-                />
-              </FormField>
+              <>
+                <FormField label="GST %">
+                  <input
+                    type="number"
+                    className={inputClass}
+                    value={mainInfo.gst}
+                    onChange={(e) => onChange({ gst: e.target.value })}
+                  />
+                </FormField>
+                <FormField label="Tax Info">
+                  <input
+                    className={inputClass}
+                    value={mainInfo.tax}
+                    onChange={(e) => onChange({ tax: e.target.value })}
+                    placeholder="e.g. Tax category or details"
+                  />
+                </FormField>
+              </>
             )}
             {showHsn && (
               <FormField label="HSN Code">
@@ -256,6 +268,26 @@ export default function ProductMainInfoSection({
                   value={mainInfo.deliveryTime}
                   onChange={(e) => onChange({ deliveryTime: e.target.value })}
                   placeholder="e.g. 2-3 Days"
+                />
+              </FormField>
+            )}
+            {showMfgDate && (
+              <FormField label="Mfg Date">
+                <input
+                  className={inputClass}
+                  type="date"
+                  value={mainInfo.mfgDate}
+                  onChange={(e) => onChange({ mfgDate: e.target.value })}
+                />
+              </FormField>
+            )}
+            {showExpiryDate && (
+              <FormField label="Expiry Date">
+                <input
+                  className={inputClass}
+                  type="date"
+                  value={mainInfo.expiryDate}
+                  onChange={(e) => onChange({ expiryDate: e.target.value })}
                 />
               </FormField>
             )}

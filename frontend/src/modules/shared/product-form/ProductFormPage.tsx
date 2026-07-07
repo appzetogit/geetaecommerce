@@ -93,6 +93,10 @@ export default function ProductFormPage({
     return field ? field.isEnabled : true;
   };
 
+  const enabledVariantTypes = displaySettings
+    .find((s) => s.id === "variants")
+    ?.fields.filter((f: any) => f.isEnabled && f.id !== "online_offer_price") || [];
+
   const updateMainInfo = (patch: Partial<ProductMainInfoForm>) => {
     setFormState((prev) => ({
       ...prev,
@@ -222,6 +226,7 @@ export default function ProductFormPage({
             onChange={setVariants}
             isFieldEnabled={isFieldEnabled}
             productName={formState.mainInfo.productName}
+            enabledVariantTypes={enabledVariantTypes}
           />
 
           <ProductPoliciesSection

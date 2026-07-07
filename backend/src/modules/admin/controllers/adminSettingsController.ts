@@ -42,10 +42,14 @@ export const updateAppSettings = asyncHandler(
     if (!settings) {
       settings = await AppSettings.create(updateData);
     } else {
-      settings = await AppSettings.findOneAndUpdate({}, updateData, {
-        new: true,
-        runValidators: true,
-      }).lean();
+      settings = await AppSettings.findOneAndUpdate(
+        {},
+        { $set: updateData },
+        {
+          new: true,
+          runValidators: true,
+        }
+      ).lean();
     }
 
     return res.status(200).json({

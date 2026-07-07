@@ -7,9 +7,10 @@ interface Props {
   onChange: (variants: ProductVariantForm[]) => void;
   isFieldEnabled: (sectionId: string, fieldId: string) => boolean;
   productName: string;
+  enabledVariantTypes: Array<{id: string, label: string}>;
 }
 
-export default function VariantListSection({ variants, onChange, isFieldEnabled, productName }: Props) {
+export default function VariantListSection({ variants, onChange, isFieldEnabled, productName, enabledVariantTypes }: Props) {
   const addVariant = () => {
     onChange([...variants, defaultVariant()]);
   };
@@ -54,6 +55,7 @@ export default function VariantListSection({ variants, onChange, isFieldEnabled,
             onRemove={() => removeVariant(index)}
             isFieldEnabled={isFieldEnabled}
             productName={productName}
+            enabledVariantTypes={enabledVariantTypes}
           />
         ))}
       </div>

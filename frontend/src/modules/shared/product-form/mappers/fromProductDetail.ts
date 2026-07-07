@@ -30,6 +30,7 @@ export function fromProductDetail(product: any): ProductFormState {
   return {
     mainInfo: defaultMainInfo({
       productName: product.productName || "",
+      video: product.video || product.videoUrl || "",
       smallDescription: product.smallDescription || "",
       description: product.description || "",
       headerCategory:
@@ -56,6 +57,8 @@ export function fromProductDetail(product: any): ProductFormState {
       madeIn: product.madeIn || "",
       marketer: product.marketer || "",
       shelfLife: product.shelfLife || "",
+      mfgDate: product.mfgDate || "",
+      expiryDate: product.expiryDate || "",
       pack: product.pack || "",
       fssaiLicNo: product.fssaiLicNo || "",
       isReturnable: product.isReturnable ? "Yes" : "No",

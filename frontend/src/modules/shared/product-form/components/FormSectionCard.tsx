@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 
-type Accent = "amber" | "violet" | "emerald" | "sky" | "rose";
+type Accent = "amber" | "violet" | "emerald" | "sky" | "rose" | "indigo";
 
 const accents: Record<
   Accent,
@@ -35,6 +35,12 @@ const accents: Record<
     header: "from-rose-500 to-pink-600",
     icon: "bg-rose-100 text-rose-700",
     badge: "bg-rose-50 text-rose-700",
+  },
+  indigo: {
+    border: "border-indigo-200",
+    header: "from-indigo-500 to-blue-600",
+    icon: "bg-indigo-100 text-indigo-700",
+    badge: "bg-indigo-50 text-indigo-700",
   },
 };
 

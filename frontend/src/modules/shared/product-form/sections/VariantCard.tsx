@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ProductVariantForm } from "../types/productForm.types";
-import FormField, { inputClass } from "../components/FormField";
+import FormField, { inputClass, selectClass } from "../components/FormField";
 import { uploadImage } from "../../../../services/api/uploadService";
 import QRScannerModal from "../../../../components/QRScannerModal";
 import { openBarcodeScanner } from "../../../../utils/scannerPlatform";
@@ -19,6 +19,7 @@ interface Props {
   onRemove: () => void;
   isFieldEnabled: (sectionId: string, fieldId: string) => boolean;
   productName: string;
+  enabledVariantTypes: Array<{id: string, label: string}>;
 }
 
 const variantColors = [
@@ -38,6 +39,7 @@ export default function VariantCard({
   onRemove,
   isFieldEnabled,
   productName,
+  enabledVariantTypes,
 }: Props) {
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
@@ -400,6 +402,7 @@ export default function VariantCard({
               value={variant.variationType}
               onChange={(e) => patch({ variationType: e.target.value })}
               placeholder="e.g. Size, Weight, Color"
+              required
             />
           </FormField>
           <FormField label="Variant Value" required>
@@ -408,8 +411,24 @@ export default function VariantCard({
               value={variant.value}
               onChange={(e) => patch({ value: e.target.value })}
               placeholder="e.g. 1kg, Red, Large"
+              required
             />
           </FormField>
+          {enabledVariantTypes && enabledVariantTypes.length > 0 && (
+            enabledVariantTypes.map((vt) => (
+              <FormField key={vt.id} label={vt.label}>
+                <input
+                  className={inputClass}
+                  value={variant.attributes?.[vt.id] || ""}
+                  onChange={(e) => {
+                    const newAttrs = { ...(variant.attributes || {}), [vt.id]: e.target.value };
+                    patch({ attributes: newAttrs });
+                  }}
+                  placeholder={`Enter ${vt.label}`}
+                />
+              </FormField>
+            ))
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">

@@ -4,6 +4,7 @@ import { generateEmbedding } from "../utils/embedding";
 export interface IProduct extends Document {
   // Basic Info
   productName: string;
+  video?: string;
   smallDescription?: string;
   description?: string;
 
@@ -44,6 +45,7 @@ export interface IProduct extends Document {
     galleryImages?: string[];
     image?: string;
     tieredPrices?: { minQty: number; price: number }[];
+    attributes?: Record<string, string>;
   }>;
 
   // Status Flags
@@ -56,6 +58,8 @@ export interface IProduct extends Document {
   manufacturer?: string;
   madeIn?: string;
   tax?: string;
+  mfgDate?: string;
+  expiryDate?: string;
   fssaiLicNo?: string;
   totalAllowedQuantity?: number;
 
@@ -124,6 +128,10 @@ export interface IProduct extends Document {
       productName: {
         type: String,
         required: [true, "Product name is required"],
+        trim: true,
+      },
+      video: {
+        type: String,
         trim: true,
       },
       smallDescription: {
@@ -217,6 +225,11 @@ export interface IProduct extends Document {
             type: [{ minQty: Number, price: Number }],
             default: [],
           },
+          attributes: {
+            type: Map,
+            of: String,
+            default: {},
+          },
         },
       ],
       validate: {
@@ -248,6 +261,14 @@ export interface IProduct extends Document {
 
     // Product Details
     manufacturer: {
+      type: String,
+      trim: true,
+    },
+    mfgDate: {
+      type: String,
+      trim: true,
+    },
+    expiryDate: {
       type: String,
       trim: true,
     },
