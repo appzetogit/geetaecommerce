@@ -11,6 +11,7 @@ export function toCreatePayload(state: ProductFormState): CreateProductPayload {
 
   return {
     productName: mainInfo.productName.trim(),
+    video: mainInfo.video || undefined,
     smallDescription: mainInfo.smallDescription || undefined,
     description: mainInfo.description || undefined,
     headerCategoryId: mainInfo.headerCategory || undefined,
@@ -33,6 +34,8 @@ export function toCreatePayload(state: ProductFormState): CreateProductPayload {
     madeIn: mainInfo.madeIn || undefined,
     marketer: mainInfo.marketer || undefined,
     shelfLife: mainInfo.shelfLife || undefined,
+    mfgDate: mainInfo.mfgDate || undefined,
+    expiryDate: mainInfo.expiryDate || undefined,
     pack: mainInfo.pack || undefined,
     fssaiLicNo: mainInfo.fssaiLicNo || undefined,
     isReturnable: mainInfo.isReturnable === "Yes",

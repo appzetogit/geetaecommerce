@@ -14,10 +14,12 @@ export interface ProductVariantForm {
   mainImage: string;
   galleryImages: string[];
   status: "Available" | "Sold out" | "In stock";
+  attributes?: Record<string, string>;
 }
 
 export interface ProductMainInfoForm {
   productName: string;
+  video: string;
   smallDescription: string;
   description: string;
   headerCategory: string;
@@ -40,6 +42,8 @@ export interface ProductMainInfoForm {
   madeIn: string;
   marketer: string;
   shelfLife: string;
+  mfgDate: string;
+  expiryDate: string;
   pack: string;
   fssaiLicNo: string;
   isReturnable: "Yes" | "No";
@@ -76,10 +80,12 @@ export const defaultVariant = (): ProductVariantForm => ({
   mainImage: "",
   galleryImages: [],
   status: "Available",
+  attributes: {},
 });
 
 export const defaultMainInfo = (overrides?: Partial<ProductMainInfoForm>): ProductMainInfoForm => ({
   productName: "",
+  video: "",
   smallDescription: "",
   description: "",
   headerCategory: "",
@@ -102,6 +108,8 @@ export const defaultMainInfo = (overrides?: Partial<ProductMainInfoForm>): Produ
   madeIn: "",
   marketer: "",
   shelfLife: "",
+  mfgDate: "",
+  expiryDate: "",
   pack: "",
   fssaiLicNo: "",
   isReturnable: "No",
@@ -121,6 +129,7 @@ export const defaultMainInfo = (overrides?: Partial<ProductMainInfoForm>): Produ
 
 export interface CreateProductPayload {
   productName: string;
+  video?: string;
   smallDescription?: string;
   description?: string;
   headerCategoryId?: string;
@@ -143,6 +152,8 @@ export interface CreateProductPayload {
   madeIn?: string;
   marketer?: string;
   shelfLife?: string;
+  mfgDate?: string;
+  expiryDate?: string;
   pack?: string;
   fssaiLicNo?: string;
   isReturnable: boolean;
@@ -173,5 +184,6 @@ export interface CreateProductPayload {
     mainImage?: string;
     galleryImages?: string[];
     status?: string;
+    attributes?: Record<string, string>;
   }>;
 }
