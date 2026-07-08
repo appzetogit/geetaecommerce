@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import QRScannerModal from "./QRScannerModal";
 import { openBarcodeScanner } from '../utils/scannerPlatform';
 import { getVariationTypes } from "../services/api/admin/adminVariationTypeService";
+import api from "../services/api/config";
 
 export interface Variation {
   id?: string; // Internal ID for tracking in this editor
@@ -69,6 +70,43 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
 
   const stopScanning = () => {
     setIsScanning(false);
+  };
+
+  const handleAutoGenerateBarcode = async (index: number) => {
+    if (!productName.trim()) {
+      alert("Please enter a product name first");
+      return;
+    }
+    try {
+      const isAdmin = window.location.pathname.includes("/admin");
+      const endpoint = isAdmin ? "/admin/products/generate-barcode" : "/products/generate-barcode";
+      
+      const otherBarcodes = localVariations.flatMap((varItem, idx) => {
+        if (idx === index) return [];
+        return varItem.barcode || [];
+      });
+
+      const response = await api.get(endpoint, {
+        params: {
+          productName: productName.trim(),
+          variationValue: localVariations[index]?.value || "Default",
+          excludeBarcodes: otherBarcodes.join(","),
+        }
+      });
+
+      if (response.data.success && response.data.barcode) {
+        const generated = response.data.barcode.trim();
+        const currentBarcodes = localVariations[index].barcode || [];
+        if (!currentBarcodes.includes(generated)) {
+          handleChange(index, 'barcode', [...currentBarcodes, generated]);
+        }
+      } else {
+        alert(response.data.message || "Failed to generate barcode");
+      }
+    } catch (err: any) {
+      console.error("Error generating barcode:", err);
+      alert(err.response?.data?.message || err.message || "Failed to generate barcode");
+    }
   };
 
   useEffect(() => {
@@ -159,6 +197,19 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
   };
 
   const handleSave = () => {
+    const allBarcodes: string[] = [];
+    for (const v of localVariations) {
+      for (const b of v.barcode || []) {
+        const trimmed = b.trim();
+        if (trimmed) allBarcodes.push(trimmed);
+      }
+    }
+    const duplicates = allBarcodes.filter((b, idx) => allBarcodes.indexOf(b) !== idx);
+    if (duplicates.length > 0) {
+      alert(`Duplicate barcode(s) found across variations: ${Array.from(new Set(duplicates)).join(", ")}. Each variant must have a unique barcode.`);
+      return;
+    }
+
     // Map back to backend structure
     const validVariations = localVariations.map(v => {
         // Construct 'name' and 'value' for backend
@@ -434,22 +485,55 @@ const VariationEditor: React.FC<VariationEditorProps> = ({
                                     type="text"
                                     className="flex-1 px-2 py-1.5 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-[#f187b5] focus:outline-none"
                                     placeholder="Add barcode"
-                                    onKeyDown={(e) => {
+                                    onKeyDown={async (e) => {
                                         if (e.key === 'Enter') {
                                             e.preventDefault();
                                             const val = (e.currentTarget as HTMLInputElement).value.trim();
-                                            if (val && !(v.barcode || []).includes(val)) {
-                                                handleChange(index, 'barcode', [...(v.barcode || []), val]);
-                                                (e.currentTarget as HTMLInputElement).value = '';
+                                            if (!val) return;
+
+                                            if ((v.barcode || []).includes(val)) {
+                                                alert("This barcode is already added to this variant");
+                                                return;
                                             }
+
+                                            const otherBarcodes = localVariations.flatMap((varItem, idx) => {
+                                                if (idx === index) return [];
+                                                return varItem.barcode || [];
+                                            });
+                                            if (otherBarcodes.includes(val)) {
+                                                alert(`Barcode "${val}" is already used on another variant in this editor`);
+                                                return;
+                                            }
+
+                                            try {
+                                                const isAdmin = window.location.pathname.includes("/admin");
+                                                const endpoint = isAdmin ? "/admin/products/check-barcode" : "/products/check-barcode";
+                                                
+                                                const pathParts = window.location.pathname.split("/");
+                                                const productId = pathParts[pathParts.length - 1];
+
+                                                const response = await api.get(endpoint, {
+                                                    params: {
+                                                        barcode: val,
+                                                        productId: /^[a-fA-F0-9]{24}$/.test(productId) ? productId : undefined
+                                                    }
+                                                });
+
+                                                if (response.data.success && !response.data.isUnique) {
+                                                    alert(response.data.message || `Barcode "${val}" is already in use`);
+                                                    return;
+                                                }
+                                            } catch (err: any) {
+                                                console.error("Failed to verify barcode uniqueness", err);
+                                            }
+
+                                            handleChange(index, 'barcode', [...(v.barcode || []), val]);
+                                            (e.currentTarget as HTMLInputElement).value = '';
                                         }
                                     }}
                                 />
                                 <button
-                                    onClick={() => {
-                                        const newB = Math.floor(100000000000 + Math.random() * 900000000000).toString();
-                                        handleChange(index, 'barcode', [...(v.barcode || []), newB]);
-                                    }}
+                                    onClick={() => handleAutoGenerateBarcode(index)}
                                     className="p-1.5 bg-pink-50 border border-pink-100 rounded text-[#f187b5] hover:bg-pink-100 transition-colors"
                                     title="Auto Generate"
                                 >

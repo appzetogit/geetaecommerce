@@ -15,7 +15,7 @@ export default function AdminAddProduct() {
       config={{
         role: "admin",
         defaultPublish: "Yes",
-        showSellerPicker: true,
+        showSellerPicker: false,
         createProduct: createProductAdmin,
         updateProduct: updateProductAdmin,
         getProduct: getProductAdmin,

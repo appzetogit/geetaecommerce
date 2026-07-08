@@ -148,6 +148,39 @@ export class ProductWriteService {
       publish: policy.defaultPublish,
     });
 
+    const payloadBarcodes: string[] = [];
+    for (const variant of normalized.variations) {
+      if (Array.isArray(variant.barcode)) {
+        for (const bc of variant.barcode) {
+          const trimmed = String(bc).trim();
+          if (trimmed) payloadBarcodes.push(trimmed);
+        }
+      }
+    }
+
+    const duplicatesInPayload = payloadBarcodes.filter((bc, idx) => payloadBarcodes.indexOf(bc) !== idx);
+    if (duplicatesInPayload.length > 0) {
+      throw new ProductWriteError(
+        `Duplicate barcode(s) found across variants: ${Array.from(new Set(duplicatesInPayload)).join(", ")}`,
+        400
+      );
+    }
+
+    if (payloadBarcodes.length > 0) {
+      const otherProduct = await Product.findOne({
+        $or: [
+          { barcode: { $in: payloadBarcodes } },
+          { "variations.barcode": { $in: payloadBarcodes } }
+        ]
+      });
+      if (otherProduct) {
+        throw new ProductWriteError(
+          `Barcode is already in use by another product: "${otherProduct.productName}"`,
+          400
+        );
+      }
+    }
+
     if (!normalized.productName) {
       throw new ProductWriteError("Product name is required", 400);
     }
@@ -219,6 +252,40 @@ export class ProductWriteService {
     const normalized = normalizeCreatePayload(mergedBody, {
       publish: existing.publish,
     });
+
+    const payloadBarcodes: string[] = [];
+    for (const variant of normalized.variations) {
+      if (Array.isArray(variant.barcode)) {
+        for (const bc of variant.barcode) {
+          const trimmed = String(bc).trim();
+          if (trimmed) payloadBarcodes.push(trimmed);
+        }
+      }
+    }
+
+    const duplicatesInPayload = payloadBarcodes.filter((bc, idx) => payloadBarcodes.indexOf(bc) !== idx);
+    if (duplicatesInPayload.length > 0) {
+      throw new ProductWriteError(
+        `Duplicate barcode(s) found across variants: ${Array.from(new Set(duplicatesInPayload)).join(", ")}`,
+        400
+      );
+    }
+
+    if (payloadBarcodes.length > 0) {
+      const otherProduct = await Product.findOne({
+        _id: { $ne: productId },
+        $or: [
+          { barcode: { $in: payloadBarcodes } },
+          { "variations.barcode": { $in: payloadBarcodes } }
+        ]
+      });
+      if (otherProduct) {
+        throw new ProductWriteError(
+          `Barcode is already in use by another product: "${otherProduct.productName}"`,
+          400
+        );
+      }
+    }
 
     if (policy.role === "seller") {
       delete (normalized as any).seller;

@@ -1471,7 +1471,14 @@ export const getPOSProducts = asyncHandler(
  */
 export const generateUniqueBarcode = asyncHandler(
   async (req: Request, res: Response) => {
-    const { productName = "", variationValue = "" } = req.query;
+    const { productName = "", variationValue = "", excludeBarcodes } = req.query;
+
+    const excludeList: string[] = [];
+    if (Array.isArray(excludeBarcodes)) {
+      excludeList.push(...excludeBarcodes.map(String).map(s => s.trim()).filter(Boolean));
+    } else if (typeof excludeBarcodes === "string") {
+      excludeList.push(...excludeBarcodes.split(",").map(s => s.trim()).filter(Boolean));
+    }
 
     const combinedStr = `${productName}_${variationValue}`;
     let hash = 0;
@@ -1487,6 +1494,11 @@ export const generateUniqueBarcode = asyncHandler(
     while (!isUnique) {
       suffix++;
       uniqueBarcode = `${prefixNum}${suffix}`;
+
+      if (excludeList.includes(uniqueBarcode)) {
+        continue;
+      }
+
       const existing = await Product.findOne({
         $or: [
           { barcode: uniqueBarcode },
@@ -1502,6 +1514,44 @@ export const generateUniqueBarcode = asyncHandler(
       success: true,
       message: "Unique barcode generated successfully",
       barcode: uniqueBarcode
+    });
+  }
+);
+
+/**
+ * Check if a barcode is globally unique (excluding optional productId)
+ */
+export const checkBarcodeUnique = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { barcode = "", productId = "" } = req.query;
+    const trimmed = String(barcode).trim();
+    if (!trimmed) {
+      return res.status(200).json({ success: true, isUnique: true });
+    }
+
+    const query: Record<string, any> = {
+      $or: [
+        { barcode: trimmed },
+        { "variations.barcode": trimmed }
+      ]
+    };
+
+    if (productId && mongoose.Types.ObjectId.isValid(productId as string)) {
+      query._id = { $ne: productId };
+    }
+
+    const existing = await Product.findOne(query);
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        isUnique: false,
+        message: `Barcode is already in use by product "${existing.productName}"`
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      isUnique: true
     });
   }
 );

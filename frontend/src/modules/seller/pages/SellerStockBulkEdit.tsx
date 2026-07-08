@@ -12,6 +12,7 @@ import {
 import { uploadImage } from "../../../services/api/uploadService";
 import { getBrands, Brand } from "../../../services/api/brandService";
 import { getAllSubcategories, Category, SubCategory, ApiResponse } from "../../../services/api/categoryService";
+import { getTaxes as getSellerTaxes } from "../../../services/api/taxService";
 import { getSellerOwnSubcategories } from "../../../services/api/seller/sellerPurchaseService";
 import { getAttributes } from "../../../services/api/seller/sellerAttributeService";
 import AttributeDropdown from "../../../components/AttributeDropdown";
@@ -159,6 +160,7 @@ export default function SellerStockBulkEdit({
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [availableAttributes, setAvailableAttributes] = useState<{_id: string, name: string}[]>([]);
+  const [taxCategories, setTaxCategories] = useState<{_id: string, name: string}[]>([]);
   const [activeVariationModalIndex, setActiveVariationModalIndex] = useState<number | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanIndex, setScanIndex] = useState<number | null>(null);
@@ -208,7 +210,7 @@ export default function SellerStockBulkEdit({
               };
               return updated;
           });
-          
+
           setTimeout(() => {
               setEditableProducts(current => {
                   const p = current[imageSourceModalRowIndex];
@@ -216,7 +218,7 @@ export default function SellerStockBulkEdit({
                   return current;
               });
           }, 0);
-          
+
           setSearchedImage("");
           setImageSearchQuery("");
       }
@@ -316,33 +318,35 @@ export default function SellerStockBulkEdit({
             publish: p.publish,
             images,
             isChanged: false,
-            itemCode: (p as any).itemCode || p.sku || "",
-            rackNumber: (p as any).rackNumber || "",
+            itemCode: p.variations?.[0]?.sku || (p as any).itemCode || p.sku || "",
+            rackNumber: p.variations?.[0]?.rackNumber || (p as any).rackNumber || "",
             description: p.smallDescription || p.description || "",
-            barcode: Array.isArray((p as any).barcode)
+            barcode: p.variations?.[0]?.barcode || (Array.isArray((p as any).barcode)
               ? (p as any).barcode
               : (p as any).barcode
                 ? [(p as any).barcode]
-                : [],
+                : []),
             hsnCode: (p as any).hsnCode || "",
             pack: (p as any).pack || "",
-            purchasePrice: (p as any).purchasePrice || 0,
+            purchasePrice: p.variations?.[0]?.purchasePrice || (p as any).purchasePrice || 0,
             mfgDate: (p as any).mfgDate || "",
             expiryDate: (p as any).expiryDate || "",
             weight: (p as any).weight || "",
             deliveryTime: (p as any).deliveryTime || "",
             lowStockQuantity: (p as any).lowStockQuantity || 5,
             subCategoryId,
-            wholesalePrice: (p as any).wholesalePrice || 0,
+            wholesalePrice: p.variations?.[0]?.wholesalePrice || (p as any).wholesalePrice || 0,
             subSubCategory: (p as any).subSubCategory || "",
             brand: typeof p.brand === "object" ? (p.brand as any).name : "-",
             brandId,
-            tax: p.tax || "",
+            tax: typeof p.tax === "object" && p.tax ? p.tax._id : p.tax || "",
             offerPrice: p.discPrice || 0,
             unitPricing:
-              p.unitPricing && p.unitPricing.length > 0
-                ? p.unitPricing
-                : [{ minQty: 1, price: 0 }],
+              p.variations?.[0]?.tieredPrices && p.variations[0].tieredPrices.length > 0
+                ? p.variations[0].tieredPrices
+                : (p.unitPricing && p.unitPricing.length > 0
+                  ? p.unitPricing
+                  : [{ minQty: 1, price: 0 }]),
             attributes: [],
             variations: p.variations || [],
             variationName: (p as any).variationName || "",
@@ -426,7 +430,7 @@ export default function SellerStockBulkEdit({
   useEffect(() => {
     const fetchData = async () => {
         try {
-            const [subRes, brandRes, attrRes] = await Promise.all([
+            const [subRes, brandRes, attrRes, taxRes] = await Promise.all([
                 // Using generic category service function, assuming it returns just simple subcategories list eventually
                  // But wait, getAllSubcategories returns ApiResponse<SubCategory[]>. Admin used getSubCategories.
                  // Checking if getAllSubcategories is correct replacement.
@@ -434,7 +438,8 @@ export default function SellerStockBulkEdit({
                  // Seller service: getAllSubcategories
                 canCreateCategories ? getSellerOwnSubcategories() : getAllSubcategories({ limit: 1000 } as any),
                 getBrands(),
-                getAttributes() // sellerAttributeService returns response.data directly
+                getAttributes(), // sellerAttributeService returns response.data directly
+                getSellerTaxes()
             ]);
 
             // Fix type mismatch if necessary. SubCategory interface from admin service vs category service
@@ -445,6 +450,7 @@ export default function SellerStockBulkEdit({
             if(subRes.success && subRes.data) setSubCategories(subRes.data);
             if(brandRes.success && brandRes.data) setBrands(brandRes.data);
             if(attrRes) setAvailableAttributes((attrRes as any).data || attrRes); // Assuming getAttributes returns data directly or check structure
+            if(taxRes.success && taxRes.data) setTaxCategories(taxRes.data);
         } catch (e) {
             console.error("Failed to load metadata for bulk edit", e);
         }
@@ -505,26 +511,26 @@ export default function SellerStockBulkEdit({
         stock: p.stock || 0,
         publish: p.publish,
         // New fields initialization
-        itemCode: (p as any).itemCode || (p as any).sku || "",
-        rackNumber: (p as any).rackNumber || "",
+        itemCode: p.variations?.[0]?.sku || (p as any).itemCode || (p as any).sku || "",
+        rackNumber: p.variations?.[0]?.rackNumber || (p as any).rackNumber || "",
         description: p.smallDescription || (p as any).description || "",
-        barcode: Array.isArray((p as any).barcode) ? (p as any).barcode : (p as any).barcode ? [(p as any).barcode] : [],
+        barcode: p.variations?.[0]?.barcode || (Array.isArray((p as any).barcode) ? (p as any).barcode : (p as any).barcode ? [(p as any).barcode] : []),
         hsnCode: (p as any).hsnCode || "",
         pack: (p as any).pack || "", // unit
-        purchasePrice: (p as any).purchasePrice || 0,
+        purchasePrice: p.variations?.[0]?.purchasePrice || (p as any).purchasePrice || 0,
         mfgDate: (p as any).mfgDate || "",
         expiryDate: (p as any).expiryDate || "",
         weight: (p as any).weight || "",
         deliveryTime: (p as any).deliveryTime || "",
         lowStockQuantity: (p as any).lowStockQuantity || 5,
-        wholesalePrice: (p as any).wholesalePrice || 0,
+        wholesalePrice: p.variations?.[0]?.wholesalePrice || (p as any).wholesalePrice || 0,
         subSubCategory: (p as any).subSubCategory || "",
         subCategoryId: subCategoryId, // Add this
         brand: typeof p.brand === "object" ? (p.brand as any).name : "-",
         brandId: brandId,
-        tax: (p as any).tax || "",
+        tax: typeof p.tax === "object" && p.tax ? p.tax._id : p.tax || "",
         offerPrice: p.discPrice || 0,
-        unitPricing: (p as any).unitPricing && (p as any).unitPricing.length > 0 ? (p as any).unitPricing : [{ minQty: 1, price: 0 }], // Initialize
+        unitPricing: p.variations?.[0]?.tieredPrices && p.variations[0].tieredPrices.length > 0 ? p.variations[0].tieredPrices : ((p as any).unitPricing && (p as any).unitPricing.length > 0 ? (p as any).unitPricing : [{ minQty: 1, price: 0 }]), // Initialize
         images: images,
         isChanged: false,
         attributes: [], // Initialize empty, or derive from existing variations if possible (complex logic simplified for now)
@@ -543,8 +549,15 @@ export default function SellerStockBulkEdit({
   ) => {
     setEditableProducts((prev) => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value, isChanged: true };
-      upsertEditedCache(updated[index]);
+      const oldProd = updated[index];
+      let newProd = { ...oldProd, [field]: value, isChanged: true };
+
+      if (field === "price" && oldProd.price === oldProd.offerPrice) {
+        newProd.offerPrice = value;
+      }
+
+      updated[index] = newProd;
+      upsertEditedCache(newProd);
       return updated;
     });
   };
@@ -665,12 +678,44 @@ export default function SellerStockBulkEdit({
           wholesalePrice: p.wholesalePrice,
           ...(p.subCategoryId ? { subcategory: p.subCategoryId } : {}),
           ...(p.subSubCategory ? { subSubCategory: p.subSubCategory } : {}),
+          ...(p.tax && p.tax !== "" ? { tax: p.tax } : {}),
           ...(p.brandId ? { brand: p.brandId } : {}),
           ...(p.variations && p.variations.length > 0 ? {
-            variations: p.variations.map((v: any) => ({
-              ...v,
-              discPrice: v.offerPrice || v.discPrice || p.offerPrice
-            }))
+            variations: p.variations.map((v: any) => {
+              if (p.variations.length <= 1) {
+                return {
+                  ...v,
+                  price: p.price,
+                  compareAtPrice: p.compareAtPrice,
+                  stock: Number(p.stock) || 0,
+                  discPrice: p.offerPrice || p.price,
+                  wholesalePrice: p.wholesalePrice || 0,
+                  purchasePrice: p.purchasePrice || 0,
+                  sku: p.itemCode || undefined,
+                  rackNumber: p.rackNumber || undefined,
+                  barcode: p.barcode || [],
+                  tieredPrices: p.unitPricing || [],
+                  mainImage: mainImage || undefined,
+                  galleryImages: galleryImages || []
+                };
+              } else {
+                return {
+                  ...v,
+                  price: v.price,
+                  compareAtPrice: v.compareAtPrice,
+                  stock: Number(v.stock) || 0,
+                  discPrice: v.discPrice || v.price,
+                  wholesalePrice: v.wholesalePrice || 0,
+                  purchasePrice: v.purchasePrice || 0,
+                  sku: v.sku,
+                  rackNumber: v.rackNumber,
+                  barcode: v.barcode || [],
+                  tieredPrices: v.tieredPrices || v.unitPricing || [],
+                  mainImage: v.mainImage || undefined,
+                  galleryImages: v.galleryImages || []
+                };
+              }
+            })
           } : {}),
           unitPricing: (p as any).unitPricing, // Include unitPricing in payload, assuming backend supports it (even if not in simplified interface)
           variationName: p.variationName,
@@ -728,6 +773,7 @@ export default function SellerStockBulkEdit({
           purchasePrice: p.purchasePrice || undefined,
           deliveryTime: p.deliveryTime || undefined,
           weight: p.weight || undefined,
+          taxId: p.tax && p.tax !== "" ? p.tax : undefined,
           mfgDate: p.mfgDate || undefined,
           expiryDate: p.expiryDate || undefined,
           lowStockQuantity: p.lowStockQuantity,
@@ -735,10 +781,41 @@ export default function SellerStockBulkEdit({
           ...(p.variationName ? { variationName: p.variationName } : {}),
           ...(p.variations && p.variations.length > 0
             ? {
-                variations: p.variations.map((v: any) => ({
-                  ...v,
-                  discPrice: v.offerPrice || v.discPrice || p.offerPrice,
-                })),
+                variations: p.variations.map((v: any) => {
+                  if (p.variations.length <= 1) {
+                    return {
+                      ...v,
+                      price: p.price,
+                      compareAtPrice: p.compareAtPrice,
+                      stock: Number(p.stock) || 0,
+                      discPrice: p.offerPrice || p.price,
+                      wholesalePrice: p.wholesalePrice || 0,
+                      purchasePrice: p.purchasePrice || 0,
+                      sku: p.itemCode || undefined,
+                      rackNumber: p.rackNumber || undefined,
+                      barcode: p.barcode || [],
+                      tieredPrices: p.unitPricing || [],
+                      mainImage: mainImageUrl || undefined,
+                      galleryImages: galleryImageUrls || []
+                    };
+                  } else {
+                    return {
+                      ...v,
+                      price: v.price,
+                      compareAtPrice: v.compareAtPrice,
+                      stock: Number(v.stock) || 0,
+                      discPrice: v.discPrice || v.price,
+                      wholesalePrice: v.wholesalePrice || 0,
+                      purchasePrice: v.purchasePrice || 0,
+                      sku: v.sku,
+                      rackNumber: v.rackNumber,
+                      barcode: v.barcode || [],
+                      tieredPrices: v.tieredPrices || v.unitPricing || [],
+                      mainImage: v.mainImage || undefined,
+                      galleryImages: v.galleryImages || []
+                    };
+                  }
+                }),
               }
             : {}),
         } as any);
@@ -1458,7 +1535,16 @@ export default function SellerStockBulkEdit({
         return <td key={key} className="p-2 border-r border-neutral-200 text-sm text-neutral-600">-</td>;
 
       case "tax":
-        return <td key={key} className="p-0 border-r border-neutral-200"><input type="text" className="w-full h-full px-2 py-2 bg-transparent border-none text-sm" value={product.tax} onChange={(e) => handleFieldChange(originalIndex, 'tax', e.target.value)} /></td>;
+        return (
+          <td key={key} className="p-0 border-r border-neutral-200 min-w-[120px]">
+            <SearchableSelect
+              options={taxCategories.map(tax => ({ value: tax._id, label: tax.name || "Unnamed Tax" }))}
+              value={product.tax || ""}
+              onChange={(val) => handleFieldChange(originalIndex, 'tax', val)}
+              placeholder="-Select Tax-"
+            />
+          </td>
+        );
       case "gst":
         return <td key={key} className="p-2 border-r border-neutral-200 text-sm text-neutral-600">-</td>;
       case "purchasePrice":
@@ -1580,8 +1666,8 @@ export default function SellerStockBulkEdit({
                 <button
                   onClick={() => setShowRedundantDropdown(!showRedundantDropdown)}
                   className={`px-3 py-1.5 text-sm rounded transition-colors flex items-center gap-2 font-medium shadow-sm border-2 ${
-                    redundantFilter 
-                      ? "bg-[var(--primary-color)] text-white border-white" 
+                    redundantFilter
+                      ? "bg-[var(--primary-color)] text-white border-white"
                       : "bg-white text-[var(--primary-color)] border-transparent hover:bg-pink-50"
                   }`}
                   title="Filter products by redundancy criteria"
@@ -1597,8 +1683,8 @@ export default function SellerStockBulkEdit({
 
                 {showRedundantDropdown && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-40" 
+                    <div
+                      className="fixed inset-0 z-40"
                       onClick={() => setShowRedundantDropdown(false)}
                     />
                     <div className="absolute top-full left-0 mt-1 w-40 bg-white rounded-md shadow-lg border border-neutral-200 z-50 py-1">

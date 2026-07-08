@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ProductVariantForm } from "../types/productForm.types";
 import FormField, { inputClass, selectClass } from "../components/FormField";
 import { uploadImage } from "../../../../services/api/uploadService";
@@ -30,6 +30,43 @@ const variantColors = [
   "from-orange-500 to-amber-500",
 ];
 
+// Helper to render Barcode preview using JsBarcode from CDN
+const BarcodePreview = ({ value }: { value: string }) => {
+  const elementRef = useRef<SVGSVGElement | null>(null);
+  const [loaded, setLoaded] = useState(window.hasOwnProperty("JsBarcode"));
+
+  useEffect(() => {
+    if (window.hasOwnProperty("JsBarcode")) {
+      setLoaded(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js";
+    script.async = true;
+    script.onload = () => setLoaded(true);
+    document.body.appendChild(script);
+  }, []);
+
+  useEffect(() => {
+    if (loaded && elementRef.current) {
+      try {
+        (window as any).JsBarcode(elementRef.current, value, {
+          format: "CODE128",
+          width: 1.5,
+          height: 40,
+          displayValue: true,
+          fontSize: 12,
+          margin: 0,
+        });
+      } catch (err) {
+        console.error("Failed to render barcode preview", err);
+      }
+    }
+  }, [loaded, value]);
+
+  return <svg ref={elementRef} className="mx-auto block" />;
+};
+
 export default function VariantCard({
   index,
   variant,
@@ -52,32 +89,93 @@ export default function VariantCard({
 
   const [generatingBarcode, setGeneratingBarcode] = useState(false);
 
-  const handleGenerateBarcode = async () => {
-    if (!productName.trim()) {
-      alert("Please enter a product name first");
-      return;
+  const [inputValue, setInputValue] = useState(() => variant.barcode?.[0] || "");
+  const [showPreview, setShowPreview] = useState(false);
+
+  useEffect(() => {
+    if (variant.barcode && variant.barcode[0] !== inputValue) {
+      setInputValue(variant.barcode[0] || "");
     }
-    setGeneratingBarcode(true);
-    try {
-      const isAdmin = window.location.pathname.includes("/admin");
-      const endpoint = isAdmin ? "/admin/products/generate-barcode" : "/products/generate-barcode";
-      
-      const response = await api.get(endpoint, {
-        params: {
-          productName: productName.trim(),
-          variationValue: variant.value.trim(),
+  }, [variant.barcode]);
+
+  const handleGenerateBarcode = async () => {
+    const trimmed = inputValue.trim();
+    if (trimmed) {
+      // Validate manually entered barcode uniqueness
+      setGeneratingBarcode(true);
+      try {
+        const isAdmin = window.location.pathname.includes("/admin");
+        const endpoint = isAdmin ? "/admin/products/check-barcode" : "/products/check-barcode";
+        
+        const pathParts = window.location.pathname.split("/");
+        const productId = pathParts[pathParts.length - 1];
+
+        if (isBarcodeUsedByOtherVariant(allVariants, index, trimmed)) {
+          setBarcodeError(`Barcode "${trimmed}" is already used on another variant`);
+          setShowPreview(false);
+          return;
         }
-      });
-      if (response.data.success && response.data.barcode) {
-        addBarcode(response.data.barcode);
-      } else {
-        alert(response.data.message || "Failed to generate barcode");
+
+        const response = await api.get(endpoint, {
+          params: {
+            barcode: trimmed,
+            productId: /^[a-fA-F0-9]{24}$/.test(productId) ? productId : undefined
+          }
+        });
+
+        if (response.data.success && !response.data.isUnique) {
+          setBarcodeError(response.data.message || `Barcode "${trimmed}" is already in use`);
+          setShowPreview(false);
+          return;
+        }
+
+        setBarcodeError("");
+        setShowPreview(true);
+      } catch (err: any) {
+        console.error("Failed to verify barcode uniqueness", err);
+      } finally {
+        setGeneratingBarcode(false);
       }
-    } catch (err: any) {
-      console.error("Error generating barcode:", err);
-      alert(err.response?.data?.message || err.message || "Failed to generate barcode");
-    } finally {
-      setGeneratingBarcode(false);
+    } else {
+      // Generate new unique barcode
+      if (!productName.trim()) {
+        alert("Please enter a product name first");
+        return;
+      }
+      setGeneratingBarcode(true);
+      try {
+        const isAdmin = window.location.pathname.includes("/admin");
+        const endpoint = isAdmin ? "/admin/products/generate-barcode" : "/products/generate-barcode";
+        
+        const otherBarcodes = allVariants.flatMap((v, idx) => {
+          if (idx === index) return [];
+          return v.barcode || [];
+        });
+
+        const response = await api.get(endpoint, {
+          params: {
+            productName: productName.trim(),
+            variationValue: variant.value.trim(),
+            excludeBarcodes: otherBarcodes.join(","),
+          }
+        });
+
+        if (response.data.success && response.data.barcode) {
+          const generated = normalizeBarcode(response.data.barcode);
+          if (generated) {
+            setBarcodeError("");
+            setInputValue(generated);
+            patch({ barcode: [generated] });
+            setShowPreview(true);
+          }
+        } else {
+          alert(response.data.message || "Failed to generate barcode");
+        }
+      } catch (err: any) {
+        console.error("Error generating barcode:", err);
+      } finally {
+        setGeneratingBarcode(false);
+      }
     }
   };
 
@@ -333,34 +431,45 @@ export default function VariantCard({
     });
   };
 
-  const addBarcode = (code: string) => {
-    const trimmed = normalizeBarcode(code);
-    if (!trimmed) return;
+  const handleScanSuccess = async (decodedText: string) => {
+    const trimmed = normalizeBarcode(decodedText);
+    if (trimmed) {
+      setInputValue(trimmed);
+      patch({ barcode: [trimmed] });
+      setShowPreview(false);
 
-    const existing = (variant.barcode || []).map(normalizeBarcode);
-    if (existing.includes(trimmed)) {
-      setBarcodeError("This barcode is already added to this variant");
-      return;
+      setGeneratingBarcode(true);
+      try {
+        const isAdmin = window.location.pathname.includes("/admin");
+        const endpoint = isAdmin ? "/admin/products/check-barcode" : "/products/check-barcode";
+        
+        const pathParts = window.location.pathname.split("/");
+        const productId = pathParts[pathParts.length - 1];
+
+        if (isBarcodeUsedByOtherVariant(allVariants, index, trimmed)) {
+          setBarcodeError(`Barcode "${trimmed}" is already used on another variant`);
+          return;
+        }
+
+        const response = await api.get(endpoint, {
+          params: {
+            barcode: trimmed,
+            productId: /^[a-fA-F0-9]{24}$/.test(productId) ? productId : undefined
+          }
+        });
+
+        if (response.data.success && !response.data.isUnique) {
+          setBarcodeError(response.data.message || `Barcode "${trimmed}" is already in use`);
+          return;
+        }
+
+        setBarcodeError("");
+      } catch (err: any) {
+        console.error("Failed to verify scanned barcode uniqueness", err);
+      } finally {
+        setGeneratingBarcode(false);
+      }
     }
-
-    if (isBarcodeUsedByOtherVariant(allVariants, index, trimmed)) {
-      setBarcodeError(
-        `Barcode "${trimmed}" is already used on another variant`
-      );
-      return;
-    }
-
-    setBarcodeError("");
-    patch({ barcode: [...(variant.barcode || []), trimmed] });
-  };
-
-  const removeBarcode = (code: string) => {
-    setBarcodeError("");
-    patch({ barcode: (variant.barcode || []).filter((b) => b !== code) });
-  };
-
-  const handleScanSuccess = (decodedText: string) => {
-    addBarcode(decodedText);
     setShowScanner(false);
   };
 
@@ -436,6 +545,15 @@ export default function VariantCard({
             <input
               type="number"
               className={inputClass}
+              value={variant.compareAtPrice}
+              onChange={(e) => patch({ compareAtPrice: e.target.value })}
+              placeholder="0"
+            />
+          </FormField>
+          <FormField label="Selling Price" required>
+            <input
+              type="number"
+              className={inputClass}
               value={variant.price}
               onChange={(e) => patch({ price: e.target.value })}
               placeholder="0"
@@ -502,18 +620,19 @@ export default function VariantCard({
           </FormField>
         )}
 
-        <FormField label="Barcode" required hint="Each variant must have a unique barcode — scan or type to add">
+        <FormField label="Barcode" required hint="Each variant must have a unique barcode — scan or generate/verify to add">
           <div className="space-y-3">
             <div className="flex gap-2">
               <input
                 className={inputClass}
                 placeholder="Enter barcode"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addBarcode((e.target as HTMLInputElement).value);
-                    (e.target as HTMLInputElement).value = "";
-                  }
+                value={inputValue}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setInputValue(val);
+                  patch({ barcode: val.trim() ? [val.trim()] : [] });
+                  setShowPreview(false);
+                  setBarcodeError("");
                 }}
               />
               <button
@@ -535,26 +654,7 @@ export default function VariantCard({
             {barcodeError && (
               <p className="text-xs font-medium text-rose-500">{barcodeError}</p>
             )}
-            {(variant.barcode || []).length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {(variant.barcode || []).map((code) => (
-                  <span
-                    key={code}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1 text-sm font-medium text-violet-800"
-                  >
-                    {code}
-                    <button
-                      type="button"
-                      onClick={() => removeBarcode(code)}
-                      className="text-violet-400 transition hover:text-rose-500"
-                      aria-label={`Remove barcode ${code}`}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            ) : (
+            {!inputValue.trim() && (
               <p className="text-xs text-rose-500">At least one barcode is required</p>
             )}
 
@@ -571,12 +671,18 @@ export default function VariantCard({
               <button
                 type="button"
                 onClick={handlePrintBarcode}
-                disabled={(variant.barcode || []).length === 0}
+                disabled={!inputValue.trim()}
                 className="inline-flex items-center justify-center rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-700 shadow-sm hover:bg-violet-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Print Barcode
               </button>
             </div>
+
+            {showPreview && inputValue.trim() && (
+              <div className="mt-3 p-3 bg-white rounded-xl border border-violet-100 flex flex-col items-center justify-center shadow-inner">
+                <BarcodePreview value={inputValue.trim()} />
+              </div>
+            )}
           </div>
         </FormField>
 
