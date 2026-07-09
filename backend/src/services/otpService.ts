@@ -201,6 +201,7 @@ async function verifyOtpFromDb(mobile: string, otp: string, userType: UserType):
 const SPECIAL_BYPASS_NUMBERS: Record<string, string> = {
   '9111966732': '1234',
   '9876543210': '9999',
+  '6268423925': '1234',
 };
 
 /**
