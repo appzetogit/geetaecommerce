@@ -315,6 +315,130 @@ const SellerPOSReport = () => {
         setSelectedActionOrder(null);
     };
 
+    const handleViewBill = async (order: any) => {
+        if (!order) return;
+
+        let fullOrder = order;
+        try {
+            setLoading(true);
+            const res = await getOrderById(order._id);
+            if (res.success) fullOrder = res.data;
+        } catch (e) {
+            console.error("Error fetching full order for view bill", e);
+            showToast("Could not fetch full order details. Bill might be incomplete.", "error");
+        } finally {
+            setLoading(false);
+        }
+
+        generateOrderPDF(fullOrder);
+        setSelectedActionOrder(null);
+    };
+
+    const generateOrderPDF = (order: any) => {
+        const doc = new jsPDF();
+        const invoiceNum = order.orderNumber || order._id.slice(-6).toUpperCase();
+        const dateStr = new Date(order.orderDate || order.createdAt).toLocaleDateString();
+        const timeStr = new Date(order.orderDate || order.createdAt).toLocaleTimeString();
+        const customerName = order.customerName || order.customer?.name || order.customer?.customerName || "Walk-in Customer";
+        const customerPhone = order.customerPhone || order.customer?.phone || order.customer?.mobile || "-";
+
+        // --- Header ---
+        doc.setFontSize(16);
+        doc.setFont("helvetica", "bold");
+        doc.text("GEETA", 14, 20);
+
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        const address = "Q7WM+92M, Q7WM+92M, , Indore Division,\nNagda, Madhya Pradesh, India - 454001\n7898111456";
+        doc.text(address, 14, 26);
+
+        doc.line(14, 40, 196, 40);
+
+        // --- Invoice Details ---
+        doc.setFont("helvetica", "bold");
+        doc.text("Invoice Number:", 14, 48);
+        doc.text("Invoice Date:", 14, 53);
+        doc.text("Payment Status:", 14, 58);
+
+        doc.setFont("helvetica", "normal");
+        doc.text(invoiceNum, 196, 48, { align: "right" });
+        doc.text(`${dateStr} ${timeStr}`, 196, 53, { align: "right" });
+        doc.text(order.paymentStatus || "Paid", 196, 58, { align: "right" });
+        doc.text("Customer Name:", 14, 63);
+        doc.text("Customer Mobile:", 14, 68);
+        doc.text(String(customerName), 196, 63, { align: "right" });
+        doc.text(String(customerPhone), 196, 68, { align: "right" });
+
+        doc.setLineWidth(0.5);
+        doc.line(14, 73, 196, 73);
+
+        // --- Table Header ---
+        doc.setFont("helvetica", "bold");
+        doc.text("Tax Invoice", 105, 78, { align: "center" });
+
+        let y = 84;
+        doc.setFontSize(10);
+        doc.text("Item-name", 14, y);
+        doc.text("Qty", 100, y);
+        doc.text("Price", 125, y);
+        doc.text("Total", 196, y, { align: "right" });
+        y += 4;
+
+        // --- Table Body ---
+        doc.setFont("helvetica", "normal");
+        let totalQty = 0;
+        let totalBillAmount = 0;
+
+        const items = order.items || [];
+        items.forEach((item: any, index: number) => {
+            const itemName = item.productName || item.product?.productName || item.name || "Unknown Item";
+            const qty = item.quantity || item.qty || 0;
+            const price = item.unitPrice || item.price || 0;
+            const total = item.total || (qty * price) || 0;
+
+            totalQty += qty;
+            totalBillAmount += total;
+
+            y += 6;
+            if (y > 280) {
+                doc.addPage();
+                y = 20;
+            }
+
+            const truncatedName = itemName.length > 45 ? itemName.substring(0, 42) + "..." : itemName;
+            doc.text(`${index + 1}. ${truncatedName}`, 14, y);
+            doc.text(qty.toString(), 100, y);
+            doc.text(price.toString(), 125, y);
+            doc.text(total.toString(), 196, y, { align: "right" });
+        });
+
+        y += 8;
+        doc.line(14, y, 196, y);
+        y += 6;
+
+        // --- Summary ---
+        doc.setFont("helvetica", "normal");
+        doc.text(`Total Qty.: ${totalQty}`, 14, y);
+        y += 6;
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Total Amount:", 14, y);
+        doc.text(`Rs ${order.total || totalBillAmount}`, 196, y, { align: "right" });
+        y += 2;
+        doc.line(14, y + 2, 196, y + 2);
+
+        const pdfBlob = doc.output("blob");
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        const opened = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+
+        if (!opened) {
+            // Fallback if popup is blocked.
+            window.location.href = pdfUrl;
+        }
+
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
+    };
+
     const handleUpdateLedger = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingLedgerEntry) return;
@@ -813,10 +937,7 @@ const SellerPOSReport = () => {
 
                                 <button
                                     className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors text-left group"
-                                      onClick={() => {
-                                         showToast("View Bill feature coming soon", "success");
-                                         setSelectedActionOrder(null);
-                                     }}
+                                      onClick={() => handleViewBill(selectedActionOrder)}
                                 >
                                     <div className="w-10 h-10 rounded-full bg-[var(--primary-color)]/10 text-[var(--primary-color)] flex items-center justify-center group-hover:scale-110 transition-transform">
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>

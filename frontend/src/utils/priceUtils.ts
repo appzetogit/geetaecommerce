@@ -19,8 +19,13 @@ export const calculateProductPrice = (product: any, variationSelector?: number |
   }
 
   if (product.listing && variationSelector === undefined) {
-    const minPrice = product.listing.minPrice ?? 0;
-    const maxMrp = product.listing.maxPrice ?? minPrice;
+    const listingMin = product.listing.minPrice ?? 0;
+    const rootPrice = resolveRootDisplayPrice(product);
+    const minPrice = listingMin > 0 ? listingMin : rootPrice;
+    const listingMax = product.listing.maxPrice ?? minPrice;
+    const rootMrp = resolveRootMrp(product);
+    const maxMrp =
+      listingMax > minPrice ? listingMax : rootMrp > minPrice ? rootMrp : minPrice;
     const hasDiscount = maxMrp > minPrice;
     return {
       displayPrice: minPrice,
@@ -173,7 +178,7 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
   // 1. Check for unitPricing in main product (New Standard - Prioritized)
   if (product.unitPricing && Array.isArray(product.unitPricing) && product.unitPricing.length > 0) {
        const applicableTier = product.unitPricing
-          .filter((t: any) => quantity >= (t.minQty || 0))
+          .filter((t: any) => quantity >= (t.minQty || 0) && parseFloat(t.price) > 0)
           .sort((a: any, b: any) => (b.minQty || 0) - (a.minQty || 0))[0];
 
         if (applicableTier && parseFloat(applicableTier.price) > 0) {
@@ -184,7 +189,7 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
   // 2. Check for tiered pricing in variation (Legacy/Specific)
   if (finalPrice <= 0 && variation?.tieredPrices && Array.isArray(variation.tieredPrices) && variation.tieredPrices.length > 0) {
       const applicableTier = variation.tieredPrices
-          .filter((t: any) => quantity >= (t.minQty || 0))
+          .filter((t: any) => quantity >= (t.minQty || 0) && parseFloat(t.price) > 0)
           .sort((a: any, b: any) => (b.minQty || 0) - (a.minQty || 0))[0];
 
       if (applicableTier && parseFloat(applicableTier.price) > 0) {
@@ -195,7 +200,7 @@ export const getApplicableUnitPrice = (product: any, variationSelector?: number 
   // 3. Check for tiered pricing in main product (Legacy fallbacks)
   if (finalPrice <= 0 && product.tieredPrices && Array.isArray(product.tieredPrices) && product.tieredPrices.length > 0) {
        const applicableTier = product.tieredPrices
-          .filter((t: any) => quantity >= (t.minQty || 0))
+          .filter((t: any) => quantity >= (t.minQty || 0) && parseFloat(t.price) > 0)
           .sort((a: any, b: any) => (b.minQty || 0) - (a.minQty || 0))[0];
 
         if (applicableTier && parseFloat(applicableTier.price) > 0) {

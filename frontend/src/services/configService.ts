@@ -18,6 +18,15 @@ export interface AppConfig {
         enabled: boolean;
         percentage: number;
     };
+    firstOrderOffer?: {
+        enabled: boolean;
+        title: string;
+        subtitle: string;
+        discountAmount: number;
+        minOrderAmount: number;
+        ctaText: string;
+        updatedAt?: string;
+    };
 }
 
 // Default configuration (fallback)

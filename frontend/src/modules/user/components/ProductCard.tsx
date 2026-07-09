@@ -143,10 +143,11 @@ export default function ProductCard({
   // Get Price and MRP using primary variant (first created) with legacy fallbacks
   const { displayPrice, mrp, discount } = calculateCardPrice(product);
 
-  // Get real tiered pricing from root or first variation
-  const tieredPrices = ((product as any).unitPricing && (product as any).unitPricing.length > 0)
+  // Get real tiered pricing from root or first variation, ignoring zero-priced default tiers
+  const tieredPrices = (((product as any).unitPricing && (product as any).unitPricing.length > 0)
       ? (product as any).unitPricing
-      : (primaryVariant?.tieredPrices || []);
+      : (primaryVariant?.tieredPrices || [])
+  ).filter((t: any) => t && Number(t.price) > 0);
 
   const variationSelector = hasRealVariants(product) ? 0 : undefined;
   // Calculate dynamic unit price based on cart quantity

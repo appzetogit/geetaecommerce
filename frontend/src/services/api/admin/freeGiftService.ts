@@ -1,11 +1,17 @@
 import api from "../config";
 
+export type FreeGiftRuleType = 'free_gift' | 'discount';
+export type FreeGiftDiscountType = 'fixed' | 'percentage';
+
 export interface FreeGiftRule {
-  id: string; // frontend usually expects string id, backend returns _id. Mapped if needed.
+  id: string;
   _id?: string;
   minCartValue: number;
-  giftProductId: string;
-  giftProduct?: any; // Populated product
+  ruleType?: FreeGiftRuleType;
+  giftProductId?: string;
+  giftProduct?: any;
+  discountType?: FreeGiftDiscountType;
+  discountValue?: number;
   status: 'Active' | 'Inactive';
 }
 

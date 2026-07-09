@@ -139,6 +139,14 @@ router.use("/seller/dashboard", dashboardRoutes);
 // Seller management routes (protected, admin only)
 router.use("/sellers", sellerRoutes);
 
+// Generate unique barcode routes
+import { generateUniqueBarcode as adminGenBarcode, checkBarcodeUnique as adminCheckBarcode } from "../modules/admin/controllers/adminProductController";
+import { generateUniqueBarcode as sellerGenBarcode, checkBarcodeUnique as sellerCheckBarcode } from "../modules/seller/controllers/productController";
+router.get("/admin/products/generate-barcode", authenticate, requireUserType("Admin"), adminGenBarcode);
+router.get("/products/generate-barcode", authenticate, requireUserType("Seller"), sellerGenBarcode);
+router.get("/admin/products/check-barcode", authenticate, requireUserType("Admin"), adminCheckBarcode);
+router.get("/products/check-barcode", authenticate, requireUserType("Seller"), sellerCheckBarcode);
+
 // Admin routes (protected, admin only)
 router.use("/admin", adminRoutes);
 

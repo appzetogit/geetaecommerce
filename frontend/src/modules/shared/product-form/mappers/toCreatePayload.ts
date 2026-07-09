@@ -11,6 +11,7 @@ export function toCreatePayload(state: ProductFormState): CreateProductPayload {
 
   return {
     productName: mainInfo.productName.trim(),
+    video: mainInfo.video || undefined,
     smallDescription: mainInfo.smallDescription || undefined,
     description: mainInfo.description || undefined,
     headerCategoryId: mainInfo.headerCategory || undefined,
@@ -33,6 +34,8 @@ export function toCreatePayload(state: ProductFormState): CreateProductPayload {
     madeIn: mainInfo.madeIn || undefined,
     marketer: mainInfo.marketer || undefined,
     shelfLife: mainInfo.shelfLife || undefined,
+    mfgDate: mainInfo.mfgDate || undefined,
+    expiryDate: mainInfo.expiryDate || undefined,
     pack: mainInfo.pack || undefined,
     fssaiLicNo: mainInfo.fssaiLicNo || undefined,
     isReturnable: mainInfo.isReturnable === "Yes",
@@ -53,22 +56,27 @@ export function toCreatePayload(state: ProductFormState): CreateProductPayload {
     isShopByStoreOnly: mainInfo.isShopByStoreOnly === "Yes",
     shopId: mainInfo.shopId || undefined,
     seller: mainInfo.seller || undefined,
-    variants: variants.map((v) => ({
-      _id: v._id,
-      variationType: v.variationType.trim() || "Standard",
-      value: v.value.trim() || "Default",
-      price: Number(v.price) || 0,
-      discPrice: v.discPrice ? Number(v.discPrice) : undefined,
-      compareAtPrice: v.compareAtPrice ? Number(v.compareAtPrice) : undefined,
-      wholesalePrice: v.wholesalePrice ? Number(v.wholesalePrice) : undefined,
-      purchasePrice: v.purchasePrice ? Number(v.purchasePrice) : undefined,
-      stock: Number(v.stock) || 0,
-      sku: v.sku || undefined,
-      barcode: v.barcode,
-      rackNumber: v.rackNumber || undefined,
-      mainImage: v.mainImage || undefined,
-      galleryImages: v.galleryImages,
-      status: v.status,
-    })),
+    variants: variants.map((v) => {
+      const formMrp = Number(v.compareAtPrice) || Number(v.price) || 0;
+      const formPrice = Number(v.price) || 0;
+      const formOffer = v.discPrice ? Number(v.discPrice) : undefined;
+      return {
+        _id: v._id,
+        variationType: v.variationType.trim() || "Standard",
+        value: v.value.trim() || "Default",
+        price: formPrice,
+        compareAtPrice: formMrp,
+        discPrice: formOffer,
+        wholesalePrice: v.wholesalePrice ? Number(v.wholesalePrice) : undefined,
+        purchasePrice: v.purchasePrice ? Number(v.purchasePrice) : undefined,
+        stock: Number(v.stock) || 0,
+        sku: v.sku || undefined,
+        barcode: v.barcode,
+        rackNumber: v.rackNumber || undefined,
+        mainImage: v.mainImage || undefined,
+        galleryImages: v.galleryImages,
+        status: v.status,
+      };
+    }),
   };
 }

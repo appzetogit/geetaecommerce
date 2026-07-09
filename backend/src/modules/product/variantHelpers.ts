@@ -111,6 +111,22 @@ export function isInStock(variants: ProductVariant[], allowNegative = false): bo
   return variants.some((v) => (Number(v.stock) || 0) > 0);
 }
 
+function resolveLegacyRootDisplayPrice(product: any): number {
+  const disc = Number(product?.discPrice) || 0;
+  const price = Number(product?.price) || 0;
+  if (disc > 0) return disc;
+  return price > 0 ? price : 0;
+}
+
+function resolveLegacyRootMrp(product: any, displayPrice: number): number {
+  const mrp =
+    Number(product?.compareAtPrice) ||
+    Number(product?.mrp) ||
+    0;
+  if (mrp > 0) return mrp;
+  return displayPrice;
+}
+
 export function computeListing(
   variants: ProductVariant[],
   allowNegative = false,
@@ -120,9 +136,24 @@ export function computeListing(
   const legacyStock = product ? getLegacyRootStock(product) : 0;
   const totalStock = Math.max(variantStock, legacyStock);
 
+  let minPrice = getMinDisplayPrice(variants);
+  let maxPrice = getMaxDisplayPrice(variants);
+
+  // Legacy products may still store sell price on the root document while
+  // placeholder variants keep price/discPrice at 0.
+  if (minPrice <= 0 && product) {
+    const rootDisplay = resolveLegacyRootDisplayPrice(product);
+    if (rootDisplay > 0) {
+      minPrice = rootDisplay;
+      if (maxPrice <= 0) {
+        maxPrice = resolveLegacyRootMrp(product, rootDisplay);
+      }
+    }
+  }
+
   return {
-    minPrice: getMinDisplayPrice(variants),
-    maxPrice: getMaxDisplayPrice(variants),
+    minPrice,
+    maxPrice,
     totalStock,
     imageUrl: getListingImage(variants) ?? product?.mainImage ?? null,
     inStock: allowNegative || totalStock > 0,

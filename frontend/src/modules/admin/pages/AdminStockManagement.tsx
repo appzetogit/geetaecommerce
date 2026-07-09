@@ -864,7 +864,7 @@ export default function AdminStockManagement() {
         name: fixLikelyMojibake(product.productName),
         seller: sellerName,
         sellerId: sellerId,
-        image: product.mainImage || product.galleryImages[0] || "",
+        image: product.mainImage || product.galleryImages?.[0] || "",
         category: categoryName,
         categoryId: categoryId,
         subCategory: subCategoryName,

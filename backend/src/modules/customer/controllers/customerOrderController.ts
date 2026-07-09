@@ -13,6 +13,14 @@ import { notifyDeliveryBoysOfNewOrder } from "../../../services/orderNotificatio
 import { notifySellersOfOrderUpdate } from "../../../services/sellerNotificationService";
 import { notifyAdminsOfNewOrder } from "../../../services/adminNotificationService";
 import { generateDeliveryOtp } from "../../../services/deliveryOtpService";
+import {
+  FIRST_ORDER_OFFER_CODE,
+  resolveFirstOrderOfferDiscount,
+} from "../../../services/firstOrderOfferService";
+import {
+  calculateCartRuleDiscount,
+  getActiveCartRules,
+} from "../../../services/cartRuleService";
 import { Server as SocketIOServer } from "socket.io";
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -373,10 +381,29 @@ export const createOrder = async (req: Request, res: Response) => {
         // Apply fees
         const platformFee = Number(fees?.platformFee) || 0;
         const deliveryFee = Number(fees?.deliveryFee) || 0;
-        const finalTotal = calculatedSubtotal + platformFee + deliveryFee;
+        const baseAmount = calculatedSubtotal + platformFee + deliveryFee;
+
+        const settings = await AppSettings.findOne().lean();
+        const cartRules = await getActiveCartRules();
+        const firstOrderDiscount = resolveFirstOrderOfferDiscount(
+          settings?.firstOrderOffer,
+          customer,
+          baseAmount
+        );
+        const amountAfterFirstOrder = Math.max(0, baseAmount - firstOrderDiscount);
+        const cartRuleDiscount = calculateCartRuleDiscount(
+          cartRules,
+          calculatedSubtotal,
+          amountAfterFirstOrder
+        );
+        const finalTotal = Math.max(0, amountAfterFirstOrder - cartRuleDiscount);
 
         // Update Order with calculated values and items
         newOrder.subtotal = Number(calculatedSubtotal.toFixed(2));
+        newOrder.discount = Number((firstOrderDiscount + cartRuleDiscount).toFixed(2));
+        if (firstOrderDiscount > 0) {
+          newOrder.couponCode = FIRST_ORDER_OFFER_CODE;
+        }
         newOrder.total = Number(finalTotal.toFixed(2));
         newOrder.items = orderItemIds;
 
@@ -1033,15 +1060,33 @@ export const initiateOnlineOrder = async (req: Request, res: Response) => {
         // Base amount for discount is subtotal + shipping + platform fee
         const baseAmount = calculatedSubtotal + deliveryFee + platformFee;
 
+        const firstOrderDiscount = resolveFirstOrderOfferDiscount(
+          settings?.firstOrderOffer,
+          customer,
+          baseAmount
+        );
+        const amountAfterFirstOrder = Math.max(0, baseAmount - firstOrderDiscount);
+        const cartRules = await getActiveCartRules();
+        const cartRuleDiscount = calculateCartRuleDiscount(
+          cartRules,
+          calculatedSubtotal,
+          amountAfterFirstOrder
+        );
+        const amountAfterCartRules = Math.max(0, amountAfterFirstOrder - cartRuleDiscount);
+
         let onlineDiscount = 0;
         if (onlineDiscountConfig?.enabled && onlineDiscountConfig?.percentage > 0) {
-            onlineDiscount = (baseAmount * onlineDiscountConfig.percentage) / 100;
+            onlineDiscount = (amountAfterCartRules * onlineDiscountConfig.percentage) / 100;
         }
 
-        const finalTotal = baseAmount - onlineDiscount;
+        const totalDiscount = firstOrderDiscount + cartRuleDiscount + onlineDiscount;
+        const finalTotal = Math.max(0, baseAmount - totalDiscount);
 
         newOrder.subtotal = Number(calculatedSubtotal.toFixed(2));
-        newOrder.discount = Number(onlineDiscount.toFixed(2));
+        newOrder.discount = Number(totalDiscount.toFixed(2));
+        if (firstOrderDiscount > 0) {
+          newOrder.couponCode = FIRST_ORDER_OFFER_CODE;
+        }
         newOrder.total = Number(finalTotal.toFixed(2));
         newOrder.items = orderItemIds;
 

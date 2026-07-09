@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getCustomerFreeGiftRules } from '../services/api/customerFreeGiftService';
+import { CartRewardRule, normalizeCartRewardRule } from '../utils/freeGiftRuleUtils';
 
-// Re-using/defining interface
-export interface FreeGiftRule {
-  id: string; // or _id
-  _id?: string;
-  minCartValue: number;
-  giftProductId: string;
-  giftProduct?: any;
-  status: 'Active' | 'Inactive';
-}
+export type FreeGiftRule = CartRewardRule;
 
 export const useFreeGiftRules = () => {
   const [rules, setRules] = useState<FreeGiftRule[]>([]);
@@ -20,8 +13,8 @@ export const useFreeGiftRules = () => {
       try {
         const res = await getCustomerFreeGiftRules();
         if (res.success && Array.isArray(res.data)) {
-           // Filter active and sort
            const active = res.data
+             .map(normalizeCartRewardRule)
              .filter((r: FreeGiftRule) => r.status === 'Active')
              .sort((a: FreeGiftRule, b: FreeGiftRule) => a.minCartValue - b.minCartValue);
            setRules(active);

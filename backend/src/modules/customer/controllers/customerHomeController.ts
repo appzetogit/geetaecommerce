@@ -121,12 +121,12 @@ async function fetchSectionData(
           productName: p.productName,
           image: mapped.listing.imageUrl,
           mainImage: mapped.listing.imageUrl,
-          price: mapped.listing.minPrice,
-          discPrice: mapped.listing.minPrice,
+          price: mapped.price,
+          discPrice: mapped.discPrice ?? mapped.price,
           variations: mapped.variations,
           variants: mapped.variants,
           listing: mapped.listing,
-          mrp: mapped.compareAtPrice || mapped.listing.minPrice,
+          mrp: mapped.compareAtPrice || mapped.price || mapped.listing.minPrice,
           discount: mapped.discount,
           productImages: mapped.listing.imageUrl ? [mapped.listing.imageUrl] : [],
           rating: p.rating || 0,
@@ -174,6 +174,76 @@ async function fetchSectionData(
     console.error("Error fetching section data:", error);
     return [];
   }
+}
+
+async function fetchLowestPricesProducts(
+  nearbySellerIds: mongoose.Types.ObjectId[]
+) {
+  const lowestPricesProductsQuery: any = {
+    isActive: true,
+  };
+
+  const visibleSellers = await Seller.find({ isEnabled: true }).select("_id");
+  const visibleSellerIds = visibleSellers.map((s) => s._id);
+
+  const lowestPricesProducts = await LowestPricesProduct.find(
+    lowestPricesProductsQuery
+  )
+    .populate({
+      path: "product",
+      select:
+        "productName mainImage price discPrice compareAtPrice mrp variations unitPricing discount status publish category subcategory seller",
+      match: {
+        status: "Active",
+        publish: true,
+        seller: { $in: visibleSellerIds },
+      },
+      populate: {
+        path: "category",
+        match: { status: "Active" },
+      },
+    })
+    .sort({ order: 1 })
+    .lean();
+
+  return lowestPricesProducts
+    .filter((item: any) => item.product !== null && item.product.category !== null)
+    .map((item: any) => {
+      const mapped = toListItem(item.product);
+      const isAvailable =
+        nearbySellerIds &&
+        nearbySellerIds.length > 0 &&
+        item.product.seller
+          ? nearbySellerIds.some(
+              (id) => id.toString() === item.product.seller.toString()
+            )
+          : false;
+
+      return {
+        id: mapped._id,
+        _id: mapped._id,
+        productName: mapped.productName,
+        name: mapped.productName,
+        mainImage: mapped.mainImage,
+        imageUrl: mapped.listing.imageUrl || mapped.mainImage,
+        price: mapped.price,
+        discPrice: mapped.discPrice,
+        compareAtPrice: mapped.compareAtPrice,
+        variations: mapped.variations,
+        variants: mapped.variants,
+        listing: mapped.listing,
+        unitPricing: item.product.unitPricing || [],
+        mrp: mapped.compareAtPrice || mapped.price,
+        discount: mapped.discount || 0,
+        categoryId: item.product.category?.toString() || "",
+        subcategory: item.product.subcategory?.toString() || "",
+        status: mapped.status,
+        publish: mapped.publish,
+        isAvailable,
+        seller: item.product.seller,
+        pack: item.product.pack || mapped.variations?.[0]?.value || "",
+      };
+    });
 }
 
 // Get Home Page Content
@@ -264,68 +334,9 @@ export const getHomeContent = async (req: Request, res: Response) => {
     )).filter(Boolean);
 
     // 2. Lowest Prices Products - Get admin-selected products
-    // We fetch these irrespective of location radius to show preview on home page
-    const lowestPricesProductsQuery: any = {
-      isActive: true,
-    };
-
-    // Always filter by visible sellers. See customerProductController.ts for
-    // why `canCreateCategories` is intentionally not part of this gate.
-    const visibleSellers = await Seller.find({ isEnabled: true }).select("_id");
-    const visibleSellerIds = visibleSellers.map(s => s._id);
-
-    const lowestPricesProducts = await LowestPricesProduct.find(
-      lowestPricesProductsQuery
-    )
-      .populate({
-        path: "product",
-        select:
-          "productName mainImage price discPrice variations unitPricing mrp discount status publish category subcategory seller",
-        match: {
-          status: "Active",
-          publish: true,
-          seller: { $in: visibleSellerIds }
-          // Removed location filter to show preview images irrespective of radius
-        },
-        populate: {
-          path: "category",
-          match: { status: "Active" }
-        }
-      })
-      .sort({ order: 1 })
-      .lean();
-
-    // Filter out any products that were null (due to match condition or inactive category)
-    const validLowestPricesProducts = lowestPricesProducts
-      .filter((item: any) => item.product !== null && item.product.category !== null)
-      .map((item: any) => {
-        const product = item.product;
-        // Check if the product's seller is within range
-        const isAvailable = nearbySellerIds && nearbySellerIds.length > 0 && product.seller
-          ? nearbySellerIds.some(id => id.toString() === product.seller.toString())
-          : false;
-
-        return {
-          id: product._id.toString(),
-          _id: product._id.toString(),
-          productName: product.productName,
-          name: product.productName,
-          mainImage: product.mainImage,
-          imageUrl: product.mainImage,
-          price: product.price,
-          discPrice: product.discPrice,
-          variations: product.variations || [],
-          unitPricing: product.unitPricing || [],
-          mrp: product.mrp || product.price,
-          discount: product.discount || (product.mrp && product.price ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0),
-          categoryId: product.category?.toString() || "",
-          subcategory: product.subcategory?.toString() || "",
-          status: product.status,
-          publish: product.publish,
-          isAvailable,
-          seller: product.seller,
-        };
-      });
+    const validLowestPricesProducts = await fetchLowestPricesProducts(
+      nearbySellerIds
+    );
 
     // 3. Categories for Tiles (Grocery, Snacks, etc)
     const categories = await Category.find({
@@ -609,6 +620,32 @@ export const getHomeContent = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: "Error fetching home content",
+      error: error.message,
+    });
+  }
+};
+
+export const getLowestPricesProducts = async (req: Request, res: Response) => {
+  try {
+    const { latitude, longitude } = req.query;
+    const userLat = latitude ? parseFloat(latitude as string) : null;
+    const userLng = longitude ? parseFloat(longitude as string) : null;
+
+    let nearbySellerIds: mongoose.Types.ObjectId[] = [];
+    if (userLat !== null && userLng !== null) {
+      nearbySellerIds = await findSellersWithinRange(userLat, userLng);
+    }
+
+    const products = await fetchLowestPricesProducts(nearbySellerIds);
+
+    res.status(200).json({
+      success: true,
+      data: products,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching lowest prices products",
       error: error.message,
     });
   }

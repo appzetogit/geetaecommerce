@@ -308,23 +308,23 @@ export default function AdminStockBulkEdit({
               }))),
             ],
              isChanged: false,
-            itemCode: (p as any).itemCode || p.sku || "",
-            rackNumber: (p as any).rackNumber || "",
+            itemCode: p.variations?.[0]?.sku || (p as any).itemCode || p.sku || "",
+            rackNumber: p.variations?.[0]?.rackNumber || (p as any).rackNumber || "",
             description: p.smallDescription || p.description || "",
-            barcode: Array.isArray((p as any).barcode)
+            barcode: p.variations?.[0]?.barcode || (Array.isArray((p as any).barcode)
               ? (p as any).barcode
               : (p as any).barcode
                 ? [(p as any).barcode]
-                : [],
+                : []),
             hsnCode: (p as any).hsnCode || "",
             pack: (p as any).pack || "",
-            purchasePrice: (p as any).purchasePrice || 0,
+            purchasePrice: p.variations?.[0]?.purchasePrice || (p as any).purchasePrice || 0,
             mfgDate: (p as any).mfgDate || "",
             expiryDate: (p as any).expiryDate || "",
             weight: (p as any).weight || "",
             deliveryTime: (p as any).deliveryTime || "",
             lowStockQuantity: (p as any).lowStockQuantity || 5,
-            wholesalePrice: (p as any).wholesalePrice || 0,
+            wholesalePrice: p.variations?.[0]?.wholesalePrice || (p as any).wholesalePrice || 0,
             subSubCategory: (p as any).subSubCategory || "",
             subCategoryId:
               typeof (p as any).subcategory === "object" && (p as any).subcategory
@@ -336,9 +336,11 @@ export default function AdminStockBulkEdit({
             tax: p.tax || "",
             offerPrice: p.discPrice || 0,
             unitPricing:
-              p.unitPricing && p.unitPricing.length > 0
-                ? p.unitPricing
-                : [{ minQty: 1, price: 0 }],
+              p.variations?.[0]?.tieredPrices && p.variations[0].tieredPrices.length > 0
+                ? p.variations[0].tieredPrices
+                : (p.unitPricing && p.unitPricing.length > 0
+                  ? p.unitPricing
+                  : [{ minQty: 1, price: 0 }]),
             attributes: [],
             variations: p.variations || [],
             variationName: (p as any).variationName || "",
@@ -491,26 +493,26 @@ export default function AdminStockBulkEdit({
         stock: p.stock,
         publish: p.publish,
         // New fields initialization
-        itemCode: (p as any).itemCode || p.sku || "",
-        rackNumber: (p as any).rackNumber || "",
+        itemCode: p.variations?.[0]?.sku || (p as any).itemCode || p.sku || "",
+        rackNumber: p.variations?.[0]?.rackNumber || (p as any).rackNumber || "",
         description: p.smallDescription || p.description || "",
-        barcode: Array.isArray((p as any).barcode) ? (p as any).barcode : (p as any).barcode ? [(p as any).barcode] : [],
+        barcode: p.variations?.[0]?.barcode || (Array.isArray((p as any).barcode) ? (p as any).barcode : (p as any).barcode ? [(p as any).barcode] : []),
         hsnCode: (p as any).hsnCode || "",
         pack: (p as any).pack || "",
-        purchasePrice: (p as any).purchasePrice || 0,
+        purchasePrice: p.variations?.[0]?.purchasePrice || (p as any).purchasePrice || 0,
         mfgDate: (p as any).mfgDate || "",
         expiryDate: (p as any).expiryDate || "",
         weight: (p as any).weight || "",
         deliveryTime: (p as any).deliveryTime || "",
         lowStockQuantity: (p as any).lowStockQuantity || 5,
-        wholesalePrice: (p as any).wholesalePrice || 0,
+        wholesalePrice: p.variations?.[0]?.wholesalePrice || (p as any).wholesalePrice || 0,
         subSubCategory: (p as any).subSubCategory || "",
         subCategoryId: subCategoryId, // Add this
         brand: typeof p.brand === "object" ? (p.brand as any).name : "-",
         brandId: brandId,
         tax: p.tax || "",
         offerPrice: p.discPrice || 0,
-        unitPricing: p.unitPricing && p.unitPricing.length > 0 ? p.unitPricing : [{ minQty: 1, price: 0 }], // Initialize
+        unitPricing: p.variations?.[0]?.tieredPrices && p.variations[0].tieredPrices.length > 0 ? p.variations[0].tieredPrices : (p.unitPricing && p.unitPricing.length > 0 ? p.unitPricing : [{ minQty: 1, price: 0 }]), // Initialize
         images: images,
         isChanged: false,
         attributes: [],
@@ -529,8 +531,15 @@ export default function AdminStockBulkEdit({
   ) => {
     setEditableProducts((prev) => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value, isChanged: true };
-      upsertEditedCache(updated[index]);
+      const oldProd = updated[index];
+      let newProd = { ...oldProd, [field]: value, isChanged: true };
+
+      if (field === "price" && oldProd.price === oldProd.offerPrice) {
+        newProd.offerPrice = value;
+      }
+
+      updated[index] = newProd;
+      upsertEditedCache(newProd);
       return updated;
     });
   };
@@ -648,14 +657,41 @@ export default function AdminStockBulkEdit({
           ...(p.subSubCategory ? { subSubCategory: p.subSubCategory } : {}),
           ...(p.brandId ? { brand: p.brandId } : {}),
           ...(p.brandId ? { brand: p.brandId } : {}),
-           variations: p.variations.map((v: any) => ({
-             ...v,
-              price: p.price || p.compareAtPrice || v.price,
-              compareAtPrice: p.compareAtPrice || v.compareAtPrice,
-              stock: Number(p.stock) || 0,
-              discPrice: (v.offerPrice || v.discPrice || p.offerPrice || p.price || p.compareAtPrice) || 0,
-             wholesalePrice: p.wholesalePrice || v.wholesalePrice || 0
-           })),
+           variations: p.variations.map((v: any) => {
+             if (p.variations.length <= 1) {
+               return {
+                 ...v,
+                 price: p.price,
+                 compareAtPrice: p.compareAtPrice,
+                 stock: Number(p.stock) || 0,
+                 discPrice: p.offerPrice || p.price,
+                 wholesalePrice: p.wholesalePrice || 0,
+                 purchasePrice: p.purchasePrice || 0,
+                 sku: p.itemCode || undefined,
+                 rackNumber: p.rackNumber || undefined,
+                 barcode: p.barcode || [],
+                 tieredPrices: p.unitPricing || [],
+                 mainImage: mainImage || undefined,
+                 galleryImages: galleryImages || []
+               };
+             } else {
+               return {
+                 ...v,
+                 price: v.price,
+                 compareAtPrice: v.compareAtPrice,
+                 stock: Number(v.stock) || 0,
+                 discPrice: v.discPrice || v.price,
+                 wholesalePrice: v.wholesalePrice || 0,
+                 purchasePrice: v.purchasePrice || 0,
+                 sku: v.sku,
+                 rackNumber: v.rackNumber,
+                 barcode: v.barcode || [],
+                 tieredPrices: v.tieredPrices || v.unitPricing || [],
+                 mainImage: v.mainImage || undefined,
+                 galleryImages: v.galleryImages || []
+               };
+             }
+           }),
           unitPricing: p.unitPricing, // Include unitPricing in payload
           variationName: p.variationName,
         } as any);
@@ -715,14 +751,41 @@ export default function AdminStockBulkEdit({
           ...(p.variationName ? { variationName: p.variationName } : {}),
           ...(p.variations && p.variations.length > 0
             ? {
-                variations: p.variations.map((v: any) => ({
-                  ...v,
-                  price: p.price || p.compareAtPrice || v.price,
-                  compareAtPrice: p.compareAtPrice || v.compareAtPrice,
-                  stock: Number(p.stock) || 0,
-                  discPrice: (v.offerPrice || v.discPrice || p.offerPrice || p.price || p.compareAtPrice) || 0,
-                  wholesalePrice: p.wholesalePrice || v.wholesalePrice || 0
-                })),
+                variations: p.variations.map((v: any) => {
+                  if (p.variations.length <= 1) {
+                    return {
+                      ...v,
+                      price: p.price,
+                      compareAtPrice: p.compareAtPrice,
+                      stock: Number(p.stock) || 0,
+                      discPrice: p.offerPrice || p.price,
+                      wholesalePrice: p.wholesalePrice || 0,
+                      purchasePrice: p.purchasePrice || 0,
+                      sku: p.itemCode || undefined,
+                      rackNumber: p.rackNumber || undefined,
+                      barcode: p.barcode || [],
+                      tieredPrices: p.unitPricing || [],
+                      mainImage: mainImage || undefined,
+                      galleryImages: galleryImages || []
+                    };
+                  } else {
+                    return {
+                      ...v,
+                      price: v.price,
+                      compareAtPrice: v.compareAtPrice,
+                      stock: Number(v.stock) || 0,
+                      discPrice: v.discPrice || v.price,
+                      wholesalePrice: v.wholesalePrice || 0,
+                      purchasePrice: v.purchasePrice || 0,
+                      sku: v.sku,
+                      rackNumber: v.rackNumber,
+                      barcode: v.barcode || [],
+                      tieredPrices: v.tieredPrices || v.unitPricing || [],
+                      mainImage: v.mainImage || undefined,
+                      galleryImages: v.galleryImages || []
+                    };
+                  }
+                }),
               }
             : {}),
         } as any);

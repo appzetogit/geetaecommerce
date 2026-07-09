@@ -60,6 +60,7 @@ const BrandProducts = lazy(() => import("./modules/user/BrandProducts"));
 const FlashDealsPage = lazy(() => import("./modules/user/FlashDealsPage"));
 const DealOfTheDayPage = lazy(() => import("./modules/user/DealOfTheDayPage"));
 const FeaturedDealsPage = lazy(() => import("./modules/user/FeaturedDealsPage"));
+const LowestPricesEverPage = lazy(() => import("./modules/user/LowestPricesEverPage"));
 // Lazy load delivery routes
 const DeliveryLayout = lazy(() => import("./modules/delivery/components/DeliveryLayout"));
 const DeliveryDashboard = lazy(() => import("./modules/delivery/pages/DeliveryDashboard"));
@@ -673,6 +674,7 @@ function App() {
                             <Route path="/flash-deals" element={<FlashDealsPage />} />
                             <Route path="/featured-deals" element={<FeaturedDealsPage />} />
                             <Route path="/deal-of-the-day" element={<DealOfTheDayPage />} />
+                            <Route path="/lowest-prices-ever" element={<LowestPricesEverPage />} />
                           </Routes>
                         </Suspense>
                       </AppLayout>

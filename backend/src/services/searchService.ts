@@ -276,7 +276,7 @@ const mapProductForClient = (product: any, searchScore: Record<string, number>) 
     id: String(product._id),
     name: product.productName,
     imageUrl: mapped.listing.imageUrl,
-    price: mapped.listing.minPrice,
+    price: mapped.price,
     stock: mapped.listing.totalStock,
     searchScore,
   };

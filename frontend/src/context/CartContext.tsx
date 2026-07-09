@@ -12,7 +12,7 @@ import {
 } from '../services/api/customerCartService';
 import { getApplicableUnitPrice, getCartItemVariantSelector, getCartLineUnitPrice } from '../utils/priceUtils';
 import { getCustomerFreeGiftRules } from '../services/api/customerFreeGiftService';
-import { FreeGiftRule } from '../hooks/useFreeGiftRules';
+import { CartRewardRule, getGiftRules, normalizeCartRewardRule } from '../utils/freeGiftRuleUtils';
 
 const CART_STORAGE_KEY = 'saved_cart';
 
@@ -29,7 +29,7 @@ interface CartContextType {
   clearCart: () => Promise<void>;
   lastAddEvent: AddToCartEvent | null;
   loading: boolean;
-  freeGiftRules: FreeGiftRule[];
+  freeGiftRules: CartRewardRule[];
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -57,7 +57,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
   const [lastAddEvent, setLastAddEvent] = useState<AddToCartEvent | null>(null);
   const [loading, setLoading] = useState(true);
-  const [freeGiftRules, setFreeGiftRules] = useState<FreeGiftRule[]>([]);
+  const [freeGiftRules, setFreeGiftRules] = useState<CartRewardRule[]>([]);
   const pendingOperationsRef = useRef<Set<string>>(new Set());
 
   const { isAuthenticated, user } = useAuth();
@@ -173,8 +173,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const res = await getCustomerFreeGiftRules();
       if (res.success && Array.isArray(res.data)) {
          const active = res.data
-           .filter((r: any) => r.status === 'Active')
-           .sort((a: any, b: any) => a.minCartValue - b.minCartValue);
+           .map(normalizeCartRewardRule)
+           .filter((r) => r.status === 'Active')
+           .sort((a, b) => a.minCartValue - b.minCartValue);
          setFreeGiftRules(active);
       }
     } catch (e) {
@@ -213,7 +214,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Free Gift Logic (Multiple Gifts Support)
   useEffect(() => {
-    const activeRules = freeGiftRules; // Uses state now
+    const activeRules = getGiftRules(freeGiftRules);
 
     // Calculate total of PAID items
     const validItems = items.filter(item => item?.product);
@@ -230,7 +231,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     activeRules.forEach(rule => {
         if (currentTotal >= rule.minCartValue) {
-            validGiftIds.add(rule.giftProductId);
+            validGiftIds.add(String(rule.giftProductId));
         }
     });
 
@@ -253,7 +254,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // 2. Add gifts that are missing
     activeRules.forEach(rule => {
         if (currentTotal >= rule.minCartValue) {
-            const giftProductId = rule.giftProductId;
+            const giftProductId = String(rule.giftProductId || '');
             const giftProduct = rule.giftProduct;
 
             // Check if already present

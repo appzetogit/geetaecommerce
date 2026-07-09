@@ -5,6 +5,7 @@ import { useCart } from '../../context/CartContext';
 import { useOrders } from '../../hooks/useOrders';
 import { useLocation as useLocationContext } from '../../hooks/useLocation';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 // import { products } from '../../data/products'; // Removed
 import { OrderAddress, Order } from '../../types/order';
@@ -19,6 +20,13 @@ import { getProducts } from '../../services/api/customerProductService';
 import { addToWishlist } from '../../services/api/customerWishlistService';
 import { calculateProductPrice, getCartItemVariantSelector, getCartLineUnitPrice } from '../../utils/priceUtils';
 import { initiateOnlineOrder, verifyOnlinePayment } from '../../services/api/customerOrderService';
+import { resolveFirstOrderOfferDiscount } from '../../utils/firstOrderOfferUtils';
+import {
+  calculateCartRuleDiscount,
+  getNextCartRule,
+  getRuleRewardLabel,
+  getUnlockedCartRules,
+} from '../../utils/freeGiftRuleUtils';
 
 // const STORAGE_KEY = 'saved_address'; // Removed
 
@@ -34,6 +42,7 @@ export default function Checkout() {
   const { addOrder } = useOrders();
   const { location: userLocation } = useLocationContext();
   const { showToast: showGlobalToast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useRouterLocation();
   const [config, setConfig] = useState<AppConfig>(defaultAppConfig);
@@ -301,6 +310,21 @@ export default function Checkout() {
   // but for simplicity, we'll re-calculate locally if possible or trust the previous validation if acceptable (better to re-validate)
   const subtotalBeforeCoupon = discountedTotal + handlingCharge + deliveryCharge;
 
+  const isFirstTimeCustomer =
+    isAuthenticated && user && Number(user.totalOrders || 0) === 0;
+
+  const firstOrderDiscount = resolveFirstOrderOfferDiscount(
+    config.firstOrderOffer,
+    Boolean(isFirstTimeCustomer),
+    subtotalBeforeCoupon
+  );
+
+  const cartRuleDiscount = calculateCartRuleDiscount(
+    freeGiftRules,
+    discountedTotal,
+    Math.max(0, subtotalBeforeCoupon - firstOrderDiscount)
+  );
+
   // Local calculation for immediate feedback, relying on backend validation on Apply
   let currentCouponDiscount = 0;
   if (selectedCoupon) {
@@ -326,8 +350,18 @@ export default function Checkout() {
   const onlineDiscountConfig = config.onlinePaymentDiscount;
   const onlineDiscountPercentage = onlineDiscountConfig?.enabled ? onlineDiscountConfig.percentage : 0;
 
-  // Base for online discount should be Subtotal + Handling + Delivery + Tip + Gift - Coupon
-  const baseTotalForDiscount = Math.max(0, discountedTotal + handlingCharge + deliveryCharge + finalTipAmount + giftPackagingFee - currentCouponDiscount);
+  // Base for online discount should be Subtotal + Handling + Delivery + Tip + Gift - First order - Coupon
+  const baseTotalForDiscount = Math.max(
+    0,
+    discountedTotal +
+      handlingCharge +
+      deliveryCharge +
+      finalTipAmount +
+      giftPackagingFee -
+      firstOrderDiscount -
+      cartRuleDiscount -
+      currentCouponDiscount
+  );
   const onlineDiscountAmount = (baseTotalForDiscount * onlineDiscountPercentage) / 100;
 
   const grandTotal = baseTotalForDiscount;
@@ -930,7 +964,7 @@ export default function Checkout() {
           </div>
 
 
-        {/* Free Gift Progress Bar (Multi-Tier Checkout) */}
+        {/* Cart reward progress (free gifts + discounts) */}
         {(() => {
              const activeRules = freeGiftRules;
              if (activeRules.length === 0) return null;
@@ -938,13 +972,16 @@ export default function Checkout() {
              const currentTotal = displayCart.total;
              const highestRule = activeRules[activeRules.length - 1];
              const maxTarget = highestRule.minCartValue;
-             const nextRule = activeRules.find(r => r.minCartValue > currentTotal);
+             const nextRule = getNextCartRule(activeRules, currentTotal);
+             const unlockedRules = getUnlockedCartRules(activeRules, currentTotal);
 
              return (
                <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                     <div className="flex justify-between items-center mb-4">
                         <span className="text-xs font-semibold text-gray-800">
-                            {nextRule ? `Unlock: ${nextRule.giftProduct?.productName || 'Gift'}` : "🎉 All Gifts Unlocked!"}
+                            {nextRule
+                              ? `Unlock: ${getRuleRewardLabel(nextRule)}`
+                              : '🎉 All Rewards Unlocked!'}
                         </span>
                         {nextRule && (
                              <span className="text-[10px] text-gray-500">
@@ -955,19 +992,16 @@ export default function Checkout() {
 
                     {/* Milestone Bar */}
                     <div className="relative h-12 mb-1">
-                         {/* Background Line */}
                          <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 rounded-full -translate-y-1/2 z-0"></div>
-
-                         {/* Progress Line */}
                          <div
                             className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-[var(--customer-primary-light)] to-[var(--customer-primary)] rounded-full -translate-y-1/2 z-0 transition-all duration-300"
                             style={{ width: `${Math.min(100, (currentTotal / maxTarget) * 100)}%` }}
                          ></div>
 
-                         {/* Milestones */}
                          {activeRules.map((rule) => {
                              const isUnlocked = currentTotal >= rule.minCartValue;
                              const position = (rule.minCartValue / maxTarget) * 100;
+                             const isDiscount = rule.ruleType === 'discount';
 
                              return (
                                  <div
@@ -975,17 +1009,13 @@ export default function Checkout() {
                                     className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center z-10"
                                     style={{ left: `${position}%`, transform: `translate(-${position === 100 ? '100' : '50'}%, -50%)` }}
                                  >
-                                     {/* Icon Circle */}
                                      <div className={`w-6 h-6 rounded-full border flex items-center justify-center bg-white transition-all duration-300 ${isUnlocked ? 'border-[var(--customer-primary)] text-[var(--customer-primary)] shadow-sm' : 'border-gray-300 text-gray-300'}`}>
                                          {isUnlocked ? (
                                              <span className="text-[10px] font-bold">✓</span>
                                          ) : (
-                                             <span className="text-[8px]">🎁</span>
+                                             <span className="text-[8px]">{isDiscount ? '%' : '🎁'}</span>
                                          )}
                                      </div>
-
-                                     {/* Label */}
-                                     {/* Only show label if it's the next target or last one to avoid clutter */}
                                      <div className="absolute top-7 w-16 text-center">
                                          <span className={`text-[8px] font-bold block ${isUnlocked ? 'text-[var(--customer-primary-dark)]' : 'text-gray-400'}`}>
                                              ₹{rule.minCartValue}
@@ -995,14 +1025,51 @@ export default function Checkout() {
                              );
                          })}
                     </div>
-                    {/* Next Gift Preview */}
-                    {nextRule && (
-                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
-                            {nextRule.giftProduct?.mainImage && (
-                                <img src={nextRule.giftProduct.mainImage} alt="" className="w-6 h-6 object-cover rounded border border-white shadow-sm" />
+
+                    {unlockedRules.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
+                        {unlockedRules.map((rule) => (
+                          <div key={`unlocked-${rule._id || rule.id}`} className="flex items-center gap-2">
+                            {rule.ruleType === 'discount' ? (
+                              <div className="w-6 h-6 rounded-full bg-[var(--customer-primary-alpha-10)] text-[var(--customer-primary-dark)] text-[10px] font-bold flex items-center justify-center">
+                                {rule.discountType === 'percentage' ? '%' : '₹'}
+                              </div>
+                            ) : rule.giftProduct?.mainImage ? (
+                              <img src={rule.giftProduct.mainImage} alt="" className="w-6 h-6 object-cover rounded border border-white shadow-sm" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-[var(--customer-primary-alpha-10)] text-[10px] flex items-center justify-center">🎁</div>
                             )}
                             <span className="text-[10px] text-gray-600">
-                                Get free <b>{nextRule.giftProduct?.productName}</b> at ₹{nextRule.minCartValue}
+                              {rule.ruleType === 'discount' ? (
+                                <>
+                                  <b>{getRuleRewardLabel(rule)}</b> applied at ₹{rule.minCartValue}+
+                                </>
+                              ) : (
+                                <>
+                                  Free <b>{rule.giftProduct?.productName || 'gift'}</b> unlocked
+                                </>
+                              )}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {nextRule && (
+                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+                            {nextRule.ruleType === 'discount' ? (
+                              <div className="w-6 h-6 rounded-full bg-white border border-gray-200 text-[var(--customer-primary-dark)] text-[10px] font-bold flex items-center justify-center">
+                                {nextRule.discountType === 'percentage' ? '%' : '₹'}
+                              </div>
+                            ) : nextRule.giftProduct?.mainImage ? (
+                                <img src={nextRule.giftProduct.mainImage} alt="" className="w-6 h-6 object-cover rounded border border-white shadow-sm" />
+                            ) : null}
+                            <span className="text-[10px] text-gray-600">
+                                {nextRule.ruleType === 'discount' ? (
+                                  <>Get <b>{getRuleRewardLabel(nextRule)}</b> at ₹{nextRule.minCartValue}</>
+                                ) : (
+                                  <>Get free <b>{nextRule.giftProduct?.productName}</b> at ₹{nextRule.minCartValue}</>
+                                )}
                             </span>
                         </div>
                     )}
@@ -1161,6 +1228,30 @@ export default function Checkout() {
         </div>
       )}
 
+      {/* First order offer — auto-applied for eligible customers */}
+      {firstOrderDiscount > 0 && (
+        <div className="px-4 py-1.5 border-b border-neutral-200">
+          <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50 to-white p-2.5 shadow-sm">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="w-7 h-7 rounded-xl bg-emerald-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 6 9 17l-5-5" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-emerald-900 truncate">
+                  {config.firstOrderOffer?.title || 'First order offer'}
+                </p>
+                <p className="text-[10px] text-emerald-800 truncate">
+                  Automatically applied · ₹{firstOrderDiscount} {config.firstOrderOffer?.subtitle || 'OFF'}
+                </p>
+              </div>
+            </div>
+            <span className="text-xs font-bold text-emerald-700 flex-shrink-0">Applied</span>
+          </div>
+        </div>
+      )}
+
       {/* Coupon Section */}
       {selectedCoupon ? (
         <div className="px-4 py-1.5 border-b border-neutral-200">
@@ -1244,6 +1335,36 @@ export default function Checkout() {
               )}
             </div>
           </div>
+
+          {/* First order offer */}
+          {firstOrderDiscount > 0 && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="currentColor" strokeWidth="2" fill="none" />
+                </svg>
+                <span className="text-xs text-neutral-700">First order offer</span>
+              </div>
+              <span className="text-xs font-medium text-[var(--customer-primary-dark)]">
+                -₹{firstOrderDiscount.toLocaleString('en-IN')}
+              </span>
+            </div>
+          )}
+
+          {/* Cart reward discount */}
+          {cartRuleDiscount > 0 && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 6 9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="text-xs text-neutral-700">Cart reward discount</span>
+              </div>
+              <span className="text-xs font-medium text-[var(--customer-primary-dark)]">
+                -₹{cartRuleDiscount.toLocaleString('en-IN')}
+              </span>
+            </div>
+          )}
 
           {/* Coupon discount */}
           {selectedCoupon && currentCouponDiscount > 0 && (

@@ -182,6 +182,8 @@ const AdminPOSCustomerOrders = () => {
         const invoiceNum = order.orderNumber || order._id.slice(-6).toUpperCase();
         const dateStr = new Date(order.orderDate || order.createdAt).toLocaleDateString();
         const timeStr = new Date(order.orderDate || order.createdAt).toLocaleTimeString();
+        const customerName = order.customerName || customer?.name || "Walk-in Customer";
+        const customerPhone = order.customerPhone || customer?.phone || customer?.mobile || "-";
 
         // --- Header ---
         doc.setFillColor(241, 135, 181); // Pink
@@ -207,15 +209,19 @@ const AdminPOSCustomerOrders = () => {
         doc.text(invoiceNum, 196, 48, { align: 'right' });
         doc.text(`${dateStr} ${timeStr}`, 196, 53, { align: 'right' });
         doc.text(order.paymentStatus || 'Paid', 196, 58, { align: 'right' });
+        doc.text("Customer Name:", 14, 63);
+        doc.text("Customer Mobile:", 14, 68);
+        doc.text(String(customerName), 196, 63, { align: 'right' });
+        doc.text(String(customerPhone), 196, 68, { align: 'right' });
 
         doc.setLineWidth(0.5);
-        doc.line(14, 63, 196, 63);
+        doc.line(14, 73, 196, 73);
 
         // --- Table Header ---
         doc.setFont("helvetica", "bold");
-        doc.text("Total Item List", 105, 68, { align: 'center' });
+        doc.text("Total Item List", 105, 78, { align: 'center' });
 
-        let y = 74;
+        let y = 84;
         doc.setFontSize(10);
         doc.text("Item-name", 14, y);
         doc.text("Qty", 100, y);
@@ -263,7 +269,17 @@ const AdminPOSCustomerOrders = () => {
         doc.text("Total Amount:", 14, y);
         doc.text(`Rs ${order.total || totalBillAmount}`, 196, y, { align: 'right' });
 
-        doc.save(`${customer?.name || 'Customer'}_Order_${invoiceNum}.pdf`);
+        const pdfBlob = doc.output("blob");
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        const opened = window.open(pdfUrl, "_blank", "noopener,noreferrer");
+
+        if (!opened) {
+            // Fallback when popups are blocked: still open in same tab preview.
+            window.location.href = pdfUrl;
+        }
+
+        // Cleanup blob URL after browser has consumed it.
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
     };
 
     const filteredOrders = orders.filter((order: any) => {

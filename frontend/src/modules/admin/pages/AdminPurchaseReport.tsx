@@ -158,11 +158,7 @@ const AdminPurchaseReport: React.FC = () => {
   };
   const handleViewBill = () => {
     if (!selectedEntry || !selectedEntry.billAttachment) return;
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.write(`<img src="${selectedEntry.billAttachment}" style="max-width:100%"/>`);
-      win.document.close();
-    }
+    window.open(selectedEntry.billAttachment, '_blank', 'noopener,noreferrer');
     setShowActionSheet(false);
   };
 

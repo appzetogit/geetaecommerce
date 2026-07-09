@@ -73,6 +73,19 @@ export const getHomeContent = async (
   return fetchFn();
 };
 
+export const getLowestPricesProducts = async (
+  latitude?: number,
+  longitude?: number
+): Promise<{ success: boolean; data: any[] }> => {
+  const params: Record<string, number> = {};
+  if (latitude !== undefined && longitude !== undefined) {
+    params.latitude = latitude;
+    params.longitude = longitude;
+  }
+  const response = await api.get("/customer/home/lowest-prices", { params });
+  return response.data;
+};
+
 /**
  * Get products for a specific "shop" (e.g. Spiritual Store)
  */

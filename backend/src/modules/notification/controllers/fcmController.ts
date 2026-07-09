@@ -10,26 +10,35 @@ export const saveFCMToken = async (req: Request, res: Response, next: NextFuncti
   try {
     const { token, platform, userType } = req.body;
     const userId = req.user?.userId;
+    const jwtUserType = req.user?.userType?.toLowerCase?.();
+    const inferredUserType = (jwtUserType || userType || '').toLowerCase();
 
     console.log('📋 [BACKEND] Payload:', {
       token: token ? (token.substring(0, 10) + '...') : 'MISSING',
       platform,
       userType,
-      userId
+      inferredUserType,
+      jwtUserType,
+      userId,
     });
 
-    if (!token || !userId || !userType) {
-      console.error('❌ [BACKEND] Missing required fields:', { token: !!token, userId: !!userId, userType: !!userType });
+    if (!token || !userId) {
+      console.error('❌ [BACKEND] Missing required fields:', { token: !!token, userId: !!userId });
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
+    // If userType is provided in body, it must match authenticated JWT userType
+    if (userType && jwtUserType && userType.toLowerCase() !== jwtUserType) {
+      return res.status(403).json({ success: false, message: 'userType mismatch with authenticated user' });
+    }
+
     let Model: any;
-    if (userType === 'customer') Model = Customer;
-    else if (userType === 'delivery') Model = Delivery;
-    else if (userType === 'seller') Model = Seller;
-    else if (userType === 'admin') Model = Admin;
+    if (inferredUserType === 'customer') Model = Customer;
+    else if (inferredUserType === 'delivery') Model = Delivery;
+    else if (inferredUserType === 'seller') Model = Seller;
+    else if (inferredUserType === 'admin') Model = Admin;
     else {
-      console.error('❌ [BACKEND] Invalid user type:', userType);
+      console.error('❌ [BACKEND] Invalid user type:', inferredUserType);
       return res.status(400).json({ success: false, message: 'Invalid user type' });
     }
 
@@ -42,7 +51,7 @@ export const saveFCMToken = async (req: Request, res: Response, next: NextFuncti
     // Mapping: 'web' -> fcmToken, others ('app', 'android', 'ios') -> fcmTokenMobile
     const isMobile = ['app', 'android', 'ios'].includes(platform);
     const updateField = isMobile ? { fcmTokenMobile: token } : { fcmToken: token };
-    console.log(`💾 [BACKEND] Updating ${userType} (${userId}) with ${platform} token`);
+    console.log(`💾 [BACKEND] Updating ${inferredUserType} (${userId}) with ${platform || 'web'} token`);
 
     const updatedUser = await Model.findByIdAndUpdate(userId, updateField, { new: true });
 
