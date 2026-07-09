@@ -100,6 +100,7 @@ const SellerLogin = lazy(() => import("./modules/seller/pages/SellerLogin"));
 const SellerSignUp = lazy(() => import("./modules/seller/pages/SellerSignUp"));
 const SellerBillSettings = lazy(() => import("./modules/seller/pages/SellerBillSettings"));
 const SellerPOSOrders = lazy(() => import("./modules/seller/pages/SellerPOSOrders"));
+const SellerPOSSuccess = lazy(() => import("./modules/seller/pages/SellerPOSSuccess"));
 const SellerPOSCustomers = lazy(() => import("./modules/seller/pages/SellerPOSCustomers"));
 const SellerPOSCustomerDetail = lazy(() => import("./modules/seller/pages/SellerPOSCustomerDetail"));
 const SellerPOSCustomerOrders = lazy(() => import("./modules/seller/pages/SellerPOSCustomerOrders"));
@@ -188,6 +189,8 @@ const AdminOrderDetail = lazy(() => import("./modules/admin/pages/AdminOrderDeta
 const AdminManageCustomer = lazy(() => import("./modules/admin/pages/AdminManageCustomer"));
 const AdminProfile = lazy(() => import("./modules/admin/pages/AdminProfile"));
 const AdminPOSOrders = lazy(() => import("./modules/admin/pages/AdminPOSOrders"));
+const AdminPOSSuccess = lazy(() => import("./modules/admin/pages/AdminPOSSuccess"));
+const POSCreditVerify = lazy(() => import("./modules/shared/POSCreditVerify"));
 const AdminPOSReport = lazy(() => import("./modules/admin/pages/AdminPOSReport"));
 const AdminPurchaseReport = lazy(() => import("./modules/admin/pages/AdminPurchaseReport"));
 const AdminPOSQuotations = lazy(() => import("./modules/admin/pages/AdminPOSQuotations"));
@@ -479,6 +482,8 @@ function App() {
                               <Route path="sales-summary" element={<SellerSalesSummary />} />
                               <Route path="account-settings" element={<SellerAccountSettings />} />
                               <Route path="pos/orders" element={<SellerPOSOrders />} />
+                              <Route path="pos/success" element={<SellerPOSSuccess />} />
+                              <Route path="pos/credit/verify" element={<POSCreditVerify portal="seller" />} />
                               <Route path="pos/customers" element={<SellerPOSCustomers />} />
                               <Route path="pos/customers/:id" element={<SellerPOSCustomerDetail />} />
                               <Route path="pos/customers/:id/orders" element={<SellerPOSCustomerOrders />} />
@@ -518,6 +523,8 @@ function App() {
                           <AdminLayout>
                             <Routes>
                              <Route path="pos/orders" element={<AdminPOSOrders />} />
+                             <Route path="pos/success" element={<AdminPOSSuccess />} />
+                             <Route path="pos/credit/verify" element={<POSCreditVerify portal="admin" />} />
                              <Route path="pos/customers" element={<AdminPOSCustomers />} />
                              <Route path="pos/customers/:id" element={<AdminPOSCustomerDetail />} />
                              <Route path="pos/customers/:id/orders" element={<AdminPOSCustomerOrders />} />

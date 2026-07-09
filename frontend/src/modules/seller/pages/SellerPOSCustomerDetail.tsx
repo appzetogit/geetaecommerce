@@ -270,53 +270,22 @@ const SellerPOSCustomerDetail = () => {
             const response = await initiateCreditPayment({
                 customerId: customerData!._id,
                 amount: val,
-                gateway: mode
+                gateway: 'PhonePe'
             });
 
             if (response.success) {
-                const { gateway, orderId, paymentSessionId, amount, key, razorpayOrderId, isSandbox } = response.data;
+                const { gateway, redirectUrl, merchantTransactionId } = response.data;
 
-                if (gateway === 'Razorpay') {
-                    const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
-                    if (!res) {
-                         showToast("Razorpay SDK failed to load", "error");
-                         return;
-                    }
-
-                    const options = {
-                        key: key,
-                        amount: Math.round(amount * 100),
-                        currency: "INR",
-                        name: "Geeta Stores",
-                        description: "Credit Payment",
-                        order_id: razorpayOrderId,
-                        handler: async function (response: any) {
-                             await handleVerifyPayment(orderId, response.razorpay_payment_id, mode, val);
-                        },
-                        prefill: {
-                             name: customerData!.name,
-                             contact: customerData!.phone,
-                        },
-                        theme: { color: "var(--primary-color)" }
-                    };
-                    const rzp1 = new (window as any).Razorpay(options);
-                    rzp1.open();
-                } else if (gateway === 'Cashfree') {
-                     const res = await loadScript("https://sdk.cashfree.com/js/v3/cashfree.js");
-                     if (!res) {
-                        showToast("Cashfree SDK failed to load", "error");
-                        return;
-                     }
-                     const cashfree = new (window as any).Cashfree({
-                        mode: isSandbox ? "sandbox" : "production"
-                     });
-                     cashfree.checkout({
-                        paymentSessionId: paymentSessionId,
-                        redirectTarget: "_modal",
-                     }).then((result: any) => {
-                          handleVerifyPayment(orderId, "CF_References_Checked_Backend", mode, val);
-                     });
+                if (gateway === 'PhonePe' && redirectUrl) {
+                    sessionStorage.setItem(
+                      'seller_pos_credit_payment',
+                      JSON.stringify({ customerId: customerData!._id, amount: val, merchantTransactionId })
+                    );
+                    window.location.href = redirectUrl;
+                    return;
                 }
+
+                showToast("Unsupported payment gateway", "error");
             } else {
                  showToast(response.message || "Failed to initiate payment", "error");
             }

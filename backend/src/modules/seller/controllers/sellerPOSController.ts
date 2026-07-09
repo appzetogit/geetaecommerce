@@ -22,6 +22,8 @@ import {
   resolveLedgerSku,
   variantsFromProductDoc,
 } from "../../product/variantHelpers";
+import { initiatePosOnlineOrderCore } from "../../pos/initiatePosOnlineOrder";
+import { completePosOnlinePayment } from "../../pos/completePosOnlinePayment";
 
 // ... existing code ...
 
@@ -337,21 +339,55 @@ export const createPOSOrder = asyncHandler(
 
 export const initiatePOSOnlineOrder = asyncHandler(
   async (req: Request, res: Response) => {
-      return res.status(200).json({
-          success: true,
-          message: "Online order initiated (Mock)",
-          order_id: "order_" + Date.now(),
-          amount: req.body.amount,
-          currency: "INR"
+    const sellerId = (req as any).user.userId;
+    const { items, gateway } = req.body;
+    let { customerId } = req.body;
+
+    if (!customerId || !items?.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
       });
+    }
+
+    try {
+      const data = await initiatePosOnlineOrderCore({
+        customerId,
+        items,
+        gateway,
+        sellerId,
+        redirectPathPrefix: "/seller",
+      });
+
+      return res.status(200).json({ success: true, data });
+    } catch (error: any) {
+      console.error("Seller PhonePe POS Error:", error.message || error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "PhonePe gateway error",
+      });
+    }
   }
 );
 
 export const verifyPOSPayment = asyncHandler(
-    async (req: Request, res: Response) => {
-        req.body.paymentStatus = "Paid";
-        return createPOSOrder(req, res, () => {});
+  async (req: Request, res: Response) => {
+    const { orderId, paymentId, merchantTransactionId } = req.body;
+    const paymentRef = merchantTransactionId || paymentId;
+
+    const result = await completePosOnlinePayment(req, orderId, paymentRef);
+    if (!result.success) {
+      return res.status(result.message === "Order not found" ? 404 : 400).json({
+        success: false,
+        message: result.message,
+      });
     }
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  }
 );
 
 export const getPOSReport = asyncHandler(

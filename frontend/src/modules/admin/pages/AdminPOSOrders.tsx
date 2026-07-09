@@ -3324,7 +3324,7 @@ const AdminPOSOrders = () => {
                   warrantyType: (item as any).warrantyType || 'None',
                   warrantyDuration: (item as any).warrantyDuration || ''
               })),
-              gateway: method,
+              gateway: 'PhonePe',
               createdBy: activeStaffSession?.id,
               staffName: activeStaffSession?.name
           };
@@ -3332,59 +3332,20 @@ const AdminPOSOrders = () => {
           const response = await initiatePOSOnlineOrder(orderData);
 
           if (response.success) {
-              const { gateway, orderId, amount, key, razorpayOrderId, paymentSessionId, isSandbox } = response.data;
+              const { gateway, orderId, redirectUrl, merchantTransactionId } = response.data;
 
-              if (gateway === 'Razorpay') {
-                  const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
-                  if (!res) {
-                      showToast("Razorpay SDK failed to load", "error");
-                      setLoading(false);
-                      return;
-                  }
-
-                  const options = {
-                      key: key,
-                      amount: Math.round(amount * 100),
-                      currency: "INR",
-                      name: "Geeta Stores",
-                      description: "POS Payment",
-                      order_id: razorpayOrderId,
-                      handler: async function (response: any) {
-                          await handleVerifyPayment(orderId, response.razorpay_payment_id);
-                      },
-                      prefill: {
-                          name: selectedCustomer?.name || "Walk-in Customer",
-                          contact: selectedCustomer?.phone || undefined,
-                          email: selectedCustomer?.email || undefined
-                      },
-                      theme: {
-                          color: "#3399cc"
-                      }
-                  };
-                  const rzp1 = new (window as any).Razorpay(options);
-                  rzp1.open();
-                  setLoading(false); // Modal is open, we can stop spinner
-              } else if (gateway === 'Cashfree') {
-                  const res = await loadScript("https://sdk.cashfree.com/js/v3/cashfree.js");
-                  if (!res) {
-                      showToast("Cashfree SDK failed to load", "error");
-                      setLoading(false);
-                      return;
-                  }
-                  const cashfree = new (window as any).Cashfree({
-                      mode: isSandbox ? "sandbox" : "production"
-                  });
-                  cashfree.checkout({
-                      paymentSessionId: paymentSessionId,
-                      redirectTarget: "_modal",
-                  }).then((result: any) => {
-                       // Optimistic verification or rely on backend webhook.
-                       // For POS, we'll try to verify if we get a cue, but Cashfree JS promise resolves on close/completion.
-                       // We'll Trigger verify
-                       handleVerifyPayment(orderId, "CF_References_Checked_Backend");
-                  });
+              if (gateway === 'PhonePe' && redirectUrl) {
+                  sessionStorage.setItem(
+                    'admin_pos_pending_payment',
+                    JSON.stringify({ orderId, merchantTransactionId })
+                  );
+                  window.location.href = redirectUrl;
                   setLoading(false);
+                  return;
               }
+
+              showToast("Unsupported payment gateway", "error");
+              setLoading(false);
           } else {
                showToast(response.message || "Failed to initiate payment", "error");
                setLoading(false);
@@ -3929,7 +3890,7 @@ const AdminPOSOrders = () => {
 
                            {showPaymentDropdown && (
                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
-                                   {['Cash', 'Razorpay', 'Cashfree', 'Credit'].map((method) => (
+                                   {['Cash', 'PhonePe', 'Credit'].map((method) => (
                                        <div
                                            key={method}
                                            onClick={() => setPaymentMethod(method)}
@@ -4475,7 +4436,7 @@ const AdminPOSOrders = () => {
                                </button>
                               {showPaymentDropdown && (
                                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden p-1">
-                                      {['Cash', 'Razorpay', 'Cashfree', 'Credit'].map((method) => (
+                                      {['Cash', 'PhonePe', 'Credit'].map((method) => (
                                           <div
                                               key={method}
                                               onClick={() => { setPaymentMethod(method); setShowPaymentDropdown(false); }}
@@ -5895,18 +5856,10 @@ const AdminPOSOrders = () => {
 
                      <div className="space-y-3">
                         <button
-                          onClick={() => handlePaymentSelection('Razorpay')}
+                          onClick={() => handlePaymentSelection('PhonePe')}
                           className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[var(--primary-color)] hover:bg-[var(--primary-alpha-10)] transition-all"
                         >
-                            <span className="font-semibold text-gray-700 group-hover:text-[var(--primary-darker)]">Razorpay</span>
-                            <span className="text-gray-300 group-hover:text-[var(--primary-color)]">→</span>
-                        </button>
-
-                        <button
-                          onClick={() => handlePaymentSelection('Cashfree')}
-                          className="w-full group flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:border-[var(--primary-color)] hover:bg-[var(--primary-alpha-10)] transition-all"
-                        >
-                            <span className="font-semibold text-gray-700 group-hover:text-[var(--primary-darker)]">Cashfree</span>
+                            <span className="font-semibold text-gray-700 group-hover:text-[var(--primary-darker)]">PhonePe (Online)</span>
                             <span className="text-gray-300 group-hover:text-[var(--primary-color)]">→</span>
                         </button>
 

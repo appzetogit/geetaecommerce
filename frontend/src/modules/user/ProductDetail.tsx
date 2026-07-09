@@ -24,9 +24,9 @@ import { calculateProductPrice, getApplicableUnitPrice } from '../../utils/price
 import {
   findCartItemForPrimaryVariant,
   getVariantGallery,
-  getVariantChipLabel,
   getVariantDisplayLabel,
   getVariantId,
+  getVariantImage,
   getVariantLabel,
   matchesCartVariant,
   normalizeCustomerVariations,
@@ -302,15 +302,37 @@ export default function ProductDetail() {
 
   const variantStock = selectedVariant?.stock !== undefined ? selectedVariant.stock : (product?.stock || 0);
   const isVariantAvailable = selectedVariant?.status !== "Sold out" && (variantStock > 0 || variantStock === 0); // 0 means unlimited
-  const variantOptions = customerVariations.length
-    ? customerVariations.map((variant: any, index: number) => ({
+
+  const variantCardOptions = useMemo(() => {
+    if (!product || !customerVariations.length) return [];
+    return customerVariations.map((variant: any, index: number) => {
+      const { displayPrice, mrp } = calculateProductPrice(product, index);
+      const stock = variant.stock !== undefined ? Number(variant.stock) : undefined;
+      const isSoldOut = variant.status === "Sold out";
+      const isOutOfStock = isSoldOut || (stock !== undefined && stock < 0);
+      const inStock = !isSoldOut && (stock === undefined || stock > 0 || stock === 0);
+      return {
         key: variant._id || variant.id || `variant-${index}`,
         index,
-        title: getVariantChipLabel(variant, product) || `Variant ${index + 1}`,
-        status: variant.status,
-        stock: variant.stock,
-      }))
-    : [];
+        title: getVariantDisplayLabel(variant, product) || getVariantLabel(variant) || `Variant ${index + 1}`,
+        image: getVariantImage(variant),
+        displayPrice,
+        mrp,
+        stock,
+        isOutOfStock: !inStock,
+        inStock,
+      };
+    });
+  }, [customerVariations, product]);
+
+  const formatVariantPriceParts = (amount: number) => {
+    const safe = Number.isFinite(amount) ? amount : 0;
+    const [whole, fraction = "00"] = safe.toFixed(2).split(".");
+    return {
+      whole: Number(whole).toLocaleString("en-IN"),
+      fraction,
+    };
+  };
 
   const currentImage = allImages[selectedImageIndex] || product?.imageUrl || "";
 
@@ -817,21 +839,12 @@ export default function ProductDetail() {
 
           {/* Variant Selection */}
           {hasVariations && (
-            <div className="mb-4">
-              <label className="block text-xs md:text-sm font-medium text-neutral-700 mb-2">
-                Select {product.variationName || product.variationType || "variant"}
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {variantOptions.map((variantOption: {
-                  key: string;
-                  index: number;
-                  title: string;
-                  status?: string;
-                  stock?: number;
-                }) => {
-                  const vTitle = variantOption.title;
-                  const isOutOfStock = variantOption.status === "Sold out";
+            <div className="mb-3">
+              <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
+                {variantCardOptions.map((variantOption) => {
                   const isSelected = variantOption.index === effectiveVariantIndex;
+                  const priceParts = formatVariantPriceParts(variantOption.displayPrice);
+                  const showMrp = variantOption.mrp > variantOption.displayPrice;
 
                   return (
                     <button
@@ -841,31 +854,55 @@ export default function ProductDetail() {
                         setSelectedVariantIndex(variantOption.index);
                         setSelectedImageIndex(0);
                       }}
-                      disabled={isOutOfStock}
-                      className={`relative min-w-[70px] transition-all duration-200`}
+                      disabled={variantOption.isOutOfStock}
+                      className={`relative flex-shrink-0 w-[96px] md:w-[104px] rounded-md border bg-white p-1.5 text-left transition-all ${
+                        isSelected
+                          ? "border-[var(--customer-primary-dark)] shadow-sm"
+                          : "border-neutral-200 hover:border-neutral-300"
+                      } ${variantOption.isOutOfStock ? "opacity-60 cursor-not-allowed" : ""}`}
                     >
-                      <div
-                        className={`
-                          rounded-xl border-2 px-4 py-2.5 flex items-center justify-center transition-all
-                          ${isSelected
-                            ? "border-[var(--customer-primary-dark)] bg-[var(--customer-primary-alpha-10)] shadow-sm"
-                            : "border-neutral-200 bg-neutral-50 hover:border-neutral-300"}
-                          ${isOutOfStock ? "opacity-50 cursor-not-allowed" : ""}
-                        `}
-                      >
-                        <span
-                          className={`text-xs md:text-sm font-bold leading-tight whitespace-nowrap ${
-                            isSelected ? "text-[var(--customer-primary-dark)]" : "text-neutral-700"
-                          }`}
-                        >
-                          {vTitle}
+                      <div className="h-14 w-full mb-1 rounded bg-neutral-50 flex items-center justify-center overflow-hidden">
+                        {variantOption.image ? (
+                          <img
+                            src={variantOption.image}
+                            alt={variantOption.title}
+                            className="max-h-full max-w-full object-contain"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <span className="text-sm text-neutral-300 font-bold">
+                            {variantOption.title.charAt(0).toUpperCase()}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-[10px] font-semibold text-neutral-900 line-clamp-2 leading-tight mb-0.5 min-h-[1.5rem]">
+                        {variantOption.title}
+                      </p>
+
+                      <div className="leading-none">
+                        <span className="text-[10px] text-neutral-900">₹</span>
+                        <span className="text-sm font-semibold text-neutral-900">
+                          {priceParts.whole}
+                        </span>
+                        <span className="text-[8px] align-super text-neutral-700">
+                          {priceParts.fraction}
                         </span>
                       </div>
-                      {isOutOfStock && (
-                        <div className="absolute -top-1 -right-1 bg-[var(--customer-primary)] text-white text-[8px] px-1.5 py-0.5 rounded-full uppercase font-bold shadow-sm z-10">
-                          Sold
-                        </div>
+
+                      {showMrp && (
+                        <p className="text-[9px] text-neutral-400 line-through leading-tight">
+                          ₹{variantOption.mrp.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                        </p>
                       )}
+
+                      <p
+                        className={`text-[9px] mt-0.5 leading-tight ${
+                          variantOption.inStock ? "text-green-700" : "text-neutral-400"
+                        }`}
+                      >
+                        {variantOption.inStock ? "In stock" : "Out of stock"}
+                      </p>
                     </button>
                   );
                 })}
@@ -873,14 +910,16 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {/* Quantity/Pack */}
-          <p className="text-sm md:text-base text-neutral-600 mb-1">
-            {variantTitle}
-          </p>
+          {/* Price section — compact when variants already show per-card pricing */}
+          {!hasVariations && (
+            <p className="text-sm text-neutral-600 mb-1">
+              {variantTitle}
+            </p>
+          )}
 
           {/* Price section */}
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-xl font-bold text-neutral-900">
+          <div className={`flex items-center gap-1.5 ${hasVariations ? "mb-1 mt-1" : "mb-1.5"}`}>
+            <span className={`font-bold text-neutral-900 ${hasVariations ? "text-lg" : "text-xl"}`}>
               ₹{variantPrice.toLocaleString('en-IN')}
             </span>
             {hasDiscount && (
@@ -899,7 +938,7 @@ export default function ProductDetail() {
 
           {/* Stock Status */}
           {variantStock !== 0 && variantStock !== undefined && variantStock !== null && (
-            <p className="text-sm text-neutral-600 mb-1">
+            <p className={`text-neutral-600 mb-1 ${hasVariations ? "text-xs" : "text-sm"}`}>
               {variantStock > 0 ? `${variantStock} in stock` : "Out of stock"}
             </p>
           )}

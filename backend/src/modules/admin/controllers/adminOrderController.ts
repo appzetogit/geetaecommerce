@@ -24,6 +24,12 @@ import {
   resolveOrderItemVariantId,
   variantsFromProductDoc,
 } from "../../product/variantHelpers";
+import {
+  buildPhonePeMerchantTransactionId,
+  initiatePhonePePayment,
+  isPhonePeConfigured,
+} from "../../../services/phonepeService";
+import { completePosOnlinePayment } from "../../pos/completePosOnlinePayment";
 
 /**
  * Get all orders with filters
@@ -1616,83 +1622,71 @@ export const initiatePOSOnlineOrder = asyncHandler(
     order.items = itemIds;
     await order.save();
 
-    // Initiate Gateway Payment
+    // Initiate PhonePe payment
     const amountInPaise = Math.round(subtotal * 100);
+    const normalizedGateway = String(gateway || "").toLowerCase();
+    const usePhonePe =
+      normalizedGateway === "phonepe" ||
+      normalizedGateway === "online" ||
+      !normalizedGateway;
 
-    if (gateway === 'Razorpay') {
-        const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64');
-        try {
-            const razorpayResponse = await axios.post('https://api.razorpay.com/v1/orders', {
-                amount: amountInPaise,
-                currency: "INR",
-                receipt: order.orderNumber,
-                notes: { order_id: order._id.toString() }
-            }, {
-                headers: { 'Authorization': `Basic ${auth}` }
-            });
-
-            return res.status(200).json({
-                success: true,
-                data: {
-                    gateway: 'Razorpay',
-                    orderId: order._id,
-                    razorpayOrderId: razorpayResponse.data.id,
-                    amount: subtotal,
-                    key: process.env.RAZORPAY_KEY_ID,
-                    customer: {
-                        name: customer.name,
-                        email: customer.email,
-                        contact: customer.phone
-                    }
-                }
-            });
-        } catch (error: any) {
-            console.error("Razorpay Error:", error.response?.data || error);
-            return res.status(500).json({ success: false, message: "Gateway Error" });
-        }
-    } else if (gateway === 'Cashfree') {
-        try {
-            const baseUrl = process.env.CASHFREE_MODE === 'production'
-                ? 'https://api.cashfree.com/pg'
-                : 'https://sandbox.cashfree.com/pg';
-
-            const cashfreeResponse = await axios.post(`${baseUrl}/orders`, {
-                order_id: `pos_${order._id}_${Date.now()}`, // Unique Order ID required by CF
-                order_amount: subtotal,
-                order_currency: "INR",
-                customer_details: {
-                    customer_id: customer._id.toString(),
-                    customer_email: customer.email || "pos@example.com",
-                    customer_phone: customer.phone || "9999999999"
-                },
-                order_meta: {
-                    return_url: `${process.env.FRONTEND_URL || 'http://localhost:5173/'}admin/pos/success?order_id=${order._id}` // Not strictly used in seamless/popup but required
-                }
-            }, {
-                headers: {
-                    'x-client-id': process.env.CASHFREE_APP_ID,
-                    'x-client-secret': process.env.CASHFREE_SECRET_KEY,
-                    'x-api-version': '2023-08-01'
-                }
-            });
-
-            return res.status(200).json({
-                success: true,
-                data: {
-                    gateway: 'Cashfree',
-                    orderId: order._id,
-                    paymentSessionId: cashfreeResponse.data.payment_session_id,
-                    amount: subtotal,
-                    isSandbox: process.env.CASHFREE_MODE !== 'production'
-                }
-            });
-        } catch (error: any) {
-            console.error("Cashfree Error:", error.response?.data || error);
-            return res.status(500).json({ success: false, message: "Gateway Error" });
-        }
+    if (!usePhonePe) {
+      return res.status(400).json({ success: false, message: "Invalid Gateway. Use PhonePe or Online." });
     }
 
-    return res.status(400).json({ success: false, message: "Invalid Gateway" });
+    if (!isPhonePeConfigured()) {
+      return res.status(500).json({
+        success: false,
+        message: "PhonePe is not configured. Set PHONEPE_MERCHANT_ID and PHONEPE_SALT_KEY.",
+      });
+    }
+
+    try {
+      const merchantTransactionId = buildPhonePeMerchantTransactionId(
+        "POS",
+        order._id.toString()
+      );
+      const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(
+        /\/$/,
+        ""
+      );
+      const redirectUrl = `${frontendUrl}/admin/pos/success?order_id=${order._id}&merchantTransactionId=${merchantTransactionId}`;
+
+      const phonePeResult = await initiatePhonePePayment({
+        merchantTransactionId,
+        merchantUserId: customer._id.toString(),
+        amountPaise: amountInPaise,
+        redirectUrl,
+        mobileNumber: customer.phone || "9999999999",
+      });
+
+      order.paymentMethod = "PhonePe";
+      order.paymentId = merchantTransactionId;
+      order.adminNotes = "POS Online Order via PhonePe";
+      await order.save();
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          gateway: "PhonePe",
+          orderId: order._id,
+          merchantTransactionId,
+          redirectUrl: phonePeResult.redirectUrl,
+          amount: subtotal,
+          customer: {
+            name: customer.name,
+            email: customer.email,
+            contact: customer.phone,
+          },
+        },
+      });
+    } catch (error: any) {
+      console.error("PhonePe Error:", error.response?.data || error.message || error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "PhonePe gateway error",
+      });
+    }
   }
 );
 
@@ -1701,94 +1695,20 @@ export const initiatePOSOnlineOrder = asyncHandler(
  */
 export const verifyPOSPayment = asyncHandler(
   async (req: Request, res: Response) => {
-    const { orderId, paymentId } = req.body;
+    const { orderId, paymentId, merchantTransactionId } = req.body;
+    const paymentRef = merchantTransactionId || paymentId;
 
-    const order = await Order.findById(orderId);
-    if (!order) {
-        return res.status(404).json({ success: false, message: "Order not found" });
+    const result = await completePosOnlinePayment(req, orderId, paymentRef);
+    if (!result.success) {
+      return res.status(result.message === "Order not found" ? 404 : 400).json({
+        success: false,
+        message: result.message,
+      });
     }
-
-    order.paymentStatus = "Paid";
-    order.status = "Delivered"; // Auto deliver for POS
-    order.deliveryBoyStatus = "Delivered";
-    order.deliveredAt = new Date();
-    order.adminNotes = (order.adminNotes || "") + `\nPayment Verified (ID: ${paymentId})`;
-
-    await order.save();
-
-    // --- STOCK MANAGEMENT for Online POS orders when verified ---
-    const orderItems = await OrderItem.find({ order: order._id });
-    for (const item of orderItems) {
-        if (item.product) {
-            const product = await Product.findById(item.product);
-            if (product) {
-                const prevStock = product.stock;
-                const soldQty = item.quantity;
-
-                // For Online orders, we reduce from main stock or variation if identifiable
-                // Since initiatePOSOnlineOrder doesn't store variationId in orderItem yet,
-                // we'll at least reduce from total stock if SKU matches variation we can try to find it.
-
-                let stockUpdated = false;
-                if (item.sku && product.variations) {
-                    const vIndex = product.variations.findIndex(v => v.sku === item.sku);
-                    if (vIndex > -1) {
-                        const prevVarStock = product.variations[vIndex].stock || 0;
-                        product.variations[vIndex].stock = Math.max(0, prevVarStock - soldQty);
-                        product.stock = Math.max(0, prevStock - soldQty);
-                        await product.save();
-
-                        await StockLedger.create({
-                            product: product._id,
-                            variationId: product.variations[vIndex]._id,
-                            sku: item.sku,
-                            quantity: soldQty,
-                            type: "OUT",
-                            source: "POS",
-                            referenceId: order._id,
-                            previousStock: prevVarStock,
-                            newStock: product.variations[vIndex].stock,
-                            admin: req.user?.userId
-                        });
-                        stockUpdated = true;
-                    }
-                }
-
-                if (!stockUpdated) {
-                    product.stock = Math.max(0, prevStock - soldQty);
-                    await product.save();
-
-                    await StockLedger.create({
-                        product: product._id,
-                        sku: item.sku || product.sku || "N/A",
-                        quantity: soldQty,
-                        type: "OUT",
-                        source: "POS",
-                        referenceId: order._id,
-                        previousStock: prevStock,
-                        newStock: product.stock,
-                        admin: req.user?.userId
-                    });
-                }
-
-                // --- SOCKET EMIT ---
-                const io = req.app.get("io");
-                if (io) {
-                    io.emit("stock-update", {
-                        productId: product._id,
-                        newStock: product.stock
-                    });
-                }
-            }
-        }
-    }
-
-    // Update items status
-    await OrderItem.updateMany({ order: order._id }, { status: "Delivered" });
 
     return res.status(200).json({
-        success: true,
-        message: "Payment verified and Order completed"
+      success: true,
+      message: result.message,
     });
   }
 );

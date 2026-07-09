@@ -4,6 +4,12 @@ import mongoose from "mongoose";
 import { asyncHandler } from "../../../utils/asyncHandler";
 import Customer from "../../../models/Customer";
 import CreditTransaction from "../../../models/CreditTransaction";
+import {
+  buildPhonePeMerchantTransactionId,
+  getPhonePePaymentStatus,
+  initiatePhonePePayment,
+  isPhonePeConfigured,
+} from "../../../services/phonepeService";
 
 import Order from "../../../models/Order";
 
@@ -128,8 +134,6 @@ export const addCredit = asyncHandler(async (req: Request, res: Response) => {
     }
 });
 
-import axios from "axios";
-
 /**
  * Initiate Online Credit Payment
  */
@@ -146,84 +150,79 @@ export const initiateCreditPayment = asyncHandler(async (req: Request, res: Resp
     }
 
     const amountInPaise = Math.round(parseFloat(amount) * 100);
-    const receiptId = `RCPT_${Date.now()}`;
+    const normalizedGateway = String(gateway || "").toLowerCase();
+    const usePhonePe =
+      normalizedGateway === "phonepe" ||
+      normalizedGateway === "online" ||
+      !normalizedGateway;
 
-    if (gateway === 'Razorpay') {
-        const auth = Buffer.from(`${process.env.RAZORPAY_KEY_ID}:${process.env.RAZORPAY_KEY_SECRET}`).toString('base64');
-        try {
-            const razorpayResponse = await axios.post('https://api.razorpay.com/v1/orders', {
-                amount: amountInPaise,
-                currency: "INR",
-                receipt: receiptId,
-                notes: { customer_id: customer._id.toString(), type: "Credit_Repayment" }
-            }, {
-                headers: { 'Authorization': `Basic ${auth}` }
-            });
-
-            return res.status(200).json({
-                success: true,
-                data: {
-                    gateway: 'Razorpay',
-                    razorpayOrderId: razorpayResponse.data.id,
-                    amount: parseFloat(amount),
-                    key: process.env.RAZORPAY_KEY_ID
-                }
-            });
-        } catch (error: any) {
-            console.error("Razorpay Error:", error.response?.data || error);
-            return res.status(500).json({ success: false, message: "Device Error: Razorpay init failed" });
-        }
-    } else if (gateway === 'Cashfree') {
-        try {
-             const cashfreeResponse = await axios.post(`${process.env.CASHFREE_MODE === 'production' ? 'https://api.cashfree.com' : 'https://sandbox.cashfree.com'}/pg/orders`, {
-                order_id: `CF_${Date.now()}_${customerId.toString().slice(-4)}`,
-                order_amount: parseFloat(amount),
-                order_currency: "INR",
-                customer_details: {
-                    customer_id: customer._id.toString(),
-                    customer_email: customer.email || "pos@geetastores.com",
-                    customer_phone: customer.phone || "9999999999"
-                },
-                order_meta: {
-                    return_url: `${process.env.FRONTEND_URL || 'http://localhost:5173/'}admin/pos/credit/verify?order_id={order_id}`
-                }
-            }, {
-                headers: {
-                    'x-client-id': process.env.CASHFREE_APP_ID,
-                    'x-client-secret': process.env.CASHFREE_SECRET_KEY,
-                    'x-api-version': '2023-08-01'
-                }
-            });
-
-            return res.status(200).json({
-                success: true,
-                data: {
-                    gateway: 'Cashfree',
-                    orderId: cashfreeResponse.data.order_id,
-                    paymentSessionId: cashfreeResponse.data.payment_session_id,
-                    amount: parseFloat(amount),
-                    isSandbox: process.env.CASHFREE_MODE !== 'production'
-                }
-            });
-        } catch (error: any) {
-            console.error("Cashfree Error:", error.response?.data || error);
-            return res.status(500).json({ success: false, message: "Device Error: Cashfree init failed" });
-        }
+    if (!usePhonePe) {
+      return res.status(400).json({ success: false, message: "Invalid Gateway. Use PhonePe or Online." });
     }
 
-    return res.status(400).json({ success: false, message: "Invalid Gateway" });
+    if (!isPhonePeConfigured()) {
+      return res.status(500).json({
+        success: false,
+        message: "PhonePe is not configured. Set PHONEPE_MERCHANT_ID and PHONEPE_SALT_KEY.",
+      });
+    }
+
+    try {
+      const merchantTransactionId = buildPhonePeMerchantTransactionId(
+        "CREDIT",
+        customer._id.toString()
+      );
+      const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(
+        /\/$/,
+        ""
+      );
+      const portalPrefix =
+        req.user?.userType === "Seller" ? "/seller" : "/admin";
+      const redirectUrl = `${frontendUrl}${portalPrefix}/pos/credit/verify?customerId=${customerId}&amount=${amount}&merchantTransactionId=${merchantTransactionId}`;
+
+      const phonePeResult = await initiatePhonePePayment({
+        merchantTransactionId,
+        merchantUserId: customer._id.toString(),
+        amountPaise: amountInPaise,
+        redirectUrl,
+        mobileNumber: customer.phone || "9999999999",
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          gateway: "PhonePe",
+          merchantTransactionId,
+          redirectUrl: phonePeResult.redirectUrl,
+          amount: parseFloat(amount),
+        },
+      });
+    } catch (error: any) {
+      console.error("PhonePe Credit Error:", error.response?.data || error.message || error);
+      return res.status(500).json({
+        success: false,
+        message: error.message || "PhonePe init failed",
+      });
+    }
 });
 
 /**
  * Verify Online Credit Payment
  */
 export const verifyCreditPayment = asyncHandler(async (req: Request, res: Response) => {
-    const { customerId, amount, paymentId, gateway } = req.body;
+    const { customerId, amount, paymentId, merchantTransactionId, gateway } = req.body;
     const adminId = req.user?.userId;
+    const paymentRef = merchantTransactionId || paymentId;
 
-    // In a real production environment, you MUST verify the signature/payment status with the Gateway server-side here.
-    // For now, mirroring the Order verification logic which trusts the client's success callback for POS speed (as staff is present).
-    // Ideally: call Razorpay/Cashfree GET /payments/{id} to confirm status.
+    if (paymentRef && isPhonePeConfigured()) {
+      const status = await getPhonePePaymentStatus(paymentRef);
+      if (!status.success) {
+        return res.status(400).json({
+          success: false,
+          message: `Payment not completed (${status.state || "UNKNOWN"})`,
+        });
+      }
+    }
 
     const session = await mongoose.startSession();
     session.startTransaction();
