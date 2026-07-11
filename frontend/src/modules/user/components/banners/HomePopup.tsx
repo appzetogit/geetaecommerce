@@ -53,14 +53,15 @@ export default function HomePopup() {
             </svg>
          </button>
 
-         <div className="relative h-64 sm:h-72 bg-gray-100">
+         <div className="relative bg-gray-50 flex items-center justify-center min-h-[200px] max-h-[55vh]">
             <img
-                src={popupData.image}
-                alt={popupData.title}
-                className="w-full h-full object-cover"
+                src={popupData.image || popupData.imageUrl}
+                alt={popupData.title || 'Offer'}
+                className="w-full h-auto max-h-[55vh] object-contain"
             />
-            {/* Gradient overlay for text legibility if needed */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+            {(popupData.title || popupData.subtitle) && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+            )}
          </div>
 
          <div className="p-6 text-center relative -mt-6 bg-white rounded-t-3xl">
