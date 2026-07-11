@@ -6,6 +6,7 @@ import { getProductById } from '../../../../services/api/customerProductService'
 import { calculateCardPrice } from '../../../../utils/priceUtils';
 import { mapApiProductForCustomerDisplay } from '../../../../utils/customerVariantUtils';
 import { useLocation } from '../../../../hooks/useLocation';
+import BannerSlider from './BannerSlider';
 
 // Admin-managed Customer App Theme tokens. We intentionally read these instead
 // of the header-category palette so admin-created deals respect the brand color
@@ -116,10 +117,8 @@ export default function FlashDealSection() {
     return () => clearInterval(timer);
   }, [targetDate]);
 
-  // Only hide if EXPLICITLY set to inactive by admin OR if no products are available.
-  if (isLoaded && (config.isActive === false || products.length === 0)) {
-    return null;
-  }
+  // Only hide product block if EXPLICITLY inactive or no products — banners still show above.
+  const hideProductSection = isLoaded && (config.isActive === false || products.length === 0);
 
   const TimerBox = ({ value, label }: { value: number; label: string }) => (
     <div className="flex flex-col items-center min-w-[32px] md:min-w-[36px]">
@@ -132,6 +131,11 @@ export default function FlashDealSection() {
 
   return (
     <div className="px-4 md:px-6 lg:px-8 mb-2 mt-4">
+      <div className="mb-3">
+        <BannerSlider position="Flash Deals" />
+      </div>
+
+      {hideProductSection ? null : (
       <div className="rounded-2xl shadow-sm border border-neutral-100 overflow-hidden flex flex-col md:flex-row md:items-stretch">
 
         {/* LEFT SIDE (Desktop Sidebar / Mobile Header) */}
@@ -140,26 +144,42 @@ export default function FlashDealSection() {
         >
              {/* Desktop Background Layer */}
              <div
-                className="absolute inset-0 hidden md:block bg-center bg-cover transition-all duration-500"
+                className="absolute inset-0 hidden md:block transition-all duration-500 overflow-hidden"
                 style={{
-                  backgroundImage: config.flashDealImage ? `url(${config.flashDealImage})` : 'none',
-                  background: !config.flashDealImage ? `linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryLight} 100%)` : undefined
+                  background: !config.flashDealImage
+                    ? `linear-gradient(135deg, ${BRAND.primary} 0%, ${BRAND.primaryLight} 100%)`
+                    : undefined,
                 }}
              >
-               {/* Dark overlay if image is present to make text readable */}
-               {config.flashDealImage && <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />}
+               {config.flashDealImage && (
+                 <img
+                   src={config.flashDealImage}
+                   alt=""
+                   className="w-full h-full object-contain object-center"
+                   aria-hidden
+                 />
+               )}
+               {config.flashDealImage && <div className="absolute inset-0 bg-black/35" />}
              </div>
 
              {/* Mobile Background Layer */}
              <div
-                className="absolute inset-0 md:hidden bg-center bg-cover transition-all duration-500"
+                className="absolute inset-0 md:hidden transition-all duration-500 overflow-hidden"
                 style={{
-                  backgroundImage: config.flashDealImage ? `url(${config.flashDealImage})` : 'none',
-                  background: !config.flashDealImage ? `linear-gradient(135deg, ${BRAND.primaryTint} 33%, #fff 100%)` : undefined
+                  background: !config.flashDealImage
+                    ? `linear-gradient(135deg, ${BRAND.primaryTint} 33%, #fff 100%)`
+                    : undefined,
                 }}
              >
-                {/* Overlay for mobile if image is present */}
-                {config.flashDealImage && <div className="absolute inset-0 bg-black/50" />}
+                {config.flashDealImage && (
+                  <img
+                    src={config.flashDealImage}
+                    alt=""
+                    className="w-full h-full object-contain object-center"
+                    aria-hidden
+                  />
+                )}
+                {config.flashDealImage && <div className="absolute inset-0 bg-black/45" />}
              </div>
 
              <div className="relative z-10 flex flex-col h-full md:justify-center">
@@ -274,6 +294,7 @@ export default function FlashDealSection() {
             </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

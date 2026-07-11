@@ -5,6 +5,7 @@ import { Product } from '../../../../types/domain';
 import { calculateCardPrice } from '../../../../utils/priceUtils';
 import { mapApiProductForCustomerDisplay } from '../../../../utils/customerVariantUtils';
 import { bannerService } from '../../../../services/bannerService';
+import BannerSlider from './BannerSlider';
 
 // Admin-managed Customer App Theme tokens. Replaces the previously hardcoded
 // orange palette so this admin-curated section follows the brand color picked
@@ -87,10 +88,19 @@ export default function DealOfTheDay() {
     return () => clearInterval(interval);
   }, [dealProducts]);
 
-  if (dealProducts.length === 0) return null;
+  if (dealProducts.length === 0) {
+    return (
+      <div className="px-4 md:px-6 lg:px-8 mb-6">
+        <BannerSlider position="Deal of the Day" />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 md:px-6 lg:px-8 mb-6">
+      <div className="mb-4">
+        <BannerSlider position="Deal of the Day" />
+      </div>
       <div
         className="rounded-xl p-6 md:p-8 text-center shadow-lg relative overflow-hidden flex flex-col gap-6"
         style={{
