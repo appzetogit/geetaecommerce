@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ProductCard from "./components/ProductCard";
 import { getProductById } from "../../services/api/customerProductService";
 import { bannerService } from "../../services/bannerService";
+import BannerSlider from "./components/banners/BannerSlider";
 import { useLocation } from "../../hooks/useLocation";
 
 // Use the admin-managed Customer App Theme so the hero band reflects the brand
@@ -69,7 +70,15 @@ export default function FlashDealsPage() {
         </div>
       </div>
 
-      {/* Hero Banner Area */}
+      {/* Admin-uploaded flash deal banners */}
+      <div
+        className="px-4 md:px-6 lg:px-8 pt-4 pb-2"
+        style={{ background: BRAND_GRADIENT }}
+      >
+        <BannerSlider position="Flash Deals" />
+      </div>
+
+      {/* Hero Banner Area — shown when no admin slider images */}
       <div
         className="px-4 md:px-6 lg:px-8 py-6 md:py-10 text-white"
         style={{ background: BRAND_GRADIENT }}

@@ -195,8 +195,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
               variantId: item.variantId || item.product?.selectedVariantId,
               variantTitle: item.variation,
               pack: item.variation || item.product?.pack,
-              price: item.unitPrice ?? item.product?.price,
-              discPrice: item.unitPrice ?? item.product?.discPrice,
+              price:
+                Number(item.unitPrice) > 0
+                  ? item.unitPrice
+                  : item.product?.price ?? item.product?.listing?.minPrice,
+              discPrice:
+                Number(item.unitPrice) > 0
+                  ? item.unitPrice
+                  : item.product?.discPrice ?? item.product?.price ?? item.product?.listing?.minPrice,
           },
           quantity: item.quantity,
           variant: item.variantId || item.variation,

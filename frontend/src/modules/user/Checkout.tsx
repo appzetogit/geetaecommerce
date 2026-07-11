@@ -1612,8 +1612,8 @@ export default function Checkout() {
         <h3 className="text-sm font-bold text-neutral-900 mb-2">Payment Method</h3>
         <div className="flex flex-col gap-2">
           {[
-            { id: 'Cash', label: 'Cash' },
-            { id: 'Razorpay', label: 'Razorpay' },
+            { id: 'Cash', label: 'Cash on Delivery' },
+            { id: 'Razorpay', label: 'Online Payment' },
             { id: 'Cashfree', label: 'Cashfree' }
           ].map((method) => (
             <button
@@ -1912,7 +1912,7 @@ export default function Checkout() {
                                 <div className="flex items-center gap-3">
                                    <div className="w-8 h-8 rounded-full bg-[var(--customer-primary-alpha-20)] flex items-center justify-center text-[var(--customer-primary-dark)] font-bold">R</div>
                                    <div>
-                                       <span className="block font-semibold text-gray-700 group-hover:text-blue-700">Razorpay</span>
+                                       <span className="block font-semibold text-gray-700 group-hover:text-blue-700">Online Payment</span>
                                        {onlineDiscountAmount > 0 && (
                                            <span className="text-[10px] bg-[var(--customer-primary-alpha-20)] text-[var(--customer-primary-dark)] px-1.5 py-0.5 rounded font-bold">₹{(grandTotal - onlineDiscountAmount).toFixed(2)} (-₹{onlineDiscountAmount.toFixed(2)})</span>
                                        )}
