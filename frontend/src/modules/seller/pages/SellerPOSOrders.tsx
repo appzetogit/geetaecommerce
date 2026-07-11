@@ -603,7 +603,17 @@ const SellerPOSOrders = () => {
   // Success/Print Modal
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showModalBreakdown, setShowModalBreakdown] = useState(false);
-  const [lastBillDetails, setLastBillDetails] = useState<{total: number, invoiceNum: string, date: string, time: string, cart: CartItem[], isPaid: boolean, isQuotation?: boolean, quotationEntry?: PurchaseEntryRecord, paymentMethod?: string} | null>(null);
+  const [lastBillDetails, setLastBillDetails] = useState<{total: number, invoiceNum: string, date: string, time: string, cart: CartItem[], isPaid: boolean, isQuotation?: boolean, quotationEntry?: PurchaseEntryRecord, paymentMethod?: string, customerName?: string, customerPhone?: string} | null>(null);
+
+  const captureBillCustomerFields = () => ({
+    customerName: selectedCustomer?.name || customerSearch?.trim() || 'Walk-in Customer',
+    customerPhone: selectedCustomer?.phone || '-',
+  });
+
+  const getBillCustomerDisplay = (details: typeof lastBillDetails) => ({
+    name: details?.customerName || selectedCustomer?.name || customerSearch?.trim() || 'Walk-in Customer',
+    phone: details?.customerPhone || selectedCustomer?.phone || '-',
+  });
 
   // Add Customer Modal State
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
@@ -2086,7 +2096,9 @@ const SellerPOSOrders = () => {
         isPaid: false,
         isQuotation: true,
         quotationEntry: entry,
-        paymentMethod: purchasePaymentMethod
+        paymentMethod: purchasePaymentMethod,
+        customerName: entry.supplier?.name || selectedCustomer?.name || 'Walk-in Customer',
+        customerPhone: entry.supplier?.phone || selectedCustomer?.phone || '-',
       });
       setShowSuccessModal(true);
       showToast('Quotation saved successfully', 'success');
@@ -2962,6 +2974,13 @@ const SellerPOSOrders = () => {
     doc.text(lastBillDetails?.isQuotation ? 'QUOTATION' : (lastBillDetails?.isPaid ? 'PAID' : 'PENDING'), 196, currentY + 10, { align: 'right' });
 
     currentY += 15;
+    const billCustomer = getBillCustomerDisplay(lastBillDetails);
+    doc.text("Customer Name:", 14, currentY);
+    doc.text("Mobile:", 14, currentY + 5);
+    doc.text(String(billCustomer.name), 196, currentY, { align: 'right' });
+    doc.text(String(billCustomer.phone), 196, currentY + 5, { align: 'right' });
+
+    currentY += 12;
     doc.setLineWidth(0.5);
     doc.line(14, currentY, 196, currentY);
     currentY += 5;
@@ -3131,7 +3150,8 @@ const SellerPOSOrders = () => {
         time: new Date().toLocaleTimeString('en-US', { hour12: false }),
         cart: currentCart,
         isPaid: isPaid,
-        paymentMethod: paymentMethod
+        paymentMethod: paymentMethod,
+        ...captureBillCustomerFields(),
     });
 
     setShowModalBreakdown(false);
@@ -3440,7 +3460,8 @@ const SellerPOSOrders = () => {
                   date: new Date().toLocaleDateString('en-IN'),
                   time: new Date().toLocaleTimeString('en-US', { hour12: false }),
                   cart: [...cart],
-                  isPaid: res.data?.paymentStatus === 'Paid' || true // Updates usually imply paid or credit handled
+                  isPaid: res.data?.paymentStatus === 'Paid' || true, // Updates usually imply paid or credit handled
+                  ...captureBillCustomerFields(),
               });
 
               setShowSuccessModal(true);
@@ -5993,6 +6014,14 @@ const SellerPOSOrders = () => {
                   <div className="flex justify-between">
                       <span className="font-bold">Payment Status:</span>
                       <span className="font-bold">{lastBillDetails?.paymentMethod || 'Cash'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                      <span className="font-bold">Customer Name:</span>
+                      <span className="font-bold">{getBillCustomerDisplay(lastBillDetails).name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                      <span className="font-bold">Mobile:</span>
+                      <span className="font-bold">{getBillCustomerDisplay(lastBillDetails).phone}</span>
                   </div>
               </div>
 
