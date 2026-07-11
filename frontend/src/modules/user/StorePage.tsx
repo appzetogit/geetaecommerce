@@ -121,7 +121,7 @@ export default function StorePage() {
                     <img
                         src={bannerImage}
                         alt={storeName}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain object-center bg-neutral-50"
                         onError={handleImageError}
                         loading="eager"
                     />

@@ -8,6 +8,9 @@ import {
 import { generateToken } from "../../../services/jwtService";
 import { asyncHandler } from "../../../utils/asyncHandler";
 
+/** Max simultaneous seller login sessions (devices) allowed per account. */
+const MAX_SELLER_ACTIVE_DEVICES = 5;
+
 /**
  * Send OTP to seller mobile number
  */
@@ -85,16 +88,16 @@ export const verifyOTP = asyncHandler(async (req: Request, res: Response) => {
     });
   }
 
-  // Enforce max 2 active login sessions per seller (per 24 hours)
+  // Enforce max active login sessions per seller (sessions expire after 24h via TTL)
   const activeSessionsCount = await SellerLoginSession.countDocuments({
     sellerId: seller._id,
   });
 
-  if (activeSessionsCount >= 2) {
+  if (activeSessionsCount >= MAX_SELLER_ACTIVE_DEVICES) {
     return res.status(429).json({
       success: false,
       message:
-        "This seller account is already active on 2 devices. Please logout from another device before logging in.",
+        `This seller account is already active on ${MAX_SELLER_ACTIVE_DEVICES} devices. Please logout from another device before logging in.`,
     });
   }
 

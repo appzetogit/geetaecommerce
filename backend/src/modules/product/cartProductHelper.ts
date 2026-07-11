@@ -1,4 +1,5 @@
 import {
+  computeListing,
   getVariantDisplayPrice,
   resolveVariantForCart,
   variantsFromProductDoc,
@@ -16,11 +17,17 @@ export function resolveCartLinePricing(
     cartItem.variantId,
     cartItem.variation
   );
-  const unitPrice = variant
+  let unitPrice = variant
     ? getVariantDisplayPrice(variant)
     : variants.length
       ? getVariantDisplayPrice(variants[0])
       : 0;
+
+  // Legacy products may store sell price on the root document while variants stay at 0.
+  if (unitPrice <= 0) {
+    const listing = computeListing(variants, false, product);
+    unitPrice = listing.minPrice;
+  }
   const stock = variant
     ? Number(variant.stock) || 0
     : getTotalStock(variants);
@@ -61,4 +68,4 @@ export function enrichCartItemProduct(product: any, cartItem: any) {
 }
 
 export const CART_PRODUCT_SELECT =
-  "productName seller status publish category variations gst hsnCode publish popular dealOfDay";
+  "productName seller status publish category variations gst hsnCode publish popular dealOfDay price discPrice compareAtPrice unitPricing tieredPrices mainImage";
